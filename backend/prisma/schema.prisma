@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  // LOCAL/DOCKER: use binary engine for direct Postgres access
+  // VERCEL: comment out engineType below and uncomment accelerateUrl in prisma.service.ts
+  engineType = "binary"
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GameStatus {
+  WAITING
+  ACTIVE
+  FINISHED
+  ABORTED
+}
+
+model User {
+  id           String @id
+  username     String @unique
+  password_hash String
+
+  gamesAsWhite Game[] @relation("WhitePlayer")
+  gamesAsBlack Game[] @relation("BlackPlayer")
+  gamesWon     Game[] @relation("Winner")
+  moves        Move[]
+}
+
+model Game {
+  id         String     @id
+  status     GameStatus
+  white_id   String
+  black_id   String?
+  fen        String
+  pgn        String?
+  turn       String     @default("w")
+  result     String?
+  winner_id  String?
+  created_at DateTime   @default(now())
+  ended_at   DateTime?
+  expires_at DateTime?
+  gamename   String?
+  archived   Boolean    @default(false)
+  archived_at DateTime?
+
+  white  User   @relation("WhitePlayer", fields: [white_id], references: [id])
+  black  User?  @relation("BlackPlayer", fields: [black_id], references: [id])
+  winner User?  @relation("Winner", fields: [winner_id], references: [id])
+  moves  Move[]
+}
+
+model Move {
+  id        String   @id
+  game_id   String
+  ply       Int
+  san       String
+  uci       String
+  fen_after String
+  by_id     String
+  created_at DateTime @default(now())
+
+  game Game @relation(fields: [game_id], references: [id])
+  by   User @relation(fields: [by_id], references: [id])
+
+  @@unique([game_id, ply])
+}
