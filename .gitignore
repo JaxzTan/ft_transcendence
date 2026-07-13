@@ -1,3 +1,8 @@
+# secrets & prisma generated client
+secrets/
+backend/generated/
+backend/.next/
+
 # Logs
 logs
 *.log
@@ -64,3 +69,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+package-lock.json
