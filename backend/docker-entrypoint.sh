@@ -3,7 +3,7 @@ set -e
 
 # Validate required secrets exist
 echo "🔍 Validating secrets..."
-for f in /secrets/db_credentials.txt /secrets/db_password.txt /secrets/chess_engine_credentials.txt; do
+for f in /secrets/db_credentials.txt /secrets/db_password.txt /secrets/ludo_engine_credentials.txt; do
   if [ ! -f "$f" ]; then
     echo "FATAL: Missing secret file $f"
     exit 1
