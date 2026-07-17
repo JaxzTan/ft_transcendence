@@ -26,7 +26,7 @@ RUN mkdir -p /etc/nginx/ssl
 RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/nginx/ssl/transcendence.key \
     -out /etc/nginx/ssl/transcendence.crt \
-    -subj "/C=MY/ST=Selangor/L=Subang Jaya/O=42KL/OU=Transcendence/CN=transcendence-chess"
+    -subj "/C=MY/ST=Selangor/L=Subang Jaya/O=42KL/OU=Transcendence/CN=transcendence-ludo"
 
 # Copy nginx configuration and built React app
 COPY src/nginx/conf/nginx.conf /etc/nginx/nginx.conf

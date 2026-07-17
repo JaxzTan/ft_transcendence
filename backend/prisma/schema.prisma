@@ -51,6 +51,9 @@ model User {
   password_hash String
   rating        Int          @default(0)
   highestRating Int          @default(0)
+  rankedWins    Int          @default(0)
+  rankedLosses  Int          @default(0)
+  rankedDraws   Int          @default(0)
   winStreak     Int          @default(0)
   bestWinStreak Int          @default(0)
   botWins       Int          @default(0)
