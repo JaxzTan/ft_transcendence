@@ -92,24 +92,6 @@ services:
       timeout: 5s
       retries: 3
 
-  ludo-bot:
-    build:
-      context: ./backend/app/ludo-bot
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    networks:
-      - transcendence_network
-    volumes:
-      - ./secrets:/secrets:ro
-    depends_on:
-      ludo-engine:
-        condition: service_started
-    ports:
-      - "3002:3002"
-    environment:
-      ENGINE_URL: ws://ludo-engine:3001
-      JWT_SECRET_FILE: /secrets/ludo_engine_credentials.txt
-
   frontend:
     build:
       context: ./frontend
