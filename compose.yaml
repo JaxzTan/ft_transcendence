@@ -73,8 +73,12 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      # Public HTTPS — localhost + LAN mode.
-      - "443:443"
+      # Public HTTPS — localhost + LAN mode. Host side defaults to 8443:
+      # binding host :443 needs root (or CAP_NET_BIND_SERVICE), which rootless
+      # Docker doesn't have. nginx still listens on :443 *inside* the
+      # container either way. Override via HTTPS_PORT in .env if you've
+      # granted the capability and want the bare port back.
+      - "${HTTPS_PORT:-8443}:443"
       # ngrok upstream. Loopback-bound so only the ngrok agent running on
       # this machine can reach the plain-HTTP listener; LAN stays HTTPS-only.
       # Port comes from .env so compose and `make tunnel` can't disagree.

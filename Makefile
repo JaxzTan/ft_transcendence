@@ -15,13 +15,18 @@ env_get = $(shell sed -n 's/^[[:space:]]*$(1)[[:space:]]*=[[:space:]]*//p' .env 
 # `ngrok http` that fails with a useless error.
 NGROK_PORT    := $(or $(call env_get,NGROK_PORT),8080)
 NGROK_DOMAIN  := $(call env_get,NGROK_DOMAIN)
+# Host-side HTTPS port; see compose.yaml for why this isn't a bare 443.
+HTTPS_PORT    := $(or $(call env_get,HTTPS_PORT),8443)
 NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
 # .env wins if it sets LAN_IP; otherwise detect from the live interface.
 # It can't be a plain .env value because compose's dotenv parser never runs a
 # shell — it would store "$(ipconfig ...)" as literal text — so the detection
 # has to happen here. Leaving it empty in .env is the right default on a
 # laptop that roams between networks.
-LAN_IP        := $(or $(call env_get,LAN_IP),$(shell ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null))
+# Linux: ask the routing table which src IP reaches the internet (works
+# regardless of interface name — enp4s0f0, eth0, wlan0, …). macOS: ipconfig
+# doesn't exist there, so try the common Wi-Fi/Ethernet interface names.
+LAN_IP        := $(or $(call env_get,LAN_IP),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
 
 all: prepare-secrets build start
 
@@ -72,7 +77,7 @@ lan: all
 	@if [ -z "$(LAN_IP)" ]; then echo "❌  No LAN IP on en0/en1 — are you on WiFi?"; exit 1; fi
 	@echo ""
 	@echo "🌐  LAN mode up.  Other devices on this WiFi:"
-	@echo "      https://$(LAN_IP)"
+	@echo "      https://$(LAN_IP):$(HTTPS_PORT)"
 	@echo ""
 	@echo "    Self-signed cert → tap through the browser warning once."
 	@echo "    Nothing shows up? Campus/corporate WiFi client isolation blocks"
