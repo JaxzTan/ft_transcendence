@@ -1,4 +1,7 @@
-# Unified Frontend Dockerfile: React build + TLS nginx
+# Frontend build container.
+# Compiles the React SPA, publishes dist/ into the shared web_dist volume,
+# then EXITS. There is no frontend process at runtime — nginx serves the
+# files. compose gates nginx on this container finishing successfully.
 # ═══════════════════════════════════════════════════════════
 
 # Stage 1: Build React SPA
@@ -9,31 +12,14 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Stage 2: TLS nginx server with self-signed certificates
-FROM debian:bookworm
+# Stage 2: Tiny publisher — carries the built assets and nothing else
+FROM alpine:3
+COPY --from=builder /app/dist /app/dist
 
-# Install nginx with modules + OpenSSL for TLS
-RUN apt-get update && apt-get install -y \
-    nginx-extras \
-    netcat-openbsd \
-    openssl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create secure vault directory for TLS keys
-RUN mkdir -p /etc/nginx/ssl
-
-# Generate Self-Signed TLS certificates (v1.2/v1.3)
-RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/ssl/transcendence.key \
-    -out /etc/nginx/ssl/transcendence.crt \
-    -subj "/C=MY/ST=Selangor/L=Subang Jaya/O=42KL/OU=Transcendence/CN=transcendence-chess"
-
-# Copy nginx configuration and built React app
-COPY src/nginx/conf/nginx.conf /etc/nginx/nginx.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Open ONLY port 443 (HTTPS) to the public
-EXPOSE 443
-
-# Run NGINX in foreground (PID 1 compliant)
-CMD ["nginx", "-g", "daemon off;"]
+# Wipe before copying: a plain overwrite would leave files from a previous
+# build that no longer exist in dist/ (renamed chunks, deleted pages) lying
+# in the volume for nginx to keep serving. -mindepth 1 also catches dotfiles.
+CMD ["sh", "-c", "set -e; \
+    find /dist-out -mindepth 1 -delete; \
+    cp -a /app/dist/. /dist-out/; \
+    echo '✅ SPA published to web_dist volume'"]

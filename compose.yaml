@@ -16,7 +16,9 @@ services:
       - ./secrets:/secrets:ro
       - db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Loopback-only: in LAN mode a bare "5432:5432" would expose Postgres
+      # to every device on the WiFi. Still reachable from the host for psql.
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_bossman}"]
       interval: 5s
@@ -36,22 +38,25 @@ services:
     volumes:
       - ./secrets:/secrets:ro
     ports:
-      - "3000:3000"
+      # Loopback-only: clients always reach the backend through nginx's
+      # /api/ proxy, never directly. Published purely for host-side debugging.
+      - "127.0.0.1:3000:3000"
     depends_on:
       db:
         condition: service_healthy
     networks:
       - transcendence_network
 
+  # Build-only: compiles the SPA into web_dist, then exits 0.
+  # NOT restart:unless-stopped — a container that exits on purpose would be
+  # restarted forever.
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "443:443"
-    depends_on:
-      - backend
+    restart: "no"
+    volumes:
+      - web_dist:/dist-out
     networks:
       - transcendence_network
     develop:
@@ -61,8 +66,35 @@ services:
         - action: rebuild
           path: ./frontend/package.json
 
+  # The only service the browser ever talks to.
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      # Public HTTPS — localhost + LAN mode.
+      - "443:443"
+      # ngrok upstream. Loopback-bound so only the ngrok agent running on
+      # this machine can reach the plain-HTTP listener; LAN stays HTTPS-only.
+      # Port comes from .env so compose and `make tunnel` can't disagree.
+      - "127.0.0.1:${NGROK_PORT:-8080}:80"
+    volumes:
+      # Read-only: nginx serves these, it must never write them.
+      - web_dist:/usr/share/nginx/html:ro
+    depends_on:
+      # Gate on the build FINISHING, not merely starting — otherwise nginx
+      # can come up pointing at an empty volume and serve 404s.
+      frontend:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    networks:
+      - transcendence_network
+
 volumes:
   db_data:
+  web_dist:
 
 secrets:
   chess_engine_credentials:
