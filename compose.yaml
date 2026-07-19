@@ -20,12 +20,30 @@ services:
       # to every device on the WiFi. Still reachable from the host for psql.
       - "127.0.0.1:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_bossman}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_bossman} -d postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
       - transcendence_network
+
+  redis:
+    build:
+      context: ./backend/app/redis
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - transcendence_network
+    volumes:
+      - ./secrets:/secrets:ro
+      - redis_data:/data
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
 
   backend:
     build:
@@ -34,7 +52,10 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      JWT_SECRET_FILE: /secrets/chess_engine_credentials.txt
+      JWT_SECRET_FILE: /secrets/ludo_engine_credentials.txt
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD_FILE: /secrets/redis_password.txt
     volumes:
       - ./secrets:/secrets:ro
     ports:
@@ -44,19 +65,20 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - transcendence_network
 
-  # Build-only: compiles the SPA into web_dist, then exits 0.
-  # NOT restart:unless-stopped — a container that exits on purpose would be
-  # restarted forever.
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    restart: "no"
-    volumes:
-      - web_dist:/dist-out
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    depends_on:
+      - backend
     networks:
       - transcendence_network
     develop:
@@ -98,8 +120,19 @@ services:
 
 volumes:
   db_data:
-  web_dist:
 
 secrets:
-  chess_engine_credentials:
-    file: ./secrets/chess_engine_credentials.txt
+  ludo_engine_credentials:
+    file: ./secrets/ludo_engine_credentials.txt
+  db_credentials:
+    file: ./secrets/db_credentials.txt
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  redis_credentials:
+    file: ./secrets/redis_credentials.txt
+  redis_password:
+    file: ./secrets/redis_password.txt
+  smtp_credentials:
+    file: ./secrets/smtp_credentials.txt

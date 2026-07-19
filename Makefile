@@ -1,7 +1,7 @@
 COMPOSE_FILE   = compose.yaml
 COMPOSE_ENV    = --env-file .env
 SECRET_DIR     = secrets
-JWT_SECRET     = $(SECRET_DIR)/chess_engine_credentials.txt
+JWT_SECRET     = $(SECRET_DIR)/ludo_engine_credentials.txt
 DB_PASSWORD    = $(SECRET_DIR)/db_password.txt
 
 # --- Networking -------------------------------------------------------------
@@ -36,7 +36,7 @@ prepare-secrets:
 	@if [ ! -f $(DB_PASSWORD) ]; then openssl rand -hex 16 > $(DB_PASSWORD); fi
 	@chmod 600 $(DB_PASSWORD) $(JWT_SECRET)
 	@if [ ! -f secrets/db_credentials.txt ]; then echo "db_bossman:transcendence:db" > secrets/db_credentials.txt; fi
-	@echo "🔑 Secrets prepared: db_password, chess_engine_credentials, db_credentials"
+	@echo "🔑 Secrets prepared: db_password, ludo_engine_credentials, db_credentials"
 
 build: prepare-secrets
 	@docker compose -f $(COMPOSE_FILE) $(COMPOSE_ENV) build

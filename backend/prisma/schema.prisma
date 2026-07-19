@@ -1,11 +1,7 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  // LOCAL/DOCKER: use binary engine for direct Postgres access
-  // VERCEL: comment out engineType below and uncomment accelerateUrl in prisma.service.ts
   engineType = "binary"
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -15,59 +11,161 @@ datasource db {
   provider = "postgresql"
 }
 
-enum GameStatus {
-  WAITING
-  ACTIVE
-  FINISHED
-  ABORTED
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum FriendshipStatus {
+  pending
+  accepted
+  blocked
 }
+
+enum UserStatus {
+  online
+  playing
+  away
+  offline
+}
+
+enum PlayerColor {
+  RED
+  GREEN
+  YELLOW
+  BLUE
+}
+
+enum GameStatus {
+  COMPLETED
+  ABANDONED
+}
+
+enum GameType {
+  PVP
+  PVE
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
 
 model User {
-  id           String @id
-  username     String @unique
-  password_hash String
+  id            String       @id
+  username      String       @unique
+  email         String?      @unique
+  password_hash String?      // null for OAuth-only users
+  emailVerified DateTime?
+  displayName   String?
+  rating        Int          @default(0)
+  highestRating Int          @default(0)
+  Wins    Int          @default(0)
+  Losses  Int          @default(0)
+  winStreak     Int          @default(0)
+  bestWinStreak Int          @default(0)
+  botWins       Int          @default(0)
+  humanWins     Int          @default(0)
+  lastLoginAt   DateTime?
+  loginStreak   Int          @default(0)
+  daysActive    Int          @default(0)
+  totalPlayTimeMs Int        @default(0)
+  avatarStyle   String        @default("bottts")
+  avatarPhoto   Bytes?
+  avatarPhotoContentType String?
+  status        UserStatus   @default(offline)
+  disconnectCount Int        @default(0)
+  reconnectCount  Int        @default(0)
 
-  gamesAsWhite Game[] @relation("WhitePlayer")
-  gamesAsBlack Game[] @relation("BlackPlayer")
-  gamesWon     Game[] @relation("Winner")
-  moves        Move[]
+  // Achievement booleans
+  achFirstBlood        Boolean @default(false)
+  achOnFire            Boolean @default(false)
+  achDiceMaster        Boolean @default(false)
+  achBabySteps         Boolean @default(false)
+  achTheDiceLoveMe     Boolean @default(false)
+  achTactician         Boolean @default(false)
+  achMaster            Boolean @default(false)
+  achGrandBotMaster    Boolean @default(false)
+  achWorldChampion     Boolean @default(false)
+  achLoveTheMachine    Boolean @default(false)
+  achft_Transcendence  Boolean @default(false)
+  achSpeedDemon        Boolean @default(false)
+  achUnstoppable       Boolean @default(false)
+  achCleanSweep        Boolean @default(false)
+  achLastLaugh         Boolean @default(false)
+
+  // Ludo result detail counters
+  gamesWithFourPieces  Int  @default(0)
+  gamesWithThreePieces Int  @default(0)
+  gamesWithTwoPieces   Int  @default(0)
+  gamesWithOnePiece    Int  @default(0)
+  gamesWithZeroPieces  Int  @default(0)
+
+  accounts Account[]
+
+  gameParticipants GameParticipant[]
+  sentFriendships     Friendship[] @relation("SentFriendships")
+  receivedFriendships Friendship[] @relation("ReceivedFriendships")
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
+
+// ─── Account (OAuth providers; only for users who sign in via a provider) ────
+
+model Account {
+  id                String  @id
+  userId            String
+  provider          String
+  providerAccountId String
+  access_token      String?
+  refresh_token     String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// ─── Game (historical results only — matchmaking lives in Redis) ─────────────
 
 model Game {
-  id         String     @id
-  status     GameStatus
-  white_id   String
-  black_id   String?
-  fen        String
-  pgn        String?
-  turn       String     @default("w")
-  result     String?
-  winner_id  String?
-  created_at DateTime   @default(now())
-  ended_at   DateTime?
-  expires_at DateTime?
-  gamename   String?
-  archived   Boolean    @default(false)
-  archived_at DateTime?
+  id              String       @id
+  startedAt       DateTime
+  endedAt         DateTime
+  status          GameStatus   @default(COMPLETED)
+  gameType        GameType     @default(PVP)
+  inviteCode      String?      @unique
 
-  white  User   @relation("WhitePlayer", fields: [white_id], references: [id])
-  black  User?  @relation("BlackPlayer", fields: [black_id], references: [id])
-  winner User?  @relation("Winner", fields: [winner_id], references: [id])
-  moves  Move[]
+  participants GameParticipant[]
 }
 
-model Move {
-  id        String   @id
-  game_id   String
-  ply       Int
-  san       String
-  uci       String
-  fen_after String
-  by_id     String
-  created_at DateTime @default(now())
+model GameParticipant {
+  id              String      @id
+  game_id         String
+  user_id         String
+  color           PlayerColor
+  rank            Int         // 1st, 2nd, 3rd, 4th place
+  totalTurns      Int         @default(0)
+  piecesCaptured  Int         @default(0)
+  piecesInGoal    Int         @default(0)  // 0-4
 
-  game Game @relation(fields: [game_id], references: [id])
-  by   User @relation(fields: [by_id], references: [id])
+  game  Game  @relation(fields: [game_id], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([game_id, ply])
+  @@unique([game_id, user_id])
+  @@unique([game_id, color])
+}
+
+// ─── Friendship ──────────────────────────────────────────────────────────────
+
+model Friendship {
+  id        String          @id
+  userId    String
+  friendId  String
+  status    FriendshipStatus @default(pending)
+  createdAt DateTime        @default(now())
+
+  user   User @relation("SentFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("ReceivedFriendships", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
 }
