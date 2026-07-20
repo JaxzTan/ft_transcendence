@@ -70,15 +70,16 @@ services:
     networks:
       - transcendence_network
 
+  # Build-only: compiles the SPA into web_dist, then exits 0.
+  # NOT restart:unless-stopped — a container that exits on purpose would be
+  # restarted forever.
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "443:443"
-    depends_on:
-      - backend
+    restart: "no"
+    volumes:
+      - web_dist:/dist-out
     networks:
       - transcendence_network
     develop:
@@ -120,6 +121,8 @@ services:
 
 volumes:
   db_data:
+  redis_data:
+  web_dist:
 
 secrets:
   ludo_engine_credentials:
