@@ -96,14 +96,8 @@ export class LudoBot {
    * Returns true if the game is still active after this turn.
    */
   async takeTurn(): Promise<boolean> {
-    // Roll dice and publish event
-    const { value: diceValue, legalMoves, bonusRoll } = await this.engine.rollDice(this.gameId);
-    await this.store.publish(this.gameId, JSON.stringify({
-      type: 'dice_rolled',
-      value: diceValue,
-      legalMoves,
-      bonusRoll
-    }));
+    // Roll dice — engine emits dice_rolled event via handleEngineEvent
+    const { value: diceValue, legalMoves } = await this.engine.rollDice(this.gameId);
 
     if (legalMoves.length > 0) {
       // Get current game state for heuristic analysis
@@ -114,22 +108,11 @@ export class LudoBot {
       const bestMove = this.selectBestMove(legalMoves, state, diceValue);
       if (!bestMove) return false;
       
-      // Execute move (engine reads diceValue from pendingDiceValue in state)
-      const { result, state: updatedState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);
-      
-      // Publish move event
-      await this.store.publish(this.gameId, JSON.stringify({
-        type: 'piece_moved',
-        ...result
-      }));
+      // Execute move — engine emits piece_moved and game_ended events via handleEngineEvent
+      const { state: updatedState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);
 
       // Check for win after bot move
       if (updatedState.status === 'finished') {
-        await this.store.publish(this.gameId, JSON.stringify({
-          type: 'game_ended',
-          winner: updatedState.winner,
-          resultDetail: updatedState.resultDetail
-        }));
         return false; // Game finished
       }
     }

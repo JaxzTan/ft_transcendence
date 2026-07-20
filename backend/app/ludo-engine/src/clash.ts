@@ -1,9 +1,10 @@
 import { RedisGameStore } from './redis';
-import type { PlayerColor, ClashState } from './types';
+import { EventPublisher } from './socket/event-publisher';
+import type { PlayerColor, ClashState, GameEvent } from './types';
 
 const ATTACKER_KEYS = ['U','I','O','H','J','K','B','N','M'];
-const CLASH_DURATION = 5000;
-const RECONNECT_WINDOW = 30000;
+const CLASH_DURATION = 5000; //5 seconds
+const RECONNECT_WINDOW = 30000; // 30 seconds to reconnect before forfeit
 
 function randomTarget(): number {
   return Math.floor(Math.random() * 16) + 35; // 35-50
@@ -11,9 +12,11 @@ function randomTarget(): number {
 
 export class ClashManager {
   private store: RedisGameStore;
+  private publisher: EventPublisher;
 
-  constructor(store: RedisGameStore) {
+  constructor(store: RedisGameStore, publisher: EventPublisher) {
     this.store = store;
+    this.publisher = publisher;
   }
 
   async startClash(gameId: string, attacker: PlayerColor, defender: PlayerColor): Promise<void> {
@@ -31,52 +34,37 @@ export class ClashManager {
       defenderPresses: 0
     };
     await this.store.saveClashState(gameId, clashState);
-    await this.store.publish(gameId, JSON.stringify({
+    this.publisher.publish({
       type: 'clash_start',
+      gameId,
       key,
       target,
       duration: CLASH_DURATION / 1000,
       attacker,
       defender
-    }));
+    });
   }
 
-  async handleDisconnect(gameId: string, color: PlayerColor): Promise<{ winner: PlayerColor; loser: PlayerColor } | null> {
+  /**
+   * Freeze the clash due to player disconnect.
+   * Does NOT schedule a timeout — the caller (player-handler) owns the unified disconnect timeout.
+   */
+  async freezeClash(gameId: string, color: PlayerColor): Promise<void> {
     const clash = await this.store.loadClashState(gameId);
-    if (!clash) return null;
+    if (!clash) return;
 
-    // Store disconnect info in Redis for persistence
     clash.disconnectTimestamp = Date.now();
     clash.reconnectDeadline = Date.now() + RECONNECT_WINDOW;
     clash.waitingForReconnect = color;
     await this.store.saveClashState(gameId, clash);
 
-    await this.store.publish(gameId, JSON.stringify({
+    this.publisher.publish({
       type: 'clash_frozen',
+      gameId,
       reason: 'player_disconnected',
       disconnectedPlayer: color,
       reconnectDeadline: clash.reconnectDeadline
-    }));
-
-    // Schedule auto-forfeit when reconnect window expires
-    setTimeout(async () => {
-      const currentClash = await this.store.loadClashState(gameId);
-      if (!currentClash) return;
-      
-      // Only forfeit if still waiting for reconnect and deadline has passed
-      if (currentClash.waitingForReconnect && 
-          currentClash.reconnectDeadline && 
-          Date.now() >= currentClash.reconnectDeadline) {
-        const loser = currentClash.waitingForReconnect;
-        const winner = currentClash.attacker === loser 
-          ? currentClash.defender 
-          : currentClash.attacker;
-        
-        await this.resolveClash(gameId, winner, loser);
-      }
-    }, RECONNECT_WINDOW + 1000);
-
-    return null;
+    });
   }
 
   async handleReconnect(gameId: string, color: PlayerColor): Promise<void> {
@@ -131,13 +119,14 @@ export class ClashManager {
     const clash = await this.store.loadClashState(gameId);
     if (!clash) return;
 
-    await this.store.publish(gameId, JSON.stringify({
+    this.publisher.publish({
       type: 'clash_result',
+      gameId,
       winner,
       loser,
       winnerPresses: winner === clash.attacker ? clash.attackerPresses : clash.defenderPresses,
       loserPresses: loser === clash.attacker ? clash.attackerPresses : clash.defenderPresses
-    }));
+    });
 
     await this.store.clearClashState(gameId);
   }

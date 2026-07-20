@@ -58,6 +58,8 @@ export interface GameState {
   resultSubmitted?: boolean; // Prevents duplicate backend submissions
   botBusy?: boolean; // Prevents overlapping bot turns
   clash?: ClashState;
+  clashMode: boolean; // Whether clash minigame is enabled (false = standard capture)
+  readyPlayers: PlayerColor[]; // Players who have clicked "ready"
 }
 
 export interface MoveResult {
@@ -93,29 +95,9 @@ export type GameEvent =
   | { type: 'dice_rolled'; gameId: string; value: number; legalMoves: LegalMove[]; bonusRoll: boolean }
   | { type: 'piece_moved'; gameId: string; result: MoveResult }
   | { type: 'game_ended'; gameId: string; winner: PlayerColor; resultDetail: string }
+  | { type: 'game_started'; gameId: string }
   | { type: 'player_exited'; gameId: string; color: PlayerColor }
   | { type: 'clash_start'; gameId: string; key: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor }
   | { type: 'clash_frozen'; gameId: string; reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }
   | { type: 'clash_result'; gameId: string; winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number };
 
-// WebSocket event types (preserved for external API compatibility)
-export interface ClientToServerEvents {
-  join_game: (gameId: string, playerColor: PlayerColor) => void;
-  roll_dice: () => void;
-  move_piece: (pieceId: PieceId) => void;
-  clash_input: (key: string) => void;
-  resign: () => void;
-}
-
-export interface ServerToClientEvents {
-  game_joined: (state: GameState) => void;
-  dice_rolled: (value: number, legalMoves: LegalMove[]) => void;
-  piece_moved: (result: MoveResult) => void;
-  clash_start: (data: { key: string; target: number; duration: number }) => void;
-  clash_result: (data: { winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number }) => void;
-  game_ended: (data: { winner?: PlayerColor; resultDetail: string }) => void;
-  error: (message: string) => void;
-  player_exited: (color: PlayerColor) => void;
-  state_update: (data: any) => void;
-  clash_press_registered: (count: number) => void;
-}

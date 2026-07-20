@@ -5,33 +5,6 @@ import { PrismaService } from '../prisma.service';
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async updateOnlineStatus(userId: string, isOnline: boolean) {
-    return this.prisma.db.user.update({
-      where: { id: userId },
-      data: {
-        isOnline,
-        status: isOnline ? 'online' : 'offline',
-      },
-      select: { id: true, isOnline: true, status: true },
-    });
-  }
-
-  async incrementDisconnectCount(userId: string) {
-    return this.prisma.db.user.update({
-      where: { id: userId },
-      data: { disconnectCount: { increment: 1 } },
-      select: { id: true, disconnectCount: true },
-    });
-  }
-
-  async incrementReconnectCount(userId: string) {
-    return this.prisma.db.user.update({
-      where: { id: userId },
-      data: { reconnectCount: { increment: 1 } },
-      select: { id: true, reconnectCount: true },
-    });
-  }
-
   async getPublicProfile(username: string) {
     const user = await this.prisma.db.user.findUnique({
       where: { username },

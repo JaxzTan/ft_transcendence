@@ -9,20 +9,6 @@ export class BoardMapper {
   private static readonly SAFE_TRACK_POSITIONS = [8, 13, 21, 26, 34, 39, 47];
 
   /**
-   * Get all 16 piece IDs in initialization order
-   */
-  static getAllPieceIds(): PieceId[] {
-    const colors: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
-    const pieces: PieceId[] = [];
-    for (const color of colors) {
-      for (let i = 0; i < 4; i++) {
-        pieces.push(`${color}-${i}`);
-      }
-    }
-    return pieces;
-  }
-
-  /**
    * Parse piece ID into color and index
    */
   static parsePieceId(pieceId: PieceId): { color: PlayerColor; index: number } {
@@ -38,41 +24,6 @@ export class BoardMapper {
     if (step < 1 || step > 51) return false;
     const boardPos = this.toTrackPosition(pieceId, step);
     return this.SAFE_TRACK_POSITIONS.includes(boardPos);
-  }
-
-  /**
-   * Check if a step is in the home stretch (52-57)
-   */
-  static isHomeStretch(step: number): boolean {
-    return step >= 52 && step <= 56;
-  }
-
-  /**
-   * Check if a step is in the goal (finished)
-   */
-  static isFinished(step: number): boolean {
-    return step === 57;
-  }
-
-  /**
-   * Check if a step is in prison (hasn't started yet)
-   */
-  static isPrison(step: number): boolean {
-    return step === 0;
-  }
-
-  /**
-   * Check if a piece has exited (sent back to prison)
-   */
-  static isExited(step: number): boolean {
-    return step === -1;
-  }
-
-  /**
-   * Get the color of a piece based on its ID
-   */
-  static getPieceColor(pieceId: PieceId): PlayerColor {
-    return this.parsePieceId(pieceId).color;
   }
 
   /**

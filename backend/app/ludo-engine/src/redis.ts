@@ -10,7 +10,7 @@ const COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
  */
 export class RedisGameStore {
   private client: Redis;
-  private subscriber: Redis;
+  public subscriber: Redis;
 
   constructor(redisUrl?: string) {
     this.client = new Redis(redisUrl || process.env.REDIS_URL || 'redis://redis:6379');
@@ -28,7 +28,7 @@ export class RedisGameStore {
   }
 
   /** Create a new game with all 16 pieces in prison */
-  async createGame(gameId: string, clashMode: boolean): Promise<void> {
+  async createGame(gameId: string, clashMode: boolean = true): Promise<void> {
     const pieces: Piece[] = [];
     for (const color of COLORS) {
       for (let i = 0; i < 4; i++) {
@@ -53,7 +53,8 @@ export class RedisGameStore {
       pendingLegalMoves: [],
       disconnectedPlayers: [],
       status: 'waiting',
-      clash: clashMode ? undefined : undefined
+      clashMode,
+      readyPlayers: [],
     };
     
     await this.saveGameState(gameId, state);
@@ -70,26 +71,6 @@ export class RedisGameStore {
   async saveGameState(gameId: string, state: GameState): Promise<void> {
     await this.client.hset(this.gameKey(gameId), 'state', JSON.stringify(state));
     await this.client.expire(this.gameKey(gameId), 86400);
-  }
-
-  /** Add a player to the game (marks them as active) */
-  async addPlayer(gameId: string, color: PlayerColor): Promise<void> {
-    const state = await this.loadGameState(gameId);
-    if (!state) return;
-    
-    const player = state.players.find(p => p.color === color);
-    if (player) {
-      player.status = 'active';
-      await this.saveGameState(gameId, state);
-    }
-  }
-
-  /** Get player stats */
-  async getPlayerStats(gameId: string, color: PlayerColor): Promise<{ turns: number; captures: number; piecesInGoal: number }> {
-    const state = await this.loadGameState(gameId);
-    const player = state?.players.find(p => p.color === color);
-    if (!player) return { turns: 0, captures: 0, piecesInGoal: 0 };
-    return { ...player.stats };
   }
 
   /** Move history (separate, not part of main state) */
@@ -139,17 +120,6 @@ export class RedisGameStore {
     await this.client.publish(`game:${gameId}`, message);
   }
 
-  /** Delete entire game */
-  async deleteGame(gameId: string): Promise<void> {
-    const keys = [
-      this.gameKey(gameId),
-      this.movesKey(gameId),
-      this.clashKey(gameId)
-    ];
-    await this.client.del(keys);
-  }
-
   private gameKey(gameId: string): string { return `game:${gameId}`; }
   private movesKey(gameId: string): string { return `game:${gameId}:moves`; }
-  private clashKey(gameId: string): string { return `game:${gameId}:clash`; }
 }

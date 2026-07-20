@@ -11,7 +11,7 @@ const WIN_POINTS = 10;
 const LOSS_POINTS = 5;
 
 function generateInviteCode(): string {
-  // 6-char uppercase alphanumeric code
+  // 6-char uppercase alphanumeric code (no I, O, 0, 1 to avoid confusion)
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) {
@@ -31,8 +31,86 @@ export class MatchService {
     this.redis = new Redis(REDIS_URL);
   }
 
-  // ─── PvP: Random auto-matchmaking ─────────────────────────────────────────
-  async findRandomMatch(userId: string) {
+  // ─── Unified Match Creation ───────────────────────────────────────────────
+  /**
+   * Create a match in one of three modes:
+   * - 'pvp': Human vs human (2-4 players), status = WAITING, needs ready check
+   * - 'pve': Human vs bots (1 human + 1-3 bots), status = ACTIVE immediately
+   * - 'hotseat': Hot seat local multiplayer (2-4 humans), status = ACTIVE immediately
+   */
+  async createMatch(
+    userId: string,
+    mode: 'pvp' | 'pve' | 'hotseat',
+    playerCount: number,
+    botCount: number,
+    clashEnabled: boolean = true,
+    color?: string,
+  ) {
+    if (playerCount < 2 || playerCount > 4) {
+      throw new BadRequestException('Player count must be between 2 and 4');
+    }
+    if (botCount < 0 || botCount >= playerCount) {
+      throw new BadRequestException('Bot count must be between 0 and playerCount - 1');
+    }
+    if (mode === 'pvp' && botCount > 0) {
+      throw new BadRequestException('PvP mode cannot have bots');
+    }
+    if (mode === 'pve' && botCount === 0) {
+      throw new BadRequestException('PvE mode must have at least 1 bot');
+    }
+    if (mode === 'hotseat' && botCount > 0) {
+      throw new BadRequestException('Hot seat mode cannot have bots');
+    }
+
+    const gameId = crypto.randomUUID();
+    const totalBots = botCount;
+    const isPvP = mode === 'pvp';
+
+    const updates: Record<string, string> = {
+      id: gameId,
+      status: isPvP ? 'WAITING' : 'ACTIVE',
+      gameType: mode.toUpperCase(),
+      player1_id: userId,
+      player1_color: color || '',
+      clashEnabled: clashEnabled.toString(),
+      createdAt: Date.now().toString(),
+    };
+
+    if (isPvP) {
+      // PvP: invite code for sharing
+      updates.inviteCode = generateInviteCode();
+    } else {
+      // PvE or hotseat: started immediately, fill bot slots
+      updates.startedAt = Date.now().toString();
+      if (totalBots >= 1) updates.player2_id = BOT_ID;
+      if (totalBots >= 2) updates.player3_id = BOT_ID;
+      if (totalBots >= 3) updates.player4_id = BOT_ID;
+    }
+
+    await this.redis.hset(`match:${gameId}`, updates);
+    await this.redis.expire(`match:${gameId}`, 86400);
+
+    const token = this.jwt.sign(
+      {
+        gameId,
+        playerId: userId,
+        role: 'player1',
+        mode,
+        clashEnabled,
+        color: color || undefined,
+      },
+      { expiresIn: '24h' },
+    );
+
+    const result: any = { gameId, token, engineUrl: 'ws://ludo-engine:3001' };
+    if (isPvP) {
+      result.inviteCode = updates.inviteCode;
+    }
+    return result;
+  }
+
+  // ─── Legacy Endpoints (kept for backward compatibility) ───────────────────
+  async findRandomMatch(userId: string, clashEnabled: boolean = true, color?: string) {
     // Scan Redis for a WAITING PvP game with an open slot
     const keys = await this.redis.keys('match:*');
     for (const key of keys) {
@@ -43,37 +121,29 @@ export class MatchService {
         data.player1_id !== userId &&
         !data.player2_id
       ) {
-        return this.joinMatch(data.id, userId);
+        return this.joinMatch(data.id, userId, color);
       }
     }
-    return this.createMatch(userId, 'PVP');
+    return this.createMatch(userId, 'pvp', 4, 0, clashEnabled, color);
   }
 
-  // ─── PvP: Create invite game (share code via chat) ───────────────────────
-  async createInvite(userId: string) {
-    const gameId = crypto.randomUUID();
-    const inviteCode = generateInviteCode();
 
-    await this.redis.hset(`match:${gameId}`, {
-      id: gameId,
-      status: 'WAITING',
-      gameType: 'PVP',
-      inviteCode,
-      player1_id: userId,
-      createdAt: Date.now().toString(),
-    });
-    await this.redis.expire(`match:${gameId}`, 86400);
+  async createInvite(userId: string, clashEnabled: boolean = true, color?: string) {
+    const result = await this.createMatch(userId, 'pvp', 4, 0, clashEnabled, color);
+    // createMatch returns inviteCode for PvP
+    return result;
+  }
 
-    const token = this.jwt.sign(
-      { gameId, playerId: userId, role: 'player1' },
-      { expiresIn: '24h' },
-    );
-
-    return { gameId, inviteCode, token, engineUrl: 'ws://ludo-engine:3001' };
+  async playBot(userId: string, playerCount: number = 2, clashEnabled: boolean = true, color?: string) {
+    if (playerCount !== 2 && playerCount !== 4) {
+      throw new BadRequestException('Player count must be 2 or 4');
+    }
+    const botCount = playerCount - 1;
+    return this.createMatch(userId, 'pve', playerCount, botCount, clashEnabled, color);
   }
 
   // ─── PvP: Join by invite code ────────────────────────────────────────────
-  async joinByInvite(inviteCode: string, userId: string) {
+  async joinByInvite(inviteCode: string, userId: string, color?: string) {
     const keys = await this.redis.keys('match:*');
     for (const key of keys) {
       const data = await this.redis.hgetall(key);
@@ -81,81 +151,25 @@ export class MatchService {
         if (data.player1_id === userId) {
           throw new BadRequestException('You cannot join your own invite');
         }
-        return this.joinMatch(data.id, userId);
+        return this.joinMatch(data.id, userId, color);
       }
     }
     throw new NotFoundException('Invite code not found or expired');
   }
 
-  // ─── PvE: Human vs Bot (2p or 4p) ────────────────────────────────────────
-  async playBot(userId: string, playerCount: number = 2) {
-    if (playerCount !== 2 && playerCount !== 4) {
-      throw new BadRequestException('Player count must be 2 or 4');
-    }
-
-    const gameId = crypto.randomUUID();
-    const totalBots = playerCount - 1;
-
-    const updates: Record<string, string> = {
-      id: gameId,
-      status: 'ACTIVE',
-      gameType: 'PVE',
-      player1_id: userId,
-      startedAt: Date.now().toString(),
-    };
-    if (totalBots >= 1) updates.player2_id = BOT_ID;
-    if (totalBots >= 2) updates.player3_id = BOT_ID;
-    if (totalBots >= 3) updates.player4_id = BOT_ID;
-
-    await this.redis.hset(`match:${gameId}`, updates);
-    await this.redis.expire(`match:${gameId}`, 86400);
-
-    const token = this.jwt.sign(
-      { gameId, playerId: userId, role: 'player1' },
-      { expiresIn: '24h' },
-    );
-
-    return { gameId, token, engineUrl: 'ws://ludo-engine:3001' };
-  }
-
-  // ─── Internal: create a WAITING match ────────────────────────────────────
-  private async createMatch(userId: string, gameType: 'PVP' | 'PVE') {
-    const gameId = crypto.randomUUID();
-    await this.redis.hset(`match:${gameId}`, {
-      id: gameId,
-      status: 'WAITING',
-      gameType,
-      player1_id: userId,
-      createdAt: Date.now().toString(),
-    });
-    await this.redis.expire(`match:${gameId}`, 86400);
-
-    const token = this.jwt.sign(
-      { gameId, playerId: userId, role: 'player1' },
-      { expiresIn: '24h' },
-    );
-
-    return { gameId, token, engineUrl: 'ws://ludo-engine:3001' };
-  }
-
   // ─── Internal: join an existing match by filling next slot ───────────────
-  async joinMatch(gameId: string, userId: string) {
+  async joinMatch(gameId: string, userId: string, color?: string) {
     const data = await this.redis.hgetall(`match:${gameId}`);
     if (!data || !data.id) throw new NotFoundException('Game not found');
     if (data.status !== 'WAITING') throw new ForbiddenException('Game already started');
 
-    if (!data.player2_id) {
-      await this.redis.hset(`match:${gameId}`, 'player2_id', userId, 'status', 'ACTIVE', 'startedAt', Date.now().toString());
-    } else if (!data.player3_id) {
-      await this.redis.hset(`match:${gameId}`, 'player3_id', userId, 'status', 'ACTIVE', 'startedAt', Date.now().toString());
-    } else if (!data.player4_id) {
-      await this.redis.hset(`match:${gameId}`, 'player4_id', userId, 'status', 'ACTIVE', 'startedAt', Date.now().toString());
-    } else {
-      throw new ForbiddenException('Game is full');
-    }
+    const clashEnabled = data.clashEnabled === 'true';
+    const slotKey = !data.player2_id ? 'player2' : !data.player3_id ? 'player3' : 'player4';
+
+    await this.redis.hset(`match:${gameId}`, `${slotKey}_id`, userId, `${slotKey}_color`, color || '', 'status', 'ACTIVE', 'startedAt', Date.now().toString());
 
     const token = this.jwt.sign(
-      { gameId, playerId: userId, role: 'player' },
+      { gameId, playerId: userId, role: 'player', clashEnabled, color: color || undefined },
       { expiresIn: '24h' },
     );
 
@@ -329,6 +343,18 @@ export class MatchService {
     );
 
     return { gameId, token, engineUrl: 'ws://ludo-engine:3001' };
+  }
+
+  // ─── Ready Game ─────────────────────────────────────────────────────────
+  async readyGame(gameId: string, userId: string) {
+    const data = await this.redis.hgetall(`match:${gameId}`);
+    if (!data || !data.id) throw new NotFoundException('Game not found');
+
+    const isPlayer = data.player1_id === userId || data.player2_id === userId ||
+      data.player3_id === userId || data.player4_id === userId;
+    if (!isPlayer) throw new ForbiddenException('You are not a player in this game');
+
+    return { message: 'Player ready', gameId };
   }
 
   // ─── Exit Game ──────────────────────────────────────────────────────────

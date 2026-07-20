@@ -1,98 +1,24 @@
-import { GameState, PlayerColor, LegalMove, MoveResult, MovePieceOutput, PieceId, GameEvent, DisconnectState } from './types';
+import { GameState, PlayerColor, LegalMove, MoveResult, MovePieceOutput, PieceId, GameEvent } from './types';
 import { RedisGameStore } from './redis';
-import { BoardMapper } from './board-mapper';
-
-const COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
-const DISCONNECT_GRACE_MS = 30000; // 30 seconds to reconnect before forfeit
-
-/**
- * MoveValidator - determines legal moves for a given dice roll.
- * Extracted for separation of concerns.
- */
-export class MoveValidator {
-  static getLegalMoves(state: GameState, color: PlayerColor, diceValue: number): LegalMove[] {
-    const moves: LegalMove[] = [];
-    
-    for (const piece of state.pieces.filter(p => p.color === color)) {
-      const from = piece.step;
-      
-      // Skip if exited (step < 0)
-      if (from < 0) continue;
-      
-      // Skip if already finished (step === 57)
-      if (from === 57) continue;
-      
-      // Prison exit rule: can only leave prison on a roll of 6
-      if (from === 0 && diceValue !== 6) continue;
-      
-      const to = from + diceValue;
-      if (to > 57) continue; // overshoot
-      
-      const isHomeEntry = to >= 52 && to <= 56;
-      const isCapture = this.wouldCaptureStatic(state, color, piece.id, to);
-      
-      moves.push({
-        pieceId: piece.id,
-        from,
-        to,
-        isCapture,
-        isHomeEntry
-      });
-    }
-    
-    return moves;
-  }
-
-  static wouldCaptureStatic(state: GameState, excludeColor: PlayerColor, pieceId: PieceId, targetStep: number): boolean {
-    if (targetStep <= 0 || targetStep >= 57) return false;
-    
-    // Check safe zones using BoardMapper (safe zones are track positions 8, 13, 21, 26, 34, 39, 47)
-    if (BoardMapper.isSafeZoneStep(pieceId, targetStep)) return false;
-
-    for (const piece of state.pieces) {
-      if (piece.color === excludeColor || piece.step < 0) continue;
-      const boardPos = BoardMapper.toTrackPosition(piece.id, piece.step);
-      const targetPos = BoardMapper.toTrackPosition(pieceId, targetStep);
-      if (boardPos === targetPos) return true;
-    }
-    return false;
-  }
-
-  static findPieceAtPosition(state: GameState, excludeColor: PlayerColor, targetStep: number): PieceId | undefined {
-    if (targetStep <= 0 || targetStep >= 52) return undefined;
-    
-    for (const piece of state.pieces) {
-      if (piece.color === excludeColor || piece.step < 0) continue;
-      
-      const boardPos = BoardMapper.toTrackPosition(piece.id, piece.step);
-      const targetPos = BoardMapper.toTrackPosition(`${excludeColor}-0`, targetStep);
-      if (boardPos === targetPos) return piece.id;
-    }
-    return undefined;
-  }
-}
-
-/**
- * WinRules - determines win conditions.
- */
-export class WinRules {
-  static checkWinner(state: GameState): PlayerColor | null {
-    for (const player of state.players) {
-      const playerPieces = state.pieces.filter(p => p.color === player.color);
-      if (playerPieces.every(p => p.step === 57)) {
-        return player.color;
-      }
-    }
-    return null;
-  }
-}
+import { MoveValidator } from './move-validator';
+import { WinRules } from './win-rules';
+import { ClashManager } from './clash';
+import { advanceTurnInState } from './player-handler';
+import {
+  handlePlayerDisconnect,
+  handlePlayerReconnect,
+  handlePlayerReady,
+  handlePlayerExit,
+} from './player-handler';
 
 export class LudoEngine {
   private store: RedisGameStore;
   private eventHandler?: (event: GameEvent) => void;
+  private clashManager: ClashManager;
 
-  constructor(store: RedisGameStore) {
+  constructor(store: RedisGameStore, clashManager: ClashManager) {
     this.store = store;
+    this.clashManager = clashManager;
   }
 
   /**
@@ -106,21 +32,6 @@ export class LudoEngine {
 
   private emit(event: GameEvent): void {
     this.eventHandler?.(event);
-  }
-
-  async initializeGame(gameId: string, clashMode: boolean): Promise<void> {
-    await this.store.createGame(gameId, clashMode);
-  }
-
-  async addPlayer(gameId: string, color: PlayerColor): Promise<void> {
-    const state = await this.store.loadGameState(gameId);
-    if (!state) return;
-    
-    const player = state.players.find(p => p.color === color);
-    if (player) {
-      player.status = 'active';
-      await this.store.saveGameState(gameId, state);
-    }
   }
 
   async getGameState(gameId: string): Promise<GameState | null> {
@@ -158,7 +69,7 @@ export class LudoEngine {
         state.turnPhase = 'WAITING_FOR_ROLL';
         state.pendingLegalMoves = [];
         state.pendingDiceValue = undefined;
-        this.advanceTurnInState(state);
+        advanceTurnInState(state);
         await this.store.saveGameState(gameId, state);
         this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll: false });
         return { value: diceValue, legalMoves: [], bonusRoll: false };
@@ -180,7 +91,7 @@ export class LudoEngine {
         state.turnPhase = 'WAITING_FOR_ROLL';
       } else {
         state.turnPhase = 'WAITING_FOR_ROLL';
-        this.advanceTurnInState(state);
+        advanceTurnInState(state);
       }
       await this.store.saveGameState(gameId, state);
       this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll });
@@ -301,7 +212,7 @@ export class LudoEngine {
         state.turnPhase = 'WAITING_FOR_ROLL';
       } else {
         state.turnPhase = 'WAITING_FOR_ROLL';
-        this.advanceTurnInState(state);
+        advanceTurnInState(state);
       }
     }
 
@@ -333,139 +244,22 @@ export class LudoEngine {
     return { result, state };
   }
 
-  private advanceTurnInState(state: GameState): void {
-    const currentIndex = COLORS.indexOf(state.currentTurn);
-    let nextIndex = (currentIndex + 1) % 4;
-    
-    let loopCount = 0;
-    while (loopCount < 4) {
-      const p = state.players[nextIndex];
-      // Skip exited and temporarily disconnected players
-      if (p.status !== 'exited' && p.status !== 'disconnected') {
-        break;
-      }
-      nextIndex = (nextIndex + 1) % 4;
-      loopCount++;
-    }
 
-    if (loopCount >= 4) {
-      state.status = 'finished';
-    }
-    state.currentTurn = COLORS[nextIndex];
-  }
+  // ─── Player lifecycle handlers (delegated to player-handler.ts) ─────────────
 
-  /**
-   * Handle a player disconnect with a grace period.
-   * Instead of immediately exiting, marks the player as 'disconnected'
-   * and schedules a forfeit after DISCONNECT_GRACE_MS.
-   * If the player reconnects within the window, the disconnect is cleared.
-   */
   async handlePlayerDisconnect(gameId: string, color: PlayerColor): Promise<void> {
-    const state = await this.store.loadGameState(gameId);
-    if (!state) return;
-
-    // Check if already disconnected
-    const existing = state.disconnectedPlayers.find(d => d.color === color);
-    if (existing) return; // Already in grace period
-
-    const deadline = Date.now() + DISCONNECT_GRACE_MS;
-    state.disconnectedPlayers.push({
-      color,
-      disconnectedAt: Date.now(),
-      reconnectDeadline: deadline,
-    });
-
-    // Mark player as disconnected (not exited — they can still reconnect)
-    const player = state.players.find(p => p.color === color);
-    if (player && player.status === 'active') {
-      player.status = 'disconnected';
-    }
-
-    // If it's this player's turn, advance to next active player
-    if (state.currentTurn === color && state.status === 'active') {
-      this.advanceTurnInState(state);
-      // Clear any pending moves from the disconnected player
-      state.pendingLegalMoves = [];
-      state.pendingDiceValue = undefined;
-    }
-
-    await this.store.saveGameState(gameId, state);
-    this.emit({ type: 'player_exited', gameId, color });
-
-    // Schedule forfeit after grace period
-    setTimeout(async () => {
-      const currentState = await this.store.loadGameState(gameId);
-      if (!currentState) return;
-
-      const disc = currentState.disconnectedPlayers.find(d => d.color === color);
-      if (!disc) return; // Already reconnected
-
-      // Check if deadline has passed
-      if (Date.now() >= disc.reconnectDeadline) {
-        // Forfeit: permanently exit the player
-        await this.handlePlayerExit(gameId, color);
-      }
-    }, DISCONNECT_GRACE_MS + 1000);
+    return handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, this.clashManager);
   }
 
-  /**
-   * Handle a player reconnecting within the grace period.
-   */
   async handlePlayerReconnect(gameId: string, color: PlayerColor): Promise<void> {
-    const state = await this.store.loadGameState(gameId);
-    if (!state) return;
-
-    const discIndex = state.disconnectedPlayers.findIndex(d => d.color === color);
-    if (discIndex === -1) return; // Not in grace period
-
-    const disc = state.disconnectedPlayers[discIndex];
-    if (Date.now() > disc.reconnectDeadline) {
-      // Too late — player is already forfeited
-      return;
-    }
-
-    // Remove from disconnect list
-    state.disconnectedPlayers.splice(discIndex, 1);
-
-    // Restore player to active
-    const player = state.players.find(p => p.color === color);
-    if (player) {
-      player.status = 'active';
-    }
-
-    await this.store.saveGameState(gameId, state);
+    return handlePlayerReconnect(this.store, gameId, color);
   }
 
-  /**
-   * Permanently exit a player (forfeit).
-   * Sets all pieces to -1, marks player as exited.
-   */
+  async handlePlayerReady(gameId: string, color: PlayerColor): Promise<void> {
+    return handlePlayerReady(this.store, (e) => this.emit(e), gameId, color);
+  }
+
   async handlePlayerExit(gameId: string, color: PlayerColor): Promise<void> {
-    const state = await this.store.loadGameState(gameId);
-    if (!state) return;
-
-    // Remove from disconnect list if present
-    state.disconnectedPlayers = state.disconnectedPlayers.filter(d => d.color !== color);
-
-    for (const piece of state.pieces.filter(p => p.color === color)) {
-      piece.step = -1;
-    }
-    
-    const player = state.players.find(p => p.color === color);
-    if (player) {
-      player.status = 'exited';
-    }
-
-    if (state.currentTurn === color && state.status === 'active') {
-      this.advanceTurnInState(state);
-    }
-    
-    // Clear any pending clash state on exit
-    if (state.clash) {
-      delete state.clash;
-    }
-    
-    await this.store.saveGameState(gameId, state);
-    this.emit({ type: 'player_exited', gameId, color });
+    return handlePlayerExit(this.store, (e) => this.emit(e), gameId, color);
   }
 }
