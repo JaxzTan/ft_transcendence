@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { JwtPayload } from './jwt-payload';
+import { requireSecret } from '../secrets';
 
 function extractFromCookie(req: Request): string | null {
   return req?.cookies?.token ?? null;
@@ -13,7 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
       jwtFromRequest: extractFromCookie,
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: requireSecret('JWT_SECRET'),
     });
   }
 

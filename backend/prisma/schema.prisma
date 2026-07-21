@@ -54,8 +54,9 @@ model User {
   displayName   String?
   rating        Int          @default(0)
   highestRating Int          @default(0)
-  Wins    Int          @default(0)
-  Losses  Int          @default(0)
+  rankedWins    Int          @default(0)
+  rankedLosses  Int          @default(0)
+  rankedDraws   Int          @default(0)
   winStreak     Int          @default(0)
   bestWinStreak Int          @default(0)
   botWins       Int          @default(0)
@@ -68,6 +69,7 @@ model User {
   avatarPhoto   Bytes?
   avatarPhotoContentType String?
   status        UserStatus   @default(offline)
+  isOnline      Boolean      @default(false)
   disconnectCount Int        @default(0)
   reconnectCount  Int        @default(0)
 
@@ -131,6 +133,7 @@ model Game {
   id              String       @id
   startedAt       DateTime
   endedAt         DateTime
+  durationSeconds Int          @default(0)
   status          GameStatus   @default(COMPLETED)
   gameType        GameType     @default(PVP)
   inviteCode      String?      @unique
