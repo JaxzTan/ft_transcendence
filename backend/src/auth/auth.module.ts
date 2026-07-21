@@ -26,5 +26,8 @@ import { PrismaService } from '../prisma.service';
     FortyTwoStrategy,
     PrismaService,
   ],
+  // Re-exported so feature modules (e.g. MatchModule) get the *configured*
+  // JwtModule rather than registering a second, secret-less instance.
+  exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}
