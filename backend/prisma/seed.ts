@@ -1,8 +1,26 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
+// Inlined rather than imported from src/secrets.ts: the seed runs via ts-node
+// in the runtime image, which ships prisma/ but not src/. Mirrors prisma.config.ts.
+function secret(name: string): string | undefined {
+  const dir = process.env.SECRETS_DIR ?? '/secrets';
+  for (const base of [dir, join(process.cwd(), '..', 'secrets')]) {
+    try {
+      const value = readFileSync(join(base, `${name.toLowerCase()}.txt`), 'utf8').trim();
+      if (value) return value;
+    } catch {
+      // try next location
+    }
+  }
+  return process.env[name];
+}
+
 // Prisma 7 requires a driver adapter — mirrors src/prisma.service.ts.
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+// env-first for the same reason as prisma.config.ts / prisma.service.ts.
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL || secret('DATABASE_URL') });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
