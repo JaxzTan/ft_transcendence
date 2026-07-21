@@ -1,18 +1,24 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '../generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+// Prisma 7 requires a driver adapter — mirrors src/prisma.service.ts.
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('🌱 Seeding Ludo database...');
 
-  // ── Create users ──────────────────────────────────────────────────────────
+  // ── Users ─────────────────────────────────────────────────────────────────
   const alice = await prisma.user.create({
     data: {
       id: crypto.randomUUID(),
       username: 'Alice',
+      email: 'alice@example.com',
       password_hash: '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2', // password: "password"
       rating: 1200,
       highestRating: 1250,
+      rankedWins: 2,
+      rankedLosses: 1,
       avatarStyle: 'bottts',
       status: 'online',
       isOnline: true,
@@ -26,9 +32,12 @@ async function main() {
     data: {
       id: crypto.randomUUID(),
       username: 'Bob',
+      email: 'bob@example.com',
       password_hash: '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2',
       rating: 1100,
       highestRating: 1150,
+      rankedWins: 1,
+      rankedLosses: 2,
       avatarStyle: 'avataaars',
       status: 'online',
       isOnline: true,
@@ -42,9 +51,11 @@ async function main() {
     data: {
       id: crypto.randomUUID(),
       username: 'Carol',
+      email: 'carol@example.com',
       password_hash: '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2',
       rating: 1050,
       highestRating: 1100,
+      rankedLosses: 1,
       avatarStyle: 'identicon',
       status: 'offline',
       isOnline: false,
@@ -52,96 +63,180 @@ async function main() {
     },
   });
 
-  console.log(`  Created users: ${alice.username}, ${bob.username}, ${carol.username}`);
-
-  // ── Create a finished Ludo game (Alice won with 4 pieces, Bob got 2) ────
-  const finishedGame = await prisma.game.create({
+  const dave = await prisma.user.create({
     data: {
       id: crypto.randomUUID(),
-      status: 'FINISHED',
-      player1_id: alice.id,
-      player2_id: bob.id,
-      currentTurn: 'red',
-      boardState: JSON.stringify({
-        red: [{ progress: 57 }, { progress: 57 }, { progress: 57 }, { progress: 57 }],
-        green: [{ progress: 52 }, { progress: 51 }, { progress: 50 }, { progress: 0 }],
-      }),
-      winner_id: alice.id,
-      resultDetail: 'four_pieces',
-      piecesInGoal_p1: 4,
-      piecesInGoal_p2: 2,
-      clashMode: false,
-      mode: 'ranked',
-      isRanked: true,
-      isBot: false,
-      moveCount: 120,
-      startedAt: new Date(Date.now() - 3600000),
-      endedAt: new Date(),
+      username: 'Dave',
+      email: 'dave@example.com',
+      password_hash: '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2',
+      rating: 1000,
+      highestRating: 1000,
+      rankedLosses: 1,
+      avatarStyle: 'bottts',
+      status: 'offline',
+      isOnline: false,
+      gamesWithZeroPieces: 1,
     },
   });
 
-  // Create Ludo moves for the finished game
-  for (let ply = 1; ply <= 120; ply++) {
-    await prisma.move.create({
-      data: {
-        id: crypto.randomUUID(),
-        game_id: finishedGame.id,
-        ply,
-        playerColor: ply % 2 === 1 ? 'red' : 'green',
-        diceValue: ((ply * 7) % 6) + 1,
-        pieceIndex: ply % 4,
-        from: Math.min(ply * 2 - 2, 56),
-        to: Math.min(ply * 2, 57),
-        captured: ply === 30 || ply === 75,
-        enteredHome: ply > 100,
-        timestamp: new Date(Date.now() - 3600000 + ply * 30000),
+  console.log('  Created users: Alice, Bob, Carol, Dave');
+
+  // ── A completed 4-player ranked game (Alice 1st with all 4 pieces home) ────
+  const startedAt = new Date(Date.now() - 3600000);
+  const endedAt = new Date();
+
+  await prisma.game.create({
+    data: {
+      id: crypto.randomUUID(),
+      startedAt,
+      endedAt,
+      durationSeconds: Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000),
+      status: 'COMPLETED',
+      gameType: 'PVP',
+      participants: {
+        create: [
+          {
+            id: crypto.randomUUID(),
+            user_id: alice.id,
+            color: 'RED',
+            rank: 1,
+            totalTurns: 32,
+            piecesCaptured: 5,
+            piecesInGoal: 4,
+          },
+          {
+            id: crypto.randomUUID(),
+            user_id: bob.id,
+            color: 'GREEN',
+            rank: 2,
+            totalTurns: 30,
+            piecesCaptured: 3,
+            piecesInGoal: 2,
+          },
+          {
+            id: crypto.randomUUID(),
+            user_id: carol.id,
+            color: 'YELLOW',
+            rank: 3,
+            totalTurns: 29,
+            piecesCaptured: 1,
+            piecesInGoal: 1,
+          },
+          {
+            id: crypto.randomUUID(),
+            user_id: dave.id,
+            color: 'BLUE',
+            rank: 4,
+            totalTurns: 28,
+            piecesCaptured: 0,
+            piecesInGoal: 0,
+          },
+        ],
       },
-    });
-  }
-
-  console.log(`  Created finished game with ${finishedGame.moveCount} moves`);
-
-  // ── Create an active Ludo game ──────────────────────────────────────────
-  await prisma.game.create({
-    data: {
-      id: crypto.randomUUID(),
-      status: 'ACTIVE',
-      player1_id: bob.id,
-      player2_id: carol.id,
-      currentTurn: 'blue',
-      boardState: JSON.stringify({
-        red: [{ progress: 15 }, { progress: 0 }, { progress: 28 }, { progress: 0 }],
-        green: [{ progress: 22 }, { progress: 10 }, { progress: 0 }, { progress: 0 }],
-      }),
-      diceValue: 4,
-      consecutiveSixes: 0,
-      clashMode: true,
-      mode: 'casual',
-      isRanked: false,
-      isBot: false,
-      moveCount: 45,
-      startedAt: new Date(Date.now() - 1800000),
     },
   });
 
-  console.log('  Created active game');
+  console.log('  Created completed 4-player game');
 
-  // ── Create a waiting game (lobby) ───────────────────────────────────────
+  // ── A completed head-to-head game vs a bot (PVE) ──────────────────────────
+  const pveStart = new Date(Date.now() - 7200000);
+  const pveEnd = new Date(Date.now() - 6600000);
+
   await prisma.game.create({
     data: {
       id: crypto.randomUUID(),
-      status: 'WAITING',
-      player1_id: carol.id,
-      boardState: JSON.stringify({ players: [], pieces: [] }),
-      mode: 'ranked',
-      isRanked: true,
-      isBot: false,
-      expires_at: new Date(Date.now() + 86400000),
-      gamename: "Carol's Game",
+      startedAt: pveStart,
+      endedAt: pveEnd,
+      durationSeconds: Math.floor((pveEnd.getTime() - pveStart.getTime()) / 1000),
+      status: 'COMPLETED',
+      gameType: 'PVE',
+      participants: {
+        create: [
+          {
+            id: crypto.randomUUID(),
+            user_id: bob.id,
+            color: 'RED',
+            rank: 1,
+            totalTurns: 24,
+            piecesCaptured: 2,
+            piecesInGoal: 4,
+          },
+          {
+            id: crypto.randomUUID(),
+            user_id: carol.id,
+            color: 'BLUE',
+            rank: 2,
+            totalTurns: 23,
+            piecesCaptured: 1,
+            piecesInGoal: 3,
+          },
+        ],
+      },
     },
   });
 
-  console.log('  Created waiting game (lobby)');
+  console.log('  Created completed PVE game');
+
+  // ── An abandoned game ─────────────────────────────────────────────────────
+  const abStart = new Date(Date.now() - 1800000);
+  const abEnd = new Date(Date.now() - 1500000);
+
+  await prisma.game.create({
+    data: {
+      id: crypto.randomUUID(),
+      startedAt: abStart,
+      endedAt: abEnd,
+      durationSeconds: Math.floor((abEnd.getTime() - abStart.getTime()) / 1000),
+      status: 'ABANDONED',
+      gameType: 'PVP',
+      inviteCode: 'LUDO42',
+      participants: {
+        create: [
+          {
+            id: crypto.randomUUID(),
+            user_id: alice.id,
+            color: 'GREEN',
+            rank: 1,
+            totalTurns: 8,
+            piecesCaptured: 0,
+            piecesInGoal: 0,
+          },
+          {
+            id: crypto.randomUUID(),
+            user_id: dave.id,
+            color: 'YELLOW',
+            rank: 2,
+            totalTurns: 7,
+            piecesCaptured: 0,
+            piecesInGoal: 0,
+          },
+        ],
+      },
+    },
+  });
+
+  console.log('  Created abandoned game');
+
+  // ── Friendships ───────────────────────────────────────────────────────────
+  await prisma.friendship.create({
+    data: {
+      id: crypto.randomUUID(),
+      userId: alice.id,
+      friendId: bob.id,
+      status: 'accepted',
+    },
+  });
+
+  await prisma.friendship.create({
+    data: {
+      id: crypto.randomUUID(),
+      userId: carol.id,
+      friendId: alice.id,
+      status: 'pending',
+    },
+  });
+
+  console.log('  Created friendships');
   console.log('✅ Seeding complete!');
 }
 
