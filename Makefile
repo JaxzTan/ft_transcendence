@@ -29,9 +29,9 @@ prepare-secrets:
 	gen  redis_password    16; \
 	seed db_credentials    'db_bossman:transcendence:db'; \
 	seed redis_credentials 'redisboss'; \
-	seed frontend_url      'http://localhost:5173'; \
+	seed frontend_url      'https://localhost:8443'; \
 	seed database_url \
-	  "postgresql://db_bossman:$$(cat $(SECRET_DIR)/db_password.txt)@db:5432/transcendence"; \
+	  "postgresql://db_bossman:$$(cat $(SECRET_DIR)/db_password.txt)@localhost:5432/transcendence"; \
 	chmod 600 $(SECRET_DIR)/*.txt
 	@echo "🔑 Secrets ready in $(SECRET_DIR)/ — one value per file, <VAR> lowercased"
 
@@ -55,17 +55,25 @@ build: check-secrets
 start:
 	@docker compose -f $(COMPOSE_FILE) up -d
 
-dev: build
-	@docker compose -f $(COMPOSE_FILE) watch
+# Brings up the whole stack plus the Vite HMR server. Both front doors stay
+# live: 8080 serves source with hot reload, 8443 serves the built SPA through
+# nginx, so the production path can still be checked without tearing anything
+# down. The dev profile is off by default, hence --profile here but not in all.
+dev: check-secrets
+	@docker compose -f $(COMPOSE_FILE) --profile dev up -d --build
+	@echo "🔥 HMR dev server:    http://localhost:8080"
+	@echo "🔒 nginx (built SPA): https://localhost:8443"
 
+# stop/down/logs carry --profile dev so they still reach frontend-dev; without
+# it compose ignores profiled services and leaves the container orphaned.
 stop:
-	@docker compose -f $(COMPOSE_FILE) stop
+	@docker compose -f $(COMPOSE_FILE) --profile dev stop
 
 down:
-	@docker compose -f $(COMPOSE_FILE) down
+	@docker compose -f $(COMPOSE_FILE) --profile dev down
 
 logs:
-	@docker compose -f $(COMPOSE_FILE) logs -f
+	@docker compose -f $(COMPOSE_FILE) --profile dev logs -f
 
 clean:
 	@echo "🗑️  Cleaning all Docker data..."
@@ -90,7 +98,7 @@ dev-tunnel:
 
 stop-tunnel:
 	@pkill -f ngrok 2>/dev/null || true
-	@docker compose -f $(COMPOSE_FILE) stop
+	@docker compose -f $(COMPOSE_FILE) --profile dev stop
 	@echo "Stopped."
 
 re: stop down all

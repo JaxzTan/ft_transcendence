@@ -108,16 +108,14 @@ services:
       ENGINE_URL: ws://ludo-engine:3001
       SECRETS_DIR: /secrets
 
+  # Build-only job: compiles the SPA into spa_dist, then exits. Not a server.
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "443:443"
-    depends_on:
-      - backend
-      - ludo-engine
+    restart: "no"
+    volumes:
+      - spa_dist:/export
     networks:
       - transcendence_network
     develop:
@@ -127,6 +125,55 @@ services:
         - action: rebuild
           path: ./frontend/package.json
 
+  # Optional HMR dev server, started only by `make dev` (profile: dev). Serves
+  # source straight from the bind mount on 8080; the built-and-served-by-nginx
+  # path on 8443 keeps running alongside it, untouched.
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    profiles:
+      - dev
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume: keeps the image's node_modules from being shadowed by
+      # the bind mount above, which has none on the host.
+      - /app/node_modules
+    environment:
+      VITE_IN_CONTAINER: "true"
+      VITE_API_TARGET: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - transcendence_network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8443:443"
+    volumes:
+      - spa_dist:/usr/share/nginx/html:ro
+      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      # Waiting on the build job is what keeps nginx from booting onto an empty
+      # document root the first time the stack comes up.
+      frontend:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+      ludo-engine:
+        condition: service_started
+    networks:
+      - transcendence_network
+
 volumes:
   db_data:
   redis_data:
+  spa_dist:

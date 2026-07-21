@@ -96,8 +96,13 @@ prefix in `backend/src/main.ts`; each controller carries `api/` in its own decor
 proxy and is reached directly on port 3000. This is why the OAuth callback secrets
 point at `http://localhost:3000`.
 
-**Game realtime** — socket.io to `ludo-engine:3001`. Currently only `ludo-bot`
-connects; the SPA has no socket client yet.
+**Game realtime** — socket.io to `ludo-engine:3001`. Only `ludo-bot` is a client; the
+SPA has no socket client yet.
+
+> ⚠️ This path is **currently non-functional**. The engine crashes before it listens,
+> so nothing is bound to 3001 — see
+> [Issue 6](known-issues.md#issue-6--ludo-engine-crashes-at-startup-and-never-listens-critical-live).
+> What follows describes intended design, not present behaviour.
 
 ---
 
