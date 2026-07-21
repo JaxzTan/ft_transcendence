@@ -8,12 +8,13 @@ import { GoogleStrategy } from './google.strategy';
 import { GithubStrategy } from './github.strategy';
 import { FortyTwoStrategy } from './fortytwo.strategy';
 import { PrismaService } from '../prisma.service';
+import { requireSecret } from '../secrets';
 
 @Module({
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET,
+      secret: requireSecret('JWT_SECRET'),
       signOptions: { expiresIn: '7d' },
     }),
   ],
@@ -26,5 +27,8 @@ import { PrismaService } from '../prisma.service';
     FortyTwoStrategy,
     PrismaService,
   ],
+  // Re-exported so feature modules (e.g. MatchModule) get the *configured*
+  // JwtModule rather than registering a second, secret-less instance.
+  exports: [AuthService, JwtModule, PassportModule],
 })
 export class AuthModule {}

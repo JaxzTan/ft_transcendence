@@ -9,7 +9,7 @@ class LudoBot {
 
   constructor() {
     this.socket = io(ENGINE_URL, {
-      autoreconnect: true,
+      reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 10
