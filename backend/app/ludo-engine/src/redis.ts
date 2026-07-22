@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import Redis from 'ioredis';
 import type { GameState, PlayerColor, PieceId, Piece, PlayerMeta, ClashState } from './types';
 
@@ -13,7 +14,16 @@ export class RedisGameStore {
   public subscriber: Redis;
 
   constructor(redisUrl?: string) {
-    this.client = new Redis(redisUrl || process.env.REDIS_URL || 'redis://redis:6379');
+    const host = process.env.REDIS_HOST || 'redis';
+    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    let password: string | undefined;
+    try {
+      password = readFileSync('/secrets/redis_password.txt', 'utf8').trim();
+    } catch { /* no password file, connect without auth */ }
+
+    this.client = redisUrl
+      ? new Redis(redisUrl)
+      : new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000), lazyConnect: true });
     this.subscriber = this.client.duplicate();
   }
 

@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
+import { secret } from '../secrets';
 import Redis from 'ioredis';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://redis:6379';
 const BOT_ID = 'ludo-bot';
 
 // Points-based rating (no ELO matchmaking). Winner +10, loser -5.
@@ -28,7 +28,12 @@ export class MatchService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
   ) {
-    this.redis = new Redis(REDIS_URL);
+    const host = process.env.REDIS_HOST || 'redis';
+    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const password = secret('REDIS_PASSWORD');
+
+    this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
+    this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
   }
 
   // ─── Unified Match Creation ───────────────────────────────────────────────
@@ -219,7 +224,6 @@ export class MatchService {
           id: gameId,
           startedAt: new Date(startedAt || endedAt),
           endedAt: new Date(endedAt),
-          durationSeconds,
           status: 'COMPLETED',
           gameType,
           inviteCode,
@@ -234,7 +238,6 @@ export class MatchService {
             user_id: p.userId,
             color: p.color,
             rank: p.rank,
-            totalTurns: p.totalTurns || 0,
             piecesCaptured: p.piecesCaptured || 0,
             piecesInGoal: p.piecesInGoal || 0,
           },

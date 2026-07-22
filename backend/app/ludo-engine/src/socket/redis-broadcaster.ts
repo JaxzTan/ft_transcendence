@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import Redis from 'ioredis';
 import { Server } from 'socket.io';
 
@@ -10,7 +11,16 @@ export class RedisBroadcaster {
   private subscriber: Redis;
 
   constructor(redisUrl?: string) {
-    this.subscriber = new Redis(redisUrl || process.env.REDIS_URL || 'redis://redis:6379');
+    const host = process.env.REDIS_HOST || 'redis';
+    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    let password: string | undefined;
+    try {
+      password = readFileSync('/secrets/redis_password.txt', 'utf8').trim();
+    } catch { /* no password file, connect without auth */ }
+
+    this.subscriber = redisUrl
+      ? new Redis(redisUrl)
+      : new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
   }
 
   /**
