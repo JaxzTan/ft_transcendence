@@ -12,7 +12,7 @@ const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days, matches JwtModule 
 // Fallback matches the compose entry point: nginx publishes 8443 -> 443.
 const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 
-@Controller('auth')
+@Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
