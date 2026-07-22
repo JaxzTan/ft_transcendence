@@ -30,6 +30,13 @@ dist-ssr
 
 # planning
 roadmap.md
+roadmap2.md
+
+# generated documentation
+LUDO_ENGINE.md
+BACKEND_LOGIC.md
+TYPESCRIPT.md
+API-list.md
 
 # dependencies
 /node_modules

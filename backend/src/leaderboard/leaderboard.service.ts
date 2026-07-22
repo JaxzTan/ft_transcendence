@@ -51,9 +51,8 @@ export class LeaderboardService {
             id: true,
             username: true,
             rating: true,
-            rankedWins: true,
-            rankedLosses: true,
-            rankedDraws: true,
+            wins: true,
+            losses: true,
             avatarStyle: true,
           },
         });
@@ -63,9 +62,9 @@ export class LeaderboardService {
           .filter(e => userMap.has(e.userId))
           .map((entry, i) => {
             const user = userMap.get(entry.userId)!;
-            const gamesPlayed = user.rankedWins + user.rankedLosses + user.rankedDraws;
-            const wins = user.rankedWins;
-            const losses = user.rankedLosses;
+            const gamesPlayed = user.wins + user.losses;
+            const wins = user.wins;
+            const losses = user.losses;
             const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
 
             return {
@@ -75,7 +74,7 @@ export class LeaderboardService {
               gamesPlayed,
               wins,
               losses,
-              draws: user.rankedDraws,
+              draws: 0,
               winRate,
               avatarStyle: user.avatarStyle,
             };
@@ -120,17 +119,16 @@ export class LeaderboardService {
       select: {
         username: true,
         rating: true,
-        rankedWins: true,
-        rankedLosses: true,
-        rankedDraws: true,
+        wins: true,
+        losses: true,
         avatarStyle: true,
       },
     });
 
     const entries: LeaderboardEntry[] = users.map((user, i) => {
-      const gamesPlayed = user.rankedWins + user.rankedLosses + user.rankedDraws;
-      const wins = user.rankedWins;
-      const losses = user.rankedLosses;
+      const gamesPlayed = user.wins + user.losses;
+      const wins = user.wins;
+      const losses = user.losses;
       const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
 
       return {
@@ -140,7 +138,7 @@ export class LeaderboardService {
         gamesPlayed,
         wins,
         losses,
-        draws: user.rankedDraws,
+        draws: 0,
         winRate,
         avatarStyle: user.avatarStyle,
       };
