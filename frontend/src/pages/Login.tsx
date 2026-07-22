@@ -1,4 +1,5 @@
 import { AuthLayout, GoldCheck } from '../components/AuthLayout'
+import { OAuthButtons, OrDivider } from '../components/OAuthButtons'
 import { navigate } from '../router'
 import { btnGold, btnOutline, goldText, input, label } from '../theme'
 
@@ -49,20 +50,8 @@ export function Login() {
         <button onClick={() => navigate('/home')} style={btnGold}>
           Enter the parlor
         </button>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            color: '#7a6c56',
-            fontSize: 12,
-            letterSpacing: '.1em',
-          }}
-        >
-          <span style={{ flex: 1, height: 1, background: '#3a2c1d' }} />
-          OR
-          <span style={{ flex: 1, height: 1, background: '#3a2c1d' }} />
-        </div>
+        <OrDivider text="OR CONTINUE WITH" />
+        <OAuthButtons />
         <button onClick={() => navigate('/home')} style={btnOutline}>
           Continue as guest
         </button>
