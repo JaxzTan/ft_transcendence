@@ -1,7 +1,12 @@
-import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { JwtPayload } from './jwt-payload';
+
+const SALT_ROUNDS = 10;
 
 @Injectable()
 export class AuthService {
@@ -10,87 +15,109 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  async register(username: string, password: string, avatarStyle?: string) {
-    const existing = await this.prisma.db.user.findUnique({ where: { username } });
-    if (existing) throw new ConflictException('Username taken');
-    const hash = await bcrypt.hash(password, 10);
+  async register(dto: RegisterDto) {
+    const existing = await this.prisma.db.user.findUnique({ where: { username: dto.username } });
+    if (existing) {
+      throw new ConflictException('Username is already taken');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
     const user = await this.prisma.db.user.create({
       data: {
         id: crypto.randomUUID(),
-        username,
-        password_hash: hash,
-        avatarStyle: avatarStyle || 'bottts',
+        username: dto.username,
+        email: dto.email,
+        password_hash: passwordHash,
       },
     });
-    return { id: user.id, username: user.username };
+
+    return this.issueToken(user.id, user.username);
   }
 
-  async login(username: string, password: string) {
-    const user = await this.prisma.db.user.findUnique({ where: { username } });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) throw new UnauthorizedException('Invalid credentials');
-
-    // Update login tracking
-    const now = new Date();
-    const lastLogin = user.lastLoginAt;
-    let loginStreak = user.loginStreak;
-    let daysActive = user.daysActive;
-
-    if (lastLogin) {
-      const lastLoginDate = new Date(lastLogin);
-      const diffDays = Math.floor((now.getTime() - lastLoginDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        // Consecutive day
-        loginStreak += 1;
-      } else if (diffDays > 1) {
-        // Streak broken
-        loginStreak = 1;
-      }
-      // diffDays === 0: same day, no change
-
-      // Check if today is a new active day
-      const todayStr = now.toISOString().split('T')[0];
-      const lastLoginStr = lastLoginDate.toISOString().split('T')[0];
-      if (todayStr !== lastLoginStr) {
-        daysActive += 1;
-      }
-    } else {
-      // First login ever
-      loginStreak = 1;
-      daysActive = 1;
+  async login(dto: LoginDto) {
+    const user = await this.prisma.db.user.findUnique({ where: { username: dto.username } });
+    if (!user || !user.password_hash) {
+      throw new UnauthorizedException('Invalid username or password');
     }
 
-    await this.prisma.db.user.update({
-      where: { id: user.id },
+    const passwordMatches = await bcrypt.compare(dto.password, user.password_hash);
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+
+    return this.issueToken(user.id, user.username);
+  }
+
+  issueToken(userId: string, username: string) {
+    const payload: JwtPayload = { sub: userId, username };
+    const token = this.jwt.sign(payload);
+    return { token, user: { id: userId, username } };
+  }
+
+  /**
+   * Called after a provider (Google/GitHub) has verified the user.
+   * Finds the matching user, or links/creates one, then returns it.
+   */
+  async validateOAuthLogin(input: {
+    provider: string;
+    providerAccountId: string;
+    email?: string;
+    displayName?: string;
+    usernameSeed: string;
+  }) {
+    // If provider account exist just log them in
+    const existingAccount = await this.prisma.db.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: input.provider,
+          providerAccountId: input.providerAccountId,
+        },
+      },
+      include: { user: true },
+    });
+    if (existingAccount) {
+      return existingAccount.user;
+    }
+
+    //  If first time with this provider, and email matches an existing
+    //  user, link to that user.
+    let user = input.email
+      ? await this.prisma.db.user.findUnique({ where: { email: input.email } })
+      : null;
+
+    // Create new
+    if (!user) {
+      const username = await this.generateUniqueUsername(input.usernameSeed);
+      user = await this.prisma.db.user.create({
+        data: {
+          id: crypto.randomUUID(),
+          username,
+          email: input.email,
+          displayName: input.displayName,
+          emailVerified: input.email ? new Date() : null, // provider already verified it
+        },
+      });
+    }
+
+    await this.prisma.db.account.create({
       data: {
-        lastLoginAt: now,
-        loginStreak,
-        daysActive,
+        id: crypto.randomUUID(),
+        userId: user.id,
+        provider: input.provider,
+        providerAccountId: input.providerAccountId,
       },
-    });
-
-    const token = this.jwt.sign({ sub: user.id, username: user.username });
-    return { token, user: { id: user.id, username: user.username } };
-  }
-
-  async getUser(userId: string) {
-    return this.prisma.db.user.findUnique({ where: { id: userId } });
-  }
-
-  async updateAvatarStyle(userId: string, avatarStyle: string) {
-    const allowedStyles = ['bottts', 'adventurer', 'pixelArt', 'funEmoji'];
-    if (!allowedStyles.includes(avatarStyle)) {
-      throw new BadRequestException(`Invalid avatar style. Allowed: ${allowedStyles.join(', ')}`);
-    }
-
-    const user = await this.prisma.db.user.update({
-      where: { id: userId },
-      data: { avatarStyle },
-      select: { id: true, username: true, avatarStyle: true },
     });
 
     return user;
+  }
+
+  // Turning usernames into unique seeds
+  private async generateUniqueUsername(seed: string) {
+    const base = seed.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'user';
+    let candidate = base;
+    while (await this.prisma.db.user.findUnique({ where: { username: candidate } })) {
+      candidate = `${base}_${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+    return candidate;
   }
 }

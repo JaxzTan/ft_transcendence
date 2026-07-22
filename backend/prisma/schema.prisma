@@ -22,7 +22,6 @@ enum FriendshipStatus {
 enum UserStatus {
   online
   playing
-  away
   offline
 }
 
@@ -48,12 +47,14 @@ enum GameType {
 model User {
   id            String       @id
   username      String       @unique
-  password_hash String
+  email         String?      @unique
+  password_hash String?      // null for OAuth-only users
+  emailVerified DateTime?
+  displayName   String?
   rating        Int          @default(0)
   highestRating Int          @default(0)
-  rankedWins    Int          @default(0)
-  rankedLosses  Int          @default(0)
-  rankedDraws   Int          @default(0)
+  wins          Int          @default(0)
+  losses        Int          @default(0)
   winStreak     Int          @default(0)
   bestWinStreak Int          @default(0)
   botWins       Int          @default(0)
@@ -61,12 +62,10 @@ model User {
   lastLoginAt   DateTime?
   loginStreak   Int          @default(0)
   daysActive    Int          @default(0)
-  totalPlayTimeMs Int        @default(0)
   avatarStyle   String        @default("bottts")
   avatarPhoto   Bytes?
   avatarPhotoContentType String?
   status        UserStatus   @default(offline)
-  isOnline      Boolean      @default(false)
   disconnectCount Int        @default(0)
   reconnectCount  Int        @default(0)
 
@@ -82,7 +81,6 @@ model User {
   achWorldChampion     Boolean @default(false)
   achLoveTheMachine    Boolean @default(false)
   achft_Transcendence  Boolean @default(false)
-  achSpeedDemon        Boolean @default(false)
   achUnstoppable       Boolean @default(false)
   achCleanSweep        Boolean @default(false)
   achLastLaugh         Boolean @default(false)
@@ -94,6 +92,8 @@ model User {
   gamesWithOnePiece    Int  @default(0)
   gamesWithZeroPieces  Int  @default(0)
 
+  accounts Account[]
+
   gameParticipants GameParticipant[]
   sentFriendships     Friendship[] @relation("SentFriendships")
   receivedFriendships Friendship[] @relation("ReceivedFriendships")
@@ -102,13 +102,32 @@ model User {
   updatedAt    DateTime     @updatedAt
 }
 
+// ─── Account (OAuth providers; only for users who sign in via a provider) ────
+
+model Account {
+  id                String  @id
+  userId            String
+  provider          String
+  providerAccountId String
+  access_token      String?
+  refresh_token     String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
 // ─── Game (historical results only — matchmaking lives in Redis) ─────────────
 
 model Game {
   id              String       @id
   startedAt       DateTime
   endedAt         DateTime
-  durationSeconds Int          @default(0)
   status          GameStatus   @default(COMPLETED)
   gameType        GameType     @default(PVP)
   inviteCode      String?      @unique
@@ -122,7 +141,6 @@ model GameParticipant {
   user_id         String
   color           PlayerColor
   rank            Int         // 1st, 2nd, 3rd, 4th place
-  totalTurns      Int         @default(0)
   piecesCaptured  Int         @default(0)
   piecesInGoal    Int         @default(0)  // 0-4
 
@@ -130,6 +148,7 @@ model GameParticipant {
   user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([game_id, user_id])
+  @@unique([game_id, color])
 }
 
 // ─── Friendship ──────────────────────────────────────────────────────────────

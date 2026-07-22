@@ -1,23 +1,16 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
+import { secret } from '../secrets';
 
 @Injectable()
 export class LeaderboardRedisService implements OnModuleDestroy {
   private redis: Redis;
 
   constructor() {
+    // Host/port stay plain env — they're topology, not secrets.
     const host = process.env.REDIS_HOST || 'redis';
     const port = parseInt(process.env.REDIS_PORT || '6379', 10);
-    
-    // Read password from file if REDIS_PASSWORD_FILE is set
-    let password = process.env.REDIS_PASSWORD;
-    if (!password && process.env.REDIS_PASSWORD_FILE) {
-      try {
-        password = require('fs').readFileSync(process.env.REDIS_PASSWORD_FILE, 'utf8').trim();
-      } catch (error) {
-        console.warn(`Failed to read Redis password from ${process.env.REDIS_PASSWORD_FILE}:`, (error as Error).message);
-      }
-    }
+    const password = secret('REDIS_PASSWORD');
 
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
     this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
