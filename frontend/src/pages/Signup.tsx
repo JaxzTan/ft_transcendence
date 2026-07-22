@@ -1,4 +1,5 @@
 import { AuthLayout, GoldCheck } from '../components/AuthLayout'
+import { OAuthButtons, OrDivider } from '../components/OAuthButtons'
 import { navigate } from '../router'
 import { btnGold, goldText, input, label } from '../theme'
 
@@ -58,6 +59,8 @@ export function Signup() {
         <button onClick={() => navigate('/home')} style={btnGold}>
           Create account & play
         </button>
+        <OrDivider text="OR SIGN UP WITH" />
+        <OAuthButtons />
         <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 14 }}>
           Already have a seat?{' '}
           <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>

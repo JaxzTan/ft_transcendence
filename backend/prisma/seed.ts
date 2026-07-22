@@ -23,16 +23,32 @@ function secret(name: string): string | undefined {
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL || secret('DATABASE_URL') });
 const prisma = new PrismaClient({ adapter });
 
+// Fixture rows carry stable ids instead of crypto.randomUUID() so a re-run
+// lands on the same rows rather than inserting a second copy of everything.
+const SEED_USERNAMES = ['Alice', 'Bob', 'Carol', 'Dave'];
+
+// bcrypt hash of "password"
+const PASSWORD_HASH = '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2';
+
 async function main() {
   console.log('🌱 Seeding Ludo database...');
+
+  // ── Reset previous seed data ──────────────────────────────────────────────
+  // Deleting the fixture users cascades their GameParticipant and Friendship
+  // rows (onDelete: Cascade on both), which leaves the fixture games with no
+  // participants; the second delete sweeps those. A real match always has
+  // participants, so genuine game history is never touched. This also cleans up
+  // rows left by earlier runs that used random UUIDs.
+  await prisma.user.deleteMany({ where: { username: { in: SEED_USERNAMES } } });
+  await prisma.game.deleteMany({ where: { participants: { none: {} } } });
 
   // ── Users ─────────────────────────────────────────────────────────────────
   const alice = await prisma.user.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-user-alice',
       username: 'Alice',
       email: 'alice@example.com',
-      password_hash: '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2', // password: "password"
+      password_hash: PASSWORD_HASH,
       rating: 1200,
       highestRating: 1250,
       wins: 2,
@@ -47,10 +63,10 @@ async function main() {
 
   const bob = await prisma.user.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-user-bob',
       username: 'Bob',
       email: 'bob@example.com',
-      password_hash: '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2',
+      password_hash: PASSWORD_HASH,
       rating: 1100,
       highestRating: 1150,
       wins: 1,
@@ -65,10 +81,10 @@ async function main() {
 
   const carol = await prisma.user.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-user-carol',
       username: 'Carol',
       email: 'carol@example.com',
-      password_hash: '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2',
+      password_hash: PASSWORD_HASH,
       rating: 1050,
       highestRating: 1100,
       losses: 1,
@@ -80,10 +96,10 @@ async function main() {
 
   const dave = await prisma.user.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-user-dave',
       username: 'Dave',
       email: 'dave@example.com',
-      password_hash: '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2',
+      password_hash: PASSWORD_HASH,
       rating: 1000,
       highestRating: 1000,
       losses: 1,
@@ -101,7 +117,7 @@ async function main() {
 
   await prisma.game.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-game-pvp',
       startedAt,
       endedAt,
       status: 'COMPLETED',
@@ -109,7 +125,7 @@ async function main() {
       participants: {
         create: [
           {
-            id: crypto.randomUUID(),
+            id: 'seed-part-pvp-red',
             user_id: alice.id,
             color: 'RED',
             rank: 1,
@@ -117,7 +133,7 @@ async function main() {
             piecesInGoal: 4,
           },
           {
-            id: crypto.randomUUID(),
+            id: 'seed-part-pvp-green',
             user_id: bob.id,
             color: 'GREEN',
             rank: 2,
@@ -125,7 +141,7 @@ async function main() {
             piecesInGoal: 2,
           },
           {
-            id: crypto.randomUUID(),
+            id: 'seed-part-pvp-yellow',
             user_id: carol.id,
             color: 'YELLOW',
             rank: 3,
@@ -133,7 +149,7 @@ async function main() {
             piecesInGoal: 1,
           },
           {
-            id: crypto.randomUUID(),
+            id: 'seed-part-pvp-blue',
             user_id: dave.id,
             color: 'BLUE',
             rank: 4,
@@ -153,7 +169,7 @@ async function main() {
 
   await prisma.game.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-game-pve',
       startedAt: pveStart,
       endedAt: pveEnd,
       status: 'COMPLETED',
@@ -161,7 +177,7 @@ async function main() {
       participants: {
         create: [
           {
-            id: crypto.randomUUID(),
+            id: 'seed-part-pve-red',
             user_id: bob.id,
             color: 'RED',
             rank: 1,
@@ -169,7 +185,7 @@ async function main() {
             piecesInGoal: 4,
           },
           {
-            id: crypto.randomUUID(),
+            id: 'seed-part-pve-blue',
             user_id: carol.id,
             color: 'BLUE',
             rank: 2,
@@ -189,7 +205,7 @@ async function main() {
 
   await prisma.game.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-game-abandoned',
       startedAt: abStart,
       endedAt: abEnd,
       status: 'ABANDONED',
@@ -198,7 +214,7 @@ async function main() {
       participants: {
         create: [
           {
-            id: crypto.randomUUID(),
+            id: 'seed-part-abandoned-green',
             user_id: alice.id,
             color: 'GREEN',
             rank: 1,
@@ -206,7 +222,7 @@ async function main() {
             piecesInGoal: 0,
           },
           {
-            id: crypto.randomUUID(),
+            id: 'seed-part-abandoned-yellow',
             user_id: dave.id,
             color: 'YELLOW',
             rank: 2,
@@ -223,7 +239,7 @@ async function main() {
   // ── Friendships ───────────────────────────────────────────────────────────
   await prisma.friendship.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-friendship-alice-bob',
       userId: alice.id,
       friendId: bob.id,
       status: 'accepted',
@@ -232,7 +248,7 @@ async function main() {
 
   await prisma.friendship.create({
     data: {
-      id: crypto.randomUUID(),
+      id: 'seed-friendship-carol-alice',
       userId: carol.id,
       friendId: alice.id,
       status: 'pending',
