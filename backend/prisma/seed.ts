@@ -27,8 +27,8 @@ const prisma = new PrismaClient({ adapter });
 // lands on the same rows rather than inserting a second copy of everything.
 const SEED_USERNAMES = ['Alice', 'Bob', 'Carol', 'Dave'];
 
-// bcrypt hash of "password"
-const PASSWORD_HASH = '$2b$10$8K1p/a0dL1LXMIgoEDFrwOfMQkfAjkMBcGmOy1jOZ7jV5X7G6V6q2';
+// bcrypt hash of "password" (verified: bcrypt.compare('password', hash) === true)
+const PASSWORD_HASH = '$2b$10$vZQMBs4oVqoR3wwHFJPlb.SzF1.WxGC2qaTYX3MedFcUWGDMKV1K.';
 
 async function main() {
   console.log('🌱 Seeding Ludo database...');
