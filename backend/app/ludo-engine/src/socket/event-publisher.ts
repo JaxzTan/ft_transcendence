@@ -51,7 +51,8 @@ export class EventPublisher {
       case 'clash_start':
         this.store.publish(gameId, JSON.stringify({
           type: 'clash_start',
-          key: event.key,
+          attackerKey: event.attackerKey,
+          defenderKey: event.defenderKey,
           target: event.target,
           duration: event.duration,
           attacker: event.attacker,
