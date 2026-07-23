@@ -84,6 +84,7 @@ model User {
   achUnstoppable       Boolean @default(false)
   achCleanSweep        Boolean @default(false)
   achLastLaugh         Boolean @default(false)
+  achSpeedDemon        Boolean @default(false)
 
   // Ludo result detail counters
   gamesWithFourPieces  Int  @default(0)
