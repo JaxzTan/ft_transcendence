@@ -25,8 +25,10 @@ RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 # COPY is the fallback that keeps the image runnable on its own.
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 
+COPY nginx.sh /usr/local/bin/nginx.sh
+RUN chmod +x /usr/local/bin/nginx.sh
+
 # Open ONLY port 443 (HTTPS) to the public
 EXPOSE 443
 
-# Run NGINX in foreground (PID 1 compliant)
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/usr/local/bin/nginx.sh"]

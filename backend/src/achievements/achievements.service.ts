@@ -119,12 +119,14 @@ export class AchievementsService {
       unlocked.push('FT Transcendence');
     }
 
-    // achSpeedDemon — Win in under 30 minutes
-    if (!user.achSpeedDemon && user.totalPlayTimeMs < 30 * 60 * 1000 && won) {
-      await this.unlock(userId, 'achSpeedDemon');
-      unlocked.push('Speed Demon');
+    // achSpeedDemon — Win in under 30 minutes (calculated from game duration)
+    if (won && currentGame.startedAt && currentGame.endedAt) {
+      const gameDurationMs = new Date(currentGame.endedAt).getTime() - new Date(currentGame.startedAt).getTime();
+      if (gameDurationMs < 30 * 60 * 1000) {
+        await this.unlock(userId, 'achSpeedDemon');
+        unlocked.push('Speed Demon');
+      }
     }
-
     // achUnstoppable — Capture 3 pieces in a single game
     if (!user.achUnstoppable && (myParticipation?.piecesCaptured || 0) >= 3) {
       await this.unlock(userId, 'achUnstoppable');
@@ -167,7 +169,6 @@ export class AchievementsService {
         achWorldChampion: true,
         achLoveTheMachine: true,
         achft_Transcendence: true,
-        achSpeedDemon: true,
         achUnstoppable: true,
         achCleanSweep: true,
         achLastLaugh: true,

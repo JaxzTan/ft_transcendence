@@ -17,7 +17,6 @@ export class StatsService {
 
     const totalGames = participations.length;
     const wins = participations.filter((p) => p.rank === 1).length;
-    const totalTurns = participations.reduce((s, p) => s + p.totalTurns, 0);
     const totalCaptures = participations.reduce((s, p) => s + p.piecesCaptured, 0);
     const totalPiecesInGoal = participations.reduce((s, p) => s + p.piecesInGoal, 0);
 
@@ -25,10 +24,8 @@ export class StatsService {
       totalGames,
       wins,
       losses: totalGames - wins,
-      totalTurns,
       totalCaptures,
       totalPiecesInGoal,
-      avgTurnsPerGame: totalGames > 0 ? Math.round(totalTurns / totalGames) : 0,
       avgCapturesPerGame: totalGames > 0 ? Math.round(totalCaptures / totalGames * 10) / 10 : 0,
     };
   }

@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { navigate, useRoute } from '../router'
+import { useApp } from '../store'
 import { avatarBlue, btnGold, goldText } from '../theme'
 
 const NAV: Array<{ path: string; glyph: string; title: string }> = [
@@ -51,6 +52,15 @@ function railGlyphStyle(active: boolean): CSSProperties {
 /** Sidebar rail + top header wrapping home/dashboard/leaderboard/friends/settings. */
 export function Shell({ children }: { children: ReactNode }) {
   const { path } = useRoute()
+  const { user, logout } = useApp()
+  const name = user?.username ?? 'You'
+  const initials = name.slice(0, 2).toUpperCase()
+
+  async function onSignOut() {
+    await logout()
+    navigate('/login')
+  }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <aside
@@ -125,10 +135,17 @@ export function Shell({ children }: { children: ReactNode }) {
             borderTop: '1px solid #2e2115',
           }}
         >
-          <div style={avatarBlue(36, 13)}>YO</div>
+          <div style={avatarBlue(36, 13)}>{initials}</div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>You</div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>♛ 1,540 · Silver III</div>
+            <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {name}
+            </div>
+            <div
+              onClick={onSignOut}
+              style={{ color: '#a99a83', fontSize: 12, cursor: 'pointer', textDecorationLine: 'underline' }}
+            >
+              Sign out
+            </div>
           </div>
         </div>
       </aside>
@@ -164,7 +181,7 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <span style={{ color: '#f0c24e' }}>♛</span>1,540
             </div>
-            <div style={{ ...avatarBlue(40, 14), boxShadow: '0 0 0 2px #f0d18a55' }}>YO</div>
+            <div style={{ ...avatarBlue(40, 14), boxShadow: '0 0 0 2px #f0d18a55' }}>{initials}</div>
           </div>
         </header>
 

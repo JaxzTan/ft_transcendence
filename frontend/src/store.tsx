@@ -1,6 +1,15 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { BOT_POOL } from './theme'
+
+export type AuthUser = { id: string; username: string }
+
+/** Pulls a readable message out of nestjs error body  */
+function apiError(body: unknown, fallback: string): string {
+  const message = (body as { message?: string | string[] } | null)?.message
+  if (Array.isArray(message)) return message.join('. ')
+  return typeof message === 'string' ? message : fallback
+}
 
 export type Difficulty = 'easy' | 'medium' | 'hard'
 export type Seat =
@@ -22,6 +31,11 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 }
 
 type AppState = {
+  user: AuthUser | null
+  authReady: boolean
+  login: (username: string, password: string) => Promise<string | null>
+  register: (username: string, password: string, email?: string) => Promise<string | null>
+  logout: () => Promise<void>
   mode: Mode
   seats: Seat[]
   dice: number
@@ -43,6 +57,51 @@ type AppState = {
 const Ctx = createContext<AppState | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [authReady, setAuthReady] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(async (res) => setUser(res.ok ? (await res.json()).user : null))
+      .catch(() => setUser(null))
+      .finally(() => setAuthReady(true))
+  }, [])
+
+  // Login
+  const login = useCallback(async (username: string, password: string): Promise<string | null> => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    }).catch(() => null)
+    if (!res) return 'Could not reach the server'
+    if (!res.ok) return apiError(await res.json().catch(() => null), 'Login failed')
+    setUser((await res.json()).user)
+    return null
+  }, [])
+
+  // Register
+  const register = useCallback(
+    async (username: string, password: string, email?: string): Promise<string | null> => {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(email ? { username, password, email } : { username, password }),
+      }).catch(() => null)
+      if (!res) return 'Could not reach the server'
+      if (!res.ok) return apiError(await res.json().catch(() => null), 'Sign up failed')
+      setUser((await res.json()).user)
+      return null
+    },
+    [],
+  )
+
+  // Logout
+  const logout = useCallback(async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined)
+    setUser(null)
+  }, [])
+
   const [mode, setMode] = useState<Mode>(4)
   const [seats, setSeats] = useState<Seat[]>([
     { type: 'you' },
@@ -126,10 +185,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      user, authReady, login, register, logout,
       mode, seats, dice, rolling, turn, settings,
       setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
     }),
-    [mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
+    [user, authReady, login, register, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
