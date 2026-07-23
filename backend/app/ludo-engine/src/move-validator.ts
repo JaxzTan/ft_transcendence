@@ -1,8 +1,8 @@
-import { GameState, PlayerColor, LegalMove, PieceId } from './types';
+import { GameState, PlayerColor, LegalMove, PieceId, MoveResult } from './types';
 import { BoardMapper } from './board-mapper';
 
 /**
- * MoveValidator - determines legal moves for a given dice roll.
+ * MoveValidator - determines legal moves, resolves captures, checks wins, and executes moves.
  */
 export class MoveValidator {
   static getLegalMoves(state: GameState, color: PlayerColor, diceValue: number): LegalMove[] {
@@ -64,5 +64,61 @@ export class MoveValidator {
       if (boardPos === targetPos) return piece.id;
     }
     return undefined;
+  }
+
+  static resolveCapture(state: GameState, capturerColor: PlayerColor, targetStep: number): PieceId | undefined {
+    return this.findPieceAtPosition(state, capturerColor, targetStep);
+  }
+
+  static checkWinner(state: GameState): PlayerColor | null {
+    for (const player of state.players) {
+      const playerPieces = state.pieces.filter(p => p.color === player.color);
+      if (playerPieces.every(p => p.step === 57)) {
+        return player.color;
+      }
+    }
+    return null;
+  }
+
+  static countPiecesInGoal(state: GameState, color: PlayerColor): number {
+    return state.pieces.filter(p => p.color === color && p.step === 57).length;
+  }
+
+  static executeMove(state: GameState, pendingMove: LegalMove, diceValue: number): MoveResult {
+    const piece = state.pieces.find(p => p.id === pendingMove.pieceId)!;
+    const capturerColor = piece.color;
+    
+    // Move piece
+    piece.step = pendingMove.to;
+    
+    // Resolve capture
+    let capturedPieceId: PieceId | undefined;
+    if (pendingMove.isCapture) {
+      capturedPieceId = this.resolveCapture(state, capturerColor, pendingMove.to);
+      if (capturedPieceId) {
+        const captured = state.pieces.find(p => p.id === capturedPieceId)!;
+        captured.step = 0;
+        const capturer = state.players.find(p => p.color === capturerColor)!;
+        capturer.stats.captures++;
+      }
+    }
+    
+    // Update player turn count
+    const player = state.players.find(p => p.color === capturerColor)!;
+    player.stats.turns++;
+    
+    // Build result
+    return {
+      ply: state.moveCounter + 1,
+      color: capturerColor,
+      diceValue,
+      pieceId: pendingMove.pieceId,
+      from: pendingMove.from,
+      to: pendingMove.to,
+      captured: pendingMove.isCapture,
+      capturedPieceId,
+      enteredHome: pendingMove.isHomeEntry,
+      bonusRoll: diceValue === 6 || pendingMove.isCapture
+    };
   }
 }
