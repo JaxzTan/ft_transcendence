@@ -1,12 +1,41 @@
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { AuthLayout, GoldCheck } from '../components/AuthLayout'
 import { OAuthButtons, OrDivider } from '../components/OAuthButtons'
 import { navigate } from '../router'
 import { btnGold, goldText, input, label } from '../theme'
+import { useApp } from '../store'
 
 export function Signup() {
+  const { register } = useApp()
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (submitting) return
+    if (password !== confirm) {
+      setError('Passwords do not match')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    const err = await register(username, password, email.trim() || undefined)
+    setSubmitting(false)
+    if (err) setError(err)
+    else navigate('/home')
+  }
+
   return (
     <AuthLayout tag="JOIN 2.4M PLAYERS WORLDWIDE">
-      <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <form
+        onSubmit={onSubmit}
+        style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}
+      >
         <div>
           <div
             style={{
@@ -25,23 +54,53 @@ export function Signup() {
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={label}>Display name</div>
-          <input placeholder="e.g. NightRook" style={input} />
+          <div style={label}>Username</div>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="e.g. NightRook (3+ characters)"
+            autoComplete="username"
+            style={input}
+          />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={label}>Email</div>
-          <input placeholder="you@parlor.gg" style={input} />
+          <div style={label}>Email (optional)</div>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@parlor.gg"
+            autoComplete="email"
+            style={input}
+          />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={label}>Password</div>
-            <input type="password" placeholder="••••••••" style={input} />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="8+ characters"
+              autoComplete="new-password"
+              style={input}
+            />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={label}>Confirm</div>
-            <input type="password" placeholder="••••••••" style={input} />
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              style={input}
+            />
           </div>
         </div>
+        {error && (
+          <div style={{ color: '#e4574d', fontSize: '13.5px', lineHeight: 1.4 }}>{error}</div>
+        )}
         <label
           style={{
             display: 'flex',
@@ -56,8 +115,8 @@ export function Signup() {
           <GoldCheck offsetTop />
           I agree to the House Rules and Privacy terms.
         </label>
-        <button onClick={() => navigate('/home')} style={btnGold}>
-          Create account & play
+        <button type="submit" disabled={submitting} style={{ ...btnGold, opacity: submitting ? 0.6 : 1 }}>
+          {submitting ? 'Creating…' : 'Create account & play'}
         </button>
         <OrDivider text="OR SIGN UP WITH" />
         <OAuthButtons />
@@ -67,7 +126,7 @@ export function Signup() {
             Sign in
           </a>
         </div>
-      </div>
+      </form>
     </AuthLayout>
   )
 }
