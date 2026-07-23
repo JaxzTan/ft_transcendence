@@ -11,8 +11,8 @@ export class AchievementsController {
    */
   @UseGuards(JwtAuthGuard)
   @Get()
-  async getAchievements(@Request() req: { user: { sub: string } }) {
-    const achievements = await this.achievements.getUserAchievements(req.user.sub);
+  async getAchievements(@Request() req: { user: { id: string } }) {
+    const achievements = await this.achievements.getUserAchievements(req.user.id);
     return achievements || {};
   }
 
@@ -21,7 +21,7 @@ export class AchievementsController {
    */
   @UseGuards(JwtAuthGuard)
   @Post('check')
-  async checkAchievements(@Request() req: { user: { sub: string } }) {
-    return this.achievements.evaluateForUser(req.user.sub);
+  async checkAchievements(@Request() req: { user: { id: string } }) {
+    return this.achievements.evaluateForUser(req.user.id);
   }
 }

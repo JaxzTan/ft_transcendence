@@ -2,13 +2,11 @@ import { RedisGameStore } from './redis';
 import { EventPublisher } from './socket/event-publisher';
 import type { PlayerColor, ClashState, GameEvent } from './types';
 
-const ATTACKER_KEYS = ['U','I','O','H','J','K','B','N','M'];
+const ATTACKER_KEYS = ['u','i','o','h','j','k','b','n','m'];
+const DEFENDER_KEYS = ['q','w','e','a','s','d','z','x','c'];
 const CLASH_DURATION = 5000; //5 seconds
+const CLASH_TARGET = 42;
 const RECONNECT_WINDOW = 30000; // 30 seconds to reconnect before forfeit
-
-function randomTarget(): number {
-  return Math.floor(Math.random() * 16) + 35; // 35-50
-}
 
 export class ClashManager {
   private store: RedisGameStore;
@@ -20,14 +18,14 @@ export class ClashManager {
   }
 
   async startClash(gameId: string, attacker: PlayerColor, defender: PlayerColor): Promise<void> {
-    const key = ATTACKER_KEYS[Math.floor(Math.random() * ATTACKER_KEYS.length)];
-    const target = randomTarget();
+    const attackerKey = ATTACKER_KEYS[Math.floor(Math.random() * ATTACKER_KEYS.length)];
+    const defenderKey = DEFENDER_KEYS[Math.floor(Math.random() * DEFENDER_KEYS.length)];
     const clashState: ClashState = {
       attacker,
       defender,
-      attackerKey: key,
-      defenderKey: key,
-      target,
+      attackerKey,
+      defenderKey,
+      target: CLASH_TARGET,
       duration: CLASH_DURATION / 1000,
       startedAt: Date.now(),
       attackerPresses: 0,
@@ -37,8 +35,9 @@ export class ClashManager {
     this.publisher.publish({
       type: 'clash_start',
       gameId,
-      key,
-      target,
+      attackerKey,
+      defenderKey,
+      target: CLASH_TARGET,
       duration: CLASH_DURATION / 1000,
       attacker,
       defender
@@ -108,6 +107,13 @@ export class ClashManager {
     if (elapsed > CLASH_DURATION) return false;
 
     const count = await this.store.recordClashPress(gameId, color);
+    if (count >= CLASH_TARGET) {
+      // Early win! This player hit the target score — resolve immediately
+      const winner = color;
+      const loser = color === clash.attacker ? clash.defender : clash.attacker;
+      await this.resolveClash(gameId, winner, loser);
+      return true;
+    }
     return count > 0;
   }
 

@@ -172,6 +172,7 @@ export class AchievementsService {
         achUnstoppable: true,
         achCleanSweep: true,
         achLastLaugh: true,
+        achSpeedDemon: true,
       },
     });
   }

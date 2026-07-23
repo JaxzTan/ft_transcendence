@@ -171,7 +171,11 @@ export class MatchService {
     const clashEnabled = data.clashEnabled === 'true';
     const slotKey = !data.player2_id ? 'player2' : !data.player3_id ? 'player3' : 'player4';
 
-    await this.redis.hset(`match:${gameId}`, `${slotKey}_id`, userId, `${slotKey}_color`, color || '', 'status', 'ACTIVE', 'startedAt', Date.now().toString());
+    // Stay in WAITING — players must click "ready" to start
+    await this.redis.hset(`match:${gameId}`, `${slotKey}_id`, userId, `${slotKey}_color`, color || '');
+
+    const players = [data.player1_id, userId, data.player3_id, data.player4_id].filter(Boolean);
+    const playerCount = players.length;
 
     const token = this.jwt.sign(
       { gameId, playerId: userId, role: 'player', clashEnabled, color: color || undefined },

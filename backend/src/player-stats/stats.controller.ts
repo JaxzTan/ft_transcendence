@@ -8,7 +8,7 @@ export class StatsController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async getStats(@Request() req: { user: { sub: string } }) {
-    return this.stats.getStats(req.user.sub);
+  async getStats(@Request() req: { user: { id: string } }) {
+    return this.stats.getStats(req.user.id);
   }
 }
