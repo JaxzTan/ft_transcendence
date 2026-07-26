@@ -7,7 +7,7 @@ import { btnGold, goldText, input, label } from '../theme'
 import { useApp } from '../store'
 
 export function Login() {
-  const { login } = useApp()
+  const { login, devLogin } = useApp()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -26,6 +26,18 @@ export function Login() {
 
   return (
     <AuthLayout tag="EST. 1896 · TABLETOP CLASSICS">
+      <button
+        type="button"
+        onClick={devLogin}
+        style={{
+          position: 'fixed', top: 20, right: 20,
+          background: 'rgba(23, 17, 11, 0.8)', border: '1px solid #3a2c1d', color: '#a99a83',
+          padding: '6px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
+          fontFamily: "'Hanken Grotesk', sans-serif", zIndex: 9999
+        }}
+      >
+        DEV: Bypass Login
+      </button>
       <form
         onSubmit={onSubmit}
         style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 20 }}
