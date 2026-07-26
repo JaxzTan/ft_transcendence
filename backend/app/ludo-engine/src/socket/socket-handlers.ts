@@ -54,9 +54,8 @@ export class SocketHandlers {
             if (player) player.status = 'active';
           }
 
+          // Don't auto-start — player must click ready
           if (state.status === 'waiting') {
-            const allActive = state.players.every(p => p.status === 'active');
-            if (allActive) state.status = 'active';
             await this.store.saveGameState(effectiveGameId, state);
           }
         }
@@ -150,6 +149,48 @@ export class SocketHandlers {
         await this.clashManager.handleReconnect(gameId, color);
       } catch (error) {
         console.error('Clash reconnect error:', error);
+      }
+    });
+  }
+
+  handlePlayerReady(socket: GameSocket): void {
+    const gameId = socket.data.gameId;
+    const color = socket.data.playerColor;
+    if (!gameId || !color) {
+      socket.emit('error', 'Not in a game');
+      return;
+    }
+
+    this.queue.enqueue(gameId, async () => {
+      try {
+        await this.engine.handlePlayerReady(gameId, color);
+      } catch (error) {
+        socket.emit('error', `Ready failed: ${error}`);
+      }
+    });
+  }
+
+  handleLeaveGame(socket: GameSocket): void {
+    const gameId = socket.data.gameId;
+    const color = socket.data.playerColor;
+    if (!gameId || !color) return;
+
+    this.queue.enqueue(gameId, async () => {
+      try {
+        const state = await this.store.loadGameState(gameId);
+        if (!state) return;
+
+        if (state.status === 'finished') {
+          // Post-game: treat as exit_post_game
+          socket.leave(gameId);
+          // The caller (server.ts) will handle exit_post_game logic
+        } else if (state.status === 'waiting' || state.status === 'active') {
+          // Mid-game or pre-game: forfeit/exit
+          await this.engine.handlePlayerExit(gameId, color);
+          socket.leave(gameId);
+        }
+      } catch (error) {
+        console.error('Leave game error:', error);
       }
     });
   }

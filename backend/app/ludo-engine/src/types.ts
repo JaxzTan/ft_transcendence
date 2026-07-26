@@ -97,7 +97,7 @@ export type GameEvent =
   | { type: 'game_ended'; gameId: string; winner: PlayerColor; resultDetail: string }
   | { type: 'game_started'; gameId: string }
   | { type: 'player_exited'; gameId: string; color: PlayerColor }
-  | { type: 'clash_start'; gameId: string; key: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor }
+  | { type: 'clash_start'; gameId: string; attackerKey: string; defenderKey: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor }
   | { type: 'clash_frozen'; gameId: string; reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }
   | { type: 'clash_result'; gameId: string; winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number };
 

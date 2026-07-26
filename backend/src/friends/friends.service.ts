@@ -218,8 +218,8 @@ export class FriendsService {
       const blocked = await (this.prisma.db.friendship.create as any)({
         data: {
           id: `${userId}-${targetUserId}-blocked`,
-          user: { connect: { id: userId } },
-          friend: { connect: { id: targetUserId } },
+          userId,
+          friendId: targetUserId,
           status: 'blocked',
         },
         include: {

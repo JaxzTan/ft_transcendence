@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import { requireSecret } from './secrets';
 
 @Injectable()
@@ -16,7 +17,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 		// db_password. The secrets file holds the host-side localhost URL and is
 		// only the right answer when running outside Docker.
 		const connectionString = process.env.DATABASE_URL || requireSecret('DATABASE_URL');
-		const adapter = new PrismaPg({ connectionString });
+		const pool = new Pool({ connectionString, max: 5 }); //changes made 23/7 by bing
+		const adapter = new PrismaPg(pool); //changes made 23/7 by bing
 		this.db = new PrismaClient({
 			adapter,
 		});

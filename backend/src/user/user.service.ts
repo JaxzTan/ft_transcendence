@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -31,6 +31,40 @@ export class UserService {
     }
 
     return user;
+  }
+
+  async uploadAvatar(userId: string, data: Buffer, contentType: string) {
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // Prisma 7 uses Bytes type for avatarPhoto
+    await this.prisma.db.user.update({
+      where: { id: userId },
+      data: { avatarPhoto: data as any, avatarPhotoContentType: contentType },
+    });
+
+    return { message: 'Avatar uploaded', contentType };
+  }
+
+  async getAvatar(username: string): Promise<{ data: Buffer; contentType: string } | null> {
+    const user = await this.prisma.db.user.findUnique({
+      where: { username },
+      select: { avatarPhoto: true, avatarPhotoContentType: true },
+    });
+    if (!user || !user.avatarPhoto || !user.avatarPhotoContentType) return null;
+    return { data: Buffer.from(user.avatarPhoto), contentType: user.avatarPhotoContentType };
+  }
+
+  async deleteAvatar(userId: string) {
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.db.user.update({
+      where: { id: userId },
+      data: { avatarPhoto: null, avatarPhotoContentType: null },
+    });
+
+    return { message: 'Avatar deleted' };
   }
 
   async getUserGames(username: string, page: number = 1, limit: number = 20) {

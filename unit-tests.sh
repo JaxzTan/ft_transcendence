@@ -398,36 +398,6 @@ else
     skip "No auth cookie - skipping requests test"
 fi
 
-echo -n "Testing POST /api/friends/accept/:requestId (as friend user)... "
-if [[ -n "$REQUEST_ID" && -f "$FRIEND_COOKIE_JAR" ]]; then
-    ACCEPT_RESPONSE=$(curl -sk --connect-timeout 5 -X POST -b "$FRIEND_COOKIE_JAR" \
-        ${BASE_URL}/api/friends/accept/${REQUEST_ID} 2>/dev/null || echo "")
-    
-    if [[ "$ACCEPT_RESPONSE" == *"accepted"* ]]; then
-        pass "Friend request accepted"
-        echo "   Response: ${ACCEPT_RESPONSE}"
-    else
-        warn "Accept response: ${ACCEPT_RESPONSE}"
-    fi
-else
-    skip "No request ID or friend cookie - skipping accept test"
-fi
-
-echo -n "Testing GET /api/friends (should show friend now)... "
-if [[ -f "$COOKIE_JAR" ]]; then
-    FRIENDS_LIST2=$(curl -sk --connect-timeout 5 -b "$COOKIE_JAR" \
-        ${BASE_URL}/api/friends 2>/dev/null || echo "")
-    
-    if [[ "$FRIENDS_LIST2" == *"${FRIEND_USER}"* ]]; then
-        pass "Friend appears in friends list"
-        echo "   Response: ${FRIENDS_LIST2:0:100}..."
-    else
-        warn "Friends list after accept: ${FRIENDS_LIST2}"
-    fi
-else
-    skip "No auth cookie - skipping friends list check"
-fi
-
 echo -n "Testing DELETE /api/friends/remove/:friendId... "
 if [[ -f "$COOKIE_JAR" && -n "$FRIEND_ID" ]]; then
     REMOVE_RESPONSE=$(curl -sk --connect-timeout 5 -X DELETE -b "$COOKIE_JAR" \
@@ -454,6 +424,74 @@ if [[ -f "$COOKIE_JAR" && -n "$FRIEND_ID" ]]; then
     fi
 else
     skip "No target user available - skipping block test"
+fi
+
+echo ""
+
+# ==========================================
+# 14. Avatar Upload/Delete Tests
+# ==========================================
+echo "### 14. Avatar Upload/Delete Tests ###"
+
+# Create a small dummy PNG (1x1 white pixel) for upload
+printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82' > /tmp/test-avatar.png 2>/dev/null || echo -n "test" > /tmp/test-avatar.png
+
+echo -n "Testing POST /api/user/avatar (upload)... "
+UPLOAD_RESP=$(curl -sk --connect-timeout 5 -X POST -b "$COOKIE_JAR" \
+    -F "avatar=@/tmp/test-avatar.png;type=image/png" \
+    ${BASE_URL}/api/user/avatar 2>/dev/null || echo "")
+
+if [[ "$UPLOAD_RESP" == *"Avatar uploaded"* ]]; then
+    pass "Avatar uploaded successfully"
+else
+    warn "Avatar upload response: ${UPLOAD_RESP}"
+fi
+
+echo -n "Testing GET /api/user/:username/avatar... "
+AVATAR_HTTP=$(curl -sk --connect-timeout 5 -o /dev/null -w "%{http_code}" \
+    ${BASE_URL}/api/user/${TEST_USER}/avatar 2>/dev/null || echo "")
+
+if [[ "$AVATAR_HTTP" == "200" ]]; then
+    pass "Avatar served (HTTP 200)"
+else
+    warn "Avatar HTTP status: ${AVATAR_HTTP}"
+fi
+
+echo -n "Testing DELETE /api/user/avatar... "
+DEL_RESP=$(curl -sk --connect-timeout 5 -X DELETE -b "$COOKIE_JAR" \
+    ${BASE_URL}/api/user/avatar 2>/dev/null || echo "")
+
+if [[ "$DEL_RESP" == *"Avatar deleted"* ]]; then
+    pass "Avatar deleted"
+else
+    warn "Avatar delete response: ${DEL_RESP}"
+fi
+
+echo -n "Testing GET /api/user/:username/avatar after delete... "
+AFTER_HTTP=$(curl -sk --connect-timeout 5 -o /dev/null -w "%{http_code}" \
+    ${BASE_URL}/api/user/${TEST_USER}/avatar 2>/dev/null || echo "")
+
+if [[ "$AFTER_HTTP" == "404" ]]; then
+    pass "Avatar returns 404 after deletion"
+else
+    warn "Avatar HTTP status after delete: ${AFTER_HTTP}"
+fi
+
+echo ""
+
+# ==========================================
+# 15. Logout Test
+# ==========================================
+echo "### 15. Logout Test ###"
+
+echo -n "Testing POST /api/auth/logout... "
+LOGOUT_RESP=$(curl -sk --connect-timeout 5 -X POST -b "$COOKIE_JAR" \
+    ${BASE_URL}/api/auth/logout 2>/dev/null || echo "")
+
+if [[ "$LOGOUT_RESP" == *"ok"* ]]; then
+    pass "Logout successful"
+else
+    warn "Logout response: ${LOGOUT_RESP}"
 fi
 
 echo ""

@@ -23,12 +23,12 @@ async function bootstrap() {
 
   // Health endpoint
   const prisma = app.get(PrismaService);
-  app.getHttpAdapter().get('/health', async () => {
+  app.getHttpAdapter().get('/health', async (_req: any, res: any) => {
     try {
       await prisma.db.$queryRaw`SELECT 1`;
-      return { status: 'ok', timestamp: new Date().toISOString() };
+      res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
     } catch (e) {
-      return { status: 'error', timestamp: new Date().toISOString() };
+      res.status(500).json({ status: 'error', timestamp: new Date().toISOString() });
     }
   });
 

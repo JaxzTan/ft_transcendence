@@ -257,6 +257,12 @@ export class SocketServer {
       socket.on('reconnect_clash', () =>
         this.handlers.handleReconnectClash(socket));
 
+      socket.on('player_ready', () =>
+        this.handlers.handlePlayerReady(socket));
+
+      socket.on('leave_game', () =>
+        this.handlers.handleLeaveGame(socket));
+
       socket.on('resign', () =>
         this.handlers.handleResign(socket));
 
