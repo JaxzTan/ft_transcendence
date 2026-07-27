@@ -8,6 +8,7 @@ const NAV: Array<{ path: string; glyph: string; title: string }> = [
   { path: '/dashboard', glyph: '▦', title: 'Dashboard' },
   { path: '/leaderboard', glyph: '♛', title: 'Leaderboard' },
   { path: '/friends', glyph: '♟', title: 'Friends' },
+  { path: '/profile', glyph: '👤', title: 'Profile' },
   { path: '/settings', glyph: '⚙', title: 'Settings' },
 ]
 
@@ -16,6 +17,7 @@ export const SCREEN_TITLES: Record<string, string> = {
   '/dashboard': 'Player Dashboard',
   '/leaderboard': 'Leaderboard',
   '/friends': 'Friends',
+  '/profile': 'Player Profile',
   '/settings': 'Settings',
 }
 
@@ -135,9 +137,15 @@ export function Shell({ children }: { children: ReactNode }) {
             borderTop: '1px solid #2e2115',
           }}
         >
-          <div style={avatarBlue(36, 13)}>{initials}</div>
+          <div 
+             style={{ ...avatarBlue(36, 13), cursor: 'pointer' }}
+             onClick={() => navigate('/profile')}
+          >{initials}</div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div 
+              style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
+              onClick={() => navigate('/profile')}
+            >
               {name}
             </div>
             <div

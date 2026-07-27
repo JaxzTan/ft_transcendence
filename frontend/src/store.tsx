@@ -36,7 +36,6 @@ type AppState = {
   login: (username: string, password: string) => Promise<string | null>
   register: (username: string, password: string, email?: string) => Promise<string | null>
   logout: () => Promise<void>
-  devLogin: () => void
   mode: Mode
   seats: Seat[]
   dice: number
@@ -101,11 +100,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined)
     setUser(null)
-  }, [])
-
-  // Dev Login
-  const devLogin = useCallback(() => {
-    setUser({ id: 'dev-123', username: 'DevUser' })
   }, [])
 
   const [mode, setMode] = useState<Mode>(4)
@@ -191,11 +185,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      user, authReady, login, register, logout, devLogin,
+      user, authReady, login, register, logout,
       mode, seats, dice, rolling, turn, settings,
       setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
     }),
-    [user, authReady, login, register, logout, devLogin, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
+    [user, authReady, login, register, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
