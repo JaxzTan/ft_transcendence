@@ -23,7 +23,6 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       provider: 'google',
       providerAccountId: profile.id,
       email,
-      displayName: profile.displayName,
       usernameSeed: email?.split('@')[0] ?? `google_${profile.id}`,
     });
   }

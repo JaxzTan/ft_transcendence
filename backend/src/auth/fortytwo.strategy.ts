@@ -21,7 +21,6 @@ export class FortyTwoStrategy extends PassportStrategy(Strategy as any, '42') {
       provider: '42',
       providerAccountId: profile.id,
       email,
-      displayName: profile.displayName,
       usernameSeed: profile.username ?? `ft_${profile.id}`, // 42 intra login
     });
   }
