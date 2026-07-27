@@ -50,7 +50,6 @@ model User {
   email         String?      @unique
   password_hash String?      // null for OAuth-only users
   emailVerified DateTime?
-  displayName   String?
   rating        Int          @default(0)
   highestRating Int          @default(0)
   wins          Int          @default(0)
@@ -110,12 +109,6 @@ model Account {
   userId            String
   provider          String
   providerAccountId String
-  access_token      String?
-  refresh_token     String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

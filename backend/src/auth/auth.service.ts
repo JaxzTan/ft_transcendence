@@ -69,7 +69,6 @@ export class AuthService {
     provider: string;
     providerAccountId: string;
     email?: string;
-    displayName?: string;
     usernameSeed: string;
   }) {
     // If provider account exist just log them in
@@ -100,7 +99,6 @@ export class AuthService {
           id: crypto.randomUUID(),
           username,
           email: input.email,
-          displayName: input.displayName,
           emailVerified: input.email ? new Date() : null,
         },
       });

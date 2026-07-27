@@ -30,7 +30,6 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
       provider: 'github',
       providerAccountId: profile.id,
       email,
-      displayName: profile.displayName ?? profile.username,
       usernameSeed: profile.username ?? `github_${profile.id}`,
     });
   }
