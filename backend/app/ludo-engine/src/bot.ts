@@ -3,6 +3,31 @@ import { RedisGameStore } from './redis';
 import { BoardMapper } from './board-mapper';
 import type { PlayerColor, PieceId, GameState, LegalMove } from './types';
 
+const botMap = new Map<string, Map<PlayerColor, LudoBot>>();
+const BOT_ID = 'bot';
+
+export function getOrCreateBot(
+  gameId: string,
+  color: PlayerColor,
+  engine: LudoEngine,
+  store: RedisGameStore,
+): LudoBot {
+  if (!botMap.has(gameId)) botMap.set(gameId, new Map());
+  const gameBots = botMap.get(gameId)!;
+  if (!gameBots.has(color)) {
+    gameBots.set(color, new LudoBot(gameId, color, engine, store));
+  }
+  return gameBots.get(color)!;
+}
+
+export function isBotPlayer(
+  userIdMap: Map<string, Map<PlayerColor, string>>,
+  gameId: string,
+  color: PlayerColor,
+): boolean {
+  return userIdMap.get(gameId)?.get(color) === BOT_ID;
+}
+
 /**
  * Server-side Ludo Bot with heuristic-based move selection.
  * Each bot (per color) analyzes the game state to decide moves.
@@ -96,23 +121,29 @@ export class LudoBot {
    * Returns true if the game is still active after this turn.
    */
   async takeTurn(): Promise<boolean> {
-    // Roll dice — engine emits dice_rolled event via handleEngineEvent
+    // Strict turn validation — mirrors socket-handlers.ts early validation for humans
+    const state = await this.store.loadGameState(this.gameId);
+    if (!state || state.status !== 'active') return false;
+    if (state.currentTurn !== this.color) return false; // Not our turn
+    if (state.turnPhase !== 'WAITING_FOR_ROLL') return false; // Wrong phase
+
+    // Roll dice — engine validates currentTurn again
     const { value: diceValue, legalMoves } = await this.engine.rollDice(this.gameId);
 
     if (legalMoves.length > 0) {
-      // Get current game state for heuristic analysis
-      const state = await this.store.loadGameState(this.gameId);
-      if (!state) return false;
+      // Re-validate after roll: turn may have changed due to disconnect
+      const afterRoll = await this.store.loadGameState(this.gameId);
+      if (!afterRoll || afterRoll.currentTurn !== this.color) return false;
 
       // Select best move using heuristics
-      const bestMove = this.selectBestMove(legalMoves, state, diceValue);
+      const bestMove = this.selectBestMove(legalMoves, afterRoll, diceValue);
       if (!bestMove) return false;
       
       // Execute move — engine emits piece_moved and game_ended events via handleEngineEvent
-      const { state: updatedState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);
+      const { state: finalState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);
 
       // Check for win after bot move
-      if (updatedState.status === 'finished') {
+      if (finalState.status === 'finished') {
         return false; // Game finished
       }
     }

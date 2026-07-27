@@ -48,6 +48,13 @@ export class EventPublisher {
         }));
         break;
 
+      case 'game_started':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'game_started',
+          gameId: event.gameId,
+        }));
+        break;
+
       case 'clash_start':
         this.store.publish(gameId, JSON.stringify({
           type: 'clash_start',
@@ -76,6 +83,23 @@ export class EventPublisher {
           loser: event.loser,
           winnerPresses: event.winnerPresses,
           loserPresses: event.loserPresses,
+        }));
+        break;
+
+      case 'color_selected':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'color_selected',
+          gameId: event.gameId,
+          userId: event.userId,
+          color: event.color,
+        }));
+        break;
+
+      case 'lobby_update':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'lobby_update',
+          gameId: event.gameId,
+          players: event.players,
         }));
         break;
     }

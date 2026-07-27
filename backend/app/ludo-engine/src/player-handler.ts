@@ -155,16 +155,16 @@ export async function handlePlayerReady(
     state.readyPlayers.push(color);
   }
 
-  // Check if all active players are ready
-  const activePlayers = state.players.filter(p => p.status === 'active');
-  const allReady = activePlayers.length > 0 && activePlayers.every(p => state.readyPlayers.includes(p.color));
+  await store.saveGameState(gameId, state);
+
+  // Check if game should start (delegate to lobby manager if available)
+  const allReady = state.players.filter(p => p.status === 'active').length > 0 &&
+    state.players.filter(p => p.status === 'active').every(p => state.readyPlayers.includes(p.color));
 
   if (allReady) {
     state.status = 'active';
     await store.saveGameState(gameId, state);
     emit({ type: 'game_started', gameId });
-  } else {
-    await store.saveGameState(gameId, state);
   }
 }
 

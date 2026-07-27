@@ -1,7 +1,6 @@
 import { GameState, PlayerColor, LegalMove, MoveResult, MovePieceOutput, PieceId, GameEvent } from './types';
 import { RedisGameStore } from './redis';
 import { MoveValidator } from './move-validator';
-import { WinRules } from './win-rules';
 import { ClashManager } from './clash';
 import { advanceTurnInState } from './player-handler';
 import {
@@ -10,15 +9,21 @@ import {
   handlePlayerReady,
   handlePlayerExit,
 } from './player-handler';
+import { LobbyManager } from './lobby';
 
 export class LudoEngine {
   private store: RedisGameStore;
   private eventHandler?: (event: GameEvent) => void;
   private clashManager: ClashManager;
+  private lobbyManager?: LobbyManager;
 
   constructor(store: RedisGameStore, clashManager: ClashManager) {
     this.store = store;
     this.clashManager = clashManager;
+  }
+
+  setLobbyManager(lobbyManager: LobbyManager): void {
+    this.lobbyManager = lobbyManager;
   }
 
   /**
@@ -132,75 +137,39 @@ export class LudoEngine {
       throw new Error('Invalid move: piece not in legal moves');
     }
 
-    const piece = state.pieces.find(p => p.id === pieceId);
-    if (!piece || piece.step < 0) {
-      throw new Error('Piece not found or inactive');
-    }
-
-    // Validate: piece color matches current turn
-    if (piece.color !== state.currentTurn) {
-      throw new Error('Not your turn');
-    }
-
     // Use the server-authoritative dice value
     const diceValue = state.pendingDiceValue;
     if (diceValue === undefined) {
       throw new Error('No pending dice value — roll first');
     }
 
-    const from = piece.step;
-    const to = pendingMove.to; // Use validated to, not from+diceValue
-
-    const isCapture = pendingMove.isCapture;
-    const enteredHome = pendingMove.isHomeEntry;
-
-    piece.step = to;
-
-    // Update player stats
-    const player = state.players.find(p => p.color === piece.color);
-    if (player) {
-      player.stats.turns++;
-    }
+    // Execute move via MoveValidator (pure game logic)
+    const result = MoveValidator.executeMove(state, pendingMove, diceValue);
 
     // Record move history
     await this.store.recordMove(gameId, {
-      ply: state.moveCounter + 1,
-      color: piece.color,
-      diceValue,
-      pieceId,
-      from,
-      to,
-      captured: isCapture,
-      enteredHome,
+      ply: result.ply,
+      color: result.color,
+      diceValue: result.diceValue,
+      pieceId: result.pieceId,
+      from: result.from,
+      to: result.to,
+      captured: result.captured,
+      enteredHome: result.enteredHome,
       timestamp: Date.now()
     });
-
-    // Track captured piece ID
-    let capturedPieceId: PieceId | undefined;
-    if (isCapture) {
-      capturedPieceId = MoveValidator.findPieceAtPosition(state, piece.color, to);
-      if (capturedPieceId) {
-        const capturedPiece = state.pieces.find(p => p.id === capturedPieceId);
-        if (capturedPiece) {
-          capturedPiece.step = 0; // Send to prison
-        }
-        const capturer = state.players.find(p => p.color === piece.color);
-        if (capturer) {
-          capturer.stats.captures++;
-        }
-      }
-    }
 
     // Increment move counter
     state.moveCounter++;
 
     // Check win
-    const winner = WinRules.checkWinner(state);
+    const winner = MoveValidator.checkWinner(state);
     
     if (winner) {
-      for (const player of state.players) {
-        const piecesInGoal = state.pieces.filter(p => p.color === player.color && p.step === 57).length;
-        player.stats.piecesInGoal = piecesInGoal;
+      const piecesInGoal = MoveValidator.countPiecesInGoal(state, winner);
+      const winnerPlayer = state.players.find(p => p.color === winner);
+      if (winnerPlayer) {
+        winnerPlayer.stats.piecesInGoal = piecesInGoal;
       }
       state.status = 'finished';
       state.winner = winner;
@@ -208,7 +177,7 @@ export class LudoEngine {
     } else {
       // Bonus roll on 6 or capture: same player rolls again
       // Otherwise, advance turn to next player
-      if (diceValue === 6 || isCapture) {
+      if (diceValue === 6 || result.captured) {
         state.turnPhase = 'WAITING_FOR_ROLL';
       } else {
         state.turnPhase = 'WAITING_FOR_ROLL';
@@ -222,20 +191,6 @@ export class LudoEngine {
 
     await this.store.saveGameState(gameId, state);
 
-    const result: MoveResult = {
-      ply: state.moveCounter,
-      color: piece.color,
-      diceValue,
-      pieceId,
-      from,
-      to,
-      captured: isCapture,
-      capturedPieceId,
-      enteredHome,
-      bonusRoll: !winner && (diceValue === 6 || isCapture)
-    };
-
-    // Emit events — single source of truth
     this.emit({ type: 'piece_moved', gameId, result });
     if (winner) {
       this.emit({ type: 'game_ended', gameId, winner, resultDetail: 'four_pieces' });
@@ -261,5 +216,12 @@ export class LudoEngine {
 
   async handlePlayerExit(gameId: string, color: PlayerColor): Promise<void> {
     return handlePlayerExit(this.store, (e) => this.emit(e), gameId, color);
+  }
+
+  async handlePlayerSelectColor(gameId: string, userId: string, color: PlayerColor): Promise<void> {
+    if (!this.lobbyManager) {
+      throw new Error('Lobby manager not initialized');
+    }
+    await this.lobbyManager.handleSelectColor(gameId, userId, color);
   }
 }
