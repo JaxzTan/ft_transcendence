@@ -101,7 +101,7 @@ export class AuthService {
           username,
           email: input.email,
           displayName: input.displayName,
-          emailVerified: input.email ? new Date() : null, // provider already verified it
+          emailVerified: input.email ? new Date() : null,
         },
       });
     }
