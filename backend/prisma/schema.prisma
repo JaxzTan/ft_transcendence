@@ -50,7 +50,6 @@ model User {
   email         String?      @unique
   password_hash String?      // null for OAuth-only users
   emailVerified DateTime?
-  displayName   String?
   rating        Int          @default(0)
   highestRating Int          @default(0)
   wins          Int          @default(0)
