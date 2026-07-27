@@ -1,12 +1,11 @@
 # Architecture
 
 **Project:** ft_transcendence — Ludo Royale
-**Updated:** 2026-07-21
+**Updated:** 2026-07-25
 
-A seven-service Docker Compose stack: a React SPA served over TLS by nginx, a NestJS
-API, a standalone real-time game engine, a bot client, PostgreSQL, and Redis.
-
-For defects in what's described here, see [known-issues.md](known-issues.md).
+A six-service Docker Compose stack: a React SPA built by a one-shot job and served
+over TLS by nginx, a NestJS API, a standalone real-time game engine (with an
+inline bot AI), PostgreSQL, and Redis.
 
 ---
 
@@ -19,8 +18,7 @@ graph TB
     subgraph net["transcendence_network"]
         nginx["nginx :443<br/>TLS · serves SPA"]
         backend["backend :3000<br/>NestJS API"]
-        engine["ludo-engine :3001<br/>socket.io game engine"]
-        bot["ludo-bot :3002<br/>socket.io client"]
+        engine["ludo-engine :3001<br/>socket.io + inline bot AI"]
         db[("db :5432<br/>PostgreSQL 16")]
         redis[("redis :6379<br/>internal only")]
         fe["frontend<br/>build job · exits 0"]
@@ -34,31 +32,34 @@ graph TB
     backend --> db
     backend --> redis
     engine --> redis
-    bot -->|"websocket"| engine
     engine -.->|"BACKEND_URL"| backend
 ```
 
-The dashed browser→backend edge is a design gap, not a feature — see
-[Issue 3](known-issues.md#issue-3--nginx-does-not-proxy-auth).
+> **Note:** The dashed browser→backend edge is a design gap — auth endpoints use
+> `@Controller('auth')` without an `api/` prefix, so they fall outside the nginx
+> `/api/*` proxy rule and reach the backend directly on port 3000.
 
 ---
 
 ## Services
 
-| Service | Host port | Container | Role |
-|---|---|---|---|
-| `nginx` | 8443 | 443 | TLS termination, serves built SPA, proxies `/api/*` |
-| `backend` | 3000 | 3000 | NestJS REST API, auth, persistence |
-| `ludo-engine` | 3001 | 3001 | Authoritative game state over socket.io |
-| `ludo-bot` | 3002 | 3002 | Automated player, socket.io client of the engine |
-| `db` | 5432 | 5432 | PostgreSQL 16, Prisma-managed |
-| `redis` | — | 6379 | Game state + leaderboard cache; **not published** |
-| `frontend` | — | — | Build-only job; compiles SPA, exits 0 |
-| `frontend-dev` | 8080 | 8080 | Vite HMR server — `dev` profile only |
+| Service | Host port | Container | Profile | Role |
+|---|---|---|---|---|
+| `nginx` | 8443 | 443 | default | TLS termination, serves built SPA, proxies `/api/*` |
+| `backend` | 3000 | 3000 | default | NestJS REST API, auth, persistence |
+| `ludo-engine` | 3001 | 3001 | default | Authoritative game state + inline bot AI via socket.io |
+| `db` | 5432 | 5432 | default | PostgreSQL 16, Prisma-managed |
+| `redis` | — | 6379 | default | Game state + leaderboard cache; **not published** |
+| `frontend` | — | — | default | Build-only job; compiles SPA, exits 0 |
+| `frontend-dev` | 8080 | 8080 | **dev** | Vite HMR server — only started by `make dev` |
 
 Images are built from `Dockerfile`s in each service directory. `db` and `redis` wrap
 their official images with an init script that reads secrets before `exec`ing the
 real process (`backend/app/postgres_16_db/`, `backend/app/redis/`).
+
+> **Note:** There is no separate `ludo-bot` container. The bot AI lives inside the
+> `ludo-engine` process (`backend/app/ludo-engine/src/bot.ts`) and is triggered
+> synchronously from the engine event queue via `triggerBotTurn()`.
 
 ---
 
@@ -96,12 +97,12 @@ prefix in `backend/src/main.ts`; each controller carries `api/` in its own decor
 proxy and is reached directly on port 3000. This is why the OAuth callback secrets
 point at `http://localhost:3000`.
 
-**Game realtime** — socket.io to `ludo-engine:3001`. Only `ludo-bot` is a client; the
-SPA has no socket client yet.
+**Game realtime** — socket.io to `ludo-engine:3001`. The SPA has no socket client yet
+(Phase 5 in roadmap.md — still outstanding). Only the inline bot AI connects to the
+engine.
 
 > ⚠️ This path is **currently non-functional**. The engine crashes before it listens,
-> so nothing is bound to 3001 — see
-> [Issue 6](known-issues.md#issue-6--ludo-engine-crashes-at-startup-and-never-listens-critical-live).
+> so nothing is bound to 3001.
 > What follows describes intended design, not present behaviour.
 
 ---
@@ -133,24 +134,25 @@ Two distinct uses:
 - **Live game state** — `MatchService` (matchmaking, rematch, active games) and the engine's `RedisGameStore`.
 
 Redis runs with `requirepass` sourced from `redis_password.txt`. Only the leaderboard
-service currently authenticates — see [Issue 1](known-issues.md#issue-1--redis-authentication-is-broken-critical-live).
+service currently authenticates — other services (matchmaking, engine) do not yet
+authenticate their Redis connections.
 
 ---
 
 ## Backend modules
 
-`backend/src/app.module.ts` composes eight feature modules:
+`backend/src/app.module.ts` composes seven feature modules (CronModule was removed —
+Redis TTL handles cleanup):
 
 | Module | Route prefix | Responsibility |
 |---|---|---|
 | `AuthModule` | `/auth` | Local + Google/GitHub/42 OAuth, JWT cookie issuance |
-| `UserModule` | `/api/user` | Profile, settings |
+| `UserModule` | `/api/user` | Profile, avatar, game history |
 | `FriendsModule` | `/api/friends` | Requests, accept/decline, block |
-| `LeaderboardModule` | `/api/leaderboard` | Rankings, Redis-backed |
-| `AchievementsModule` | `/api/achievements` | Unlockables |
+| `LeaderboardModule` | `/api/leaderboard` | Rankings, Redis-backed with Postgres fallback |
+| `AchievementsModule` | `/api/achievements` | 15 Ludo achievements |
 | `StatsModule` | `/api/stats` | Per-player aggregates |
-| `MatchModule` | `/api/match`, `/api/game` | Matchmaking, game lifecycle |
-| `CronModule` | `/api/cron` | Scheduled cleanup |
+| `MatchModule` | `/api/match`, `/api/game` | Matchmaking (PvP/PvE/hotseat), game lifecycle |
 
 ### Auth flow
 
@@ -189,7 +191,7 @@ Both run simultaneously and independently:
 
 | | `make start` | `make dev` |
 |---|---|---|
-| Compose profile | default | `dev` |
+| Compose profile | default | default + **dev** |
 | SPA source | built, in `spa_dist` | live from bind mount |
 | Served by | nginx, `https://localhost:8443` | Vite, `http://localhost:8080` |
 | Reload | rebuild + restart | HMR |
