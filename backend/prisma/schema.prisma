@@ -109,12 +109,6 @@ model Account {
   userId            String
   provider          String
   providerAccountId String
-  access_token      String?
-  refresh_token     String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
