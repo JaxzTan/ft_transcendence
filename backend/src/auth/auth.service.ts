@@ -21,6 +21,13 @@ export class AuthService {
       throw new ConflictException('Username is already taken');
     }
 
+    if (dto.email) {
+      const emailTaken = await this.prisma.db.user.findUnique({ where: { email: dto.email } });
+      if (emailTaken) {
+        throw new ConflictException('Email is already registered');
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
     const user = await this.prisma.db.user.create({
       data: {
@@ -94,7 +101,7 @@ export class AuthService {
           username,
           email: input.email,
           displayName: input.displayName,
-          emailVerified: input.email ? new Date() : null, // provider already verified it
+          emailVerified: input.email ? new Date() : null,
         },
       });
     }

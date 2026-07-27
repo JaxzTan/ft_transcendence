@@ -15,9 +15,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  // Will run after googel redirects back and the code is exchanged for a profile
+  // Will run after google redirects back and the code is exchanged for a profile
   async validate(_accessToken: string, _refreshToken: string, profile: Profile) {
-    const email = profile.emails?.[0]?.value;
+    const email = profile.emails?.find((e) => String((e as { verified?: unknown }).verified) === 'true')
+      ?.value;
     return this.authService.validateOAuthLogin({
       provider: 'google',
       providerAccountId: profile.id,
