@@ -38,6 +38,12 @@ export class SocketHandlers {
         }
 
         if (state) {
+          // Socket locking: reject non-spectator joins to games already in progress
+          if (state.status !== 'waiting' && socket.data.role !== 'spectator') {
+            socket.emit('error', 'Game already in progress — only spectators can join');
+            return;
+          }
+
           const discIndex = state.disconnectedPlayers.findIndex(d => d.color === playerColor);
           if (discIndex !== -1) {
             await this.engine.handlePlayerReconnect(effectiveGameId, playerColor);
