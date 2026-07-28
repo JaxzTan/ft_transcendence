@@ -31,11 +31,6 @@ const prisma = new PrismaClient({ adapter });
 // keys off username rather than id.
 const SEED_USERNAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'];
 
-// Must match BOT_ID in src/match/match.service.ts — PVE games write a
-// GameParticipant row for the bot, and user_id is a FK to User. This is the one
-// id that is deliberately not a UUID; the runtime hardcodes it.
-const BOT_ID = 'ludo-bot';
-
 // Hashed at seed time with the same algorithm and cost as registration
 // (auth.service.ts), so every fixture login goes through the real bcrypt.compare
 // path. Each user gets its own salt, as a real signup would.
@@ -54,35 +49,17 @@ async function main() {
   // ── Reset previous seed data ──────────────────────────────────────────────
   // Deleting the fixture users cascades their Account, GameParticipant and
   // Friendship rows (onDelete: Cascade on all three), which leaves the fixture
-  // games with no human participants; the second delete sweeps those. The bot
-  // survives the first delete, so the PVE fixture is left holding a lone bot
-  // participant — hence "no non-bot participant" rather than "no participants",
-  // which would leak one orphaned game per re-run. A real match always has at
-  // least one human, so genuine game history is never touched.
+  // games with no participants at all; the second delete sweeps those. A real
+  // match always has at least one participant that outlives this reset, so
+  // genuine game history is never touched.
   await prisma.user.deleteMany({ where: { username: { in: SEED_USERNAMES } } });
-  await prisma.game.deleteMany({
-    where: { participants: { none: { user_id: { not: BOT_ID } } } },
-  });
-
-  // ── Bot ───────────────────────────────────────────────────────────────────
-  // Upserted, never deleted: real PVE history points at this row, so dropping
-  // it would cascade away genuine games. No email/password — it never logs in.
-  await prisma.user.upsert({
-    where: { id: BOT_ID },
-    update: {},
-    create: {
-      id: BOT_ID,
-      username: BOT_ID,
-      avatarStyle: 'bottts',
-      status: 'online',
-    },
-  });
+  await prisma.game.deleteMany({ where: { participants: { none: {} } } });
 
   // ── Users ─────────────────────────────────────────────────────────────────
   // Counters below are derived from the games seeded further down, using the
-  // same rules as match.service.ts (+10 rating per win, -5 per loss; humanWins
-  // on any win, botWins only on a PVE win; ABANDONED games count for nothing)
-  // and achievements.service.ts.
+  // same rules as match.service.ts (+10 rating per win, -5 per loss; ABANDONED
+  // games count for nothing) and achievements.service.ts. Every fixture game is
+  // PVP, so humanWins/botWins stay at their defaults.
   const alice = await prisma.user.create({
     data: {
       id: randomUUID(),
@@ -122,14 +99,12 @@ async function main() {
       email: 'bob@example.com',
       emailVerified: new Date(now - 25 * 24 * HOUR),
       password_hash: await hashPassword(),
-      rating: 1105,          // 1100 - 5 + 10
-      highestRating: 1105,
-      wins: 1,
+      rating: 1095,          // 1100 - 5
+      highestRating: 1100,
+      wins: 0,
       losses: 1,
-      humanWins: 1,
-      botWins: 1,
-      winStreak: 1,
-      bestWinStreak: 1,
+      winStreak: 0,
+      bestWinStreak: 0,
       lastLoginAt: new Date(now - 2 * HOUR),
       loginStreak: 2,
       daysActive: 8,
@@ -137,15 +112,10 @@ async function main() {
       status: 'playing',
       disconnectCount: 2,
       reconnectCount: 2,
-      gamesWithFourPieces: 1,
       gamesWithTwoPieces: 1,
-      // First win; beat a bot; 3 captures in the 4-player game; 10-minute
-      // PVE win; won with 4 home while the bot had 1 home.
-      achFirstBlood: true,
-      achBabySteps: true,
+      // 3 captures in the 4-player game. The win-gated achievements are all
+      // false now that Bob has no completed win.
       achUnstoppable: true,
-      achSpeedDemon: true,
-      achLastLaugh: true,
     },
   });
 
@@ -221,7 +191,7 @@ async function main() {
     },
   });
 
-  console.log('  Created users: Alice, Bob, Carol, Dave, Eve (+ ludo-bot)');
+  console.log('  Created users: Alice, Bob, Carol, Dave, Eve');
 
   // ── A completed 4-player game (Alice 1st with all 4 pieces home) ───────────
   await prisma.game.create({
@@ -263,25 +233,6 @@ async function main() {
   });
 
   console.log('  Created completed 3-player game');
-
-  // ── A completed head-to-head game vs the bot (PVE) ────────────────────────
-  await prisma.game.create({
-    data: {
-      id: randomUUID(),
-      startedAt: new Date(now - 2 * HOUR),
-      endedAt: new Date(now - 110 * MINUTE),
-      status: 'COMPLETED',
-      gameType: 'PVE',
-      participants: {
-        create: [
-          { id: randomUUID(), user_id: bob.id, color: 'RED', rank: 1, piecesCaptured: 2, piecesInGoal: 4 },
-          { id: randomUUID(), user_id: BOT_ID, color: 'BLUE', rank: 2, piecesCaptured: 1, piecesInGoal: 1 },
-        ],
-      },
-    },
-  });
-
-  console.log('  Created completed PVE game');
 
   // ── An abandoned invite game (counts toward no stats) ─────────────────────
   await prisma.game.create({
