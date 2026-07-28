@@ -108,60 +108,51 @@ export class LeaderboardService {
         return response;
       }
     } catch (err) {
-      console.warn('Redis leaderboard read failed, falling back to PostgreSQL:', err);
+      console.warn('Redis leaderboard read failed, falling back to PostgreSQL snapshot:', err);
     }
 
-    // 2. Fallback to PostgreSQL
-    const users = await this.prisma.db.user.findMany({
-      orderBy: { rating: 'desc' },
-      take: limit,
+    // Fallback to PostgreSQL snapshot (mirror of Redis, written on every game end)
+    const modeFilter = mode || 'global';
+    const snapshotEntries = await this.prisma.db.leaderboardSnapshot.findMany({
+      where: { mode: modeFilter },
+      orderBy: { rank: 'asc' },
       skip: (page - 1) * limit,
-      select: {
-        username: true,
-        rating: true,
-        wins: true,
-        losses: true,
-        avatarStyle: true,
-      },
+      take: limit,
     });
 
-    const entries: LeaderboardEntry[] = users.map((user, i) => {
-      const gamesPlayed = user.wins + user.losses;
-      const wins = user.wins;
-      const losses = user.losses;
-      const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
-
-      return {
-        rank: (page - 1) * limit + i + 1,
-        username: user.username,
-        rating: user.rating,
-        gamesPlayed,
-        wins,
-        losses,
-        draws: 0,
-        winRate,
-        avatarStyle: user.avatarStyle,
-      };
+    const total = await this.prisma.db.leaderboardSnapshot.count({
+      where: { mode: modeFilter },
     });
+
+    const entries: LeaderboardEntry[] = snapshotEntries.map(entry => ({
+      rank: entry.rank,
+      username: entry.username,
+      rating: entry.rating,
+      gamesPlayed: 0,
+      wins: 0,
+      losses: 0,
+      draws: 0,
+      winRate: 0,
+      avatarStyle: null,
+    }));
 
     const response: LeaderboardResponse = {
       entries,
-      total: users.length,
+      total,
       page,
       limit,
       source: 'postgres',
     };
 
     if (userId) {
-      const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
-      if (user) {
-        const userRank = await this.prisma.db.user.count({
-          where: { rating: { gt: user.rating } },
-        });
+      const mySnapshot = await this.prisma.db.leaderboardSnapshot.findUnique({
+        where: { mode_userId: { mode: modeFilter, userId } },
+      });
+      if (mySnapshot) {
         response.myRank = {
-          rank: userRank + 1,
-          username: user.username,
-          rating: user.rating,
+          rank: mySnapshot.rank,
+          username: mySnapshot.username,
+          rating: mySnapshot.rating,
         };
       }
     }

@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { secret } from '../secrets';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class LeaderboardRedisService implements OnModuleDestroy {
@@ -82,34 +83,52 @@ export class LeaderboardRedisService implements OnModuleDestroy {
   }
 
   /**
-   * Get leaderboard metadata (timestamp and game count)
+   * Push a full snapshot of the Redis leaderboard to PostgreSQL.
+   * Called after every game end to keep PG mirror in sync.
+   * This snapshot serves as a fast fallback when Redis is unavailable.
    */
-  async getLeaderboardMetadata(): Promise<{ last_updated: string; game_count: string } | null> {
-    const data = await this.redis.hgetall('leaderboard:meta');
-    if (!data || Object.keys(data).length === 0) {
-      return null;
+  async pushSnapshotToPostgres(prisma: PrismaService, mode: string): Promise<void> {
+    // 1. Get full sorted set from Redis
+    const results = await this.redis.zrevrange(`leaderboard:${mode}`, 0, -1, 'WITHSCORES');
+
+    // 2. Parse into entries
+    const entries: { userId: string; rating: number }[] = [];
+    for (let i = 0; i < results.length; i += 2) {
+      entries.push({ userId: results[i], rating: parseInt(results[i + 1], 10) });
     }
-    return {
-      last_updated: data.last_updated || '0',
-      game_count: data.game_count || '0',
-    };
-  }
 
-  /**
-   * Set leaderboard metadata
-   */
-  async setLeaderboardMetadata(timestamp: string, gameCount: string): Promise<void> {
-    await this.redis.hset('leaderboard:meta', {
-      last_updated: timestamp,
-      game_count: gameCount,
+    if (entries.length === 0) return;
+
+    // 3. Enrich with usernames
+    const userIds = entries.map(e => e.userId);
+    const users = await prisma.db.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, username: true },
     });
+    const userMap = new Map(users.map(u => [u.id, u.username]));
+
+    // 4. Delete old snapshot for this mode, insert new one in a transaction
+    const now = new Date();
+    const snapshotData = entries.map((e, i) => ({
+      id: crypto.randomUUID(),
+      mode,
+      userId: e.userId,
+      username: userMap.get(e.userId) || 'unknown',
+      rating: e.rating,
+      rank: i + 1,
+      updatedAt: now,
+    }));
+
+    await prisma.db.$transaction([
+      prisma.db.leaderboardSnapshot.deleteMany({ where: { mode } }),
+      prisma.db.leaderboardSnapshot.createMany({ data: snapshotData }),
+    ]);
   }
 
   /**
-   * Rebuild leaderboard from PostgreSQL data
-   * @param users - Array of {userId, rating} from PostgreSQL
-   * @param mode - Game mode
-   * @param timestamp - Current timestamp
+   * Rebuild leaderboard from PostgreSQL data.
+   * Use for fresh deployments or catastrophic recovery when both Redis
+   * and the PG snapshot are lost.
    */
   async rebuildLeaderboard(
     users: { userId: string; rating: number }[],
@@ -127,37 +146,7 @@ export class LeaderboardRedisService implements OnModuleDestroy {
       pipeline.zadd(`leaderboard:${mode}`, user.rating, user.userId);
     });
 
-    // Update metadata
-    pipeline.hset('leaderboard:meta', {
-      last_updated: timestamp,
-      game_count: gameCount,
-    });
-
     await pipeline.exec();
     console.log(`[Redis] Rebuilt leaderboard:${mode} with ${users.length} users`);
   }
-
-  /**
-   * Clear leaderboard (for testing or manual rebuild)
-   */
-  async clearLeaderboard(mode?: string): Promise<void> {
-    if (mode) {
-      await this.redis.del(`leaderboard:${mode}`);
-    } else {
-      // Clear all leaderboards
-      const keys = await this.redis.keys('leaderboard:*');
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
-      }
-    }
-  }
-
-  /**
-   * Check if Redis has leaderboard data
-   */
-  async hasLeaderboardData(mode: string): Promise<boolean> {
-    const count = await this.redis.zcard(`leaderboard:${mode}`);
-    return count > 0;
-  }
-
 }

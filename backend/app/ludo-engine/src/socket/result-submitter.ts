@@ -2,6 +2,22 @@ import { LudoEngine } from '../engine';
 import { RedisGameStore } from '../redis';
 import type { PlayerColor } from '../types';
 import { BACKEND_URL } from './auth';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+/**
+ * Read the engine API key from the shared secrets directory.
+ * Same convention as the backend's secrets.ts: <SECRETS_DIR>/<name>.txt
+ */
+function getEngineApiKey(): string {
+  const dir = process.env.SECRETS_DIR || '/secrets';
+  try {
+    return readFileSync(join(dir, 'engine_api_key.txt'), 'utf8').trim();
+  } catch {
+    // Fallback for development without secrets mounted
+    return process.env.ENGINE_API_KEY || 'dev-engine-key';
+  }
+}
 
 /**
  * ResultSubmitter handles game end: submitting results to the backend
@@ -41,9 +57,13 @@ export class ResultSubmitter {
         });
       }
 
+      const engineApiKey = getEngineApiKey();
       await fetch(`${BACKEND_URL}/api/game/end`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Engine-Key': engineApiKey,
+        },
         body: JSON.stringify({ gameId, participants }),
       });
     } catch (err) {
