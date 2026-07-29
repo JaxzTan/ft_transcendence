@@ -12,10 +12,11 @@ export class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(8)
-  @MaxLength(72)
-  @Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
-    message: 'password must contain at least one letter and one number',
+  @MinLength(12)
+  @MaxLength(72) // bcrypt ignores bytes past 72, so cap here
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
+    message:
+      'password must be 12+ characters with an uppercase letter, a lowercase letter, a number, and a special character',
   })
   password: string;
 }
