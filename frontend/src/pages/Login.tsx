@@ -2,26 +2,37 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { AuthLayout, GoldCheck } from '../components/AuthLayout'
 import { OAuthButtons, OrDivider } from '../components/OAuthButtons'
-import { navigate } from '../router'
+import { navigate, useRoute } from '../router'
 import { btnGold, goldText, input, label } from '../theme'
 import { useApp } from '../store'
 
+// Human-readable text for ?error= codes the backend redirects here with.
+const QUERY_ERRORS: Record<string, string> = {
+  'no-verified-email': 'That provider account has no verified email, so we cannot send login codes.',
+  'invalid-verification-link': 'That verification link is invalid or expired. Sign up again to get a new one.',
+}
+
 export function Login() {
   const { login } = useApp()
+  const { query } = useRoute()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // One-shot notices arriving via redirect (email verified / OAuth errors).
+  const queryError = QUERY_ERRORS[query.get('error') ?? '']
+  const justVerified = query.get('verified') === '1'
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (submitting) return
     setSubmitting(true)
     setError(null)
-    const err = await login(username, password)
+    const result = await login(username, password)
     setSubmitting(false)
-    if (err) setError(err)
-    else navigate('/home')
+    if (result.error) setError(result.error)
+    else navigate(`/2fa?token=${result.pendingToken}`)
   }
 
   return (
@@ -47,6 +58,14 @@ export function Login() {
             Roll. Race. Reign. Welcome back to the parlor.
           </div>
         </div>
+        {justVerified && (
+          <div style={{ color: '#4bbf7b', fontSize: '13.5px', lineHeight: 1.4 }}>
+            Email verified — you can log in now.
+          </div>
+        )}
+        {queryError && (
+          <div style={{ color: '#e4574d', fontSize: '13.5px', lineHeight: 1.4 }}>{queryError}</div>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <div style={label}>Username</div>
           <input

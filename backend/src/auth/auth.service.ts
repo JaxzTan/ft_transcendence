@@ -1,18 +1,26 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './jwt-payload';
+import { MailService } from './mail.service';
+import { TwoFactorService } from './twofactor.service';
+import { secret } from '../secrets';
 
 const SALT_ROUNDS = 10;
+// Also where the SPA lives; /api on the same origin reaches the backend
+// through whichever proxy (nginx or Vite) is serving it.
+const BASE_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly mail: MailService,
+    private readonly twoFactor: TwoFactorService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -38,7 +46,24 @@ export class AuthService {
       },
     });
 
-    return this.issueToken(user.id, user.username);
+    // No session yet — the account activates via the emailed link.
+    const token = await this.twoFactor.createVerifyToken(user.id);
+    await this.mail.sendVerification(
+      user.email!,
+      `${BASE_URL}/api/auth/verify-email?token=${token}`,
+    );
+    return { message: 'Account created — check your email to verify your address.' };
+  }
+
+  /** Redeems a signup verification link. Returns false for unknown/expired tokens. */
+  async verifyEmail(token: string): Promise<boolean> {
+    const userId = await this.twoFactor.consumeVerifyToken(token);
+    if (!userId) return false;
+    await this.prisma.db.user.update({
+      where: { id: userId },
+      data: { emailVerified: new Date() },
+    });
+    return true;
   }
 
   async login(dto: LoginDto) {
@@ -52,6 +77,30 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
+    if (!user.emailVerified) {
+      throw new ForbiddenException('Email not verified — open the link we sent you first');
+    }
+
+    // Password is only factor one; the session is issued by completeTwoFactor.
+    return this.startTwoFactor(user.id, user.email!);
+  }
+
+  /** Factor two: email a one-time code, hand back the challenge reference. */
+  async startTwoFactor(userId: string, email: string) {
+    const { pendingToken, code } = await this.twoFactor.startChallenge(userId);
+    await this.mail.send2faCode(email, code);
+    return { pending: true as const, pendingToken };
+  }
+
+  async completeTwoFactor(pendingToken: string, code: string) {
+    const userId = await this.twoFactor.verifyChallenge(pendingToken, code);
+    if (!userId) {
+      throw new UnauthorizedException('Invalid or expired code');
+    }
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired code');
+    }
     return this.issueToken(user.id, user.username);
   }
 

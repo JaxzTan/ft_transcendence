@@ -7,6 +7,8 @@ import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
 import { GithubStrategy } from './github.strategy';
 import { FortyTwoStrategy } from './fortytwo.strategy';
+import { MailService } from './mail.service';
+import { TwoFactorService } from './twofactor.service';
 import { PrismaService } from '../prisma.service';
 import { requireSecret } from '../secrets';
 
@@ -21,6 +23,8 @@ import { requireSecret } from '../secrets';
   controllers: [AuthController],
   providers: [
     AuthService,
+    MailService,
+    TwoFactorService,
     JwtStrategy,
     GoogleStrategy,
     GithubStrategy,

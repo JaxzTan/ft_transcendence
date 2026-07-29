@@ -14,6 +14,7 @@ export function Signup() {
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [sent, setSent] = useState(false)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -24,10 +25,41 @@ export function Signup() {
     }
     setSubmitting(true)
     setError(null)
-    const err = await register(username, password, email.trim() || undefined)
+    const err = await register(username, password, email.trim())
     setSubmitting(false)
     if (err) setError(err)
-    else navigate('/home')
+    else setSent(true) // no session yet — the account activates via the emailed link
+  }
+
+  if (sent) {
+    return (
+      <AuthLayout tag="ONE MORE STEP">
+        <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div
+            style={{
+              fontFamily: "'Cinzel',serif",
+              fontWeight: 700,
+              letterSpacing: 1.5,
+              fontSize: 30,
+              lineHeight: 1,
+              ...goldText,
+            }}
+          >
+            Check your inbox
+          </div>
+          <div style={{ color: '#a99a83', fontSize: '14.5px', lineHeight: 1.5 }}>
+            We sent a verification link to <b style={{ color: '#f0e2c4' }}>{email}</b>. Open it to
+            activate your seat, then sign in. The link expires in 24 hours.
+          </div>
+          <div style={{ color: '#a99a83', fontSize: 14 }}>
+            Done verifying?{' '}
+            <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
+              Sign in
+            </a>
+          </div>
+        </div>
+      </AuthLayout>
+    )
   }
 
   return (
@@ -64,13 +96,14 @@ export function Signup() {
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={label}>Email (optional)</div>
+          <div style={label}>Email</div>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@parlor.gg"
+            placeholder="you@parlor.gg — verification + login codes go here"
             autoComplete="email"
+            required
             style={input}
           />
         </div>

@@ -7,9 +7,9 @@ export class RegisterDto {
   })
   username: string;
 
-  @IsOptional()
+  // Required: signup verification and login 2FA codes are both delivered here.
   @IsEmail()
-  email?: string;
+  email: string;
 
   @IsString()
   @MinLength(8)

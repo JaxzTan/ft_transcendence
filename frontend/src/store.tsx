@@ -33,8 +33,12 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 type AppState = {
   user: AuthUser | null
   authReady: boolean
-  login: (username: string, password: string) => Promise<string | null>
-  register: (username: string, password: string, email?: string) => Promise<string | null>
+  /** Factor one. Success = { pendingToken } (code emailed); failure = { error }. */
+  login: (username: string, password: string) => Promise<{ error?: string; pendingToken?: string }>
+  /** Success = null (verification email sent — no session yet); failure = message. */
+  register: (username: string, password: string, email: string) => Promise<string | null>
+  /** Factor two. Success = null (session cookie set, user in store); failure = message. */
+  verify2fa: (pendingToken: string, code: string) => Promise<string | null>
   logout: () => Promise<void>
   mode: Mode
   seats: Seat[]
@@ -67,29 +71,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .finally(() => setAuthReady(true))
   }, [])
 
-  // Login
-  const login = useCallback(async (username: string, password: string): Promise<string | null> => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    }).catch(() => null)
-    if (!res) return 'Could not reach the server'
-    if (!res.ok) return apiError(await res.json().catch(() => null), 'Login failed')
-    setUser((await res.json()).user)
-    return null
-  }, [])
+  // Login — factor one. Password OK means a code was emailed; the session
+  // itself only exists after verify2fa succeeds.
+  const login = useCallback(
+    async (username: string, password: string): Promise<{ error?: string; pendingToken?: string }> => {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      }).catch(() => null)
+      if (!res) return { error: 'Could not reach the server' }
+      if (!res.ok) return { error: apiError(await res.json().catch(() => null), 'Login failed') }
+      return { pendingToken: (await res.json()).pendingToken }
+    },
+    [],
+  )
 
-  // Register
+  // Register — no session on signup; the account activates via the emailed
+  // verification link, then the user logs in normally.
   const register = useCallback(
-    async (username: string, password: string, email?: string): Promise<string | null> => {
+    async (username: string, password: string, email: string): Promise<string | null> => {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(email ? { username, password, email } : { username, password }),
+        body: JSON.stringify({ username, password, email }),
       }).catch(() => null)
       if (!res) return 'Could not reach the server'
       if (!res.ok) return apiError(await res.json().catch(() => null), 'Sign up failed')
+      return null
+    },
+    [],
+  )
+
+  // Factor two — a correct emailed code buys the actual session cookie.
+  const verify2fa = useCallback(
+    async (pendingToken: string, code: string): Promise<string | null> => {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pendingToken, code }),
+      }).catch(() => null)
+      if (!res) return 'Could not reach the server'
+      if (!res.ok) return apiError(await res.json().catch(() => null), 'Code rejected')
       setUser((await res.json()).user)
       return null
     },
@@ -185,11 +208,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      user, authReady, login, register, logout,
+      user, authReady, login, register, verify2fa, logout,
       mode, seats, dice, rolling, turn, settings,
       setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
     }),
-    [user, authReady, login, register, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
+    [user, authReady, login, register, verify2fa, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

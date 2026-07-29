@@ -11,6 +11,7 @@ import { Login } from './pages/Login'
 import { Results } from './pages/Results'
 import { Settings } from './pages/Settings'
 import { Signup } from './pages/Signup'
+import { TwoFactor } from './pages/TwoFactor'
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 
@@ -27,13 +28,14 @@ const SHELL_ROUTES: Record<string, () => ReactNode> = {
 const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/login': () => <Login />,
   '/signup': () => <Signup />,
+  '/2fa': () => <TwoFactor />,
   '/lobby': () => <Lobby />,
   '/game': () => <Game />,
   '/results': () => <Results />,
 }
 
 /** Public routes, can be reached wihout a session */
-const PUBLIC_ROUTES = new Set(['/login', '/signup'])
+const PUBLIC_ROUTES = new Set(['/login', '/signup', '/2fa'])
 
 function Screen() {
   const { path } = useRoute()
