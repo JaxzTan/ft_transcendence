@@ -33,8 +33,8 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 type AppState = {
   user: AuthUser | null
   authReady: boolean
-  /** Factor one. Success = { pendingToken } (code emailed); failure = { error }. */
-  login: (username: string, password: string) => Promise<{ error?: string; pendingToken?: string }>
+  /** Factor one. `identifier` is a username or email. Success = { pendingToken } (code emailed); failure = { error }. */
+  login: (identifier: string, password: string) => Promise<{ error?: string; pendingToken?: string }>
   /** Success = null (verification email sent — no session yet); failure = message. */
   register: (username: string, password: string, email: string) => Promise<string | null>
   /** Factor two. Success = null (session cookie set, user in store); failure = message. */
@@ -74,11 +74,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Login — factor one. Password OK means a code was emailed; the session
   // itself only exists after verify2fa succeeds.
   const login = useCallback(
-    async (username: string, password: string): Promise<{ error?: string; pendingToken?: string }> => {
+    async (identifier: string, password: string): Promise<{ error?: string; pendingToken?: string }> => {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ identifier, password }),
       }).catch(() => null)
       if (!res) return { error: 'Could not reach the server' }
       if (!res.ok) return { error: apiError(await res.json().catch(() => null), 'Login failed') }

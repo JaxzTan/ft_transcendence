@@ -15,7 +15,7 @@ const QUERY_ERRORS: Record<string, string> = {
 export function Login() {
   const { login } = useApp()
   const { query } = useRoute()
-  const [username, setUsername] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -29,7 +29,7 @@ export function Login() {
     if (submitting) return
     setSubmitting(true)
     setError(null)
-    const result = await login(username, password)
+    const result = await login(identifier, password)
     setSubmitting(false)
     if (result.error) setError(result.error)
     else navigate(`/2fa?token=${result.pendingToken}`)
@@ -67,11 +67,11 @@ export function Login() {
           <div style={{ color: '#e4574d', fontSize: '13.5px', lineHeight: 1.4 }}>{queryError}</div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div style={label}>Username</div>
+          <div style={label}>Username or email</div>
           <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="NightRook"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="NightRook or you@parlor.gg"
             autoComplete="username"
             style={input}
           />

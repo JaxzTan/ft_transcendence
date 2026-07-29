@@ -19,6 +19,16 @@ export function Signup() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (submitting) return
+    // Mirror the backend rule (RegisterDto) so weak passwords fail instantly
+    // rather than round-tripping to a 400. The server still re-checks.
+    if (password.length < 12) {
+      setError('Password must be at least 12 characters')
+      return
+    }
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(password)) {
+      setError('Password needs an uppercase letter, a lowercase letter, a number, and a special character')
+      return
+    }
     if (password !== confirm) {
       setError('Passwords do not match')
       return
@@ -114,7 +124,7 @@ export function Signup() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="8+ characters"
+              placeholder="12+ chars, upper, lower, number, symbol"
               autoComplete="new-password"
               style={input}
             />
