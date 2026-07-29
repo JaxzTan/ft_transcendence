@@ -14,6 +14,9 @@ const SALT_ROUNDS = 10;
 // through whichever proxy (nginx or Vite) is serving it.
 const BASE_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 
+// store all email as lowercase since email is case-insensitive
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -29,8 +32,9 @@ export class AuthService {
       throw new ConflictException('Username is already taken');
     }
 
-    if (dto.email) {
-      const emailTaken = await this.prisma.db.user.findUnique({ where: { email: dto.email } });
+    const email = dto.email ? normalizeEmail(dto.email) : dto.email;
+    if (email) {
+      const emailTaken = await this.prisma.db.user.findUnique({ where: { email } });
       if (emailTaken) {
         throw new ConflictException('Email is already registered');
       }
@@ -41,12 +45,12 @@ export class AuthService {
       data: {
         id: crypto.randomUUID(),
         username: dto.username,
-        email: dto.email,
+        email,
         password_hash: passwordHash,
       },
     });
 
-    // No session yet — the account activates via the emailed link.
+    // No session yet, the account activates via the emailed link.
     const token = await this.twoFactor.createVerifyToken(user.id);
     await this.mail.sendVerification(
       user.email!,
@@ -55,7 +59,7 @@ export class AuthService {
     return { message: 'Account created — check your email to verify your address.' };
   }
 
-  /** Redeems a signup verification link. Returns false for unknown/expired tokens. */
+  /* Redeems a signup verification link. Returns false for unknown/expired tokens. */
   async verifyEmail(token: string): Promise<boolean> {
     const userId = await this.twoFactor.consumeVerifyToken(token);
     if (!userId) return false;
@@ -67,14 +71,22 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.db.user.findUnique({ where: { username: dto.username } });
+    // Accept either a username or an email in the same field.
+    const user = await this.prisma.db.user.findFirst({
+      where: {
+        OR: [
+          { username: dto.identifier },
+          { email: normalizeEmail(dto.identifier) },
+        ],
+      },
+    });
     if (!user || !user.password_hash) {
-      throw new UnauthorizedException('Invalid username or password');
+      throw new UnauthorizedException('Invalid username, email, or password');
     }
 
     const passwordMatches = await bcrypt.compare(dto.password, user.password_hash);
     if (!passwordMatches) {
-      throw new UnauthorizedException('Invalid username or password');
+      throw new UnauthorizedException('Invalid username, email, or password');
     }
 
     if (!user.emailVerified) {
@@ -85,7 +97,7 @@ export class AuthService {
     return this.startTwoFactor(user.id, user.email!);
   }
 
-  /** Factor two: email a one-time code, hand back the challenge reference. */
+  /* Factor two: email a one-time code, hand back the challenge reference. */
   async startTwoFactor(userId: string, email: string) {
     const { pendingToken, code } = await this.twoFactor.startChallenge(userId);
     await this.mail.send2faCode(email, code);
@@ -136,8 +148,9 @@ export class AuthService {
 
     //  If first time with this provider, and email matches an existing
     //  user, link to that user.
-    let user = input.email
-      ? await this.prisma.db.user.findUnique({ where: { email: input.email } })
+    const email = input.email ? normalizeEmail(input.email) : undefined;
+    let user = email
+      ? await this.prisma.db.user.findUnique({ where: { email } })
       : null;
 
     // Create new
@@ -147,8 +160,8 @@ export class AuthService {
         data: {
           id: crypto.randomUUID(),
           username,
-          email: input.email,
-          emailVerified: input.email ? new Date() : null,
+          email,
+          emailVerified: email ? new Date() : null,
         },
       });
     }
