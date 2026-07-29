@@ -6,7 +6,6 @@ import { avatarBlue, btnGold, goldText } from '../theme'
 const NAV: Array<{ path: string; glyph: string; title: string }> = [
   { path: '/home', glyph: '⌂', title: 'Home' },
   { path: '/dashboard', glyph: '▦', title: 'Dashboard' },
-  { path: '/leaderboard', glyph: '♛', title: 'Leaderboard' },
   { path: '/friends', glyph: '♟', title: 'Friends' },
   { path: '/settings', glyph: '⚙', title: 'Settings' },
 ]

@@ -6,9 +6,13 @@ body {
   margin: 0;
   min-height: 100vh;
   color: #efe6d6;
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   background:
-    repeating-linear-gradient(96deg, rgba(255, 255, 255, 0.01) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(
+      96deg,
+      rgba(255, 255, 255, 0.01) 0 1px,
+      transparent 1px 7px
+    ),
     radial-gradient(130% 100% at 50% -12%, #2a1d12, #170f0a 55%, #100b07);
   background-attachment: fixed;
 }
@@ -32,24 +36,46 @@ a:hover {
 
 /* die while rolling */
 @keyframes shake {
-  0%, 100% { transform: rotate(0); }
-  20% { transform: rotate(-15deg) translateY(-3px); }
-  40% { transform: rotate(13deg); }
-  60% { transform: rotate(-9deg) translateY(-2px); }
-  80% { transform: rotate(7deg); }
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(-15deg) translateY(-3px);
+  }
+  40% {
+    transform: rotate(13deg);
+  }
+  60% {
+    transform: rotate(-9deg) translateY(-2px);
+  }
+  80% {
+    transform: rotate(7deg);
+  }
 }
 
 /* auth board */
 @keyframes floaty {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 /* active-turn dot */
 @keyframes pulseRing {
-  0% { box-shadow: 0 0 0 0 rgba(240, 209, 138, 0.5); }
-  70% { box-shadow: 0 0 0 12px rgba(240, 209, 138, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(240, 209, 138, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(240, 209, 138, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(240, 209, 138, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 209, 138, 0);
+  }
 }
 
 .mode-card:hover {
