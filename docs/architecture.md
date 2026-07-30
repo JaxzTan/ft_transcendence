@@ -25,7 +25,6 @@ graph TB
     end
 
     Browser -->|"https :8443"| nginx
-    Browser -.->|"http :3000 — /auth/* only, bypasses nginx"| backend
     nginx -->|"/api/*"| backend
     fe -->|"publishes dist/"| spa[("spa_dist volume")]
     spa -->|"read-only"| nginx
@@ -35,9 +34,9 @@ graph TB
     engine -.->|"BACKEND_URL"| backend
 ```
 
-> **Note:** The dashed browser→backend edge is a design gap — auth endpoints use
-> `@Controller('auth')` without an `api/` prefix, so they fall outside the nginx
-> `/api/*` proxy rule and reach the backend directly on port 3000.
+> **Note:** Auth endpoints use `@Controller('api/auth')`, so they are proxied
+> through nginx like all other API routes. There is no direct browser→backend
+> path for auth.
 
 ---
 
@@ -58,8 +57,8 @@ their official images with an init script that reads secrets before `exec`ing th
 real process (`backend/app/postgres_16_db/`, `backend/app/redis/`).
 
 > **Note:** There is no separate `ludo-bot` container. The bot AI lives inside the
-> `ludo-engine` process (`backend/app/ludo-engine/src/bot.ts`) and is triggered
-> synchronously from the engine event queue via `triggerBotTurn()`.
+> `ludo-engine` process (`backend/app/ludo-engine/src/bot.ts`). The engine accepts
+> a `bot` role in the JWT and can auto-fill slots with bot players.
 
 ---
 
@@ -93,17 +92,13 @@ so client-side routing works on deep links. `frontend/src/router.tsx` is a hand-
 prefix is *preserved*, so controllers must include it themselves. There is no global
 prefix in `backend/src/main.ts`; each controller carries `api/` in its own decorator.
 
-**Auth** — `@Controller('auth')` has no `api/` prefix, so `/auth/*` falls outside the
-proxy and is reached directly on port 3000. This is why the OAuth callback secrets
-point at `http://localhost:3000`.
+**Auth** — `@Controller('api/auth')` includes the `api/` prefix, so `/api/auth/*`
+is proxied through nginx to backend:3000. OAuth callback secrets point at
+`http://localhost:3000` because the OAuth providers redirect back server-side.
 
-**Game realtime** — socket.io to `ludo-engine:3001`. The SPA has no socket client yet
-(Phase 5 in roadmap.md — still outstanding). Only the inline bot AI connects to the
-engine.
-
-> ⚠️ This path is **currently non-functional**. The engine crashes before it listens,
-> so nothing is bound to 3001.
-> What follows describes intended design, not present behaviour.
+**Game realtime** — socket.io to `ludo-engine:3001`. The SPA currently has **no
+socket client** — real-time game play is not yet wired up from the browser. The
+inline bot AI connects internally; the engine is ready to accept client connections.
 
 ---
 
@@ -146,7 +141,7 @@ Redis TTL handles cleanup):
 
 | Module | Route prefix | Responsibility |
 |---|---|---|
-| `AuthModule` | `/auth` | Local + Google/GitHub/42 OAuth, JWT cookie issuance |
+| `AuthModule` | `/api/auth` | Local + Google/GitHub/42 OAuth, JWT cookie issuance |
 | `UserModule` | `/api/user` | Profile, avatar, game history |
 | `FriendsModule` | `/api/friends` | Requests, accept/decline, block |
 | `LeaderboardModule` | `/api/leaderboard` | Rankings, Redis-backed with Postgres fallback |
@@ -156,7 +151,7 @@ Redis TTL handles cleanup):
 
 ### Auth flow
 
-1. `GET /auth/{google,github,42}` → passport guard redirects to the provider.
+1. `GET /api/auth/{google,github,42}` → passport guard redirects to the provider.
 2. Provider redirects to the callback URL from `secrets/{provider}_callback_url.txt`.
 3. Strategy upserts `User` + `Account`, `AuthService` signs a JWT.
 4. Token is set as an `httpOnly`, `sameSite: lax` cookie named `token`, `secure` when `NODE_ENV=production`.
