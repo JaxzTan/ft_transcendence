@@ -1,4 +1,5 @@
-import { IsString, MinLength, MaxLength, IsOptional, IsEmail, Matches } from 'class-validator';
+import { IsString, MinLength, MaxLength, IsEmail, Matches } from 'class-validator';
+import { PASSWORD_MIN, PASSWORD_MAX, PASSWORD_REGEX, PASSWORD_MESSAGE } from './password.rules';
 
 export class RegisterDto {
   @IsString()
@@ -12,11 +13,8 @@ export class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(12)
-  @MaxLength(72) // bcrypt ignores bytes past 72, so cap here
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
-    message:
-      'password must be 12+ characters with an uppercase letter, a lowercase letter, a number, and a special character',
-  })
+  @MinLength(PASSWORD_MIN)
+  @MaxLength(PASSWORD_MAX)
+  @Matches(PASSWORD_REGEX, { message: PASSWORD_MESSAGE })
   password: string;
 }
