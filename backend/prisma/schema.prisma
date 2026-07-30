@@ -50,8 +50,7 @@ model User {
   email         String?      @unique
   password_hash String?      // null for OAuth-only users
   emailVerified DateTime?
-  twoFactorEnabled Boolean   @default(true) // email-code 2FA at login; on by default
-  rating        Int          @default(0)
+  twoFactorEnabled Boolean   @default(true)
   highestRating Int          @default(0)
   wins          Int          @default(0)
   losses        Int          @default(0)
