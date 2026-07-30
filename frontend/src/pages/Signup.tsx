@@ -5,6 +5,7 @@ import { OAuthButtons, OrDivider } from '../components/OAuthButtons'
 import { navigate } from '../router'
 import { btnGold, goldText, input, label } from '../theme'
 import { useApp } from '../store'
+import { passwordError } from '../validatePassword'
 
 export function Signup() {
   const { register } = useApp()
@@ -21,12 +22,9 @@ export function Signup() {
     if (submitting) return
     // Mirror the backend rule (RegisterDto) so weak passwords fail instantly
     // rather than round-tripping to a 400. The server still re-checks.
-    if (password.length < 12) {
-      setError('Password must be at least 12 characters')
-      return
-    }
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(password)) {
-      setError('Password needs an uppercase letter, a lowercase letter, a number, and a special character')
+    const pwError = passwordError(password)
+    if (pwError) {
+      setError(pwError)
       return
     }
     if (password !== confirm) {

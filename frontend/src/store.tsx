@@ -39,6 +39,10 @@ type AppState = {
   register: (username: string, password: string, email: string) => Promise<string | null>
   /** Factor two. Success = null (session cookie set, user in store); failure = message. */
   verify2fa: (pendingToken: string, code: string) => Promise<string | null>
+  /** Emails a reset link. Always resolves null (generic response — no account enumeration). */
+  forgotPassword: (email: string) => Promise<string | null>
+  /** Redeems a reset token and sets a new password. Success = null; failure = message. */
+  resetPassword: (token: string, password: string) => Promise<string | null>
   logout: () => Promise<void>
   mode: Mode
   seats: Seat[]
@@ -118,6 +122,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [],
   )
+
+  // Forgot password — asks the backend to email a reset link. The response is
+  // deliberately generic, so this always resolves null (never reveals whether
+  // the address exists). A network failure still surfaces as a message.
+  const forgotPassword = useCallback(async (email: string): Promise<string | null> => {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => null)
+    if (!res) return 'Could not reach the server'
+    if (!res.ok) return apiError(await res.json().catch(() => null), 'Something went wrong')
+    return null
+  }, [])
+
+  // Reset password — redeems the emailed token and sets the new password.
+  const resetPassword = useCallback(async (token: string, password: string): Promise<string | null> => {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password }),
+    }).catch(() => null)
+    if (!res) return 'Could not reach the server'
+    if (!res.ok) return apiError(await res.json().catch(() => null), 'Could not reset password')
+    return null
+  }, [])
 
   // Logout
   const logout = useCallback(async () => {
@@ -208,11 +238,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      user, authReady, login, register, verify2fa, logout,
+      user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
       mode, seats, dice, rolling, turn, settings,
       setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
     }),
-    [user, authReady, login, register, verify2fa, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
+    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

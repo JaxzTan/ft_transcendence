@@ -20,9 +20,10 @@ export function Login() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // One-shot notices arriving via redirect (email verified / OAuth errors).
+  // One-shot notices arriving via redirect (email verified / password reset / OAuth errors).
   const queryError = QUERY_ERRORS[query.get('error') ?? '']
   const justVerified = query.get('verified') === '1'
+  const justReset = query.get('reset') === '1'
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -61,6 +62,11 @@ export function Login() {
         {justVerified && (
           <div style={{ color: '#4bbf7b', fontSize: '13.5px', lineHeight: 1.4 }}>
             Email verified — you can log in now.
+          </div>
+        )}
+        {justReset && (
+          <div style={{ color: '#4bbf7b', fontSize: '13.5px', lineHeight: 1.4 }}>
+            Password updated — sign in with your new password.
           </div>
         )}
         {queryError && (
@@ -103,7 +109,9 @@ export function Login() {
             <GoldCheck />
             Remember me
           </label>
-          <a href="#">Forgot password?</a>
+          <a onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer' }}>
+            Forgot password?
+          </a>
         </div>
         <button type="submit" disabled={submitting} style={{ ...btnGold, opacity: submitting ? 0.6 : 1 }}>
           {submitting ? 'Entering…' : 'Enter the parlor'}
