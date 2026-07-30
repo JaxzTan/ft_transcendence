@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './jwt-payload';
 import { MailService } from './mail.service';
 import { TwoFactorService } from './twofactor.service';
+import { SessionService } from './session.service';
 import { secret } from '../secrets';
 
 const SALT_ROUNDS = 10;
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly mail: MailService,
     private readonly twoFactor: TwoFactorService,
+    private readonly session: SessionService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -132,6 +134,8 @@ export class AuthService {
         emailVerified: new Date(),
       },
     });
+    // drop every existing session after a password reset
+    await this.session.revokeAll(userId);
     return { message: 'Password updated — you can log in with it now.' };
   }
 
@@ -151,13 +155,47 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid or expired code');
     }
-    return this.issueToken(user.id, user.username);
+    return this.issueSession(user.id, user.username);
   }
 
-  issueToken(userId: string, username: string) {
+  /** Sign a short-lived access-token JWT (15m, per JwtModule config). */
+  signAccess(userId: string, username: string): string {
     const payload: JwtPayload = { sub: userId, username };
-    const token = this.jwt.sign(payload);
-    return { token, user: { id: userId, username } };
+    return this.jwt.sign(payload);
+  }
+
+  /**
+   * Issue a fresh session: a short-lived access token plus a long-lived,
+   * revocable refresh token. Called once both login factors pass (password
+   * login and OAuth both funnel through completeTwoFactor).
+   */
+  async issueSession(userId: string, username: string) {
+    const accessToken = this.signAccess(userId, username);
+    const refreshToken = await this.session.issue(userId);
+    return { accessToken, refreshToken, user: { id: userId, username } };
+  }
+
+  /**
+   * Trade a valid refresh token for a new access token, rotating the refresh
+   * token in the same step. Throws 401 when it's missing/expired/revoked — the
+   * frontend reads that as "session over, log in again".
+   */
+  async refresh(refreshToken?: string) {
+    if (!refreshToken) throw new UnauthorizedException('Not authenticated');
+    const rotated = await this.session.rotate(refreshToken);
+    if (!rotated) throw new UnauthorizedException('Session expired — please log in again');
+    const user = await this.prisma.db.user.findUnique({ where: { id: rotated.userId } });
+    if (!user) throw new UnauthorizedException('Session expired — please log in again');
+    return {
+      accessToken: this.signAccess(user.id, user.username),
+      refreshToken: rotated.newToken,
+      user: { id: user.id, username: user.username },
+    };
+  }
+
+  /** Revoke the given refresh token — logout on this device. */
+  async logout(refreshToken?: string) {
+    if (refreshToken) await this.session.revoke(refreshToken);
   }
 
   /**
