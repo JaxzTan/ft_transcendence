@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { BOT_POOL } from './theme'
+import { apiFetch } from './api'
 
 export type AuthUser = { id: string; username: string }
 
@@ -69,7 +70,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
-    fetch('/api/auth/me')
+    // apiFetch: if the access token has expired but the refresh token is still
+    // good, this silently refreshes and we stay logged in across reloads.
+    apiFetch('/api/auth/me')
       .then(async (res) => setUser(res.ok ? (await res.json()).user : null))
       .catch(() => setUser(null))
       .finally(() => setAuthReady(true))
