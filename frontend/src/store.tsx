@@ -89,7 +89,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }).catch(() => null)
       if (!res) return { error: 'Could not reach the server' }
       if (!res.ok) return { error: apiError(await res.json().catch(() => null), 'Login failed') }
-      return { pendingToken: (await res.json()).pendingToken }
+      const data = await res.json()
+      // 2FA off: the backend already set the session cookies, so there's no
+      // code step — record the user and let the caller route straight home.
+      if (!data.twoFactorRequired) {
+        setUser(data.user)
+        return {}
+      }
+      // 2FA on: a code was emailed; the session only exists after verify2fa.
+      return { pendingToken: data.pendingToken }
     },
     [],
   )

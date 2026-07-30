@@ -33,7 +33,8 @@ export function Login() {
     const result = await login(identifier, password)
     setSubmitting(false)
     if (result.error) setError(result.error)
-    else navigate(`/2fa?token=${result.pendingToken}`)
+    else if (result.pendingToken) navigate(`/2fa?token=${result.pendingToken}`)
+    else navigate('/home') // 2FA off — session already established, skip the code page
   }
 
   return (
