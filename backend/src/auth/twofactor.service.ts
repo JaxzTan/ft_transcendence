@@ -4,12 +4,14 @@ import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { secret } from '../secrets';
 
 const VERIFY_TOKEN_TTL_S = 24 * 60 * 60; // signup verification links: 24h
+const RESET_TOKEN_TTL_S = 60 * 60; //      password-reset links: 1 hour
 const CODE_TTL_S = 5 * 60; //              login codes: 5 minutes
 const MAX_ATTEMPTS = 5;
 
 /**
  * Short-lived auth state in Redis (same client idiom as MatchService):
  *  - `verify:{sha256(token)}` -> userId       — email-verification links
+ *  - `reset:{sha256(token)}`  -> userId       — password-reset links
  *  - `2fa:{sha256(pending)}`  -> {userId, codeHash, attempts} — login codes
  *
  * Only hashes are stored, so a Redis dump can't be replayed as live tokens.
@@ -48,6 +50,22 @@ export class TwoFactorService implements OnModuleDestroy {
   /** Returns the userId and deletes the token (single use), or null. */
   async consumeVerifyToken(token: string): Promise<string | null> {
     const key = `verify:${this.hash(token)}`;
+    const userId = await this.redis.get(key);
+    if (userId) await this.redis.del(key);
+    return userId;
+  }
+
+  // ── Password-reset tokens ─────────────────────────────────────────────────
+
+  async createResetToken(userId: string): Promise<string> {
+    const token = randomBytes(32).toString('hex');
+    await this.redis.set(`reset:${this.hash(token)}`, userId, 'EX', RESET_TOKEN_TTL_S);
+    return token;
+  }
+
+  /** Returns the userId and deletes the token (single use), or null. */
+  async consumeResetToken(token: string): Promise<string | null> {
+    const key = `reset:${this.hash(token)}`;
     const userId = await this.redis.get(key);
     if (userId) await this.redis.del(key);
     return userId;

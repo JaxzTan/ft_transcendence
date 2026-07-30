@@ -97,6 +97,44 @@ export class AuthService {
     return this.startTwoFactor(user.id, user.email!);
   }
 
+  /*
+   * Step one of reset: email a one-time link if the address belongs to a local
+   * (password) account. The return value is intentionally the same in every
+   * case — unknown email, OAuth-only account, or success — so a caller can't
+   * use this endpoint to discover which emails are registered.
+   */
+  async forgotPassword(rawEmail: string) {
+    const email = normalizeEmail(rawEmail);
+    const user = await this.prisma.db.user.findUnique({ where: { email } });
+    // Only local accounts have a password to reset; OAuth-only users (no
+    // password_hash) sign in through their provider instead.
+    if (user?.password_hash) {
+      const token = await this.twoFactor.createResetToken(user.id);
+      await this.mail.sendPasswordReset(email, `${BASE_URL}/reset-password?token=${token}`);
+    }
+    return { message: 'If that email is registered, a reset link is on its way.' };
+  }
+
+  /* Step two: redeem the link's token and set the new password. */
+  async resetPassword(token: string, newPassword: string) {
+    const userId = await this.twoFactor.consumeResetToken(token);
+    if (!userId) {
+      throw new UnauthorizedException('This reset link is invalid or has expired');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await this.prisma.db.user.update({
+      where: { id: userId },
+      data: {
+        password_hash: passwordHash,
+        // Redeeming an emailed link proves inbox control — the same guarantee
+        // signup verification gives — so confirm the address if it wasn't yet.
+        // Without this, an unverified user could reset yet still be login-blocked.
+        emailVerified: new Date(),
+      },
+    });
+    return { message: 'Password updated — you can log in with it now.' };
+  }
+
   /* Factor two: email a one-time code, hand back the challenge reference. */
   async startTwoFactor(userId: string, email: string) {
     const { pendingToken, code } = await this.twoFactor.startChallenge(userId);

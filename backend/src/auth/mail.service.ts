@@ -57,6 +57,14 @@ export class MailService {
     );
   }
 
+  sendPasswordReset(to: string, link: string): Promise<void> {
+    return this.send(
+      to,
+      'Reset your Ludo Royale password',
+      `We received a request to reset your password.\n\nChoose a new one here:\n\n${link}\n\nThe link expires in 1 hour and can be used once. If you did not request this, ignore this mail — your password stays unchanged.`,
+    );
+  }
+
   send2faCode(to: string, code: string): Promise<void> {
     return this.send(
       to,
