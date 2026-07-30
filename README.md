@@ -196,13 +196,43 @@ For the full topology, deployment paths, and design decisions, see
 │
 └── docs/                         # Documentation
     ├── architecture.md           # Full architecture reference
-    ├── roadmap.md                # Migration roadmap (status)
-    ├── roadmap2.md               # Refactoring roadmap (all completed)
-    ├── LUDO_ENGINE.md            # Engine logic flow
-    ├── BACKEND_LOGIC.md          # Match & game logic flow
+    ├── API-list.md               # Complete HTTP + WebSocket API reference
     ├── Ludo_Rules.md             # Classic Ludo rules
-    ├── TYPESCRIPT.md             # TypeScript patterns used
-    └── API-list.md               # Complete HTTP + WebSocket API reference
+    │
+    ├── backend/                  # Backend module docs (NestJS)
+    │   ├── 01-app-bootstrap.md   # App bootstrap, main.ts, secrets
+    │   ├── 02-auth.md            # Auth module (register, login, OAuth)
+    │   ├── 03-user.md            # User module (profiles, avatars, games)
+    │   ├── 04-friends.md         # Friends module (requests, block, list)
+    │   ├── 05-achievements.md    # Achievements module (15 badges)
+    │   ├── 06-leaderboard.md     # Leaderboard module (Redis + Postgres)
+    │   ├── 07-match.md           # Match module (matchmaking, game lifecycle)
+    │   ├── 08-player-stats.md    # Player stats module (aggregates)
+    │   ├── 14-database-schema.md # Prisma schema, enums, models, ER diagram
+    │   └── 15-seeding.md         # Seed data (users, games, friendships)
+    │
+    ├── ludo-engine/              # Ludo Engine docs (Socket.IO server)
+    │   ├── 09-engine-core.md     # Core engine, types, move validation
+    │   ├── 10-bot.md             # Bot AI (heuristic move selection)
+    │   ├── 11-lobby-clash.md     # Lobby management + clash minigame
+    │   ├── 12-socket.md          # Socket.IO layer, auth, pub/sub
+    │   └── 13-redis.md           # Redis persistence + pub/sub
+    │
+    └── frontend/                 # Frontend docs (React SPA)
+        ├── 01-app-bootstrap.md   # App.tsx, route categories, auth guard
+        ├── 02-router.md          # Custom window.location router
+        ├── 03-store.md           # AppProvider (auth, game state, settings)
+        ├── 04-shell.md           # Shell layout (sidebar, header, nav)
+        ├── 05-auth-pages.md      # Login & Signup pages
+        ├── 06-home.md            # Home landing page
+        ├── 07-dashboard.md       # Dashboard (stats, matches, achievements)
+        ├── 08-lobby.md           # Game lobby (seats, bots, mode)
+        ├── 09-game.md            # Game page (board, dice, pieces)
+        ├── 10-results.md         # Post-game results page
+        ├── 11-friends.md         # Friends list page
+        ├── 12-leaderboard.md     # Leaderboard rankings page
+        ├── 13-settings.md        # Settings page (toggles)
+        └── 14-components.md      # Shared components (Board, Die, OAuth)
 ```
 
 ---
@@ -261,9 +291,8 @@ For the full topology, deployment paths, and design decisions, see
 | Document | Description |
 |---|---|
 | [architecture.md](docs/architecture.md) | Full system topology, services, request paths, data layer |
-| [roadmap.md](docs/roadmap.md) | Migration roadmap with phase-by-phase status |
 | [API-list.md](docs/API-list.md) | Complete HTTP + WebSocket API reference |
-| [LUDO_ENGINE.md](docs/LUDO_ENGINE.md) | Engine logic flow, game lifecycle, event protocol |
-| [BACKEND_LOGIC.md](docs/BACKEND_LOGIC.md) | Matchmaking flow, Redis keys, Postgres schema |
 | [Ludo_Rules.md](docs/Ludo_Rules.md) | Classic Ludo rules reference |
-| [TYPESCRIPT.md](docs/TYPESCRIPT.md) | TypeScript patterns used in the project |
+| [backend/](docs/backend/) | Backend module docs (10 files) |
+| [ludo-engine/](docs/ludo-engine/) | Ludo Engine docs (5 files) |
+| [frontend/](docs/frontend/) | Frontend module docs (14 files) |

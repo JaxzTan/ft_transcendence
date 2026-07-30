@@ -29,15 +29,11 @@ dist-ssr
 *.sw?
 
 # planning
-roadmap.md
-roadmap2.md
+
 
 # generated documentation
-LUDO_ENGINE.md
 BACKEND_LOGIC.md
 TYPESCRIPT.md
-API-list.md
-Ludo_Rules.md
 security-audit.md
 
 # dependencies
@@ -81,4 +77,3 @@ yarn-error.log*
 next-env.d.ts
 
 package-lock.json
-docs
