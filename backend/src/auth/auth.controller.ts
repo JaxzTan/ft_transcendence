@@ -10,8 +10,14 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { GoogleAuthGuard, GithubAuthGuard, FortyTwoAuthGuard } from './oauth.guards';
 import { secret } from '../secrets';
 
-const COOKIE_NAME = 'token';
-const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days, matches JwtModule expiresIn
+// Access-token cookie: JwtStrategy reads this exact name. Short-lived.
+const ACCESS_COOKIE = 'token';
+const ACCESS_MAX_AGE_MS = 15 * 60 * 1000; // 15 min, matches JwtModule expiresIn
+// Refresh-token cookie: only the auth routes need it, so it's scoped to
+// /api/auth rather than sent on every API call. Long-lived.
+const REFRESH_COOKIE = 'refresh_token';
+const REFRESH_PATH = '/api/auth';
+const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days, matches SessionService TTL
 // Fallback matches the compose entry point: nginx publishes 8443 -> 443.
 const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 
@@ -41,12 +47,27 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  // Factor two: emailed code + pendingToken buy the actual session cookie.
+  // Factor two: emailed code + pendingToken buy the actual session cookies.
   @Post('2fa/verify')
   @HttpCode(200)
   async verifyTwoFactor(@Body() dto: TwoFactorDto, @Res({ passthrough: true }) res: Response) {
-    const { token, user } = await this.authService.completeTwoFactor(dto.pendingToken, dto.code);
-    this.setAuthCookie(res, token);
+    const { accessToken, refreshToken, user } = await this.authService.completeTwoFactor(
+      dto.pendingToken,
+      dto.code,
+    );
+    this.setSessionCookies(res, accessToken, refreshToken);
+    return { user };
+  }
+
+  // Silent re-auth: the browser sends only the refresh cookie and gets a fresh
+  // access token (plus a rotated refresh token). No password or 2FA involved.
+  @Post('refresh')
+  @HttpCode(200)
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const { accessToken, refreshToken, user } = await this.authService.refresh(
+      req.cookies?.[REFRESH_COOKIE],
+    );
+    this.setSessionCookies(res, accessToken, refreshToken);
     return { user };
   }
 
@@ -67,8 +88,12 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(200)
-  logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(COOKIE_NAME);
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    // Revoke the refresh token server-side so it can't be reused, then drop
+    // both cookies. clearCookie must repeat the path the cookie was set with.
+    await this.authService.logout(req.cookies?.[REFRESH_COOKIE]);
+    res.clearCookie(ACCESS_COOKIE, { path: '/' });
+    res.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH });
     return { ok: true };
   }
 
@@ -126,12 +151,15 @@ export class AuthController {
     res.redirect(`${FRONTEND_URL}/2fa?token=${pendingToken}`);
   }
 
-  private setAuthCookie(res: Response, token: string) {
-    res.cookie(COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: 'lax',
+  private setSessionCookies(res: Response, accessToken: string, refreshToken: string) {
+    const base = {
+      httpOnly: true as const,
+      sameSite: 'lax' as const,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: COOKIE_MAX_AGE_MS,
-    });
+    };
+    // Access token: path '/' so it rides along on every /api call for verification.
+    res.cookie(ACCESS_COOKIE, accessToken, { ...base, path: '/', maxAge: ACCESS_MAX_AGE_MS });
+    // Refresh token: path /api/auth so it's only sent to refresh + logout.
+    res.cookie(REFRESH_COOKIE, refreshToken, { ...base, path: REFRESH_PATH, maxAge: REFRESH_MAX_AGE_MS });
   }
 }
