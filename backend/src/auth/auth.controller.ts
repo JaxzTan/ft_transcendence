@@ -1,9 +1,10 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { TwoFactorDto } from './dto/twofactor.dto';
+import { TwoFactorSettingDto } from './dto/two-factor-setting.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -40,11 +41,25 @@ export class AuthController {
     res.redirect(`${FRONTEND_URL}/login?${ok ? 'verified=1' : 'error=invalid-verification-link'}`);
   }
 
-  // Factor one only — answers { pending, pendingToken }, never a session.
+  // Factor one. With 2FA on, answers { twoFactorRequired: true, pendingToken }
+  // and no session. With 2FA off, the password is enough: sets the session
+  // cookies and answers { twoFactorRequired: false, user }.
   @Post('login')
   @HttpCode(200)
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(dto);
+    if (result.twoFactorRequired) {
+      return { twoFactorRequired: true, pendingToken: result.pendingToken };
+    }
+    // strictNullChecks is off in this project, so the implicit-else branch of a
+    // discriminated union doesn't auto-narrow — pin it to the session variant.
+    const session = result as {
+      accessToken: string;
+      refreshToken: string;
+      user: { id: string; username: string };
+    };
+    this.setSessionCookies(res, session.accessToken, session.refreshToken);
+    return { twoFactorRequired: false, user: session.user };
   }
 
   // Factor two: emailed code + pendingToken buy the actual session cookies.
@@ -103,6 +118,19 @@ export class AuthController {
     return { user: req.user };
   }
 
+  // ---- 2FA preference (logged-in user toggles their own) ----
+  @UseGuards(JwtAuthGuard)
+  @Get('2fa')
+  getTwoFactor(@Req() req: Request) {
+    return this.authService.getTwoFactorSetting((req.user as { id: string }).id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('2fa')
+  setTwoFactor(@Req() req: Request, @Body() dto: TwoFactorSettingDto) {
+    return this.authService.setTwoFactorSetting((req.user as { id: string }).id, dto.enabled);
+  }
+
   // ---- Google OAuth ----
   @Get('google')
   @UseGuards(GoogleAuthGuard)
@@ -137,14 +165,29 @@ export class AuthController {
     return this.finishOAuth(req, res);
   }
 
-  // OAuth passes factor one (the provider vouched for them), but 2FA still
-  // applies: email a code and hand the browser to the SPA's /2fa page.
+  // OAuth passes factor one (the provider vouched for them). If the user keeps
+  // 2FA on, we still email a code and hand off to the SPA's /2fa page; if they
+  // turned it off, we set the session here and go straight to the app.
   private async finishOAuth(req: Request, res: Response) {
-    const user = req.user as { id: string; username: string; email: string | null };
+    const user = req.user as {
+      id: string;
+      username: string;
+      email: string | null;
+      twoFactorEnabled: boolean;
+    };
     if (!user.email) {
       // Strategies only forward provider-verified emails; without one we have
       // nowhere to send login codes, so this account cannot exist here.
       res.redirect(`${FRONTEND_URL}/login?error=no-verified-email`);
+      return;
+    }
+    if (!user.twoFactorEnabled) {
+      const { accessToken, refreshToken } = await this.authService.issueSession(
+        user.id,
+        user.username,
+      );
+      this.setSessionCookies(res, accessToken, refreshToken);
+      res.redirect(`${FRONTEND_URL}/home`);
       return;
     }
     const { pendingToken } = await this.authService.startTwoFactor(user.id, user.email);

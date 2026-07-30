@@ -18,6 +18,17 @@ const BASE_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 // store all email as lowercase since email is case-insensitive
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
+// login()'s two outcomes, depending on the user's 2FA preference. The explicit
+// union lets the controller narrow on `twoFactorRequired` cleanly.
+type LoginResult =
+  | { twoFactorRequired: true; pendingToken: string }
+  | {
+      twoFactorRequired: false;
+      accessToken: string;
+      refreshToken: string;
+      user: { id: string; username: string };
+    };
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -72,7 +83,7 @@ export class AuthService {
     return true;
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto): Promise<LoginResult> {
     // Accept either a username or an email in the same field.
     const user = await this.prisma.db.user.findFirst({
       where: {
@@ -95,8 +106,13 @@ export class AuthService {
       throw new ForbiddenException('Email not verified — open the link we sent you first');
     }
 
-    // Password is only factor one; the session is issued by completeTwoFactor.
-    return this.startTwoFactor(user.id, user.email!);
+    // 2FA off → password alone is enough; issue the session immediately.
+    // 2FA on → password is only factor one; email a code and finish later.
+    if (!user.twoFactorEnabled) {
+      return { twoFactorRequired: false as const, ...(await this.issueSession(user.id, user.username)) };
+    }
+    const { pendingToken } = await this.startTwoFactor(user.id, user.email!);
+    return { twoFactorRequired: true as const, pendingToken };
   }
 
   /*
@@ -196,6 +212,25 @@ export class AuthService {
   /** Revoke the given refresh token — logout on this device. */
   async logout(refreshToken?: string) {
     if (refreshToken) await this.session.revoke(refreshToken);
+  }
+
+  /** Read the user's current 2FA preference. */
+  async getTwoFactorSetting(userId: string) {
+    const user = await this.prisma.db.user.findUnique({
+      where: { id: userId },
+      select: { twoFactorEnabled: true },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+    return { twoFactorEnabled: user.twoFactorEnabled };
+  }
+
+  /** Turn email-code 2FA on or off for the user. */
+  async setTwoFactorSetting(userId: string, enabled: boolean) {
+    await this.prisma.db.user.update({
+      where: { id: userId },
+      data: { twoFactorEnabled: enabled },
+    });
+    return { twoFactorEnabled: enabled };
   }
 
   /**
