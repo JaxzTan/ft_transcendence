@@ -1,4 +1,5 @@
-import { IsString, MinLength, MaxLength, IsOptional, IsEmail, Matches } from 'class-validator';
+import { IsString, MinLength, MaxLength, IsEmail, Matches } from 'class-validator';
+import { PASSWORD_MIN, PASSWORD_MAX, PASSWORD_REGEX, PASSWORD_MESSAGE } from './password.rules';
 
 export class RegisterDto {
   @IsString()
@@ -7,15 +8,13 @@ export class RegisterDto {
   })
   username: string;
 
-  @IsOptional()
+  // Required: signup verification and login 2FA codes are both delivered here.
   @IsEmail()
-  email?: string;
+  email: string;
 
   @IsString()
-  @MinLength(8)
-  @MaxLength(72)
-  @Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
-    message: 'password must contain at least one letter and one number',
-  })
+  @MinLength(PASSWORD_MIN)
+  @MaxLength(PASSWORD_MAX)
+  @Matches(PASSWORD_REGEX, { message: PASSWORD_MESSAGE })
   password: string;
 }

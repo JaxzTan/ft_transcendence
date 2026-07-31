@@ -60,8 +60,9 @@ start:
 # nginx, so the production path can still be checked without tearing anything
 # down. The dev profile is off by default, hence --profile here but not in all.
 dev: check-secrets
-	@docker compose -f $(COMPOSE_FILE) --profile dev up -d
-	@docker compose -f $(COMPOSE_FILE) watch
+	@docker compose -f $(COMPOSE_FILE) --profile dev up -d --build
+	@echo "🔥 HMR dev server:    http://localhost:8080"
+	@echo "🔒 nginx (built SPA): https://localhost:8443"
 
 # stop/down/logs carry --profile dev so they still reach frontend-dev; without
 # it compose ignores profiled services and leaves the container orphaned.
