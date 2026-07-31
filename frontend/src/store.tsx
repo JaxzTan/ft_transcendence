@@ -19,6 +19,23 @@ export type Seat =
 
 export type Mode = 2 | 4
 
+export type Lang = 'en' | 'fr' | 'ms' | 'zh'
+
+/** Languages offered in the account menu. */
+export const LANGUAGES: Array<{ code: Lang; label: string; flag: string }> = [
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'ms', label: 'Bahasa Melayu', flag: '🇲🇾' },
+  { code: 'zh', label: '中文', flag: '🇨🇳' },
+]
+
+const LANG_KEY = 'lr.lang'
+const TWOFA_KEY = 'lr.twofa'
+
+function storedLang(): Lang {
+  const raw = localStorage.getItem(LANG_KEY)
+  return LANGUAGES.some((l) => l.code === raw) ? (raw as Lang) : 'en'
+}
+
 /** Defaults for the settings toggles, keyed "<group>-<row>". */
 export const SETTING_DEFAULTS: Record<string, boolean> = {
   '0-0': true, // Sound effects
@@ -52,6 +69,10 @@ type AppState = {
   endTurn: () => void
   settingOn: (key: string) => boolean
   toggleSetting: (key: string) => void
+  lang: Lang
+  setLang: (l: Lang) => void
+  twoFactor: boolean
+  toggleTwoFactor: () => void
 }
 
 const Ctx = createContext<AppState | null>(null)
@@ -113,7 +134,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rolling, setRolling] = useState(false)
   const [turn, setTurn] = useState(0)
   const [settings, setSettings] = useState<Record<string, boolean>>({})
+  const [lang, setLangState] = useState<Lang>(storedLang)
+  const [twoFactor, setTwoFactor] = useState(() => localStorage.getItem(TWOFA_KEY) === '1')
   const rollingRef = useRef(false)
+
+  // Persist account prefs; swap these for PATCH /api/user/me once the backend lands.
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l)
+    localStorage.setItem(LANG_KEY, l)
+    document.documentElement.lang = l
+  }, [])
+
+  const toggleTwoFactor = useCallback(() => {
+    setTwoFactor((prev) => {
+      localStorage.setItem(TWOFA_KEY, prev ? '0' : '1')
+      return !prev
+    })
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
 
   const addBot = useCallback((i: number) => {
     setSeats((prev) => {
@@ -188,8 +229,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user, authReady, login, register, logout,
       mode, seats, dice, rolling, turn, settings,
       setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
+      lang, setLang, twoFactor, toggleTwoFactor,
     }),
-    [user, authReady, login, register, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
+    [user, authReady, login, register, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
