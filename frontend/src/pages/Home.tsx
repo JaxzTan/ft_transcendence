@@ -12,14 +12,14 @@ export function Home() {
   }
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'clamp(15px,2.5vh,32px)' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 26 }}>
       <div
         style={{
           position: 'relative',
           overflow: 'hidden',
           borderRadius: 20,
           border: '1px solid #2e4a38',
-          padding: 'clamp(16px,2.6vh,34px) 36px',
+          padding: '34px 36px',
           background: 'radial-gradient(120% 140% at 12% 0%,#22432f,#12261a 70%)',
         }}
       >
@@ -35,23 +35,15 @@ export function Home() {
           <div style={{ fontSize: 13, letterSpacing: '.2em', textTransform: 'uppercase', color: '#7fae91', fontWeight: 700 }}>
             Good evening, You
           </div>
-          <div
-            style={{
-              fontFamily: "'Cinzel',serif",
-              fontSize: 'clamp(24px,3.6vh,34px)',
-              lineHeight: 1.05,
-              color: '#f4e9cf',
-              margin: 'clamp(4px,1vh,10px) 0 clamp(6px,1.2vh,12px)',
-            }}
-          >
+          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 34, lineHeight: 1.05, color: '#f4e9cf', margin: '10px 0 12px' }}>
             Ready to roll the bones?
           </div>
           <div style={{ color: '#c9bda3', fontSize: '15.5px', lineHeight: 1.5, maxWidth: 460 }}>
             Set up a private table against the house bots, or dive into a ranked match. First to bring all four
             pieces home wins the crown.
           </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 'clamp(10px,2vh,22px)' }}>
-            <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: 'clamp(9px,1.4vh,13px) 22px' }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 22 }}>
+            <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '13px 22px' }}>
               Create a table
             </button>
             <button
@@ -59,7 +51,7 @@ export function Home() {
               style={{
                 border: '1px solid #4a5f4a',
                 borderRadius: 12,
-                padding: 'clamp(9px,1.4vh,13px) 22px',
+                padding: '13px 22px',
                 font: "700 15px 'Hanken Grotesk'",
                 color: '#e8f0e0',
                 cursor: 'pointer',
@@ -72,7 +64,7 @@ export function Home() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
         {MODE_CARDS.map((m) => (
           <div
             key={m.title}
@@ -81,24 +73,24 @@ export function Home() {
             style={{
               cursor: 'pointer',
               borderRadius: 16,
-              padding: 'clamp(12px,1.8vh,20px) 20px',
+              padding: 20,
               background: 'linear-gradient(180deg,#241b13,#1a130d)',
               border: '1px solid #3a2c1d',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,.045),0 20px 44px -24px rgba(0,0,0,.85)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 'clamp(6px,1.2vh,12px)',
+              gap: 12,
               transition: 'transform .12s,border-color .12s',
             }}
           >
             <div
               style={{
-                width: 'clamp(34px,4.6vh,46px)',
-                height: 'clamp(34px,4.6vh,46px)',
+                width: 46,
+                height: 46,
                 borderRadius: 12,
                 display: 'grid',
                 placeItems: 'center',
-                fontSize: 'clamp(17px,2.4vh,22px)',
+                fontSize: 22,
                 color: m.hue,
                 background: 'rgba(255,255,255,.04)',
                 border: `1px solid ${m.hue}44`,
@@ -112,9 +104,9 @@ export function Home() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20 }}>
-        <div style={{ ...card, padding: 'clamp(14px,2vh,22px) 22px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'clamp(8px,1.6vh,16px)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
+        <div style={{ ...card, padding: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>Top of the ladder</div>
             <a onClick={() => navigate('/leaderboard')} style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
               View all →
@@ -123,7 +115,7 @@ export function Home() {
           {LEADERS.slice(0, 4).map((l, i) => (
             <div
               key={l.name}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'clamp(5px,.9vh,9px) 0', borderBottom: '1px solid #2a2015' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid #2a2015' }}
             >
               <div style={{ width: 22, textAlign: 'center', fontWeight: 800, color: '#a99a83', fontSize: 14 }}>{i + 1}</div>
               <div style={avatarDim(32)}>{l.name.slice(0, 2).toUpperCase()}</div>
@@ -135,25 +127,25 @@ export function Home() {
         <div
           style={{
             borderRadius: 16,
-            padding: 'clamp(14px,2vh,22px) 22px',
+            padding: 22,
             background: 'radial-gradient(120% 120% at 20% 0%,#2e2417,#1a130d)',
             border: '1px solid #4a3826',
             display: 'flex',
             flexDirection: 'column',
-            gap: 'clamp(8px,1.4vh,14px)',
+            gap: 14,
           }}
         >
           <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>Daily reward</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div
               style={{
-                width: 'clamp(42px,5.8vh,58px)',
-                height: 'clamp(42px,5.8vh,58px)',
+                width: 58,
+                height: 58,
                 borderRadius: 14,
                 flex: 'none',
                 display: 'grid',
                 placeItems: 'center',
-                fontSize: 'clamp(20px,2.8vh,26px)',
+                fontSize: 26,
                 color: '#2a1c07',
                 background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5)',
@@ -166,7 +158,7 @@ export function Home() {
               <div style={{ color: '#a99a83', fontSize: 13 }}>Day 4 streak · come back tomorrow</div>
             </div>
           </div>
-          <button style={{ ...btnGoldSmall, padding: 'clamp(8px,1.3vh,12px) 12px' }}>Claim reward</button>
+          <button style={{ ...btnGoldSmall, padding: 12 }}>Claim reward</button>
         </div>
       </div>
     </div>

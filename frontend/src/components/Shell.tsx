@@ -1,12 +1,13 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { navigate, useRoute } from '../router'
-import { btnGold, goldText } from '../theme'
-import { AccountMenu } from './AccountMenu'
+import { useApp } from '../store'
+import { avatarBlue, btnGold, goldText } from '../theme'
 
 const NAV: Array<{ path: string; glyph: string; title: string }> = [
   { path: '/home', glyph: '⌂', title: 'Home' },
   { path: '/dashboard', glyph: '▦', title: 'Dashboard' },
   { path: '/friends', glyph: '♟', title: 'Friends' },
+  { path: '/settings', glyph: '⚙', title: 'Settings' },
 ]
 
 export const SCREEN_TITLES: Record<string, string> = {
@@ -50,6 +51,15 @@ function railGlyphStyle(active: boolean): CSSProperties {
 /** Sidebar rail + top header wrapping home/dashboard/leaderboard/friends/settings. */
 export function Shell({ children }: { children: ReactNode }) {
   const { path } = useRoute()
+  const { user, logout } = useApp()
+  const name = user?.username ?? 'You'
+  const initials = name.slice(0, 2).toUpperCase()
+
+  async function onSignOut() {
+    await logout()
+    navigate('/login')
+  }
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <aside
@@ -114,6 +124,29 @@ export function Shell({ children }: { children: ReactNode }) {
         >
           <span style={{ fontSize: 12 }}>▶</span>Play now
         </button>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '10px 8px 2px',
+            marginTop: 6,
+            borderTop: '1px solid #2e2115',
+          }}
+        >
+          <div style={avatarBlue(36, 13)}>{initials}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {name}
+            </div>
+            <div
+              onClick={onSignOut}
+              style={{ color: '#a99a83', fontSize: 12, cursor: 'pointer', textDecorationLine: 'underline' }}
+            >
+              Sign out
+            </div>
+          </div>
+        </div>
       </aside>
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -147,7 +180,7 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <span style={{ color: '#f0c24e' }}>♛</span>1,540
             </div>
-            <AccountMenu />
+            <div style={{ ...avatarBlue(40, 14), boxShadow: '0 0 0 2px #f0d18a55' }}>{initials}</div>
           </div>
         </header>
 

@@ -11,6 +11,9 @@ import { Login } from './pages/Login'
 import { Results } from './pages/Results'
 import { Settings } from './pages/Settings'
 import { Signup } from './pages/Signup'
+import { TwoFactor } from './pages/TwoFactor'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { ResetPassword } from './pages/ResetPassword'
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 
@@ -27,19 +30,33 @@ const SHELL_ROUTES: Record<string, () => ReactNode> = {
 const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/login': () => <Login />,
   '/signup': () => <Signup />,
+  '/2fa': () => <TwoFactor />,
+  '/forgot-password': () => <ForgotPassword />,
+  '/reset-password': () => <ResetPassword />,
   '/lobby': () => <Lobby />,
   '/game': () => <Game />,
   '/results': () => <Results />,
 }
 
 /** Public routes, can be reached wihout a session */
-const PUBLIC_ROUTES = new Set(['/login', '/signup'])
+const PUBLIC_ROUTES = new Set(['/login', '/signup', '/2fa', '/forgot-password', '/reset-password'])
 
 function Screen() {
-  const { path } = useRoute()
+  const { path, query } = useRoute()
   const { user, authReady } = useApp()
   const known = path in SHELL_ROUTES || path in FULL_ROUTES
   const isPublic = PUBLIC_ROUTES.has(path)
+  // Account-action arrivals via link/redirect: a result notice (verified /
+  // reset / error) or a one-time token (a reset or 2FA link). These belong to a
+  // *specific account action*, not the logged-in session, so a logged-in user
+  // must still see them instead of being bounced to /home — e.g. verifying (or
+  // resetting) account B while account A happens to be logged in in this browser.
+  const hasNotice = !!(
+    query.get('verified') ||
+    query.get('reset') ||
+    query.get('error') ||
+    query.get('token')
+  )
 
   useEffect(() => {
     // Wait for the /me session check. Else, a refresh while logged in
@@ -47,11 +64,11 @@ function Screen() {
     if (!authReady) return
     if (!known) navigate(user ? '/home' : '/login', { replace: true })
     else if (!user && !isPublic) navigate('/login', { replace: true })
-    else if (user && isPublic) navigate('/home', { replace: true })
-  }, [authReady, known, user, isPublic])
+    else if (user && isPublic && !hasNotice) navigate('/home', { replace: true })
+  }, [authReady, known, user, isPublic, hasNotice])
 
   if (!authReady) return null
-  if (!known || (!user && !isPublic) || (user && isPublic)) return null
+  if (!known || (!user && !isPublic) || (user && isPublic && !hasNotice)) return null
 
   if (path in SHELL_ROUTES) return <Shell>{SHELL_ROUTES[path]()}</Shell>
   return <>{FULL_ROUTES[path]()}</>
