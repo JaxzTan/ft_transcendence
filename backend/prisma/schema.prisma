@@ -50,7 +50,6 @@ model User {
   email         String?      @unique
   password_hash String?      // null for OAuth-only users
   emailVerified DateTime?
-  displayName   String?
   rating        Int          @default(0)
   highestRating Int          @default(0)
   wins          Int          @default(0)
@@ -110,12 +109,6 @@ model Account {
   userId            String
   provider          String
   providerAccountId String
-  access_token      String?
-  refresh_token     String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -165,4 +158,21 @@ model Friendship {
   friend User @relation("ReceivedFriendships", fields: [friendId], references: [id], onDelete: Cascade)
 
   @@unique([userId, friendId])
+}
+
+// ─── Leaderboard Snapshot (mirror of Redis sorted sets) ─────────────────────
+// Written on every game end to serve as a fast fallback when Redis is down.
+// Mirrors the Redis leaderboard:${mode} sorted set structure 1-to-1.
+
+model LeaderboardSnapshot {
+  id        String   @id
+  mode      String   // "global" | "ranked" | "casual" | "bot"
+  userId    String
+  username  String
+  rating    Int
+  rank      Int
+  updatedAt DateTime @default(now())
+
+  @@unique([mode, userId])
+  @@index([mode, rank])
 }

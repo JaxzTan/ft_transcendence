@@ -130,6 +130,17 @@ export class RedisGameStore {
     await this.client.publish(`game:${gameId}`, message);
   }
 
+  /** Get the match metadata hash (for lobby/color selection) */
+  async getMatchData(gameId: string): Promise<Record<string, string> | null> {
+    const data = await this.client.hgetall(`match:${gameId}`);
+    return Object.keys(data).length > 0 ? data : null;
+  }
+
+  /** Update specific fields in the match metadata hash */
+  async updateMatchData(gameId: string, fields: Record<string, string>): Promise<void> {
+    await this.client.hmset(`match:${gameId}`, fields);
+  }
+
   private gameKey(gameId: string): string { return `game:${gameId}`; }
   private movesKey(gameId: string): string { return `game:${gameId}:moves`; }
 }
