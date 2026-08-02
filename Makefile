@@ -55,14 +55,20 @@ build: check-secrets
 start:
 	@docker compose -f $(COMPOSE_FILE) up -d
 
-# Brings up the whole stack plus the Vite HMR server. Both front doors stay
-# live: 8080 serves source with hot reload, 8443 serves the built SPA through
-# nginx, so the production path can still be checked without tearing anything
-# down. The dev profile is off by default, hence --profile here but not in all.
+# Brings up the whole stack plus the Vite HMR server, then stays attached in
+# watch mode: `compose watch` builds+starts everything first (like `up -d
+# --build`), then rebuilds/restarts backend and ludo-engine on source changes
+# per their `develop.watch` rules in compose.yaml (frontend-dev already
+# hot-reloads on its own via Vite + bind mount, so it has none). Both front
+# doors stay live: 8080 serves source with hot reload, 8443 serves the built
+# SPA through nginx, so the production path can still be checked without
+# tearing anything down. The dev profile is off by default, hence --profile
+# here but not in all. Ctrl-C stops watching; the containers keep running
+# (use `make stop`/`make down`).
 dev: check-secrets
-	@docker compose -f $(COMPOSE_FILE) --profile dev up -d --build
 	@echo "🔥 HMR dev server:    http://localhost:8080"
 	@echo "🔒 nginx (built SPA): https://localhost:8443"
+	@docker compose -f $(COMPOSE_FILE) --profile dev watch
 
 # stop/down/logs carry --profile dev so they still reach frontend-dev; without
 # it compose ignores profiled services and leaves the container orphaned.

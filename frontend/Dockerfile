@@ -1,17 +1,22 @@
-# Frontend Dockerfile: builds the React SPA and nothing else.
-# Serving is the nginx service's job (see ../nginx). This container runs as a
-# one-shot job: it copies the build output into the shared spa_dist volume and
-# exits, and nginx waits for that to complete before starting.
+# Frontend Dockerfile: builds the React SPA and publishes it.
+# Serving is the nginx service's job (see ../nginx). This container stays
+# alive: it publishes the build into the shared spa_dist volume, then watches
+# src/ and republishes on change, logging like a normal long-running service.
+# nginx waits for the healthcheck (first publish) before starting.
 # ═══════════════════════════════════════════════════════════
 
 FROM node:22-alpine
+RUN apk add --no-cache inotify-tools
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+RUN chmod +x publish.sh
 
 # /export is where compose mounts spa_dist. Publishing on start (rather than
 # baking into the serving image) is what lets the SPA rebuild without touching
 # nginx. The wildcard delete keeps stale assets from a previous build out.
-CMD ["sh", "-c", "rm -rf /export/* && cp -a /app/dist/. /export/ && echo '📦 SPA published to spa_dist'"]
+# Invoked via `sh` explicitly: node's docker-entrypoint.sh falls back to
+# `node ./publish.sh` (and fails on the ESM loader) when it can't resolve the
+# command via `command -v`, which a bare "./publish.sh" CMD hits.
+CMD ["sh", "publish.sh"]

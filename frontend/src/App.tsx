@@ -9,7 +9,6 @@ import { Leaderboard } from './pages/Leaderboard'
 import { Lobby } from './pages/Lobby'
 import { Login } from './pages/Login'
 import { Results } from './pages/Results'
-import { Settings } from './pages/Settings'
 import { Signup } from './pages/Signup'
 import { TwoFactor } from './pages/TwoFactor'
 import { ForgotPassword } from './pages/ForgotPassword'
@@ -23,7 +22,6 @@ const SHELL_ROUTES: Record<string, () => ReactNode> = {
   '/dashboard': () => <Dashboard />,
   '/leaderboard': () => <Leaderboard />,
   '/friends': () => <Friends />,
-  '/settings': () => <Settings />,
 }
 
 /** Full-bleed screens (no shell). */

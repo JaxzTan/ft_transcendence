@@ -65,17 +65,10 @@ async function main() {
       id: randomUUID(),
       username: 'Alice',
       email: 'alice@example.com',
-<<<<<<< Updated upstream
       emailVerified: new Date(now - 30 * 24 * HOUR),
       password_hash: await hashPassword(),
       rating: 1220,          // 1200 + 10 + 10
       highestRating: 1220,
-=======
-      emailVerified: new Date(), // fixtures skip the signup-verification gate
-      password_hash: PASSWORD_HASH,
-      rating: 1200,
-      highestRating: 1250,
->>>>>>> Stashed changes
       wins: 2,
       losses: 0,
       humanWins: 2,
@@ -104,7 +97,6 @@ async function main() {
       id: randomUUID(),
       username: 'Bob',
       email: 'bob@example.com',
-<<<<<<< Updated upstream
       emailVerified: new Date(now - 25 * 24 * HOUR),
       password_hash: await hashPassword(),
       rating: 1095,          // 1100 - 5
@@ -116,14 +108,6 @@ async function main() {
       lastLoginAt: new Date(now - 2 * HOUR),
       loginStreak: 2,
       daysActive: 8,
-=======
-      emailVerified: new Date(),
-      password_hash: PASSWORD_HASH,
-      rating: 1100,
-      highestRating: 1150,
-      wins: 1,
-      losses: 2,
->>>>>>> Stashed changes
       avatarStyle: 'avataaars',
       status: 'playing',
       disconnectCount: 2,
@@ -140,18 +124,11 @@ async function main() {
       id: randomUUID(),
       username: 'Carol',
       email: 'carol@example.com',
-<<<<<<< Updated upstream
       emailVerified: new Date(now - 10 * 24 * HOUR),
       password_hash: await hashPassword(),
       rating: 1045,          // 1050 - 5
       highestRating: 1050,
       wins: 0,
-=======
-      emailVerified: new Date(),
-      password_hash: PASSWORD_HASH,
-      rating: 1050,
-      highestRating: 1100,
->>>>>>> Stashed changes
       losses: 1,
       lastLoginAt: new Date(now - 3 * 24 * HOUR),
       loginStreak: 0,
@@ -167,15 +144,9 @@ async function main() {
       id: randomUUID(),
       username: 'Dave',
       email: 'dave@example.com',
-<<<<<<< Updated upstream
       // Unverified: exercises the "signed up but never confirmed" path.
       password_hash: await hashPassword(),
       rating: 990,           // 1000 - 5 - 5
-=======
-      emailVerified: new Date(),
-      password_hash: PASSWORD_HASH,
-      rating: 1000,
->>>>>>> Stashed changes
       highestRating: 1000,
       wins: 0,
       losses: 2,

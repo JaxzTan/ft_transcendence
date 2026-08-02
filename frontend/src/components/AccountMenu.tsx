@@ -174,16 +174,6 @@ export function AccountMenu() {
           <div style={{ borderTop: '1px solid #2a2015', marginTop: 6, paddingTop: 6 }}>
             <div
               role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                navigate('/settings')
-              }}
-              style={{ padding: '9px 10px', borderRadius: 9, cursor: 'pointer', fontSize: '13.5px', fontWeight: 700, color: '#c9bda3' }}
-            >
-              All settings
-            </div>
-            <div
-              role="menuitem"
               onClick={onSignOut}
               style={{ padding: '9px 10px', borderRadius: 9, cursor: 'pointer', fontSize: '13.5px', fontWeight: 700, color: '#e8918a' }}
             >
