@@ -30,7 +30,6 @@ export const LANGUAGES: Array<{ code: Lang; label: string; flag: string }> = [
 ]
 
 const LANG_KEY = 'lr.lang'
-const TWOFA_KEY = 'lr.twofa'
 
 function storedLang(): Lang {
   const raw = localStorage.getItem(LANG_KEY)
@@ -185,6 +184,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined)
     setUser(null)
+    setTwoFactor(false)
   }, [])
 
   const [mode, setMode] = useState<Mode>(4)
@@ -199,20 +199,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [turn, setTurn] = useState(0)
   const [settings, setSettings] = useState<Record<string, boolean>>({})
   const [lang, setLangState] = useState<Lang>(storedLang)
-  const [twoFactor, setTwoFactor] = useState(() => localStorage.getItem(TWOFA_KEY) === '1')
+  const [twoFactor, setTwoFactor] = useState(false)
   const rollingRef = useRef(false)
 
-  // Persist account prefs; swap these for PATCH /api/user/me once the backend lands.
+  // Persist account prefs; swap this for PATCH /api/user/me once the backend lands.
   const setLang = useCallback((l: Lang) => {
     setLangState(l)
     localStorage.setItem(LANG_KEY, l)
     document.documentElement.lang = l
   }, [])
 
+  // Load the account's real 2FA preference once signed in — GET /api/auth/2fa.
+  useEffect(() => {
+    if (!user) return
+    apiFetch('/api/auth/2fa')
+      .then(async (res) => {
+        if (!res.ok) return
+        const data = await res.json()
+        setTwoFactor(!!data.twoFactorEnabled)
+      })
+      .catch(() => undefined)
+  }, [user])
+
+  // Optimistic toggle; PATCH /api/auth/2fa persists it, reverting on failure.
   const toggleTwoFactor = useCallback(() => {
     setTwoFactor((prev) => {
-      localStorage.setItem(TWOFA_KEY, prev ? '0' : '1')
-      return !prev
+      const next = !prev
+      apiFetch('/api/auth/2fa', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      })
+        .then((res) => {
+          if (!res.ok) setTwoFactor(prev)
+        })
+        .catch(() => setTwoFactor(prev))
+      return next
     })
   }, [])
 
