@@ -17,17 +17,17 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+  async register(@Body() dto: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const { token, user } = await this.authService.register(dto);
-    this.setAuthCookie(res, token);
+    this.setAuthCookie(req, res, token);
     return { user };
   }
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const { token, user } = await this.authService.login(dto);
-    this.setAuthCookie(res, token);
+    this.setAuthCookie(req, res, token);
     return { user };
   }
 
@@ -81,11 +81,11 @@ export class AuthController {
   private finishOAuth(req: Request, res: Response) {
     const user = req.user as { id: string; username: string };
     const { token } = this.authService.issueToken(user.id, user.username);
-    this.setAuthCookie(res, token);
+    this.setAuthCookie(req, res, token);
     res.redirect(FRONTEND_URL);
   }
 
-  private setAuthCookie(res: Response, token: string) {
+  private setAuthCookie(req: Request, res: Response, token: string) {
     res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
       sameSite: 'lax',

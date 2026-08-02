@@ -8,43 +8,43 @@ export class FriendsController {
 
   @UseGuards(JwtAuthGuard)
   @Post('api/friends/request/:userId')
-  sendRequest(@Request() req: { user: { sub: string } }, @Param('userId') targetUserId: string) {
-    return this.friends.sendFriendRequest(req.user.sub, targetUserId);
+  sendRequest(@Request() req: { user: { id: string } }, @Param('userId') targetUserId: string) {
+    return this.friends.sendFriendRequest(req.user.id, targetUserId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('api/friends/accept/:requestId')
-  acceptRequest(@Request() req: { user: { sub: string } }, @Param('requestId') requestId: string) {
-    return this.friends.acceptFriendRequest(requestId, req.user.sub);
+  acceptRequest(@Request() req: { user: { id: string } }, @Param('requestId') requestId: string) {
+    return this.friends.acceptFriendRequest(requestId, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('api/friends/decline/:requestId')
-  declineRequest(@Request() req: { user: { sub: string } }, @Param('requestId') requestId: string) {
-    return this.friends.declineFriendRequest(requestId, req.user.sub);
+  declineRequest(@Request() req: { user: { id: string } }, @Param('requestId') requestId: string) {
+    return this.friends.declineFriendRequest(requestId, req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('api/friends/remove/:friendId')
-  removeFriend(@Request() req: { user: { sub: string } }, @Param('friendId') friendId: string) {
-    return this.friends.removeFriend(req.user.sub, friendId);
+  removeFriend(@Request() req: { user: { id: string } }, @Param('friendId') friendId: string) {
+    return this.friends.removeFriend(req.user.id, friendId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('api/friends')
-  getFriends(@Request() req: { user: { sub: string } }) {
-    return this.friends.getFriends(req.user.sub);
+  getFriends(@Request() req: { user: { id: string } }) {
+    return this.friends.getFriends(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('api/friends/requests')
-  getRequests(@Request() req: { user: { sub: string } }) {
-    return this.friends.getFriendRequests(req.user.sub);
+  getRequests(@Request() req: { user: { id: string } }) {
+    return this.friends.getFriendRequests(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('api/friends/block/:userId')
-  blockUser(@Request() req: { user: { sub: string } }, @Param('userId') targetUserId: string) {
-    return this.friends.blockUser(req.user.sub, targetUserId);
+  blockUser(@Request() req: { user: { id: string } }, @Param('userId') targetUserId: string) {
+    return this.friends.blockUser(req.user.id, targetUserId);
   }
 }
