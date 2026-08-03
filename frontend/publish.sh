@@ -17,5 +17,8 @@ publish
 echo "👀 Watching /app/src for changes..."
 while inotifywait -qr -e modify,create,delete,move /app/src; do
   echo "🔄 [$(date '+%H:%M:%S')] Change detected, rebuilding..."
-  publish
+  # `set -e` would otherwise kill this whole script (and the container) on a
+  # single broken save, silently ending the watch loop until someone notices
+  # and restarts it. Catch the failure so the next save gets a fresh attempt.
+  publish || echo "❌ [$(date '+%H:%M:%S')] Build failed — fix the error and save again."
 done

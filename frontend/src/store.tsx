@@ -349,9 +349,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
       mode, seats, dice, rolling, turn, settings,
       setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
-      lang, setLang, twoFactor, toggleTwoFactor,
+      lang, setLang, twoFactor, toggleTwoFactor, setPlaying,
     }),
-    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor],
+    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
