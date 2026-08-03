@@ -1,45 +1,44 @@
-/**
- * API + WebSocket helpers. Use these instead of raw fetch/WebSocket.
- *
- * Two things they handle that hand-rolled calls get wrong:
- *
- * 1. Relative URLs. nginx serves the SPA and reverse-proxies /api to the
- *    backend on the same origin, so there is no API base URL to configure —
- *    localhost, LAN IP and the ngrok domain all just work. Never hardcode a
- *    host here; that is what breaks the moment you leave localhost.
- *
- * 2. ngrok's free-tier interstitial. Without the skip header ngrok answers
- *    API calls with its "You are about to visit…" warning (ERR_NGROK_6024)
- *    instead of your JSON. Setting Accept: application/json does NOT dodge it.
- */
+// Wrapper for calls to protected API routes.
+//
+// Access tokens are short-lived (15 min), so a request can come back 401 simply
+// because the access token expired — even though the user is still "logged in"
+// (their refresh token is good for 7 days). When that happens we transparently
+// POST /api/auth/refresh once (the browser sends the refresh cookie), which
+// mints a new access token, then retry the original request.
+//
+// Single-flight: several requests can 401 at the same instant (e.g. on page
+// load). They share ONE in-flight refresh promise, so we don't fire /refresh
+// many times and trip over the refresh-token rotation (each rotation
+// invalidates the previous refresh token).
 
-/** fetch() against the backend. Path is relative to /api, e.g. api('/games'). */
-export function api(path: string, init: RequestInit = {}) {
-  // Headers instance, not a spread: spreading a Headers object silently
-  // yields {} and would drop the caller's headers.
-  const headers = new Headers(init.headers)
-  headers.set('ngrok-skip-browser-warning', 'true')
-  return fetch(`/api${path}`, { ...init, headers })
-}
+let refreshing: Promise<boolean> | null = null
 
-/** JSON GET/POST/… returning the parsed body, throwing on non-2xx. */
-export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers)
-  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
-  const res = await api(path, { ...init, headers })
-  if (!res.ok) throw new Error(`${init.method ?? 'GET'} /api${path} → ${res.status}`)
-  return res.json() as Promise<T>
+function refreshOnce(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = fetch('/api/auth/refresh', { method: 'POST' })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshing = null
+      })
+  }
+  return refreshing
 }
 
 /**
- * WebSocket to the backend, scheme derived from the page.
- * https page → wss://, http page → ws://. Handles ngrok (always https) and
- * the self-signed :443 LAN listener identically.
+ * Like fetch(), but for authenticated endpoints. On a 401 it attempts a single
+ * silent token refresh and retries once. If the refresh fails (refresh token
+ * expired/revoked), the original 401 is returned so the caller can treat the
+ * user as logged out.
  *
- * Note: the browser WebSocket API cannot send custom headers, so the ngrok
- * interstitial can't be skipped that way — it doesn't apply to WS upgrades.
+ * Note: the request is retried by re-issuing `init` as-is, so keep bodies as
+ * plain values (strings/objects), not one-shot streams.
  */
-export function socket(path: string) {
-  const scheme = location.protocol === 'https:' ? 'wss' : 'ws'
-  return new WebSocket(`${scheme}://${location.host}/api${path}`)
+export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const res = await fetch(input, init)
+  if (res.status !== 401) return res
+
+  const refreshed = await refreshOnce()
+  if (!refreshed) return res // session really is over — hand back the 401
+  return fetch(input, init)
 }

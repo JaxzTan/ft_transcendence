@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { ReconnectService } from './reconnect.service';
 import { PrismaService } from '../prisma.service';
+import { PresenceModule } from '../presence/presence.module';
 
 @Module({
+  imports: [PresenceModule],
   controllers: [UserController],
-  providers: [UserService, ReconnectService, PrismaService],
-  exports: [UserService, ReconnectService],
+  providers: [UserService, PrismaService],
+  exports: [UserService],
 })
 export class UserModule {}

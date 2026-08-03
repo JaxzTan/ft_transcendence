@@ -1,13 +1,13 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { navigate, useRoute } from '../router'
-import { avatarBlue, btnGold, goldText } from '../theme'
+import { AccountMenu } from './AccountMenu'
+import { btnGold, goldText } from '../theme'
 
 const NAV: Array<{ path: string; glyph: string; title: string }> = [
   { path: '/home', glyph: '⌂', title: 'Home' },
   { path: '/dashboard', glyph: '▦', title: 'Dashboard' },
-  { path: '/leaderboard', glyph: '♛', title: 'Leaderboard' },
   { path: '/friends', glyph: '♟', title: 'Friends' },
-  { path: '/settings', glyph: '⚙', title: 'Settings' },
+  { path: '/profile', glyph: '👤', title: 'Profile' },
 ]
 
 export const SCREEN_TITLES: Record<string, string> = {
@@ -15,7 +15,7 @@ export const SCREEN_TITLES: Record<string, string> = {
   '/dashboard': 'Player Dashboard',
   '/leaderboard': 'Leaderboard',
   '/friends': 'Friends',
-  '/settings': 'Settings',
+  '/profile': 'Player Profile',
 }
 
 function railItemStyle(active: boolean): CSSProperties {
@@ -51,6 +51,7 @@ function railGlyphStyle(active: boolean): CSSProperties {
 /** Sidebar rail + top header wrapping home/dashboard/leaderboard/friends/settings. */
 export function Shell({ children }: { children: ReactNode }) {
   const { path } = useRoute()
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <aside
@@ -115,22 +116,6 @@ export function Shell({ children }: { children: ReactNode }) {
         >
           <span style={{ fontSize: 12 }}>▶</span>Play now
         </button>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 8px 2px',
-            marginTop: 6,
-            borderTop: '1px solid #2e2115',
-          }}
-        >
-          <div style={avatarBlue(36, 13)}>YO</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>You</div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>♛ 1,540 · Silver III</div>
-          </div>
-        </div>
       </aside>
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -164,7 +149,7 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <span style={{ color: '#f0c24e' }}>♛</span>1,540
             </div>
-            <div style={{ ...avatarBlue(40, 14), boxShadow: '0 0 0 2px #f0d18a55' }}>YO</div>
+            <AccountMenu />
           </div>
         </header>
 

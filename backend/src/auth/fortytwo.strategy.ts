@@ -3,14 +3,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import Strategy from 'passport-42';
 import { Profile } from 'passport';
 import { AuthService } from './auth.service';
+import { requireSecret } from '../secrets';
 
 @Injectable()
 export class FortyTwoStrategy extends PassportStrategy(Strategy as any, '42') {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: process.env.FORTYTWO_CLIENT_ID,
-      clientSecret: process.env.FORTYTWO_CLIENT_SECRET,
-      callbackURL: process.env.FORTYTWO_CALLBACK_URL,
+      clientID: requireSecret('FORTYTWO_CLIENT_ID'),
+      clientSecret: requireSecret('FORTYTWO_CLIENT_SECRET'),
+      callbackURL: requireSecret('FORTYTWO_CALLBACK_URL'),
     });
   }
 
@@ -20,7 +21,6 @@ export class FortyTwoStrategy extends PassportStrategy(Strategy as any, '42') {
       provider: '42',
       providerAccountId: profile.id,
       email,
-      displayName: profile.displayName,
       usernameSeed: profile.username ?? `ft_${profile.id}`, // 42 intra login
     });
   }

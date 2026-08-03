@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { PresenceService } from '../presence/presence.service';
 
 @Injectable()
 export class FriendsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly presence: PresenceService,
+  ) {}
 
   async sendFriendRequest(userId: string, targetUserId: string) {
     if (userId === targetUserId) {
@@ -147,7 +151,8 @@ export class FriendsService {
       };
     });
 
-    return friends;
+    const statuses = await this.presence.getStatuses(friends.map((f) => f.id));
+    return friends.map((f) => ({ ...f, status: statuses[f.id] }));
   }
 
   async getFriendRequests(userId: string) {
@@ -218,8 +223,8 @@ export class FriendsService {
       const blocked = await (this.prisma.db.friendship.create as any)({
         data: {
           id: `${userId}-${targetUserId}-blocked`,
-          user: { connect: { id: userId } },
-          friend: { connect: { id: targetUserId } },
+          userId,
+          friendId: targetUserId,
           status: 'blocked',
         },
         include: {

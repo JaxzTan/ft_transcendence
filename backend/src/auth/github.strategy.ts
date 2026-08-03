@@ -2,25 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile } from 'passport-github2';
 import { AuthService } from './auth.service';
+import { requireSecret } from '../secrets';
 
 @Injectable()
 export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: process.env.GITHUB_CALLBACK_URL,
+      clientID: requireSecret('GITHUB_CLIENT_ID'),
+      clientSecret: requireSecret('GITHUB_CLIENT_SECRET'),
+      callbackURL: requireSecret('GITHUB_CALLBACK_URL'),
       scope: ['user:email'],
+      // Default mode returns only the primary email and DROPS the verified
+      // flag; raw mode keeps { value, verified, primary } for every address.
+      allRawEmails: true,
     });
   }
 
   async validate(_accessToken: string, _refreshToken: string, profile: Profile) {
-    const email = profile.emails?.[0]?.value;
+    const emails = (profile.emails ?? []) as Array<{
+      value: string;
+      verified?: boolean;
+      primary?: boolean;
+    }>;
+    const email = (emails.find((e) => e.primary && e.verified) ?? emails.find((e) => e.verified))
+      ?.value;
     return this.authService.validateOAuthLogin({
       provider: 'github',
       providerAccountId: profile.id,
       email,
-      displayName: profile.displayName ?? profile.username,
       usernameSeed: profile.username ?? `github_${profile.id}`,
     });
   }

@@ -1,11 +1,12 @@
-# Frontend build container.
-# Compiles the React SPA, publishes dist/ into the shared web_dist volume,
-# then EXITS. There is no frontend process at runtime — nginx serves the
-# files. compose gates nginx on this container finishing successfully.
+# Frontend Dockerfile: builds the React SPA and publishes it.
+# Serving is the nginx service's job (see ../nginx). This container stays
+# alive: it publishes the build into the shared spa_dist volume, then watches
+# src/ and republishes on change, logging like a normal long-running service.
+# nginx waits for the healthcheck (first publish) before starting.
 # ═══════════════════════════════════════════════════════════
 
-# Stage 1: Build React SPA
-FROM node:22-alpine AS builder
+FROM node:22-alpine
+RUN apk add --no-cache inotify-tools
 WORKDIR /app
 COPY package*.json ./
 # ci, not install: install re-resolves the tree and can silently pull newer
@@ -14,16 +15,12 @@ COPY package*.json ./
 # lockfile and package.json disagree.
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN chmod +x publish.sh
 
-# Stage 2: Tiny publisher — carries the built assets and nothing else
-FROM alpine:3
-COPY --from=builder /app/dist /app/dist
-
-# Wipe before copying: a plain overwrite would leave files from a previous
-# build that no longer exist in dist/ (renamed chunks, deleted pages) lying
-# in the volume for nginx to keep serving. -mindepth 1 also catches dotfiles.
-CMD ["sh", "-c", "set -e; \
-    find /dist-out -mindepth 1 -delete; \
-    cp -a /app/dist/. /dist-out/; \
-    echo '✅ SPA published to web_dist volume'"]
+# /export is where compose mounts spa_dist. Publishing on start (rather than
+# baking into the serving image) is what lets the SPA rebuild without touching
+# nginx. The wildcard delete keeps stale assets from a previous build out.
+# Invoked via `sh` explicitly: node's docker-entrypoint.sh falls back to
+# `node ./publish.sh` (and fails on the ESM loader) when it can't resolve the
+# command via `command -v`, which a bare "./publish.sh" CMD hits.
+CMD ["sh", "publish.sh"]

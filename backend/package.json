@@ -6,10 +6,12 @@
 		"dev": "nest start --watch",
 		"build": "nest build",
 		"start": "node dist/src/main.js",
-		"prisma:generate": "prisma generate"
-	},
-	"prisma": {
-		"schema": "prisma/schema.prisma"
+		"db:generate": "prisma generate",
+		"db:migrate": "prisma db push",
+		"db:fresh": "prisma db execute --file ./prisma/drop-all.sql",
+		"db:truncate": "prisma db execute --file ./prisma/truncate-all.sql",
+		"db:seed": "prisma db seed",
+		"db:reset": "npm run prisma:truncate && npm run prisma:seed"
 	},
 	"dependencies": {
 		"@nestjs/common": "^10.0.0",
@@ -18,6 +20,7 @@
 		"@nestjs/passport": "^10.0.0",
 		"@nestjs/platform-express": "^10.0.0",
 		"@nestjs/schedule": "^3.0.0",
+		"@nestjs/serve-static": "^4.0.0",
 		"@nestjs/throttler": "^6.5.0",
 		"@prisma/adapter-pg": "^7.8.0",
 		"@prisma/client": "^7.8.0",
@@ -28,6 +31,7 @@
 		"cookie-parser": "^1.4.7",
 		"dotenv": "^16.0.0",
 		"ioredis": "^5.11.1",
+		"nodemailer": "^9.0.3",
 		"passport": "^0.7.0",
 		"passport-42": "^1.2.6",
 		"passport-github2": "^0.1.12",
@@ -44,6 +48,7 @@
 		"@types/bcrypt": "^5.0.0",
 		"@types/cookie-parser": "^1.4.10",
 		"@types/node": "^20.0.0",
+		"@types/nodemailer": "^8.0.1",
 		"@types/passport-github2": "^1.2.9",
 		"@types/passport-google-oauth20": "^2.0.17",
 		"@types/passport-jwt": "^4.0.0",

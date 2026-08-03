@@ -1,36 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { PresenceService } from '../presence/presence.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  async updateOnlineStatus(userId: string, isOnline: boolean) {
-    return this.prisma.db.user.update({
-      where: { id: userId },
-      data: {
-        isOnline,
-        status: isOnline ? 'online' : 'offline',
-      },
-      select: { id: true, isOnline: true, status: true },
-    });
-  }
-
-  async incrementDisconnectCount(userId: string) {
-    return this.prisma.db.user.update({
-      where: { id: userId },
-      data: { disconnectCount: { increment: 1 } },
-      select: { id: true, disconnectCount: true },
-    });
-  }
-
-  async incrementReconnectCount(userId: string) {
-    return this.prisma.db.user.update({
-      where: { id: userId },
-      data: { reconnectCount: { increment: 1 } },
-      select: { id: true, reconnectCount: true },
-    });
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly presence: PresenceService,
+  ) {}
 
   async getPublicProfile(username: string) {
     const user = await this.prisma.db.user.findUnique({
@@ -41,14 +18,12 @@ export class UserService {
         avatarStyle: true,
         rating: true,
         highestRating: true,
-        rankedWins: true,
-        rankedLosses: true,
-        rankedDraws: true,
+        wins: true,
+        losses: true,
         winStreak: true,
         bestWinStreak: true,
         botWins: true,
         humanWins: true,
-        totalPlayTimeMs: true,
         daysActive: true,
         loginStreak: true,
         createdAt: true,
@@ -59,7 +34,42 @@ export class UserService {
       throw new NotFoundException(`User "${username}" not found`);
     }
 
-    return user;
+    const status = await this.presence.getStatus(user.id);
+    return { ...user, status };
+  }
+
+  async uploadAvatar(userId: string, data: Buffer, contentType: string) {
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // Prisma 7 uses Bytes type for avatarPhoto
+    await this.prisma.db.user.update({
+      where: { id: userId },
+      data: { avatarPhoto: data as any, avatarPhotoContentType: contentType },
+    });
+
+    return { message: 'Avatar uploaded', contentType };
+  }
+
+  async getAvatar(username: string): Promise<{ data: Buffer; contentType: string } | null> {
+    const user = await this.prisma.db.user.findUnique({
+      where: { username },
+      select: { avatarPhoto: true, avatarPhotoContentType: true },
+    });
+    if (!user || !user.avatarPhoto || !user.avatarPhotoContentType) return null;
+    return { data: Buffer.from(user.avatarPhoto), contentType: user.avatarPhotoContentType };
+  }
+
+  async deleteAvatar(userId: string) {
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.db.user.update({
+      where: { id: userId },
+      data: { avatarPhoto: null, avatarPhotoContentType: null },
+    });
+
+    return { message: 'Avatar deleted' };
   }
 
   async getUserGames(username: string, page: number = 1, limit: number = 20) {
@@ -93,10 +103,8 @@ export class UserService {
         status: p.game.status,
         color: p.color,
         rank: p.rank,
-        totalTurns: p.totalTurns,
         piecesCaptured: p.piecesCaptured,
         piecesInGoal: p.piecesInGoal,
-        durationSeconds: p.game.durationSeconds,
         startedAt: p.game.startedAt,
         endedAt: p.game.endedAt,
         participants: p.game.participants.map((gp) => ({
