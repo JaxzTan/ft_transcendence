@@ -64,6 +64,17 @@ services:
         condition: service_healthy
     networks:
       - transcendence_network
+    # `make dev` runs `compose watch`: no bind mount here, so on a source
+    # change compose rebuilds the image and recreates the container instead
+    # of syncing files into a running one.
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend
+          ignore:
+            - node_modules
+            - dist
+            - generated
 
   ludo-engine:
     build:
@@ -89,24 +100,37 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    # See backend's `develop.watch` comment above — same reasoning applies here.
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend/app/ludo-engine
+          ignore:
+            - node_modules
+            - dist
 
 
-  # Build-only job: compiles the SPA into spa_dist, then exits. Not a server.
+  # Long-running publisher: builds the SPA into spa_dist, then watches
+  # ./src and republishes on every change instead of exiting.
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    restart: "no"
+    restart: unless-stopped
     volumes:
       - spa_dist:/export
+      - ./frontend:/app
+      # Anonymous volume: keeps the image's node_modules from being shadowed
+      # by the bind mount above, which has none on the host.
+      - /app/node_modules
     networks:
       - transcendence_network
-    develop:
-      watch:
-        - action: rebuild
-          path: ./frontend/src
-        - action: rebuild
-          path: ./frontend/package.json
+    healthcheck:
+      test: ["CMD", "test", "-f", "/export/index.html"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   # Optional HMR dev server, started only by `make dev` (profile: dev). Serves
   # source straight from the bind mount on 8080; the built-and-served-by-nginx
@@ -145,10 +169,10 @@ services:
       - spa_dist:/usr/share/nginx/html:ro
       - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      # Waiting on the build job is what keeps nginx from booting onto an empty
-      # document root the first time the stack comes up.
+      # Waiting on the healthcheck (first publish) is what keeps nginx from
+      # booting onto an empty document root the first time the stack comes up.
       frontend:
-        condition: service_completed_successfully
+        condition: service_healthy
       backend:
         condition: service_started
       ludo-engine:

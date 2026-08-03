@@ -7,6 +7,9 @@ import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
 import { GithubStrategy } from './github.strategy';
 import { FortyTwoStrategy } from './fortytwo.strategy';
+import { MailService } from './mail.service';
+import { TwoFactorService } from './twofactor.service';
+import { SessionService } from './session.service';
 import { PrismaService } from '../prisma.service';
 import { requireSecret } from '../secrets';
 
@@ -15,12 +18,17 @@ import { requireSecret } from '../secrets';
     PassportModule,
     JwtModule.register({
       secret: requireSecret('JWT_SECRET'),
-      signOptions: { expiresIn: '7d' },
+      // Access tokens are now short-lived; the refresh token (SessionService)
+      // keeps the user signed in for 7 days by minting new access tokens.
+      signOptions: { expiresIn: '15m' },
     }),
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
+    MailService,
+    TwoFactorService,
+    SessionService,
     JwtStrategy,
     GoogleStrategy,
     GithubStrategy,
