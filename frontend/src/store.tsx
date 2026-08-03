@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { BOT_POOL } from './theme'
+import { apiFetch } from './api'
 
 export type AuthUser = { id: string; username: string }
 
@@ -19,6 +20,22 @@ export type Seat =
 
 export type Mode = 2 | 4
 
+export type Lang = 'en' | 'fr' | 'ms' | 'zh'
+
+/** Languages offered in the account menu. */
+export const LANGUAGES: Array<{ code: Lang; label: string; flag: string }> = [
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'ms', label: 'Bahasa Melayu', flag: '🇲🇾' },
+  { code: 'zh', label: '中文', flag: '🇨🇳' },
+]
+
+const LANG_KEY = 'lr.lang'
+
+function storedLang(): Lang {
+  const raw = localStorage.getItem(LANG_KEY)
+  return LANGUAGES.some((l) => l.code === raw) ? (raw as Lang) : 'en'
+}
+
 /** Defaults for the settings toggles, keyed "<group>-<row>". */
 export const SETTING_DEFAULTS: Record<string, boolean> = {
   '0-0': true, // Sound effects
@@ -33,8 +50,16 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 type AppState = {
   user: AuthUser | null
   authReady: boolean
-  login: (username: string, password: string) => Promise<string | null>
-  register: (username: string, password: string, email?: string) => Promise<string | null>
+  /** Factor one. `identifier` is a username or email. Success = { pendingToken } (code emailed); failure = { error }. */
+  login: (identifier: string, password: string) => Promise<{ error?: string; pendingToken?: string }>
+  /** Success = null (verification email sent — no session yet); failure = message. */
+  register: (username: string, password: string, email: string) => Promise<string | null>
+  /** Factor two. Success = null (session cookie set, user in store); failure = message. */
+  verify2fa: (pendingToken: string, code: string) => Promise<string | null>
+  /** Emails a reset link. Always resolves null (generic response — no account enumeration). */
+  forgotPassword: (email: string) => Promise<string | null>
+  /** Redeems a reset token and sets a new password. Success = null; failure = message. */
+  resetPassword: (token: string, password: string) => Promise<string | null>
   logout: () => Promise<void>
   mode: Mode
   seats: Seat[]
@@ -52,6 +77,10 @@ type AppState = {
   endTurn: () => void
   settingOn: (key: string) => boolean
   toggleSetting: (key: string) => void
+  lang: Lang
+  setLang: (l: Lang) => void
+  twoFactor: boolean
+  toggleTwoFactor: () => void
 }
 
 const Ctx = createContext<AppState | null>(null)
@@ -61,45 +90,101 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
-    fetch('/api/auth/me')
+    // apiFetch: if the access token has expired but the refresh token is still
+    // good, this silently refreshes and we stay logged in across reloads.
+    apiFetch('/api/auth/me')
       .then(async (res) => setUser(res.ok ? (await res.json()).user : null))
       .catch(() => setUser(null))
       .finally(() => setAuthReady(true))
   }, [])
 
-  // Login
-  const login = useCallback(async (username: string, password: string): Promise<string | null> => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    }).catch(() => null)
-    if (!res) return 'Could not reach the server'
-    if (!res.ok) return apiError(await res.json().catch(() => null), 'Login failed')
-    setUser((await res.json()).user)
-    return null
-  }, [])
+  // Login — factor one. Password OK means a code was emailed; the session
+  // itself only exists after verify2fa succeeds.
+  const login = useCallback(
+    async (identifier: string, password: string): Promise<{ error?: string; pendingToken?: string }> => {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      }).catch(() => null)
+      if (!res) return { error: 'Could not reach the server' }
+      if (!res.ok) return { error: apiError(await res.json().catch(() => null), 'Login failed') }
+      const data = await res.json()
+      // 2FA off: the backend already set the session cookies, so there's no
+      // code step — record the user and let the caller route straight home.
+      if (!data.twoFactorRequired) {
+        setUser(data.user)
+        return {}
+      }
+      // 2FA on: a code was emailed; the session only exists after verify2fa.
+      return { pendingToken: data.pendingToken }
+    },
+    [],
+  )
 
-  // Register
+  // Register — no session on signup; the account activates via the emailed
+  // verification link, then the user logs in normally.
   const register = useCallback(
-    async (username: string, password: string, email?: string): Promise<string | null> => {
+    async (username: string, password: string, email: string): Promise<string | null> => {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(email ? { username, password, email } : { username, password }),
+        body: JSON.stringify({ username, password, email }),
       }).catch(() => null)
       if (!res) return 'Could not reach the server'
       if (!res.ok) return apiError(await res.json().catch(() => null), 'Sign up failed')
+      return null
+    },
+    [],
+  )
+
+  // Factor two — a correct emailed code buys the actual session cookie.
+  const verify2fa = useCallback(
+    async (pendingToken: string, code: string): Promise<string | null> => {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pendingToken, code }),
+      }).catch(() => null)
+      if (!res) return 'Could not reach the server'
+      if (!res.ok) return apiError(await res.json().catch(() => null), 'Code rejected')
       setUser((await res.json()).user)
       return null
     },
     [],
   )
 
+  // Forgot password — asks the backend to email a reset link. The response is
+  // deliberately generic, so this always resolves null (never reveals whether
+  // the address exists). A network failure still surfaces as a message.
+  const forgotPassword = useCallback(async (email: string): Promise<string | null> => {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => null)
+    if (!res) return 'Could not reach the server'
+    if (!res.ok) return apiError(await res.json().catch(() => null), 'Something went wrong')
+    return null
+  }, [])
+
+  // Reset password — redeems the emailed token and sets the new password.
+  const resetPassword = useCallback(async (token: string, password: string): Promise<string | null> => {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password }),
+    }).catch(() => null)
+    if (!res) return 'Could not reach the server'
+    if (!res.ok) return apiError(await res.json().catch(() => null), 'Could not reset password')
+    return null
+  }, [])
+
   // Logout
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined)
     setUser(null)
+    setTwoFactor(false)
   }, [])
 
   const [mode, setMode] = useState<Mode>(4)
@@ -113,7 +198,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [rolling, setRolling] = useState(false)
   const [turn, setTurn] = useState(0)
   const [settings, setSettings] = useState<Record<string, boolean>>({})
+  const [lang, setLangState] = useState<Lang>(storedLang)
+  const [twoFactor, setTwoFactor] = useState(false)
   const rollingRef = useRef(false)
+
+  // Persist account prefs; swap this for PATCH /api/user/me once the backend lands.
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l)
+    localStorage.setItem(LANG_KEY, l)
+    document.documentElement.lang = l
+  }, [])
+
+  // Load the account's real 2FA preference once signed in — GET /api/auth/2fa.
+  useEffect(() => {
+    if (!user) return
+    apiFetch('/api/auth/2fa')
+      .then(async (res) => {
+        if (!res.ok) return
+        const data = await res.json()
+        setTwoFactor(!!data.twoFactorEnabled)
+      })
+      .catch(() => undefined)
+  }, [user])
+
+  // Optimistic toggle; PATCH /api/auth/2fa persists it, reverting on failure.
+  const toggleTwoFactor = useCallback(() => {
+    setTwoFactor((prev) => {
+      const next = !prev
+      apiFetch('/api/auth/2fa', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      })
+        .then((res) => {
+          if (!res.ok) setTwoFactor(prev)
+        })
+        .catch(() => setTwoFactor(prev))
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
 
   const addBot = useCallback((i: number) => {
     setSeats((prev) => {
@@ -185,11 +312,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      user, authReady, login, register, logout,
+      user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
       mode, seats, dice, rolling, turn, settings,
       setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
+      lang, setLang, twoFactor, toggleTwoFactor,
     }),
-    [user, authReady, login, register, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
+    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { navigate, useRoute } from '../router'
-import { useApp } from '../store'
-import { avatarBlue, btnGold, goldText } from '../theme'
+import { AccountMenu } from './AccountMenu'
+import { btnGold, goldText } from '../theme'
 
 const NAV: Array<{ path: string; glyph: string; title: string }> = [
   { path: '/home', glyph: '⌂', title: 'Home' },
@@ -53,14 +53,6 @@ function railGlyphStyle(active: boolean): CSSProperties {
 /** Sidebar rail + top header wrapping home/dashboard/leaderboard/friends/settings. */
 export function Shell({ children }: { children: ReactNode }) {
   const { path } = useRoute()
-  const { user, logout } = useApp()
-  const name = user?.username ?? 'You'
-  const initials = name.slice(0, 2).toUpperCase()
-
-  async function onSignOut() {
-    await logout()
-    navigate('/login')
-  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -188,7 +180,7 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <span style={{ color: '#f0c24e' }}>♛</span>1,540
             </div>
-            <div style={{ ...avatarBlue(40, 14), boxShadow: '0 0 0 2px #f0d18a55' }}>{initials}</div>
+            <AccountMenu />
           </div>
         </header>
 
