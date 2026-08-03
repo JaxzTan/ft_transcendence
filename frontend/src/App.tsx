@@ -11,6 +11,9 @@ import { Login } from './pages/Login'
 import { Results } from './pages/Results'
 import { Signup } from './pages/Signup'
 import { Profile } from './pages/Profile'
+import { TwoFactor } from './pages/TwoFactor'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { ResetPassword } from './pages/ResetPassword'
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 
@@ -21,7 +24,6 @@ const SHELL_ROUTES: Record<string, () => ReactNode> = {
   '/leaderboard': () => <Leaderboard />,
   '/friends': () => <Friends />,
   '/profile': () => <Profile />,
-  '/settings': () => <Settings />,
 }
 
 /** Full-bleed screens (no shell). */

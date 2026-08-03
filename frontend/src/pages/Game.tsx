@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
 import { MOVE_LOG } from '../data'
@@ -29,8 +30,15 @@ function Pips({ count, color }: { count: number; color: string }) {
 }
 
 export function Game() {
-  const { mode, seats, dice, rolling, turn, roll, endTurn } = useApp()
+  const { mode, seats, dice, rolling, turn, roll, endTurn, setPlaying } = useApp()
   const players = seats.slice(0, mode)
+
+  // Friends see "in a game" while this page is mounted, back to plain
+  // "online" the moment they leave (Leave button, tab close via TTL lapse).
+  useEffect(() => {
+    setPlaying(true)
+    return () => setPlaying(false)
+  }, [setPlaying])
   const active = players[turn]
   const turnLabel = active?.type === 'you' ? 'Your turn' : `${(active?.type === 'bot' && active.name) || 'Bot'}'s turn`
 

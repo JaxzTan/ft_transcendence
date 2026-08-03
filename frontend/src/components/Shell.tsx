@@ -8,7 +8,6 @@ const NAV: Array<{ path: string; glyph: string; title: string }> = [
   { path: '/dashboard', glyph: '▦', title: 'Dashboard' },
   { path: '/friends', glyph: '♟', title: 'Friends' },
   { path: '/profile', glyph: '👤', title: 'Profile' },
-  { path: '/settings', glyph: '⚙', title: 'Settings' },
 ]
 
 export const SCREEN_TITLES: Record<string, string> = {
@@ -17,7 +16,6 @@ export const SCREEN_TITLES: Record<string, string> = {
   '/leaderboard': 'Leaderboard',
   '/friends': 'Friends',
   '/profile': 'Player Profile',
-  '/settings': 'Settings',
 }
 
 function railItemStyle(active: boolean): CSSProperties {
@@ -118,35 +116,6 @@ export function Shell({ children }: { children: ReactNode }) {
         >
           <span style={{ fontSize: 12 }}>▶</span>Play now
         </button>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 8px 2px',
-            marginTop: 6,
-            borderTop: '1px solid #2e2115',
-          }}
-        >
-          <div 
-             style={{ ...avatarBlue(36, 13), cursor: 'pointer' }}
-             onClick={() => navigate('/profile')}
-          >{initials}</div>
-          <div style={{ minWidth: 0 }}>
-            <div 
-              style={{ fontWeight: 700, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
-              onClick={() => navigate('/profile')}
-            >
-              {name}
-            </div>
-            <div
-              onClick={onSignOut}
-              style={{ color: '#a99a83', fontSize: 12, cursor: 'pointer', textDecorationLine: 'underline' }}
-            >
-              Sign out
-            </div>
-          </div>
-        </div>
       </aside>
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
