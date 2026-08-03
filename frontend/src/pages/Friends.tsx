@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { navigate } from '../router'
-import { avatarDim, btnGoldSmall, card, input } from '../theme'
-
-type PresenceStatus = 'online' | 'playing' | 'offline'
+import { avatarDim, btnGoldSmall, card, input, STATUS_STYLE, type PresenceStatus } from '../theme'
 
 type Friend = {
   id: string
@@ -11,12 +9,6 @@ type Friend = {
   rating: number
   friendsSince: string
   status: PresenceStatus
-}
-
-const STATUS_STYLE: Record<PresenceStatus, { color: string; label: string }> = {
-  online: { color: '#4bbf7b', label: 'Online' },
-  playing: { color: '#f0c24e', label: 'In a game' },
-  offline: { color: '#6b6255', label: 'Offline' },
 }
 
 type FriendRequest = {

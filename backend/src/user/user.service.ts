@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { PresenceService } from '../presence/presence.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly presence: PresenceService,
+  ) {}
 
   async getPublicProfile(username: string) {
     const user = await this.prisma.db.user.findUnique({
@@ -30,7 +34,8 @@ export class UserService {
       throw new NotFoundException(`User "${username}" not found`);
     }
 
-    return user;
+    const status = await this.presence.getStatus(user.id);
+    return { ...user, status };
   }
 
   async uploadAvatar(userId: string, data: Buffer, contentType: string) {

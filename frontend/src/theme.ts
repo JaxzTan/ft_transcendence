@@ -15,6 +15,15 @@ export const SEAT_COLORS: ColorKey[] = ['blue', 'red', 'green', 'yellow']
 
 export const BOT_POOL = ['Rook', 'Bishop', 'Knight', 'Castle', 'Duke', 'Marla', 'Otto', 'Vex']
 
+/** Mirrors backend/src/presence/presence.service.ts's PresenceStatus. */
+export type PresenceStatus = 'online' | 'playing' | 'offline'
+
+export const STATUS_STYLE: Record<PresenceStatus, { color: string; label: string }> = {
+  online: { color: '#4bbf7b', label: 'Online' },
+  playing: { color: '#f0c24e', label: 'In a game' },
+  offline: { color: '#6b6255', label: 'Offline' },
+}
+
 export const goldText: CSSProperties = {
   background: 'linear-gradient(180deg,#f4dfa0,#c69a44)',
   WebkitBackgroundClip: 'text',

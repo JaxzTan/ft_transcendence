@@ -45,6 +45,12 @@ export class PresenceService implements OnModuleDestroy {
     await this.redis.del(this.key(userId));
   }
 
+  /** Single-user lookup — e.g. a profile page for one specific account. */
+  async getStatus(userId: string): Promise<PresenceStatus> {
+    const value = await this.redis.get(this.key(userId));
+    return (value as PresenceStatus) ?? 'offline';
+  }
+
   /** Batched lookup for a friends list — a missing key means the TTL lapsed. */
   async getStatuses(userIds: string[]): Promise<Record<string, PresenceStatus>> {
     if (userIds.length === 0) return {};

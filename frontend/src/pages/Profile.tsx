@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRoute } from '../router'
 import { useApp } from '../store'
-import { card, goldText, avatarBlue } from '../theme'
+import { card, goldText, avatarBlue, STATUS_STYLE, type PresenceStatus } from '../theme'
 
 type UserProfile = {
   id: string
@@ -14,6 +14,7 @@ type UserProfile = {
   bestWinStreak: number
   daysActive: number
   createdAt: string
+  status: PresenceStatus
 }
 
 type Participant = {
@@ -47,6 +48,7 @@ type Friend = {
   avatarStyle: any
   rating: number
   friendsSince: string
+  status: PresenceStatus
 }
 
 export function Profile() {
@@ -63,7 +65,7 @@ export function Profile() {
   useEffect(() => {
     if (!username) return
     setLoading(true)
-    
+
     const fetches = [
       fetch(`/api/user/${username}`).then((res) => res.ok ? res.json() : null),
       fetch(`/api/user/${username}/games`).then((res) => res.ok ? res.json() : null),
@@ -83,6 +85,23 @@ export function Profile() {
     })
   }, [username, isOwnProfile])
 
+  // Presence isn't pushed, so poll for it — matches the client's own
+  // heartbeat cadence in store.tsx. Games/stats don't need this refetch.
+  useEffect(() => {
+    if (!username) return
+    const id = setInterval(() => {
+      fetch(`/api/user/${username}`).then((res) => res.ok && res.json()).then((data) => {
+        if (data) setProfile(data)
+      })
+      if (isOwnProfile) {
+        fetch('/api/friends').then((res) => res.ok && res.json()).then((data) => {
+          if (data) setFriendsData(data)
+        })
+      }
+    }, 15_000)
+    return () => clearInterval(id)
+  }, [username, isOwnProfile])
+
   if (loading) {
     return <div style={{ color: '#a99a83', textAlign: 'center', marginTop: 80, fontSize: 18 }}>Loading profile...</div>
   }
@@ -98,6 +117,7 @@ export function Profile() {
   const initials = profile.username.slice(0, 2).toUpperCase()
   const totalGames = profile.wins + profile.losses
   const winRate = totalGames > 0 ? Math.round((profile.wins / totalGames) * 100) : 0
+  const statusStyle = STATUS_STYLE[profile.status] ?? STATUS_STYLE.offline
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, paddingBottom: 60, alignItems: 'start' }}>
@@ -116,13 +136,23 @@ export function Profile() {
             <div style={{ ...avatarBlue(100, 36, 30), boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d' }}>
               {initials}
             </div>
+            <span
+              title={statusStyle.label}
+              style={{
+                position: 'absolute', right: 4, bottom: 4, width: 18, height: 18, borderRadius: '50%',
+                background: statusStyle.color, border: '3px solid #1a130d',
+              }}
+            />
           </div>
 
           <div style={{ flex: 1 }}>
             <div style={{ ...goldText, fontFamily: "'Cinzel',serif", fontWeight: 800, fontSize: 40, lineHeight: 1.1 }}>
               {profile.username}
             </div>
-            <div style={{ color: '#a99a83', fontSize: 14, marginTop: 6, fontWeight: 500 }}>
+            <div style={{ color: statusStyle.color, fontSize: 13, marginTop: 6, fontWeight: 700 }}>
+              {statusStyle.label}
+            </div>
+            <div style={{ color: '#a99a83', fontSize: 14, marginTop: 2, fontWeight: 500 }}>
               Member since {new Date(profile.createdAt).toLocaleDateString()}
             </div>
           </div>
@@ -247,40 +277,51 @@ function FriendsSidebar({ friends }: { friends: Friend[] | null }) {
             <span style={{ color: '#c99b45', cursor: 'pointer', fontWeight: 600 }}>Find players</span>
           </div>
         ) : (
-          friends.map((friend) => (
-            <div key={friend.id} style={{
-              display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#1a140e',
-              borderRadius: 12, border: '1px solid #2e2115', cursor: 'pointer', transition: 'background 0.2s'
-            }}
-              onMouseOver={(e) => { e.currentTarget.style.background = '#241b13' }}
-              onMouseOut={(e) => { e.currentTarget.style.background = '#1a140e' }}
-            >
-              {/* Avatar */}
-              <div style={{ ...avatarBlue(36, 12, 10), marginRight: 12, flexShrink: 0, boxShadow: '0 0 0 2px #1a130d, 0 0 0 1px #3a2c1d' }}>
-                {friend.username.slice(0, 2).toUpperCase()}
-              </div>
-
-              {/* Name & Status */}
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <div style={{ color: '#f0e2c4', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  {friend.username}
+          friends.map((friend) => {
+            const status = STATUS_STYLE[friend.status] ?? STATUS_STYLE.offline
+            return (
+              <div key={friend.id} style={{
+                display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#1a140e',
+                borderRadius: 12, border: '1px solid #2e2115', cursor: 'pointer', transition: 'background 0.2s'
+              }}
+                onMouseOver={(e) => { e.currentTarget.style.background = '#241b13' }}
+                onMouseOut={(e) => { e.currentTarget.style.background = '#1a140e' }}
+              >
+                {/* Avatar */}
+                <div style={{ position: 'relative', marginRight: 12, flexShrink: 0 }}>
+                  <div style={{ ...avatarBlue(36, 12, 10), boxShadow: '0 0 0 2px #1a130d, 0 0 0 1px #3a2c1d' }}>
+                    {friend.username.slice(0, 2).toUpperCase()}
+                  </div>
+                  <span
+                    style={{
+                      position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%',
+                      background: status.color, border: '2px solid #1a140e',
+                    }}
+                  />
                 </div>
-                <div style={{ color: '#4bbf7b', fontSize: 11, fontWeight: 600 }}>
-                  Online
+
+                {/* Name & Status */}
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{ color: '#f0e2c4', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                    {friend.username}
+                  </div>
+                  <div style={{ color: status.color, fontSize: 11, fontWeight: 600 }}>
+                    {status.label}
+                  </div>
+                </div>
+
+                {/* Rating Badge (Steam Level style) */}
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%', border: '2px solid #c99b45',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'radial-gradient(circle, rgba(201,155,69,0.2) 0%, rgba(201,155,69,0) 70%)',
+                  color: '#f0e2c4', fontSize: 11, fontWeight: 800, flexShrink: 0
+                }}>
+                  {friend.rating}
                 </div>
               </div>
-
-              {/* Rating Badge (Steam Level style) */}
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%', border: '2px solid #c99b45',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'radial-gradient(circle, rgba(201,155,69,0.2) 0%, rgba(201,155,69,0) 70%)',
-                color: '#f0e2c4', fontSize: 11, fontWeight: 800, flexShrink: 0
-              }}>
-                {friend.rating}
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
     </div>
