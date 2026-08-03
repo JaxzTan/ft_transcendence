@@ -29,10 +29,16 @@ export class AuthController {
   // No cookie here anymore: the account must be email-verified before its
   // first login, and every login must pass the 2FA code step.
   @Post('register')
-  async register(@Body() dto: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const { token, user } = await this.authService.register(dto);
-    this.setAuthCookie(req, res, token);
-    return { user };
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  // Target of the emailed verification link — lands in a browser tab, so it
+  // answers with a redirect to the SPA rather than JSON.
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string, @Res() res: Response) {
+    const ok = await this.authService.verifyEmail(token ?? '');
+    res.redirect(`${FRONTEND_URL}/login?${ok ? 'verified=1' : 'error=invalid-verification-link'}`);
   }
 
   // Factor one. With 2FA on, answers { twoFactorRequired: true, pendingToken }
@@ -40,9 +46,31 @@ export class AuthController {
   // cookies and answers { twoFactorRequired: false, user }.
   @Post('login')
   @HttpCode(200)
-  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const { token, user } = await this.authService.login(dto);
-    this.setAuthCookie(req, res, token);
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(dto);
+    if (result.twoFactorRequired) {
+      return { twoFactorRequired: true, pendingToken: result.pendingToken };
+    }
+    // strictNullChecks is off in this project, so the implicit-else branch of a
+    // discriminated union doesn't auto-narrow — pin it to the session variant.
+    const session = result as {
+      accessToken: string;
+      refreshToken: string;
+      user: { id: string; username: string };
+    };
+    this.setSessionCookies(res, session.accessToken, session.refreshToken);
+    return { twoFactorRequired: false, user: session.user };
+  }
+
+  // Factor two: emailed code + pendingToken buy the actual session cookies.
+  @Post('2fa/verify')
+  @HttpCode(200)
+  async verifyTwoFactor(@Body() dto: TwoFactorDto, @Res({ passthrough: true }) res: Response) {
+    const { accessToken, refreshToken, user } = await this.authService.completeTwoFactor(
+      dto.pendingToken,
+      dto.code,
+    );
+    this.setSessionCookies(res, accessToken, refreshToken);
     return { user };
   }
 
@@ -137,17 +165,39 @@ export class AuthController {
     return this.finishOAuth(req, res);
   }
 
-  private finishOAuth(req: Request, res: Response) {
-    const user = req.user as { id: string; username: string };
-    const { token } = this.authService.issueToken(user.id, user.username);
-    this.setAuthCookie(req, res, token);
-    res.redirect(FRONTEND_URL);
+  // OAuth passes factor one (the provider vouched for them). If the user keeps
+  // 2FA on, we still email a code and hand off to the SPA's /2fa page; if they
+  // turned it off, we set the session here and go straight to the app.
+  private async finishOAuth(req: Request, res: Response) {
+    const user = req.user as {
+      id: string;
+      username: string;
+      email: string | null;
+      twoFactorEnabled: boolean;
+    };
+    if (!user.email) {
+      // Strategies only forward provider-verified emails; without one we have
+      // nowhere to send login codes, so this account cannot exist here.
+      res.redirect(`${FRONTEND_URL}/login?error=no-verified-email`);
+      return;
+    }
+    if (!user.twoFactorEnabled) {
+      const { accessToken, refreshToken } = await this.authService.issueSession(
+        user.id,
+        user.username,
+      );
+      this.setSessionCookies(res, accessToken, refreshToken);
+      res.redirect(`${FRONTEND_URL}/home`);
+      return;
+    }
+    const { pendingToken } = await this.authService.startTwoFactor(user.id, user.email);
+    res.redirect(`${FRONTEND_URL}/2fa?token=${pendingToken}`);
   }
 
-  private setAuthCookie(req: Request, res: Response, token: string) {
-    res.cookie(COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: 'lax',
+  private setSessionCookies(res: Response, accessToken: string, refreshToken: string) {
+    const base = {
+      httpOnly: true as const,
+      sameSite: 'lax' as const,
       secure: process.env.NODE_ENV === 'production',
     };
     // Access token: path '/' so it rides along on every /api call for verification.
