@@ -7,6 +7,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { StatsModule } from './player-stats/stats.module';
 import { MatchModule } from './match/match.module';
+import { PresenceModule } from './presence/presence.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { MatchModule } from './match/match.module';
     AchievementsModule,
     StatsModule,
     MatchModule,
+    PresenceModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

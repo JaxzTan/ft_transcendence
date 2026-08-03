@@ -2,12 +2,21 @@ import { useEffect, useState } from 'react'
 import { navigate } from '../router'
 import { avatarDim, btnGoldSmall, card, input } from '../theme'
 
+type PresenceStatus = 'online' | 'playing' | 'offline'
+
 type Friend = {
   id: string
   username: string
   avatarStyle: any
   rating: number
   friendsSince: string
+  status: PresenceStatus
+}
+
+const STATUS_STYLE: Record<PresenceStatus, { color: string; label: string }> = {
+  online: { color: '#4bbf7b', label: 'Online' },
+  playing: { color: '#f0c24e', label: 'In a game' },
+  offline: { color: '#6b6255', label: 'Offline' },
 }
 
 type FriendRequest = {
@@ -46,6 +55,10 @@ export function Friends() {
 
   useEffect(() => {
     fetchData()
+    // Presence isn't pushed, so poll for it — matches the client's own
+    // heartbeat cadence in store.tsx.
+    const id = setInterval(fetchData, 15_000)
+    return () => clearInterval(id)
   }, [])
 
   const handleAddFriend = async () => {
@@ -188,6 +201,7 @@ export function Friends() {
           <div style={{ color: '#a99a83', fontStyle: 'italic', fontSize: 14 }}>You have no friends yet.</div>
         ) : (
           friends.map((f) => {
+            const status = STATUS_STYLE[f.status] ?? STATUS_STYLE.offline
             return (
               <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 0', borderBottom: '1px solid #2a2015' }}>
                 <div style={{ position: 'relative', flex: 'none' }}>
@@ -197,7 +211,7 @@ export function Friends() {
                   <span
                     style={{
                       position: 'absolute', right: -1, bottom: -1, width: 12, height: 12, borderRadius: '50%',
-                      background: '#4bbf7b', border: '2px solid #1a130d',
+                      background: status.color, border: '2px solid #1a130d',
                     }}
                   />
                 </div>
@@ -205,8 +219,8 @@ export function Friends() {
                   <div style={{ fontWeight: 700, fontSize: '14.5px', cursor: 'pointer' }} onClick={() => navigate(`/profile?u=${f.username}`)}>
                     {f.username}
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#4bbf7b', fontWeight: 600 }}>
-                    Online
+                  <div style={{ fontSize: '12.5px', color: status.color, fontWeight: 600 }}>
+                    {status.label}
                   </div>
                 </div>
                 <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 700 }}>♛ {f.rating}</div>

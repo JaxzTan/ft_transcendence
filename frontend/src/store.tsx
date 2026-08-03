@@ -19,6 +19,10 @@ export type Seat =
 
 export type Mode = 2 | 4
 
+// How often the client tells the backend it's still here — see
+// backend/src/presence/presence.service.ts for the matching TTL.
+const HEARTBEAT_INTERVAL_MS = 20_000
+
 /** Defaults for the settings toggles, keyed "<group>-<row>". */
 export const SETTING_DEFAULTS: Record<string, boolean> = {
   '0-0': true, // Sound effects
@@ -52,6 +56,8 @@ type AppState = {
   endTurn: () => void
   settingOn: (key: string) => boolean
   toggleSetting: (key: string) => void
+  /** Marks the account as "playing" (vs. plain "online") for friends to see. */
+  setPlaying: (playing: boolean) => void
 }
 
 const Ctx = createContext<AppState | null>(null)
@@ -98,9 +104,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Logout
   const logout = useCallback(async () => {
+    // Clears presence immediately, before the auth cookie needed to identify
+    // the request is gone — otherwise the account reads "online" for up to
+    // the heartbeat TTL after signing out.
+    await fetch('/api/presence/heartbeat', { method: 'DELETE', credentials: 'include' }).catch(() => undefined)
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => undefined)
     setUser(null)
   }, [])
+
+  // Presence — a ref (not state) because it only drives an outgoing request,
+  // never a render; Game.tsx flips it on mount/unmount via setPlaying.
+  const playingRef = useRef(false)
+  const sendHeartbeat = useCallback((playing: boolean) => {
+    fetch('/api/presence/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ playing }),
+    }).catch(() => undefined)
+  }, [])
+  const setPlaying = useCallback(
+    (playing: boolean) => {
+      playingRef.current = playing
+      if (user) sendHeartbeat(playing)
+    },
+    [user, sendHeartbeat],
+  )
+
+  // Heartbeat loop: tells the backend this account is still here every
+  // HEARTBEAT_INTERVAL_MS, so friends' presence dots can go stale correctly.
+  useEffect(() => {
+    if (!user) return
+    sendHeartbeat(playingRef.current)
+    const id = setInterval(() => sendHeartbeat(playingRef.current), HEARTBEAT_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [user, sendHeartbeat])
 
   const [mode, setMode] = useState<Mode>(4)
   const [seats, setSeats] = useState<Seat[]>([
@@ -187,9 +225,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       user, authReady, login, register, logout,
       mode, seats, dice, rolling, turn, settings,
-      setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
+      setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, setPlaying,
     }),
-    [user, authReady, login, register, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting],
+    [user, authReady, login, register, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, setPlaying],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
