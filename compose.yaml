@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      DEV_LOGIN: ${DEV_LOGIN:-}
+      DEV_LOGIN: ${DEV_LOGIN:-} // tmp
       SECRETS_DIR: /secrets
       REDIS_HOST: redis
       REDIS_PORT: 6379
