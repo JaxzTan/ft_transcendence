@@ -7,11 +7,20 @@ import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
 import { GithubStrategy } from './github.strategy';
 import { FortyTwoStrategy } from './fortytwo.strategy';
+import { NgrokGoogleStrategy } from './ngrok_google_strategy';
+import { NgrokGithubStrategy } from './ngrok_github_strategy';
+import { NgrokFortyTwoStrategy } from './ngrok_fortytwo_strategy';
 import { MailService } from './mail.service';
 import { TwoFactorService } from './twofactor.service';
 import { SessionService } from './session.service';
 import { PrismaService } from '../prisma.service';
-import { requireSecret } from '../secrets';
+import { requireSecret, isTunnelMode } from '../secrets';
+
+// Set TUNNEL_MODE=true (e.g. `TUNNEL_MODE=true make tunnel`) to register the
+// ngrok OAuth apps instead of the localhost ones. Both sets register under the
+// same passport strategy names ('42'/'github'/'google'), so only one side can
+// be active in a given process — routes and guards don't change either way.
+const TUNNEL_MODE = isTunnelMode();
 
 @Module({
   imports: [
@@ -30,9 +39,9 @@ import { requireSecret } from '../secrets';
     TwoFactorService,
     SessionService,
     JwtStrategy,
-    GoogleStrategy,
-    GithubStrategy,
-    FortyTwoStrategy,
+    TUNNEL_MODE ? NgrokGoogleStrategy : GoogleStrategy,
+    TUNNEL_MODE ? NgrokGithubStrategy : GithubStrategy,
+    TUNNEL_MODE ? NgrokFortyTwoStrategy : FortyTwoStrategy,
     PrismaService,
   ],
   // Re-exported so feature modules (e.g. MatchModule) get the *configured*

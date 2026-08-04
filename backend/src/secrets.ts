@@ -47,6 +47,12 @@ export function secret(name: string): string | undefined {
   return value;
 }
 
+// Shared by AuthModule (which OAuth app to register) and AuthController
+// (which frontend origin to redirect back to) so both switch together.
+export function isTunnelMode(): boolean {
+  return process.env.TUNNEL_MODE === 'true';
+}
+
 /** Same as secret(), but fails fast instead of silently signing with undefined. */
 export function requireSecret(name: string): string {
   const value = secret(name);

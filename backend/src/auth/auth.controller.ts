@@ -9,7 +9,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { GoogleAuthGuard, GithubAuthGuard, FortyTwoAuthGuard } from './oauth.guards';
-import { secret } from '../secrets';
+import { secret, isTunnelMode } from '../secrets';
 
 // Access-token cookie: JwtStrategy reads this exact name. Short-lived.
 const ACCESS_COOKIE = 'token';
@@ -20,7 +20,12 @@ const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_PATH = '/api/auth';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days, matches SessionService TTL
 // Fallback matches the compose entry point: nginx publishes 8443 -> 443.
-const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
+// Same TUNNEL_MODE switch as AuthModule's OAuth strategies, so the redirect
+// origin always matches whichever OAuth app (localhost vs ngrok) issued the
+// callback.
+const FRONTEND_URL = isTunnelMode()
+  ? secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev'
+  : secret('FRONTEND_URL') ?? 'https://localhost:8443';
 
 @Controller('api/auth')
 export class AuthController {

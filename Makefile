@@ -3,29 +3,27 @@ SECRET_DIR     = secrets
 JWT_SECRET     = $(SECRET_DIR)/ludo_engine_credentials.txt
 DB_PASSWORD    = $(SECRET_DIR)/db_password.txt
 
-# --- Networking -------------------------------------------------------------
-# Config values live in .env; everything below is DERIVED from them.
-# Tolerates "KEY=v", "KEY = v" and quoted values — a strict ^KEY= match
-# silently yields an empty string the moment someone adds a space.
-env_get = $(shell sed -n 's/^[[:space:]]*$(1)[[:space:]]*=[[:space:]]*//p' .env 2>/dev/null | tail -1 | tr -d "\"' \r")
+# Config values live in $(SECRET_DIR); everything below is DERIVED from them.
+# Nothing sensitive or config-y comes from .env any more.
+secret_get = $(shell cat $(SECRET_DIR)/$(1).txt 2>/dev/null | tr -d "\"' \r")
 
-# := so the sed runs once per make invocation, not on every reference.
-# The 8080 fallback stops a missing .env key from producing a portless
+# := so the cat runs once per make invocation, not on every reference.
+# The 8080 fallback stops a missing secret file from producing a portless
 # `ngrok http` that fails with a useless error.
-NGROK_PORT    := $(or $(call env_get,NGROK_PORT),8080)
-NGROK_DOMAIN  := $(call env_get,NGROK_DOMAIN)
+NGROK_PORT    := $(or $(call secret_get,ngrok_port),8443)
+NGROK_DOMAIN  := $(call secret_get,ngrok_domain)
 # Host-side HTTPS port; see compose.yaml for why this isn't a bare 443.
-HTTPS_PORT    := $(or $(call env_get,HTTPS_PORT),8443)
+HTTPS_PORT    := $(or $(call secret_get,https_port),8443)
 NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
-# .env wins if it sets LAN_IP; otherwise detect from the live interface.
-# It can't be a plain .env value because compose's dotenv parser never runs a
-# shell — it would store "$(ipconfig ...)" as literal text — so the detection
-# has to happen here. Leaving it empty in .env is the right default on a
-# laptop that roams between networks.
+# secrets/lan_ip.txt wins if set; otherwise detect from the live interface.
+# It can't be a plain secret value because compose's dotenv parser never runs
+# a shell — it would store "$(ipconfig ...)" as literal text — so the
+# detection has to happen here. Leaving lan_ip.txt empty is the right default
+# on a laptop that roams between networks.
 # Linux: ask the routing table which src IP reaches the internet (works
 # regardless of interface name — enp4s0f0, eth0, wlan0, …). macOS: ipconfig
 # doesn't exist there, so try the common Wi-Fi/Ethernet interface names.
-LAN_IP        := $(or $(call env_get,LAN_IP),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
+LAN_IP        := $(or $(call secret_get,lan_ip),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
 
 l: prepare-secrets build startal
 
@@ -44,9 +42,12 @@ prepare-secrets:
 	gen  db_password       16; \
 	gen  db_root_password  16; \
 	gen  redis_password    16; \
+	gen  engine_api_key    32; \
 	seed db_credentials    'db_bossman:transcendence:db'; \
 	seed redis_credentials 'redisboss'; \
 	seed frontend_url      'https://localhost:8443'; \
+	seed ngrok_port        '8080'; \
+	seed https_port        '8443'; \
 	seed database_url \
 	  "postgresql://db_bossman:$$(cat $(SECRET_DIR)/db_password.txt)@localhost:5432/transcendence"; \
 	chmod 600 $(SECRET_DIR)/*.txt
@@ -127,16 +128,17 @@ lan: all
 
 # ── NGROK MODE ──────────────────────────────────────────────────────────────
 ngrok-auth:
-	@token=$$(sed -n 's/^NGROK=//p' .env 2>/dev/null | tail -1 | tr -d '"'\'' \r'); \
-	if [ -z "$$token" ]; then echo "❌  NGROK=<authtoken> missing from .env"; exit 1; fi; \
+	@token=$$(cat $(SECRET_DIR)/ngrok.txt 2>/dev/null | tr -d '"'\'' \r'); \
+	if [ -z "$$token" ]; then echo "❌  ngrok authtoken missing — put it in $(SECRET_DIR)/ngrok.txt"; exit 1; fi; \
 	ngrok config add-authtoken "$$token" >/dev/null && echo "🔑  ngrok authtoken configured"
 
-# Tunnels the plain-HTTP listener (127.0.0.1:8080), NOT :443 — ngrok would
-# reject our self-signed upstream cert. ngrok terminates real TLS publicly,
-# so the browser still gets https:// and wss://.
-tunnel: ngrok-auth
-	@echo "🚇  Tunnelling 127.0.0.1:$(NGROK_PORT) … (URL also shown by: make tunnel-url)"
-	@ngrok http $(NGROK_PORT) $(NGROK_FLAGS)
+# Tunnels nginx's TLS listener (127.0.0.1:8443) — the address is given as
+# https:// so ngrok speaks TLS to the local backend instead of forwarding
+# plain HTTP at it. ngrok doesn't verify the upstream cert by default (that's
+# opt-in via --upstream-tls-verify), so the self-signed cert isn't a problem.
+tunnel: all ngrok-auth
+	@echo "🚇  Tunnelling https://127.0.0.1:$(NGROK_PORT) … (URL also shown by: make tunnel-url)"
+	@ngrok http https://localhost:$(NGROK_PORT) $(NGROK_FLAGS)
 
 # Public URL of a tunnel that's already running, from ngrok's local API.
 tunnel-url:
