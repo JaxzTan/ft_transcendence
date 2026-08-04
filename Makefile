@@ -137,6 +137,8 @@ ngrok-auth:
 # plain HTTP at it. ngrok doesn't verify the upstream cert by default (that's
 # opt-in via --upstream-tls-verify), so the self-signed cert isn't a problem.
 tunnel: all ngrok-auth
+	@echo "🔀  Switching backend into tunnel mode (ngrok OAuth apps)…"
+	@TUNNEL_MODE=true docker compose -f $(COMPOSE_FILE) up -d --no-deps backend
 	@echo "🚇  Tunnelling https://127.0.0.1:$(NGROK_PORT) … (URL also shown by: make tunnel-url)"
 	@ngrok http https://localhost:$(NGROK_PORT) $(NGROK_FLAGS)
 

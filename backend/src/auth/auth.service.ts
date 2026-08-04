@@ -18,6 +18,14 @@ const BASE_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 // store all email as lowercase since email is case-insensitive
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
+// convert at read/display time
+const formatVerifiedAt = (date: Date) =>
+  new Intl.DateTimeFormat('en-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+
 // login()'s two outcomes, depending on the user's 2FA preference. The explicit
 // union lets the controller narrow on `twoFactorRequired` cleanly.
 type LoginResult =
@@ -76,10 +84,11 @@ export class AuthService {
   async verifyEmail(token: string): Promise<boolean> {
     const userId = await this.twoFactor.consumeVerifyToken(token);
     if (!userId) return false;
-    await this.prisma.db.user.update({
+    const user = await this.prisma.db.user.update({
       where: { id: userId },
       data: { emailVerified: new Date() },
     });
+    console.log(`Email verified for ${user.username} at ${formatVerifiedAt(user.emailVerified!)}`);
     return true;
   }
 

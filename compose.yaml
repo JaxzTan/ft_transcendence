@@ -55,6 +55,9 @@ services:
       SECRETS_DIR: /secrets
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      # Set by `make tunnel` only — switches AuthModule/AuthController onto the
+      # ngrok OAuth apps and frontend origin instead of the localhost ones.
+      TUNNEL_MODE: ${TUNNEL_MODE:-false}
     volumes:
       - ./secrets:/secrets:ro
     ports:
