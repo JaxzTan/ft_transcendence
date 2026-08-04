@@ -54,6 +54,11 @@ async function main() {
   // genuine game history is never touched.
   await prisma.user.deleteMany({ where: { username: { in: SEED_USERNAMES } } });
   await prisma.game.deleteMany({ where: { participants: { none: {} } } });
+  // LeaderboardSnapshot.userId isn't a Prisma relation (see schema.prisma),
+  // so deleting the users above doesn't cascade here — the old rows would
+  // point at now-deleted ids. Reset by username instead, same as the
+  // rest of this block.
+  await prisma.leaderboardSnapshot.deleteMany({ where: { username: { in: SEED_USERNAMES } } });
 
   // ── Users ─────────────────────────────────────────────────────────────────
   // Counters below are derived from the games seeded further down, using the
@@ -201,6 +206,25 @@ async function main() {
   });
 
   console.log('  Created users: Alice, Bob, Carol, Dave, Eve');
+
+  // ── Leaderboard snapshot (global) ───────────────────────────────────────
+  // Mirrors what LeaderboardRedisService.pushSnapshotToPostgres writes after
+  // a real game ends — seeded directly here since Redis starts empty on a
+  // fresh stack, and LeaderboardService only reads this table as a fallback
+  // when Redis has no entries for the mode.
+  const globalStandings = [alice, bob, carol, dave, eve].sort((a, b) => b.rating - a.rating);
+  await prisma.leaderboardSnapshot.createMany({
+    data: globalStandings.map((user, i) => ({
+      id: randomUUID(),
+      mode: 'global',
+      userId: user.id,
+      username: user.username,
+      rating: user.rating,
+      rank: i + 1,
+    })),
+  });
+
+  console.log('  Created global leaderboard snapshot');
 
   // ── A completed 4-player game (Alice 1st with all 4 pieces home) ───────────
   await prisma.game.create({
