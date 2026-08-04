@@ -25,13 +25,14 @@ NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
 # doesn't exist there, so try the common Wi-Fi/Ethernet interface names.
 LAN_IP        := $(or $(call secret_get,lan_ip),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
 
-l: prepare-secrets build startal
 
 OAUTH_SECRETS  = google_client_id google_client_secret google_callback_url \
                  github_client_id github_client_secret github_callback_url \
                  fortytwo_client_id fortytwo_client_secret fortytwo_callback_url
 
 all: check-secrets build start
+
+l: prepare-secrets build startal
 
 prepare-secrets:
 	@mkdir -p $(SECRET_DIR)
