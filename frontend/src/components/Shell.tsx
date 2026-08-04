@@ -8,6 +8,7 @@ const NAV: Array<{ path: string; glyph: string; title: string }> = [
   { path: '/dashboard', glyph: '▦', title: 'Dashboard' },
   { path: '/friends', glyph: '♟', title: 'Friends' },
   { path: '/profile', glyph: '👤', title: 'Profile' },
+  { path: '/leaderboard', glyph: '♛', title: 'Leaderboard' },
 ]
 
 export const SCREEN_TITLES: Record<string, string> = {
