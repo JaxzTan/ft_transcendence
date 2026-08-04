@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { requireSecret } from '../secrets';
 
 @Injectable()
-export class NgrokGoogleStrategy extends PassportStrategy(Strategy, 'google') {
+export class NgrokGoogleStrategy extends PassportStrategy(Strategy, 'google-tunnel') {
   constructor(private readonly authService: AuthService) {
     super({
       clientID: requireSecret('NGROK_GOOGLE_CLIENT_ID'),

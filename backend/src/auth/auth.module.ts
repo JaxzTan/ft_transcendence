@@ -14,13 +14,13 @@ import { MailService } from './mail.service';
 import { TwoFactorService } from './twofactor.service';
 import { SessionService } from './session.service';
 import { PrismaService } from '../prisma.service';
-import { requireSecret, isTunnelMode } from '../secrets';
+import { requireSecret } from '../secrets';
 
-// Set TUNNEL_MODE=true (e.g. `TUNNEL_MODE=true make tunnel`) to register the
-// ngrok OAuth apps instead of the localhost ones. Both sets register under the
-// same passport strategy names ('42'/'github'/'google'), so only one side can
-// be active in a given process — routes and guards don't change either way.
-const TUNNEL_MODE = isTunnelMode();
+// Both the localhost and ngrok OAuth apps are registered at once, under
+// distinct passport strategy names ('google'/'github'/'42' vs their
+// '-tunnel' counterparts). oauth.guards.ts picks which one a given request
+// uses based on the Host header it actually arrived on, so a local client and
+// a tunnelled one can both complete login against the same running backend.
 
 @Module({
   imports: [
@@ -39,9 +39,12 @@ const TUNNEL_MODE = isTunnelMode();
     TwoFactorService,
     SessionService,
     JwtStrategy,
-    TUNNEL_MODE ? NgrokGoogleStrategy : GoogleStrategy,
-    TUNNEL_MODE ? NgrokGithubStrategy : GithubStrategy,
-    TUNNEL_MODE ? NgrokFortyTwoStrategy : FortyTwoStrategy,
+    GoogleStrategy,
+    GithubStrategy,
+    FortyTwoStrategy,
+    NgrokGoogleStrategy,
+    NgrokGithubStrategy,
+    NgrokFortyTwoStrategy,
     PrismaService,
   ],
   // Re-exported so feature modules (e.g. MatchModule) get the *configured*

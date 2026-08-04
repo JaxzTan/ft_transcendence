@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { requireSecret } from '../secrets';
 
 @Injectable()
-export class NgrokGithubStrategy extends PassportStrategy(Strategy, 'github') {
+export class NgrokGithubStrategy extends PassportStrategy(Strategy, 'github-tunnel') {
   constructor(private readonly authService: AuthService) {
     super({
       clientID: requireSecret('NGROK_GITHUB_CLIENT_ID'),

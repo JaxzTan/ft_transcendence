@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { requireSecret } from '../secrets';
 
 @Injectable()
-export class NgrokFortyTwoStrategy extends PassportStrategy(Strategy as any, '42') {
+export class NgrokFortyTwoStrategy extends PassportStrategy(Strategy as any, '42-tunnel') {
   constructor(private readonly authService: AuthService) {
     super({
       clientID: requireSecret('NGROK_FORTYTWO_CLIENT_ID'),
