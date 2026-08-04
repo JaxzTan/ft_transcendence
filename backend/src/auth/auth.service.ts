@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma.service';
@@ -189,6 +189,24 @@ export class AuthService {
     const accessToken = this.signAccess(userId, username);
     const refreshToken = await this.session.issue(userId);
     return { accessToken, refreshToken, user: { id: userId, username } };
+  }
+
+  /**
+   * DEV-ONLY login bypass.
+   * Hard-disabled unless BOTH conditions hold:
+   *   - NODE_ENV is not 'production', AND
+   *   - DEV_LOGIN=1 is set in the environment (opt-in, off by default).
+   */
+  async devLogin(identifier?: string) {
+    if (process.env.NODE_ENV === 'production' || process.env.DEV_LOGIN !== '1') {
+      throw new NotFoundException();
+    }
+    const who = (identifier ?? 'Alice').trim();
+    const user = await this.prisma.db.user.findFirst({
+      where: { OR: [{ username: who }, { email: normalizeEmail(who) }] },
+    });
+    if (!user) throw new NotFoundException(`dev-login: no user matching "${who}"`);
+    return this.issueSession(user.id, user.username);
   }
 
   /**
