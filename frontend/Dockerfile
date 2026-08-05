@@ -13,7 +13,7 @@ COPY package*.json ./
 # transitive versions than package-lock.json pins, so the image drifts with
 # no source change. ci installs the lockfile exactly, or fails loudly if the
 # lockfile and package.json disagree.
-RUN npm ci
+RUN install
 COPY . .
 RUN chmod +x publish.sh
 
