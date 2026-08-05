@@ -1,25 +1,26 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { navigate, useRoute } from '../router'
 import { AccountMenu } from './AccountMenu'
 import { btnGold, goldText } from '../theme'
 import { apiFetch } from '../api'
 import { useApp } from '../store'
 
-const NAV: Array<{ path: string; glyph: string; title: string }> = [
-  { path: '/home', glyph: '⌂', title: 'Home' },
-  { path: '/dashboard', glyph: '▦', title: 'Dashboard' },
-  { path: '/friends', glyph: '♟', title: 'Friends' },
-  { path: '/profile', glyph: '👤', title: 'Profile' },
-  { path: '/leaderboard', glyph: '♛', title: 'Leaderboard' },
+const NAV: Array<{ path: string; glyph: string; titleKey: string }> = [
+  { path: '/home', glyph: '⌂', titleKey: 'nav.home' },
+  { path: '/dashboard', glyph: '▦', titleKey: 'nav.dashboard' },
+  { path: '/friends', glyph: '♟', titleKey: 'nav.friends' },
+  { path: '/profile', glyph: '👤', titleKey: 'nav.profile' },
+  { path: '/leaderboard', glyph: '♛', titleKey: 'nav.leaderboard' },
 ]
 
-export const SCREEN_TITLES: Record<string, string> = {
-  '/home': 'Home',
-  '/dashboard': 'Player Dashboard',
-  '/leaderboard': 'Leaderboard',
-  '/friends': 'Friends',
-  '/profile': 'Player Profile',
+export const SCREEN_TITLE_KEYS: Record<string, string> = {
+  '/home': 'nav.home',
+  '/dashboard': 'nav.playerDashboard',
+  '/leaderboard': 'nav.leaderboard',
+  '/friends': 'nav.friends',
+  '/profile': 'nav.playerProfile',
 }
 
 function railItemStyle(active: boolean): CSSProperties {
@@ -54,6 +55,7 @@ function railGlyphStyle(active: boolean): CSSProperties {
 
 /** Sidebar rail + top header wrapping home/dashboard/leaderboard/friends/settings. */
 export function Shell({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
   const { path } = useRoute()
   const { user } = useApp()
   const [rating, setRating] = useState<number | null>(null)
@@ -78,7 +80,7 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [user])
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh' }}>
       <aside
         style={{
           width: 246,
@@ -123,7 +125,7 @@ export function Shell({ children }: { children: ReactNode }) {
           return (
             <div key={it.path} style={railItemStyle(active)} onClick={() => navigate(it.path)}>
               <div style={railGlyphStyle(active)}>{it.glyph}</div>
-              <div style={{ fontWeight: 600, fontSize: '14.5px' }}>{it.title}</div>
+              <div style={{ fontWeight: 600, fontSize: '14.5px' }}>{t(it.titleKey)}</div>
             </div>
           )
         })}
@@ -139,7 +141,7 @@ export function Shell({ children }: { children: ReactNode }) {
             gap: 8,
           }}
         >
-          <span style={{ fontSize: 12 }}>▶</span>Play now
+          <span style={{ fontSize: 12 }}>▶</span>{t('nav.playNow')}
         </button>
       </aside>
 
@@ -155,7 +157,7 @@ export function Shell({ children }: { children: ReactNode }) {
           }}
         >
           <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, fontWeight: 600, color: '#f0e2c4' }}>
-            {SCREEN_TITLES[path] || ''}
+            {SCREEN_TITLE_KEYS[path] ? t(SCREEN_TITLE_KEYS[path]) : ''}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
 import { MOVE_LOG } from '../data'
@@ -8,6 +9,14 @@ import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
 
 /** Static "pieces home" pip counts per seat, as in the prototype. */
 const HOME_COUNTS = [4, 3, 2, 4]
+
+/** MOVE_LOG (data.ts) mock rows, mapped to their matching game.* locale keys by index. */
+const MOVE_LOG_KEYS = [
+  { key: 'game.movedHome', name: 'Rook' },
+  { key: 'game.rolled6', name: 'Bishop' },
+  { key: 'game.captured', name: 'Knight' },
+  { key: 'game.enteredStretch', name: undefined },
+] as const
 
 function Pips({ count, color }: { count: number; color: string }) {
   return (
@@ -30,6 +39,7 @@ function Pips({ count, color }: { count: number; color: string }) {
 }
 
 export function Game() {
+  const { t } = useTranslation()
   const { mode, seats, dice, rolling, turn, roll, endTurn, setPlaying } = useApp()
   const players = seats.slice(0, mode)
 
@@ -40,7 +50,10 @@ export function Game() {
     return () => setPlaying(false)
   }, [setPlaying])
   const active = players[turn]
-  const turnLabel = active?.type === 'you' ? 'Your turn' : `${(active?.type === 'bot' && active.name) || 'Bot'}'s turn`
+  const turnLabel =
+    active?.type === 'you'
+      ? t('game.yourTurnShort')
+      : t('game.botTurn', { name: (active?.type === 'bot' && active.name) || t('common.bot') })
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -53,9 +66,9 @@ export function Game() {
               background: '#1a130d', fontSize: 13, fontWeight: 700, color: '#c9bda3',
             }}
           >
-            ← Leave
+            ← {t('game.leaveShort')}
           </div>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>{mode}-Player · Casual</div>
+          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>{t('game.modePlayerCasual', { mode })}</div>
         </div>
         <div
           style={{
@@ -75,18 +88,18 @@ export function Game() {
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ ...sectionLabel, color: '#a99a83' }}>Players</div>
+          <div style={{ ...sectionLabel, color: '#a99a83' }}>{t('lobby.players')}</div>
           {players.map((seat, i) => {
             const ck = SEAT_COLORS[i]
             const col = COL[ck]
             const isActive = turn === i
-            const name = seat.type === 'you' ? 'You' : (seat.type === 'bot' && seat.name) || 'Bot'
+            const name = seat.type === 'you' ? t('common.you') : (seat.type === 'bot' && seat.name) || t('common.bot')
             const sub =
               seat.type === 'you'
-                ? 'Your pieces'
+                ? t('game.yourPieces')
                 : seat.type === 'bot' && seat.diff
-                  ? seat.diff[0].toUpperCase() + seat.diff.slice(1) + ' bot'
-                  : 'Bot'
+                  ? t('game.diffBot', { diff: t(`lobby.${seat.diff}`) })
+                  : t('common.bot')
             return (
               <div
                 key={i}
@@ -130,12 +143,12 @@ export function Game() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <div style={sectionLabel}>{rolling ? 'Rolling…' : 'Your roll'}</div>
+            <div style={sectionLabel}>{rolling ? t('game.rolling') : t('game.yourRoll')}</div>
             <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
               <Die value={dice} rolling={rolling} />
             </div>
             <button onClick={roll} style={{ ...btnGold, width: '100%', padding: 14 }}>
-              {rolling ? 'Rolling…' : 'Roll dice'}
+              {rolling ? t('game.rolling') : t('game.rollDice')}
             </button>
             <button
               onClick={endTurn}
@@ -144,17 +157,20 @@ export function Game() {
                 font: "700 14px 'Hanken Grotesk'", color: '#c9bda3', cursor: 'pointer', background: 'transparent',
               }}
             >
-              End turn
+              {t('game.endTurn')}
             </button>
           </div>
           <div style={{ ...card, padding: '18px 20px' }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>Move log</div>
-            {MOVE_LOG.map((ml, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#c9bda3' }}>
-                <span style={{ color: COL[ml.ck].base, fontWeight: 800 }}>●</span>
-                <span>{ml.text}</span>
-              </div>
-            ))}
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>{t('game.moveLog')}</div>
+            {MOVE_LOG.map((ml, i) => {
+              const entry = MOVE_LOG_KEYS[i]
+              return (
+                <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#c9bda3' }}>
+                  <span style={{ color: COL[ml.ck].base, fontWeight: 800 }}>●</span>
+                  <span>{entry ? t(entry.key, entry.name ? { name: entry.name } : undefined) : ml.text}</span>
+                </div>
+              )
+            })}
           </div>
           <button
             onClick={() => navigate('/results')}
@@ -163,7 +179,7 @@ export function Game() {
               color: '#8fbf9f', cursor: 'pointer', background: 'rgba(34,67,47,.3)',
             }}
           >
-            End game (demo results)
+            {t('game.endGameDemo')}
           </button>
         </div>
       </div>

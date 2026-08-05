@@ -1,10 +1,20 @@
+import { useTranslation } from 'react-i18next'
 import { LEADERS, MODE_CARDS } from '../data'
 import { navigate } from '../router'
 import { useApp, type Mode } from '../store'
 import { avatarDim, btnGold, card } from '../theme'
 
+/** Maps each MODE_CARDS entry (matched by its English title) to its locale keys. */
+const MODE_CARD_KEYS: Record<string, { title: string; desc: string }> = {
+  'Vs Bots': { title: 'home.vsBotsTitle', desc: 'home.vsBotsDesc' },
+  '4-Player Classic': { title: 'home.classic4PTitle', desc: 'home.classic4PDesc' },
+  '2-Player Duel': { title: 'home.duel2PTitle', desc: 'home.duel2PDesc' },
+  'Private Table': { title: 'home.privateTableTitle', desc: 'home.privateTableDesc' },
+}
+
 export function Home() {
-  const { setMode } = useApp()
+  const { t } = useTranslation()
+  const { user, setMode } = useApp()
 
   const goLobby = (mode: Mode) => {
     setMode(mode)
@@ -12,14 +22,14 @@ export function Home() {
   }
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 26 }}>
+    <div className="home-page" style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
       <div
+        className="home-hero"
         style={{
           position: 'relative',
           overflow: 'hidden',
           borderRadius: 20,
           border: '1px solid #2e4a38',
-          padding: '34px 36px',
           background: 'radial-gradient(120% 140% at 12% 0%,#22432f,#12261a 70%)',
         }}
       >
@@ -33,18 +43,17 @@ export function Home() {
         />
         <div style={{ position: 'relative', maxWidth: 560 }}>
           <div style={{ fontSize: 13, letterSpacing: '.2em', textTransform: 'uppercase', color: '#7fae91', fontWeight: 700 }}>
-            Good evening, You
+            {t('home.greeting', { name: user?.username ?? t('common.you') })}
           </div>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 34, lineHeight: 1.05, color: '#f4e9cf', margin: '10px 0 12px' }}>
-            Ready to roll the bones?
+          <div className="home-hero-title" style={{ fontFamily: "'Cinzel',serif", fontSize: 34, lineHeight: 1.05, color: '#f4e9cf' }}>
+            {t('home.readyToRoll')}
           </div>
           <div style={{ color: '#c9bda3', fontSize: '15.5px', lineHeight: 1.5, maxWidth: 460 }}>
-            Set up a private table against the house bots, or dive into a ranked match. First to bring all four
-            pieces home wins the crown.
+            {t('home.heroDesc')}
           </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 22 }}>
+          <div className="home-hero-actions" style={{ display: 'flex', gap: 12 }}>
             <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '13px 22px' }}>
-              Create a table
+              {t('home.createTable')}
             </button>
             <button
               onClick={() => navigate('/game')}
@@ -58,63 +67,65 @@ export function Home() {
                 background: 'rgba(255,255,255,.04)',
               }}
             >
-              Resume last game
+              {t('home.resumeGame')}
             </button>
           </div>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
-        {MODE_CARDS.map((m) => (
-          <div
-            key={m.title}
-            className="mode-card"
-            onClick={() => goLobby(m.mode as Mode)}
-            style={{
-              cursor: 'pointer',
-              borderRadius: 16,
-              padding: 20,
-              background: 'linear-gradient(180deg,#241b13,#1a130d)',
-              border: '1px solid #3a2c1d',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,.045),0 20px 44px -24px rgba(0,0,0,.85)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-              transition: 'transform .12s,border-color .12s',
-            }}
-          >
+        {MODE_CARDS.map((m) => {
+          const keys = MODE_CARD_KEYS[m.title]
+          return (
             <div
+              key={m.title}
+              className="mode-card"
+              onClick={() => goLobby(m.mode as Mode)}
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: 12,
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 22,
-                color: m.hue,
-                background: 'rgba(255,255,255,.04)',
-                border: `1px solid ${m.hue}44`,
+                cursor: 'pointer',
+                borderRadius: 16,
+                background: 'linear-gradient(180deg,#241b13,#1a130d)',
+                border: '1px solid #3a2c1d',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.045),0 20px 44px -24px rgba(0,0,0,.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'transform .12s,border-color .12s',
               }}
             >
-              {m.glyph}
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 12,
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: 22,
+                  color: m.hue,
+                  background: 'rgba(255,255,255,.04)',
+                  border: `1px solid ${m.hue}44`,
+                }}
+              >
+                {m.glyph}
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>{keys ? t(keys.title) : m.title}</div>
+              <div style={{ color: '#a99a83', fontSize: 13, lineHeight: 1.4 }}>{keys ? t(keys.desc) : m.desc}</div>
             </div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>{m.title}</div>
-            <div style={{ color: '#a99a83', fontSize: 13, lineHeight: 1.4 }}>{m.desc}</div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      <div style={{ ...card, padding: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>Top of the ladder</div>
+      <div className="home-ladder" style={{ ...card }}>
+        <div className="home-ladder-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>{t('home.topLadder')}</div>
           <a onClick={() => navigate('/leaderboard')} style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-            View all →
+            {t('home.viewAll')}
           </a>
         </div>
         {LEADERS.slice(0, 4).map((l, i) => (
           <div
             key={l.name}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid #2a2015' }}
+            className="home-ladder-row"
+            style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #2a2015' }}
           >
             <div style={{ width: 22, textAlign: 'center', fontWeight: 800, color: '#a99a83', fontSize: 14 }}>{i + 1}</div>
             <div style={avatarDim(32)}>{l.name.slice(0, 2).toUpperCase()}</div>
