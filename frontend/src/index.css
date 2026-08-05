@@ -83,6 +83,90 @@ a:hover {
   border-color: #c99b45 !important;
 }
 
+/* Home page: fixed-size components, but the whitespace around them shrinks
+   on short viewports so the page never needs to scroll. */
+.home-page {
+  gap: 14px;
+}
+.home-hero {
+  padding: 34px 36px;
+}
+.home-hero-title {
+  margin: 10px 0 12px;
+}
+.home-hero-actions {
+  margin-top: 22px;
+}
+.mode-card {
+  padding: 20px;
+  gap: 12px;
+}
+.home-ladder {
+  padding: 22px;
+}
+.home-ladder-header {
+  margin-bottom: 16px;
+}
+.home-ladder-row {
+  padding: 9px 0;
+}
+
+@media (max-height: 900px) {
+  .home-page {
+    gap: 10px;
+  }
+  .home-hero {
+    padding: 24px 36px;
+  }
+  .home-hero-title {
+    margin: 6px 0 8px;
+  }
+  .home-hero-actions {
+    margin-top: 14px;
+  }
+  .mode-card {
+    padding: 14px;
+    gap: 8px;
+  }
+  .home-ladder {
+    padding: 16px;
+  }
+  .home-ladder-header {
+    margin-bottom: 10px;
+  }
+  .home-ladder-row {
+    padding: 6px 0;
+  }
+}
+
+@media (max-height: 780px) {
+  .home-page {
+    gap: 6px;
+  }
+  .home-hero {
+    padding: 12px 36px;
+  }
+  .home-hero-title {
+    margin: 4px 0 6px;
+  }
+  .home-hero-actions {
+    margin-top: 8px;
+  }
+  .mode-card {
+    padding: 8px;
+    gap: 4px;
+  }
+  .home-ladder {
+    padding: 8px;
+  }
+  .home-ladder-header {
+    margin-bottom: 4px;
+  }
+  .home-ladder-row {
+    padding: 2px 0;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
