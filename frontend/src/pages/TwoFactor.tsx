@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AuthLayout } from '../components/AuthLayout'
 import { navigate, useRoute } from '../router'
 import { btnGold, goldText, input, label } from '../theme'
@@ -11,6 +12,7 @@ import { useApp } from '../store'
  *  - OAuth: the backend callback redirects here after emailing the code
  */
 export function TwoFactor() {
+  const { t } = useTranslation()
   const { verify2fa } = useApp()
   const { query } = useRoute()
   const pendingToken = query.get('token') ?? ''
@@ -30,7 +32,7 @@ export function TwoFactor() {
   }
 
   return (
-    <AuthLayout tag="ONE MORE STEP">
+    <AuthLayout tag={t('auth.oneMoreStep')}>
       <form
         onSubmit={onSubmit}
         style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 20 }}
@@ -46,14 +48,14 @@ export function TwoFactor() {
               ...goldText,
             }}
           >
-            Check your email
+            {t('auth.checkEmailTitle')}
           </div>
           <div style={{ color: '#a99a83', fontSize: '14.5px', marginTop: 8 }}>
-            We sent a 6-digit code to your inbox. It expires in 5 minutes.
+            {t('auth.codeSentDesc')}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div style={label}>Login code</div>
+          <div style={label}>{t('auth.loginCodeLabel')}</div>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -72,14 +74,14 @@ export function TwoFactor() {
           disabled={submitting || code.length !== 6}
           style={{ ...btnGold, opacity: submitting || code.length !== 6 ? 0.6 : 1 }}
         >
-          {submitting ? 'Checking…' : 'Enter the parlor'}
+          {submitting ? t('auth.checkingBtn') : t('auth.enterParlorBtn')}
         </button>
         <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 14 }}>
-          Code expired?{' '}
+          {t('auth.codeExpired')}{' '}
           <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
-            Log in again
+            {t('auth.logInAgainLink')}
           </a>{' '}
-          to get a new one.
+          {t('auth.toGetNewOne')}
         </div>
       </form>
     </AuthLayout>

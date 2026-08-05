@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { PODIUM } from '../data'
 import { navigate } from '../router'
 import { useApp } from '../store'
@@ -5,7 +6,15 @@ import { COL, btnOutline, goldText } from '../theme'
 
 const PLACE_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a', '#7a6c56']
 
+/** PODIUM (data.ts) mock detail strings ('All home' / '{n} home') mapped to locale keys. */
+function podiumDetail(t: (key: string, opts?: Record<string, unknown>) => string, detail: string): string {
+  if (detail === 'All home') return t('results.allHome')
+  const count = parseInt(detail, 10)
+  return Number.isNaN(count) ? detail : t('results.piecesHome', { count })
+}
+
 export function Results() {
+  const { t } = useTranslation()
   const { mode } = useApp()
 
   return (
@@ -23,12 +32,12 @@ export function Results() {
         }}
       >
         <div style={{ fontFamily: "'Cinzel',serif", fontSize: 14, letterSpacing: '.34em', color: '#c99b45' }}>
-          MATCH COMPLETE
+          {t('results.matchComplete')}
         </div>
         <div style={{ fontFamily: "'Cinzel',serif", fontSize: 48, lineHeight: 1, margin: '14px 0 6px', ...goldText }}>
-          Victory!
+          {t('results.victory')}
         </div>
-        <div style={{ color: '#c9bda3', fontSize: 15 }}>You brought all four pieces home first. The crown is yours.</div>
+        <div style={{ color: '#c9bda3', fontSize: 15 }}>{t('results.victoryDesc')}</div>
         <div
           style={{
             width: 96, height: 96, margin: '26px auto', borderRadius: '50%',
@@ -58,23 +67,25 @@ export function Results() {
                 {p.place}
               </div>
               <div style={{ width: 14, height: 14, borderRadius: '50%', background: COL[p.ck].base }} />
-              <div style={{ flex: 1, textAlign: 'left', fontWeight: 700, fontSize: 14, color: '#f0e2c4' }}>{p.name}</div>
-              <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 600 }}>{p.detail}</div>
+              <div style={{ flex: 1, textAlign: 'left', fontWeight: 700, fontSize: 14, color: '#f0e2c4' }}>
+                {p.name === 'You' ? t('common.you') : p.name}
+              </div>
+              <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 600 }}>{podiumDetail(t, p.detail)}</div>
             </div>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 22 }}>
           <div style={{ padding: '12px 18px', borderRadius: 12, background: '#1a130d', border: '1px solid #3a2c1d' }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#f0c24e' }}>+18</div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>Rating</div>
+            <div style={{ color: '#a99a83', fontSize: 12 }}>{t('results.ratingLabel')}</div>
           </div>
           <div style={{ padding: '12px 18px', borderRadius: 12, background: '#1a130d', border: '1px solid #3a2c1d' }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#5fd08a' }}>+180</div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>XP</div>
+            <div style={{ color: '#a99a83', fontSize: 12 }}>{t('results.xpLabel')}</div>
           </div>
           <div style={{ padding: '12px 18px', borderRadius: 12, background: '#1a130d', border: '1px solid #3a2c1d' }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#f0d18a' }}>+75 ◈</div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>Coins</div>
+            <div style={{ color: '#a99a83', fontSize: 12 }}>{t('results.coinsLabel')}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -85,13 +96,13 @@ export function Results() {
               color: '#2a1c07', cursor: 'pointer', background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
             }}
           >
-            Rematch
+            {t('results.rematchBtn')}
           </button>
           <button onClick={() => navigate('/leaderboard')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
-            Leaderboard
+            {t('nav.leaderboard')}
           </button>
           <button onClick={() => navigate('/home')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
-            Home
+            {t('nav.home')}
           </button>
         </div>
       </div>

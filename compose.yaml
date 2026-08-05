@@ -8,6 +8,7 @@ services:
     build:
       context: ./backend/app/postgres_16_db
       dockerfile: Dockerfile
+    container_name: db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-db_bossman}
@@ -31,6 +32,7 @@ services:
     build:
       context: ./backend/app/redis
       dockerfile: Dockerfile
+    container_name: redis
     restart: unless-stopped
     networks:
       - transcendence_network
@@ -49,6 +51,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: backend
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
@@ -87,6 +90,7 @@ services:
     build:
       context: ./backend/app/ludo-engine
       dockerfile: Dockerfile
+    container_name: ludo-engine
     restart: unless-stopped
     networks:
       - transcendence_network
@@ -123,6 +127,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: frontend
     restart: unless-stopped
     volumes:
       - spa_dist:/export
@@ -146,6 +151,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
+    container_name: frontend-dev
     profiles:
       - dev
     restart: unless-stopped
@@ -169,6 +175,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    container_name: nginx
     restart: unless-stopped
     ports:
       - "8443:443"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MEDAL_COLORS } from '../data'
 import { avatarDim, card } from '../theme'
 import { useApp } from '../store'
@@ -54,9 +55,9 @@ const EMPTY_STATE: CSSProperties = {
 // rating per game mode, not per-social-graph or time window) — the other
 // tabs are left as a visible "coming soon" rather than faked client-side.
 const TABS = [
-  { k: 'global', label: 'Global' },
-  { k: 'friends', label: 'Friends' },
-  { k: 'weekly', label: 'Weekly' },
+  { k: 'global', labelKey: 'leaderboard.tabGlobal' },
+  { k: 'friends', labelKey: 'leaderboard.tabFriends' },
+  { k: 'weekly', labelKey: 'leaderboard.tabWeekly' },
 ]
 
 function Medal({ rank }: { rank: number }) {
@@ -74,6 +75,7 @@ function Medal({ rank }: { rank: number }) {
 }
 
 export function Leaderboard() {
+  const { t } = useTranslation()
   const { user } = useApp()
   const [tab, setTab] = useState('global')
   const [data, setData] = useState<LeaderboardResponse | null>(null)
@@ -109,12 +111,12 @@ export function Leaderboard() {
   return (
     <div style={{ maxWidth: 920, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', gap: 8 }}>
-        {TABS.map((t) => {
-          const active = tab === t.k
+        {TABS.map((tabItem) => {
+          const active = tab === tabItem.k
           return (
             <div
-              key={t.k}
-              onClick={() => setTab(t.k)}
+              key={tabItem.k}
+              onClick={() => setTab(tabItem.k)}
               style={{
                 cursor: 'pointer',
                 padding: '9px 18px',
@@ -126,7 +128,7 @@ export function Leaderboard() {
                 border: '1px solid ' + (active ? '#b8873a' : '#3a2c1d'),
               }}
             >
-              {t.label}
+              {t(tabItem.labelKey)}
             </div>
           )
         })}
@@ -145,19 +147,19 @@ export function Leaderboard() {
             color: '#a99a83',
           }}
         >
-          <div>Rank</div>
-          <div>Player</div>
-          <div style={{ textAlign: 'right' }}>Rating</div>
-          <div style={{ textAlign: 'right' }}>Wins</div>
-          <div style={{ textAlign: 'right' }}>Win %</div>
+          <div>{t('leaderboard.rank')}</div>
+          <div>{t('leaderboard.player')}</div>
+          <div style={{ textAlign: 'right' }}>{t('leaderboard.rating')}</div>
+          <div style={{ textAlign: 'right' }}>{t('leaderboard.wins')}</div>
+          <div style={{ textAlign: 'right' }}>{t('leaderboard.winPercent')}</div>
         </div>
 
         {tab !== 'global' ? (
-          <div style={EMPTY_STATE}>Coming soon.</div>
+          <div style={EMPTY_STATE}>{t('leaderboard.comingSoon')}</div>
         ) : loading ? (
-          <div style={EMPTY_STATE}>Loading…</div>
+          <div style={EMPTY_STATE}>{t('common.loading')}</div>
         ) : entries.length === 0 ? (
-          <div style={EMPTY_STATE}>No ranked players yet.</div>
+          <div style={EMPTY_STATE}>{t('leaderboard.noRankedPlayers')}</div>
         ) : (
           entries.map((e) => {
             const isMe = e.username === myRank?.username
@@ -175,7 +177,7 @@ export function Leaderboard() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ ...avatarDim(34) }}>{e.username.slice(0, 2).toUpperCase()}</div>
-                  <span style={{ fontWeight: 700, fontSize: '14.5px' }}>{isMe ? 'You' : e.username}</span>
+                  <span style={{ fontWeight: 700, fontSize: '14.5px' }}>{isMe ? t('common.you') : e.username}</span>
                 </div>
                 <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>♛ {e.rating}</div>
                 <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>{e.wins}</div>
@@ -206,7 +208,7 @@ export function Leaderboard() {
               >
                 YO
               </div>
-              <span style={{ fontWeight: 800, fontSize: '14.5px' }}>You</span>
+              <span style={{ fontWeight: 800, fontSize: '14.5px' }}>{t('common.you')}</span>
             </div>
             <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>♛ {myRank.rating.toLocaleString()}</div>
             <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>

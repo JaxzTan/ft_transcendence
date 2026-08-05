@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AuthLayout } from '../components/AuthLayout'
 import { navigate, useRoute } from '../router'
 import { btnGold, goldText, input, label } from '../theme'
@@ -12,6 +13,7 @@ import { passwordError } from '../validatePassword'
  * policy as signup) and, on success, sends the user to /login.
  */
 export function ResetPassword() {
+  const { t } = useTranslation()
   const { resetPassword } = useApp()
   const { query } = useRoute()
   const token = query.get('token') ?? ''
@@ -23,7 +25,7 @@ export function ResetPassword() {
   // A link with no token is unusable — send them to request a fresh one.
   if (!token) {
     return (
-      <AuthLayout tag="LINK PROBLEM">
+      <AuthLayout tag={t('auth.linkProblemTag')}>
         <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div
             style={{
@@ -35,14 +37,14 @@ export function ResetPassword() {
               ...goldText,
             }}
           >
-            Invalid reset link
+            {t('auth.invalidLinkTitle')}
           </div>
           <div style={{ color: '#a99a83', fontSize: '14.5px', lineHeight: 1.5 }}>
-            This link is missing its token. Request a new one and try again.
+            {t('auth.invalidLinkDesc')}
           </div>
           <div style={{ color: '#a99a83', fontSize: 14 }}>
             <a onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer', fontWeight: 700 }}>
-              Request a new link
+              {t('auth.requestNewLinkBtn')}
             </a>
           </div>
         </div>
@@ -59,7 +61,7 @@ export function ResetPassword() {
       return
     }
     if (password !== confirm) {
-      setError('Passwords do not match')
+      setError(t('auth.passwordMismatch'))
       return
     }
     setSubmitting(true)
@@ -71,7 +73,7 @@ export function ResetPassword() {
   }
 
   return (
-    <AuthLayout tag="CHOOSE A NEW PASSWORD">
+    <AuthLayout tag={t('auth.chooseNewPasswordTag')}>
       <form
         onSubmit={onSubmit}
         style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 20 }}
@@ -87,26 +89,26 @@ export function ResetPassword() {
               ...goldText,
             }}
           >
-            Set a new password
+            {t('auth.newPasswordTitle')}
           </div>
           <div style={{ color: '#a99a83', fontSize: '14.5px', marginTop: 8 }}>
-            Pick something you haven't used here before.
+            {t('auth.newPasswordDesc')}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div style={label}>New password</div>
+          <div style={label}>{t('auth.newPasswordLabel')}</div>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="12+ chars, upper, lower, number, symbol"
+            placeholder={t('auth.passwordPlaceholderSignup')}
             autoComplete="new-password"
             autoFocus
             style={input}
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div style={label}>Confirm password</div>
+          <div style={label}>{t('auth.confirmPasswordLabel')}</div>
           <input
             type="password"
             value={confirm}
@@ -120,7 +122,7 @@ export function ResetPassword() {
           <div style={{ color: '#e4574d', fontSize: '13.5px', lineHeight: 1.4 }}>{error}</div>
         )}
         <button type="submit" disabled={submitting} style={{ ...btnGold, opacity: submitting ? 0.6 : 1 }}>
-          {submitting ? 'Saving…' : 'Update password'}
+          {submitting ? t('auth.savingBtn') : t('auth.updatePasswordBtn')}
         </button>
       </form>
     </AuthLayout>
