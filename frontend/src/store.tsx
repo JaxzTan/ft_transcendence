@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import i18n from './i18n'
 import { BOT_POOL } from './theme'
 import { apiFetch } from './api'
 
@@ -246,6 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLangState(l)
     localStorage.setItem(LANG_KEY, l)
     document.documentElement.lang = l
+    i18n.changeLanguage(l)
   }, [])
 
   // Load the account's real 2FA preference once signed in — GET /api/auth/2fa.

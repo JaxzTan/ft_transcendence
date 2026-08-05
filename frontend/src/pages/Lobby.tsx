@@ -1,14 +1,29 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
 import { Board } from '../components/Board'
 import { navigate, useRoute } from '../router'
 import { useApp, type Difficulty, type Mode } from '../store'
-import { COL, SEAT_COLORS, card, feltPanel, pill, sectionLabel } from '../theme'
+import { COL, SEAT_COLORS, card, feltPanel, pill, sectionLabel, type ColorKey } from '../theme'
 
 const DIFFS: Difficulty[] = ['easy', 'medium', 'hard']
 
+const COLOR_KEYS: Record<ColorKey, string> = {
+  red: 'lobby.colorRed',
+  green: 'lobby.colorGreen',
+  yellow: 'lobby.colorYellow',
+  blue: 'lobby.colorBlue',
+}
+
+const DIFF_KEYS: Record<Difficulty, string> = {
+  easy: 'lobby.easy',
+  medium: 'lobby.medium',
+  hard: 'lobby.hard',
+}
+
 export function Lobby() {
+  const { t } = useTranslation()
   const { query } = useRoute()
   const { mode, seats, setMode, addBot, removeBot, setDiff, startGame, setActiveMatch } = useApp()
   const [starting, setStarting] = useState(false)
@@ -80,14 +95,14 @@ export function Lobby() {
             ←
           </div>
           <div>
-            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>Table Setup</div>
-            <div style={{ color: '#a99a83', fontSize: 13 }}>Private match · house bots</div>
+            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>{t('lobby.tableSetup')}</div>
+            <div style={{ color: '#a99a83', fontSize: 13 }}>{t('lobby.privateMatchDesc')}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {([2, 4] as Mode[]).map((m) => (
             <div key={m} style={pill(mode === m)} onClick={() => pickMode(m)}>
-              {m} Players
+              {t('lobby.playersCount', { count: m })}
             </div>
           ))}
         </div>
@@ -100,12 +115,12 @@ export function Lobby() {
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={sectionLabel}>Seats · {mode} players</div>
+          <div style={sectionLabel}>{t('lobby.seatsCount', { count: mode })}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {visible.map((seat, i) => {
               const ck = SEAT_COLORS[i]
               const col = COL[ck]
-              const colorName = ck[0].toUpperCase() + ck.slice(1)
+              const colorName = t(COLOR_KEYS[ck])
               const avStyle: CSSProperties = {
                 width: 42, height: 42, flex: 'none', borderRadius: 11, display: 'grid', placeItems: 'center',
                 fontWeight: 800, fontSize: 14, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
@@ -120,12 +135,12 @@ export function Lobby() {
                           <div style={avStyle}>YO</div>
                           <div>
                             <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>
-                              You <span style={{ color: '#c99b45', fontSize: 11, fontWeight: 700 }}>HOST</span>
+                              {t('common.you')} <span style={{ color: '#c99b45', fontSize: 11, fontWeight: 700 }}>{t('lobby.hostBadge')}</span>
                             </div>
                             <div style={{ color: '#a99a83', fontSize: '12.5px' }}>♛ 1,540 · {colorName}</div>
                           </div>
                         </div>
-                        <div style={{ marginTop: 'auto', fontSize: '12.5px', color: '#7fae91', fontWeight: 700 }}>✓ Ready</div>
+                        <div style={{ marginTop: 'auto', fontSize: '12.5px', color: '#7fae91', fontWeight: 700 }}>✓ {t('lobby.readyBadge')}</div>
                       </>
                     )}
                     {seat.type === 'bot' && (
@@ -134,9 +149,9 @@ export function Lobby() {
                           <div style={avStyle}>{seat.name.slice(0, 2).toUpperCase()}</div>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>
-                              {seat.name} <span style={{ color: '#a99a83', fontSize: 11, fontWeight: 700 }}>BOT</span>
+                              {seat.name} <span style={{ color: '#a99a83', fontSize: 11, fontWeight: 700 }}>{t('lobby.botBadge')}</span>
                             </div>
-                            <div style={{ color: '#a99a83', fontSize: '12.5px' }}>{colorName} piece</div>
+                            <div style={{ color: '#a99a83', fontSize: '12.5px' }}>{t('lobby.colorPiece', { color: colorName })}</div>
                           </div>
                           <div
                             onClick={() => removeBot(i)}
@@ -150,7 +165,7 @@ export function Lobby() {
                         </div>
                         <div style={{ marginTop: 'auto' }}>
                           <div style={{ fontSize: 11, color: '#a99a83', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700, marginBottom: 7 }}>
-                            Difficulty
+                            {t('lobby.difficulty')}
                           </div>
                           <div style={{ display: 'flex', gap: 7 }}>
                             {DIFFS.map((d) => {
@@ -166,7 +181,7 @@ export function Lobby() {
                                     border: '1px solid ' + (active ? col.base : '#4a3826'),
                                   }}
                                 >
-                                  {d[0].toUpperCase() + d.slice(1)}
+                                  {t(DIFF_KEYS[d])}
                                 </div>
                               )
                             })}
@@ -186,7 +201,7 @@ export function Lobby() {
                         <div style={{ width: 40, height: 40, borderRadius: '50%', border: '1.5px dashed #4a3826', display: 'grid', placeItems: 'center', fontSize: 22, color: '#c99b45' }}>
                           +
                         </div>
-                        <div style={{ fontWeight: 700, fontSize: '13.5px' }}>Add a bot</div>
+                        <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{t('lobby.addABot')}</div>
                       </div>
                     )}
                   </div>
@@ -202,21 +217,23 @@ export function Lobby() {
               <Board />
             </div>
             <div style={{ fontFamily: "'Cinzel',serif", fontSize: 15, color: '#dff0e0', letterSpacing: '.04em' }}>
-              Classic Cross Board
+              {t('lobby.classicCrossBoard')}
             </div>
           </div>
           <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-              <span style={{ color: '#a99a83' }}>Players</span>
+              <span style={{ color: '#a99a83' }}>{t('lobby.players')}</span>
               <span style={{ fontWeight: 700 }}>{mode - emptyCount} / {mode}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-              <span style={{ color: '#a99a83' }}>Bots</span>
-              <span style={{ fontWeight: 700 }}>{botCount}{botCount === 1 ? ' bot' : ' bots'}</span>
+              <span style={{ color: '#a99a83' }}>{t('lobby.botsLabel')}</span>
+              <span style={{ fontWeight: 700 }}>
+                {botCount === 1 ? t('lobby.botSingular', { count: botCount }) : t('lobby.botPlural', { count: botCount })}
+              </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-              <span style={{ color: '#a99a83' }}>Mode</span>
-              <span style={{ fontWeight: 700 }}>Casual · Unranked</span>
+              <span style={{ color: '#a99a83' }}>{t('lobby.mode')}</span>
+              <span style={{ fontWeight: 700 }}>{t('lobby.casualUnranked')}</span>
             </div>
             <button
               onClick={onStart}
@@ -229,7 +246,9 @@ export function Lobby() {
               <div style={{ textAlign: 'center', color: '#e05050', fontSize: 12 }}>{startError}</div>
             )}
             <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 12 }}>
-              {canStart ? `You + ${botCount} bot${botCount > 1 ? 's' : ''}` : 'At least one opponent required'}
+              {canStart
+                ? (botCount > 1 ? t('lobby.youPlusBots', { count: botCount }) : t('lobby.youPlusBot', { count: botCount }))
+                : t('lobby.atLeastOneOpponent')}
             </div>
           </div>
         </div>
