@@ -67,6 +67,9 @@ async function main() {
       email: 'alice@example.com',
       emailVerified: new Date(now - 30 * 24 * HOUR),
       password_hash: await hashPassword(),
+      // 2FA off so `Alice` / `password` logs straight in locally (no emailed
+      // code). Bob keeps it on to exercise the twoFactorRequired path.
+      twoFactorEnabled: false,
       rating: 1220,          // 1200 + 10 + 10
       highestRating: 1220,
       wins: 2,
@@ -99,6 +102,8 @@ async function main() {
       email: 'bob@example.com',
       emailVerified: new Date(now - 25 * 24 * HOUR),
       password_hash: await hashPassword(),
+      // Left ON: logging in as Bob exercises the emailed-code 2FA flow.
+      twoFactorEnabled: true,
       rating: 1095,          // 1100 - 5
       highestRating: 1100,
       wins: 0,
@@ -126,6 +131,7 @@ async function main() {
       email: 'carol@example.com',
       emailVerified: new Date(now - 10 * 24 * HOUR),
       password_hash: await hashPassword(),
+      twoFactorEnabled: false,
       rating: 1045,          // 1050 - 5
       highestRating: 1050,
       wins: 0,
@@ -146,6 +152,7 @@ async function main() {
       email: 'dave@example.com',
       // Unverified: exercises the "signed up but never confirmed" path.
       password_hash: await hashPassword(),
+      twoFactorEnabled: false,
       rating: 990,           // 1000 - 5 - 5
       highestRating: 1000,
       wins: 0,
@@ -169,6 +176,8 @@ async function main() {
       username: 'Eve',
       email: 'eve@example.com',
       emailVerified: new Date(now - 5 * 24 * HOUR),
+      // OAuth-only, but finishOAuth still honours this flag, so keep it off.
+      twoFactorEnabled: false,
       rating: 995,           // 1000 - 5
       highestRating: 1000,
       wins: 0,

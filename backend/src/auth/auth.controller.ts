@@ -9,7 +9,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { GoogleAuthGuard, GithubAuthGuard, FortyTwoAuthGuard } from './oauth.guards';
-import { secret } from '../secrets';
+import { secret, isTunnelRequest } from '../secrets';
 
 // Access-token cookie: JwtStrategy reads this exact name. Short-lived.
 const ACCESS_COOKIE = 'token';
@@ -19,8 +19,16 @@ const ACCESS_MAX_AGE_MS = 15 * 60 * 1000; // 15 min, matches JwtModule expiresIn
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_PATH = '/api/auth';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days, matches SessionService TTL
-// Fallback matches the compose entry point: nginx publishes 8443 -> 443.
-const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
+const LOCAL_FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
+const NGROK_FRONTEND_URL = secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev';
+
+// Picked per request from the Host header the browser actually connected
+// with — a tunnel and a local client can both be live against the same
+// backend at once (see oauth.guards.ts, which picks the matching OAuth
+// strategy the same way).
+function frontendUrlFor(req: Request): string {
+  return isTunnelRequest(req.get('host')) ? NGROK_FRONTEND_URL : LOCAL_FRONTEND_URL;
+}
 
 @Controller('api/auth')
 export class AuthController {
@@ -36,9 +44,11 @@ export class AuthController {
   // Target of the emailed verification link — lands in a browser tab, so it
   // answers with a redirect to the SPA rather than JSON.
   @Get('verify-email')
-  async verifyEmail(@Query('token') token: string, @Res() res: Response) {
+  async verifyEmail(@Query('token') token: string, @Req() req: Request, @Res() res: Response) {
     const ok = await this.authService.verifyEmail(token ?? '');
-    res.redirect(`${FRONTEND_URL}/login?${ok ? 'verified=1' : 'error=invalid-verification-link'}`);
+    res.redirect(
+      `${frontendUrlFor(req)}/login?${ok ? 'verified=1' : 'error=invalid-verification-link'}`,
+    );
   }
 
   // Factor one. With 2FA on, answers { twoFactorRequired: true, pendingToken }
@@ -175,10 +185,11 @@ export class AuthController {
       email: string | null;
       twoFactorEnabled: boolean;
     };
+    const frontendUrl = frontendUrlFor(req);
     if (!user.email) {
       // Strategies only forward provider-verified emails; without one we have
       // nowhere to send login codes, so this account cannot exist here.
-      res.redirect(`${FRONTEND_URL}/login?error=no-verified-email`);
+      res.redirect(`${frontendUrl}/login?error=no-verified-email`);
       return;
     }
     if (!user.twoFactorEnabled) {
@@ -187,11 +198,11 @@ export class AuthController {
         user.username,
       );
       this.setSessionCookies(res, accessToken, refreshToken);
-      res.redirect(`${FRONTEND_URL}/home`);
+      res.redirect(`${frontendUrl}/home`);
       return;
     }
     const { pendingToken } = await this.authService.startTwoFactor(user.id, user.email);
-    res.redirect(`${FRONTEND_URL}/2fa?token=${pendingToken}`);
+    res.redirect(`${frontendUrl}/2fa?token=${pendingToken}`);
   }
 
   private setSessionCookies(res: Response, accessToken: string, refreshToken: string) {

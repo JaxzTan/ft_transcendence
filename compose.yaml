@@ -16,7 +16,9 @@ services:
       - ./secrets:/secrets:ro
       - db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Loopback-only: in LAN mode a bare "5432:5432" would expose Postgres
+      # to every device on the WiFi. Still reachable from the host for psql.
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_bossman} -d postgres"]
       interval: 5s
@@ -53,10 +55,15 @@ services:
       SECRETS_DIR: /secrets
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      # Set by `make tunnel` only — switches AuthModule/AuthController onto the
+      # ngrok OAuth apps and frontend origin instead of the localhost ones.
+      TUNNEL_MODE: ${TUNNEL_MODE:-false}
     volumes:
       - ./secrets:/secrets:ro
     ports:
-      - "3000:3000"
+      # Loopback-only: clients always reach the backend through nginx's
+      # /api/ proxy, never directly. Published purely for host-side debugging.
+      - "127.0.0.1:3000:3000"
     depends_on:
       db:
         condition: service_healthy

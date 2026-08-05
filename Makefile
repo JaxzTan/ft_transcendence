@@ -1,23 +1,23 @@
 COMPOSE_FILE   = compose.yaml
+
 SECRET_DIR     = secrets
-
-# Every secret is one value per file, named after the variable it holds in lower
-# case: JWT_SECRET -> secrets/jwt_secret.txt. Services bind-mount the directory
-# at /secrets and read it there (backend/src/secrets.ts, the db/redis init
-# scripts), so nothing sensitive travels through .env or the compose
-# environment — no --env-file is passed anywhere below. The remaining ${...} in
-# compose.yaml are non-secret and all carry defaults.
-
-# Supplied by the OAuth provider consoles. Can't be generated; the backend calls
-# requireSecret() on each of these and throws at boot if one is missing.
+JWT_SECRET     = $(SECRET_DIR)/ludo_engine_credentials.txt
+DB_PASSWORD    = $(SECRET_DIR)/db_password.txt
+secret_get = $(shell cat $(SECRET_DIR)/$(1).txt 2>/dev/null | tr -d "\"' \r")
+NGROK_PORT    := $(or $(call secret_get,ngrok_port),8443)
+NGROK_DOMAIN  := $(call secret_get,ngrok_domain)
+# Host-side HTTPS port; see compose.yaml for why this isn't a bare 443.
+HTTPS_PORT    := $(or $(call secret_get,https_port),8443)
+NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
+LAN_IP        := $(or $(call secret_get,lan_ip),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
 OAUTH_SECRETS  = google_client_id google_client_secret google_callback_url \
                  github_client_id github_client_secret github_callback_url \
                  fortytwo_client_id fortytwo_client_secret fortytwo_callback_url
 
 all: check-secrets build start
 
-# Fills in anything generatable or safe to default. Existing files are never
-# touched, so local overrides survive.
+l: prepare-secrets build startal
+
 prepare-secrets:
 	@mkdir -p $(SECRET_DIR)
 	@set -e; \
@@ -27,9 +27,12 @@ prepare-secrets:
 	gen  db_password       16; \
 	gen  db_root_password  16; \
 	gen  redis_password    16; \
+	gen  engine_api_key    32; \
 	seed db_credentials    'db_bossman:transcendence:db'; \
 	seed redis_credentials 'redisboss'; \
 	seed frontend_url      'https://localhost:8443'; \
+	seed ngrok_port        '8080'; \
+	seed https_port        '8443'; \
 	seed database_url \
 	  "postgresql://db_bossman:$$(cat $(SECRET_DIR)/db_password.txt)@localhost:5432/transcendence"; \
 	chmod 600 $(SECRET_DIR)/*.txt
@@ -90,13 +93,51 @@ clean:
 	docker network rm $$(docker network ls -q) 2>/dev/null; \
 	echo "✅  Done."
 
-fclean: prune clean
-
 prune:
 	@docker system prune -af --volumes
 
-tunnel:
-	@ngrok http https://localhost:8443 --host-header=localhost
+fclean: prune clean
+
+
+# ── LAN MODE ────────────────────────────────────────────────────────────────
+# Same WiFi. No env changes needed: nginx single-origins /api, so relative
+# paths resolve against whatever host the client typed.
+lan: all
+	@if [ -z "$(LAN_IP)" ]; then echo "❌  No LAN IP on en0/en1 — are you on WiFi?"; exit 1; fi
+	@echo ""
+	@echo "🌐  LAN mode up.  Other devices on this WiFi:"
+	@echo "      https://$(LAN_IP):$(HTTPS_PORT)"
+	@echo ""
+	@echo "    Self-signed cert → tap through the browser warning once."
+	@echo "    Nothing shows up? Campus/corporate WiFi client isolation blocks"
+	@echo "    device-to-device traffic — use a phone hotspot to test."
+
+# ── NGROK MODE ──────────────────────────────────────────────────────────────
+ngrok-auth:
+	@token=$$(cat $(SECRET_DIR)/ngrok.txt 2>/dev/null | tr -d '"'\'' \r'); \
+	if [ -z "$$token" ]; then echo "❌  ngrok authtoken missing — put it in $(SECRET_DIR)/ngrok.txt"; exit 1; fi; \
+	ngrok config add-authtoken "$$token" >/dev/null && echo "🔑  ngrok authtoken configured"
+
+# Tunnels nginx's TLS listener (127.0.0.1:8443) — the address is given as
+# https:// so ngrok speaks TLS to the local backend instead of forwarding
+# plain HTTP at it. ngrok doesn't verify the upstream cert by default (that's
+# opt-in via --upstream-tls-verify), so the self-signed cert isn't a problem.
+tunnel: all ngrok-auth
+	@echo "🔀  Switching backend into tunnel mode (ngrok OAuth apps)…"
+	@TUNNEL_MODE=true docker compose -f $(COMPOSE_FILE) up -d --no-deps backend
+	@echo "🚇  Tunnelling https://127.0.0.1:$(NGROK_PORT) … (URL also shown by: make tunnel-url)"
+	@ngrok http https://localhost:$(NGROK_PORT) $(NGROK_FLAGS)
+
+# Public URL of a tunnel that's already running, from ngrok's local API.
+tunnel-url:
+	@curl -s http://127.0.0.1:4040/api/tunnels \
+		| grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 \
+		|| echo "No tunnel running — start one with: make tunnel"
+
+# One command: build + start the stack (detached), then open the public tunnel.
+# Stack runs in the background; ngrok stays in the foreground (Ctrl-C stops the
+# tunnel, containers keep running — use `make stop-tunnel` to stop everything).
+tunnel_up: all tunnel
 
 dev-tunnel:
 	@osascript -e 'tell application "Terminal" to do script "cd $(PWD) && make dev"'
@@ -109,4 +150,5 @@ stop-tunnel:
 
 re: stop down all
 
-.PHONY: all prepare-secrets check-secrets build start dev stop down logs clean fclean prune re tunnel dev-tunnel stop-tunnel
+.PHONY: all build start dev stop down logs clean fclean prune re \
+        lan ngrok-auth tunnel tunnel-url up-tunnel dev-tunnel stop-tunnel
