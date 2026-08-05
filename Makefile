@@ -1,31 +1,15 @@
 COMPOSE_FILE   = compose.yaml
+
 SECRET_DIR     = secrets
 JWT_SECRET     = $(SECRET_DIR)/ludo_engine_credentials.txt
 DB_PASSWORD    = $(SECRET_DIR)/db_password.txt
-
-# Config values live in $(SECRET_DIR); everything below is DERIVED from them.
-# Nothing sensitive or config-y comes from .env any more.
 secret_get = $(shell cat $(SECRET_DIR)/$(1).txt 2>/dev/null | tr -d "\"' \r")
-
-# := so the cat runs once per make invocation, not on every reference.
-# The 8080 fallback stops a missing secret file from producing a portless
-# `ngrok http` that fails with a useless error.
 NGROK_PORT    := $(or $(call secret_get,ngrok_port),8443)
 NGROK_DOMAIN  := $(call secret_get,ngrok_domain)
 # Host-side HTTPS port; see compose.yaml for why this isn't a bare 443.
 HTTPS_PORT    := $(or $(call secret_get,https_port),8443)
 NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
-# secrets/lan_ip.txt wins if set; otherwise detect from the live interface.
-# It can't be a plain secret value because compose's dotenv parser never runs
-# a shell — it would store "$(ipconfig ...)" as literal text — so the
-# detection has to happen here. Leaving lan_ip.txt empty is the right default
-# on a laptop that roams between networks.
-# Linux: ask the routing table which src IP reaches the internet (works
-# regardless of interface name — enp4s0f0, eth0, wlan0, …). macOS: ipconfig
-# doesn't exist there, so try the common Wi-Fi/Ethernet interface names.
 LAN_IP        := $(or $(call secret_get,lan_ip),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
-
-
 OAUTH_SECRETS  = google_client_id google_client_secret google_callback_url \
                  github_client_id github_client_secret github_callback_url \
                  fortytwo_client_id fortytwo_client_secret fortytwo_callback_url
@@ -109,10 +93,11 @@ clean:
 	docker network rm $$(docker network ls -q) 2>/dev/null; \
 	echo "✅  Done."
 
-fclean: prune clean
-
 prune:
 	@docker system prune -af --volumes
+
+fclean: prune clean
+
 
 # ── LAN MODE ────────────────────────────────────────────────────────────────
 # Same WiFi. No env changes needed: nginx single-origins /api, so relative
