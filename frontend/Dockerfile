@@ -9,11 +9,7 @@ FROM node:22-alpine
 RUN apk add --no-cache inotify-tools
 WORKDIR /app
 COPY package*.json ./
-# ci, not install: install re-resolves the tree and can silently pull newer
-# transitive versions than package-lock.json pins, so the image drifts with
-# no source change. ci installs the lockfile exactly, or fails loudly if the
-# lockfile and package.json disagree.
-RUN install
+RUN npm install
 COPY . .
 RUN chmod +x publish.sh
 
