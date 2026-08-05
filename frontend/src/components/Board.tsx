@@ -88,8 +88,16 @@ function laneColor(r: number, c: number): string | null {
   return null
 }
 
+type BoardProps = {
+  pieces?: Array<{ id: string; color: string; step: number; isInGoal: boolean; isInBase: boolean }>
+  legalMoves?: Array<{ pieceId: string; from: number; to: number; isCapture: boolean; isHomeEntry: boolean }>
+  onPieceClick?: (pieceId: string) => void
+}
+
 /** The classic 15×15 cross board, rendered procedurally — no images. */
-export function Board() {
+export function Board({ pieces, legalMoves, onPieceClick }: BoardProps = {}) {
+  const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
+
   const cells: ReactNode[] = []
   for (let r = 0; r < 15; r++) {
     for (let c = 0; c < 15; c++) {
@@ -131,34 +139,66 @@ export function Board() {
     }
   }
 
+  // Render engine-driven pieces on top when pieces prop is provided
+  const enginePieces: ReactNode[] = []
+  if (pieces && pieces.length > 0) {
+    for (const piece of pieces) {
+      if (piece.isInBase || piece.step <= 0) continue
+      const isLegal = legalPieceIds.has(piece.id)
+      const ck = piece.color as ColorKey
+      const col = COL[ck]
+      enginePieces.push(
+        <div
+          key={piece.id}
+          onClick={() => isLegal && onPieceClick?.(piece.id)}
+          style={{
+            position: 'absolute',
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${col.base} 52%, ${col.dark})`,
+            border: isLegal ? `2.5px solid #f0d18a` : `2px solid rgba(0,0,0,.28)`,
+            boxShadow: isLegal ? '0 0 8px #f0d18a88' : '0 2px 4px rgba(0,0,0,.45)',
+            cursor: isLegal ? 'pointer' : 'default',
+            zIndex: 10,
+            transform: 'translate(-50%, -50%)',
+          }}
+        />,
+      )
+    }
+  }
+
   return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '1',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(15,1fr)',
-        gridTemplateRows: 'repeat(15,1fr)',
-        gap: 1,
-        padding: '2.5%',
-        borderRadius: 12,
-        background: 'linear-gradient(160deg,#25150f,#1a0f0a)',
-        boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5)',
-      }}
-    >
-      <Yard r={0} c={0} ck="red" tokens={2} />
-      <Yard r={0} c={9} ck="green" tokens={3} />
-      <Yard r={9} c={9} ck="yellow" tokens={1} />
-      <Yard r={9} c={0} ck="blue" tokens={4} />
+    <div style={{ position: 'relative' }}>
       <div
         style={{
-          gridRow: '7 / span 3',
-          gridColumn: '7 / span 3',
-          background: `conic-gradient(from 45deg, ${COL.green.base} 0 90deg, ${COL.yellow.base} 90deg 180deg, ${COL.blue.base} 180deg 270deg, ${COL.red.base} 270deg 360deg)`,
-          boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
+          width: '100%',
+          aspectRatio: '1',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(15,1fr)',
+          gridTemplateRows: 'repeat(15,1fr)',
+          gap: 1,
+          padding: '2.5%',
+          borderRadius: 12,
+          background: 'linear-gradient(160deg,#25150f,#1a0f0a)',
+          boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5)',
         }}
-      />
-      {cells}
+      >
+        <Yard r={0} c={0} ck="red" tokens={2} />
+        <Yard r={0} c={9} ck="green" tokens={3} />
+        <Yard r={9} c={9} ck="yellow" tokens={1} />
+        <Yard r={9} c={0} ck="blue" tokens={4} />
+        <div
+          style={{
+            gridRow: '7 / span 3',
+            gridColumn: '7 / span 3',
+            background: `conic-gradient(from 45deg, ${COL.green.base} 0 90deg, ${COL.yellow.base} 90deg 180deg, ${COL.blue.base} 180deg 270deg, ${COL.red.base} 270deg 360deg)`,
+            boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
+          }}
+        />
+        {cells}
+      </div>
+      {enginePieces}
     </div>
   )
 }

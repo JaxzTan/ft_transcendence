@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
+import { postApi } from '../api'
 import { Board } from '../components/Board'
 import { navigate, useRoute } from '../router'
 import { useApp, type Difficulty, type Mode } from '../store'
@@ -24,7 +25,9 @@ const DIFF_KEYS: Record<Difficulty, string> = {
 export function Lobby() {
   const { t } = useTranslation()
   const { query } = useRoute()
-  const { mode, seats, setMode, addBot, removeBot, setDiff, startGame } = useApp()
+  const { mode, seats, setMode, addBot, removeBot, setDiff, startGame, setActiveMatch } = useApp()
+  const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
 
   // Honor ?mode=2|4 in the URL so lobby links are shareable and refresh-safe.
   useEffect(() => {
@@ -45,17 +48,37 @@ export function Lobby() {
 
   const startBtnStyle: CSSProperties = canStart
     ? {
-        border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'", color: '#2a1c07',
-        cursor: 'pointer', background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.55),0 12px 22px -12px rgba(190,140,55,.8)', marginTop: 4,
-      }
+      border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'", color: '#2a1c07',
+      cursor: 'pointer', background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,.55),0 12px 22px -12px rgba(190,140,55,.8)', marginTop: 4,
+    }
     : {
-        border: '1px solid #3a2c1d', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
-        color: '#6b5d49', cursor: 'not-allowed', background: '#1a130d', marginTop: 4,
-      }
+      border: '1px solid #3a2c1d', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
+      color: '#6b5d49', cursor: 'not-allowed', background: '#1a130d', marginTop: 4,
+    }
 
-  const onStart = () => {
-    if (startGame()) navigate('/game')
+  const onStart = async () => {
+    if (!canStart || starting) return
+    setStartError(null)
+    setStarting(true)
+    try {
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string }>(
+        '/api/match/create',
+        {
+          mode: 'pve',
+          playerCount: mode,
+          botCount: visible.filter((s) => s.type === 'bot').length,
+          clashEnabled: true,
+          color: 'red',
+        },
+      )
+      setActiveMatch(res)
+      startGame()
+      navigate(`/game?gameId=${res.gameId}`)
+    } catch (err) {
+      setStartError(err instanceof Error ? err.message : 'Failed to create match')
+      setStarting(false)
+    }
   }
 
   return (
@@ -212,9 +235,16 @@ export function Lobby() {
               <span style={{ color: '#a99a83' }}>{t('lobby.mode')}</span>
               <span style={{ fontWeight: 700 }}>{t('lobby.casualUnranked')}</span>
             </div>
-            <button onClick={onStart} style={startBtnStyle}>
-              {canStart ? t('lobby.startGameBtn') : t('lobby.addBotToStartBtn')}
+            <button
+              onClick={onStart}
+              disabled={!canStart || starting}
+              style={{ ...startBtnStyle, opacity: starting ? 0.7 : 1 }}
+            >
+              {starting ? 'Creating match…' : canStart ? 'Start game' : 'Add a bot to start'}
             </button>
+            {startError && (
+              <div style={{ textAlign: 'center', color: '#e05050', fontSize: 12 }}>{startError}</div>
+            )}
             <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 12 }}>
               {canStart
                 ? (botCount > 1 ? t('lobby.youPlusBots', { count: botCount }) : t('lobby.youPlusBot', { count: botCount }))

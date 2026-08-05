@@ -1,9 +1,12 @@
-import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
-import { MOVE_LOG } from '../data'
+import { ClashOverlay } from '../game/ClashOverlay'
+import { applyEvent, initialView } from '../game/reducer'
+import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
+import { connectSocket } from '../socket'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
 
@@ -25,9 +28,7 @@ function Pips({ count, color }: { count: number; color: string }) {
         <div
           key={i}
           style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
+            width: 8, height: 8, borderRadius: '50%',
             background: i < count ? color : 'transparent',
             border: '1.5px solid ' + (i < count ? color : '#4a3826'),
             boxSizing: 'border-box',
@@ -42,9 +43,13 @@ export function Game() {
   const { t } = useTranslation()
   const { mode, seats, dice, rolling, turn, roll, endTurn, setPlaying } = useApp()
   const players = seats.slice(0, mode)
+  const { activeMatch, setPlaying } = useApp()
+  const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
+  const [view, dispatch] = useReducer(applyEvent, null, () => initialView('red'))
+  const [connected, setConnected] = useState(false)
+  const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
 
-  // Friends see "in a game" while this page is mounted, back to plain
-  // "online" the moment they leave (Leave button, tab close via TTL lapse).
+  // Set presence status
   useEffect(() => {
     setPlaying(true)
     return () => setPlaying(false)
@@ -55,12 +60,104 @@ export function Game() {
       ? t('game.yourTurnShort')
       : t('game.botTurn', { name: (active?.type === 'bot' && active.name) || t('common.bot') })
 
+  // Connect to engine via Socket.IO
+  useEffect(() => {
+    if (!activeMatch) return
+
+    const socket = connectSocket(activeMatch.engineUrl, activeMatch.token)
+    socketRef.current = socket
+
+    socket.on('connect', () => {
+      setConnected(true)
+      socket.emit('join_game', activeMatch.gameId, 'red')
+    })
+
+    socket.on('connect_error', (err: Error) => {
+      console.error('[socket] connect_error', err.message)
+    })
+
+    socket.on('disconnect', () => setConnected(false))
+
+    socket.on('game_joined', (state) => {
+      dispatch({ type: 'game_joined', ...(state as object) })
+    })
+
+    socket.on('state_update', (state) => {
+      dispatch({ type: 'state_update', ...(state as object) })
+    })
+
+    socket.on('dice_rolled', (e) => {
+      dispatch({ type: 'dice_rolled', ...e })
+      setMoveLogs((prev) => [
+        { ck: view.currentTurn, text: `Rolled a ${e.value}${e.bonusRoll ? ' (bonus)' : ''}` },
+        ...prev.slice(0, 7),
+      ])
+    })
+
+    socket.on('piece_moved', (e) => {
+      dispatch({ type: 'piece_moved', ...e })
+      setMoveLogs((prev) => [
+        { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to step ${e.to}` },
+        ...prev.slice(0, 7),
+      ])
+    })
+
+    socket.on('game_started', (e) => dispatch({ type: 'game_started', ...(e as object) }))
+
+    socket.on('game_ended', (e) => {
+      dispatch({ type: 'game_ended', ...(e as object) })
+      setTimeout(() => navigate('/results'), 2500)
+    })
+
+    socket.on('clash_start', (e) => dispatch({ type: 'clash_start', ...(e as object) }))
+    socket.on('clash_result', (e) => dispatch({ type: 'clash_result', ...(e as object) }))
+    socket.on('player_exited', (e) => dispatch({ type: 'player_exited', ...(e as object) }))
+    socket.on('game_timeout', () => navigate('/home'))
+    socket.on('game_expired', () => navigate('/home'))
+
+    socket.on('error', (msg: string) => console.error('[engine]', msg))
+
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+    }
+  }, [activeMatch])
+
+  const rollDice = () => socketRef.current?.emit('roll_dice')
+  const movePiece = (pieceId: string) => socketRef.current?.emit('move_piece', pieceId)
+  const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
+  const clearClash = () => dispatch({ type: 'clash_clear' })
+
+  const leaveGame = () => {
+    socketRef.current?.emit('leave_game')
+    navigate('/home')
+  }
+
+  // If no match credentials exist, redirect back to lobby
+  if (!activeMatch) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#12100a', color: '#f0e2c4' }}>
+        <div style={{ ...card, padding: 32, textAlign: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>No active match found</div>
+          <div style={{ color: '#a99a83', marginBottom: 20 }}>Please set up a game from the lobby first.</div>
+          <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '12px 24px' }}>
+            Go to Lobby
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const isMyTurn = view.currentTurn === view.myColor
+  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash
+  const turnLabel = isMyTurn ? 'Your turn' : `${view.currentTurn.toUpperCase()}'s turn`
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 30px', borderBottom: '1px solid #2e2115' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div
-            onClick={() => navigate('/home')}
+            onClick={leaveGame}
             style={{
               cursor: 'pointer', padding: '9px 16px', borderRadius: 10, border: '1px solid #3a2c1d',
               background: '#1a130d', fontSize: 13, fontWeight: 700, color: '#c9bda3',
@@ -69,6 +166,11 @@ export function Game() {
             ← {t('game.leaveShort')}
           </div>
           <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>{t('game.modePlayerCasual', { mode })}</div>
+            Match #{activeMatch.gameId.slice(0, 8)}
+            <span style={{ marginLeft: 8, fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
+              {connected ? '● Live' : '● Connecting…'}
+            </span>
+          </div>
         </div>
         <div
           style={{
@@ -76,7 +178,7 @@ export function Game() {
             background: '#22432f', border: '1px solid #2e4a38', fontWeight: 700, fontSize: '13.5px', color: '#dff0e0',
           }}
         >
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#5fd08a', animation: 'pulseRing 1.6s infinite' }} />
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#5fd08a' }} />
           {turnLabel}
         </div>
       </header>
@@ -87,22 +189,21 @@ export function Game() {
           alignItems: 'start', maxWidth: 1300, margin: '0 auto', width: '100%',
         }}
       >
+        {/* Players sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ ...sectionLabel, color: '#a99a83' }}>{t('lobby.players')}</div>
-          {players.map((seat, i) => {
-            const ck = SEAT_COLORS[i]
+          <div style={{ ...sectionLabel, color: '#a99a83' }}>Players</div>
+          {SEAT_COLORS.map((ck) => {
             const col = COL[ck]
-            const isActive = turn === i
-            const name = seat.type === 'you' ? t('common.you') : (seat.type === 'bot' && seat.name) || t('common.bot')
-            const sub =
-              seat.type === 'you'
-                ? t('game.yourPieces')
-                : seat.type === 'bot' && seat.diff
-                  ? t('game.diffBot', { diff: t(`lobby.${seat.diff}`) })
-                  : t('common.bot')
+            const playerMeta = view.players.find((p) => p.color === ck)
+            const isActive = view.currentTurn === ck
+            const name = playerMeta ? playerMeta.username : ck[0].toUpperCase() + ck.slice(1)
+            const sub = playerMeta?.isBot ? 'Bot' : 'Player'
+            const goalCount = playerMeta?.piecesInGoal ?? 0
+            if (!playerMeta) return null
+
             return (
               <div
-                key={i}
+                key={ck}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 13,
                   border: '1px solid ' + (isActive ? col.base : '#3a2c1d'),
@@ -116,18 +217,19 @@ export function Game() {
                     fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
                   }}
                 >
-                  {seat.type === 'you' ? 'YO' : ((seat.type === 'bot' && seat.name) || 'B').slice(0, 2).toUpperCase()}
+                  {name.slice(0, 2).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4' }}>{name}</div>
                   <div style={{ color: '#a99a83', fontSize: 12 }}>{sub}</div>
                 </div>
-                <Pips count={HOME_COUNTS[i]} color={col.base} />
+                <Pips count={goalCount} color={col.base} />
               </div>
             )
           })}
         </div>
 
+        {/* Board */}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <div
             style={{
@@ -137,15 +239,19 @@ export function Game() {
               border: '1px solid #4a3826',
             }}
           >
-            <Board />
+            <Board pieces={view.pieces} legalMoves={view.legalMoves} onPieceClick={movePiece} />
           </div>
         </div>
 
+        {/* Controls sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={sectionLabel}>{rolling ? t('game.rolling') : t('game.yourRoll')}</div>
+            <div style={sectionLabel}>
+              {canRoll ? 'Your roll' : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
+            </div>
             <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
-              <Die value={dice} rolling={rolling} />
+              <Die value={view.diceValue ?? 0} rolling={false} />
             </div>
             <button onClick={roll} style={{ ...btnGold, width: '100%', padding: 14 }}>
               {rolling ? t('game.rolling') : t('game.rollDice')}
@@ -159,7 +265,28 @@ export function Game() {
             >
               {t('game.endTurn')}
             </button>
+            {canRoll && (
+              <button onClick={rollDice} style={{ ...btnGold, width: '100%', padding: 14 }}>
+                Roll dice
+              </button>
+            )}
+            {view.turnPhase === 'WAITING_FOR_MOVE' && isMyTurn && (
+              <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
+                Click a highlighted piece to move
+              </div>
+            )}
+            {!isMyTurn && view.status === 'active' && (
+              <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
+                Waiting for {view.currentTurn}…
+              </div>
+            )}
+            {view.status === 'waiting' && (
+              <div style={{ fontSize: 13, color: '#5fd08a', textAlign: 'center' }}>
+                Waiting for players…
+              </div>
+            )}
           </div>
+
           <div style={{ ...card, padding: '18px 20px' }}>
             <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>{t('game.moveLog')}</div>
             {MOVE_LOG.map((ml, i) => {
@@ -181,8 +308,31 @@ export function Game() {
           >
             {t('game.endGameDemo')}
           </button>
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>Move log</div>
+            {moveLogs.length === 0 ? (
+              <div style={{ fontSize: 13, color: '#a99a83' }}>Game events will appear here…</div>
+            ) : (
+              moveLogs.map((ml, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#c9bda3' }}>
+                  <span style={{ color: COL[ml.ck]?.base ?? '#f0d18a', fontWeight: 800 }}>●</span>
+                  <span>{ml.text}</span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
+
+      {/* QTE Clash overlay */}
+      {view.clash && (
+        <ClashOverlay
+          clash={view.clash}
+          result={view.clashResult}
+          myColor={view.myColor}
+          onKeyPress={clashInput}
+          onComplete={clearClash}
+        />
+      )}
     </div>
   )
 }
