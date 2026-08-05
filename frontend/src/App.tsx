@@ -77,7 +77,7 @@ function Screen() {
 export default function App() {
   return (
     <AppProvider>
-      <Shell><Home /></Shell>
+      <Screen />
     </AppProvider>
   )
 }
