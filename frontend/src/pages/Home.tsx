@@ -1,7 +1,7 @@
 import { LEADERS, MODE_CARDS } from '../data'
 import { navigate } from '../router'
 import { useApp, type Mode } from '../store'
-import { avatarDim, btnGold, btnGoldSmall, card } from '../theme'
+import { avatarDim, btnGold, card } from '../theme'
 
 export function Home() {
   const { setMode } = useApp()
@@ -104,62 +104,24 @@ export function Home() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
-        <div style={{ ...card, padding: 22 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>Top of the ladder</div>
-            <a onClick={() => navigate('/leaderboard')} style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-              View all →
-            </a>
-          </div>
-          {LEADERS.slice(0, 4).map((l, i) => (
-            <div
-              key={l.name}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid #2a2015' }}
-            >
-              <div style={{ width: 22, textAlign: 'center', fontWeight: 800, color: '#a99a83', fontSize: 14 }}>{i + 1}</div>
-              <div style={avatarDim(32)}>{l.name.slice(0, 2).toUpperCase()}</div>
-              <div style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{l.name}</div>
-              <div style={{ color: '#f0c24e', fontWeight: 800, fontSize: 14 }}>♛ {l.rating}</div>
-            </div>
-          ))}
+      <div style={{ ...card, padding: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>Top of the ladder</div>
+          <a onClick={() => navigate('/leaderboard')} style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+            View all →
+          </a>
         </div>
-        <div
-          style={{
-            borderRadius: 16,
-            padding: 22,
-            background: 'radial-gradient(120% 120% at 20% 0%,#2e2417,#1a130d)',
-            border: '1px solid #4a3826',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
-          }}
-        >
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>Daily reward</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div
-              style={{
-                width: 58,
-                height: 58,
-                borderRadius: 14,
-                flex: 'none',
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 26,
-                color: '#2a1c07',
-                background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.5)',
-              }}
-            >
-              ◈
-            </div>
-            <div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#f0d18a' }}>+150 coins</div>
-              <div style={{ color: '#a99a83', fontSize: 13 }}>Day 4 streak · come back tomorrow</div>
-            </div>
+        {LEADERS.slice(0, 4).map((l, i) => (
+          <div
+            key={l.name}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid #2a2015' }}
+          >
+            <div style={{ width: 22, textAlign: 'center', fontWeight: 800, color: '#a99a83', fontSize: 14 }}>{i + 1}</div>
+            <div style={avatarDim(32)}>{l.name.slice(0, 2).toUpperCase()}</div>
+            <div style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{l.name}</div>
+            <div style={{ color: '#f0c24e', fontWeight: 800, fontSize: 14 }}>♛ {l.rating}</div>
           </div>
-          <button style={{ ...btnGoldSmall, padding: 12 }}>Claim reward</button>
-        </div>
+        ))}
       </div>
     </div>
   )

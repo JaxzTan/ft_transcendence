@@ -1,13 +1,17 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { navigate, useRoute } from '../router'
 import { AccountMenu } from './AccountMenu'
 import { btnGold, goldText } from '../theme'
+import { apiFetch } from '../api'
+import { useApp } from '../store'
 
 const NAV: Array<{ path: string; glyph: string; title: string }> = [
   { path: '/home', glyph: '⌂', title: 'Home' },
   { path: '/dashboard', glyph: '▦', title: 'Dashboard' },
   { path: '/friends', glyph: '♟', title: 'Friends' },
   { path: '/profile', glyph: '👤', title: 'Profile' },
+  { path: '/leaderboard', glyph: '♛', title: 'Leaderboard' },
 ]
 
 export const SCREEN_TITLES: Record<string, string> = {
@@ -51,6 +55,27 @@ function railGlyphStyle(active: boolean): CSSProperties {
 /** Sidebar rail + top header wrapping home/dashboard/leaderboard/friends/settings. */
 export function Shell({ children }: { children: ReactNode }) {
   const { path } = useRoute()
+  const { user } = useApp()
+  const [rating, setRating] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!user) {
+      setRating(null)
+      return
+    }
+    let cancelled = false
+    apiFetch('/api/leaderboard?mode=global&limit=1')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!cancelled) setRating(body?.myRank?.rating ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setRating(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -136,18 +161,10 @@ export function Shell({ children }: { children: ReactNode }) {
             <div
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999,
-                border: '1px solid #3a2c1d', background: '#1a130d', fontWeight: 700, fontSize: 14, color: '#f0d18a',
-              }}
-            >
-              <span>◈</span>2,450
-            </div>
-            <div
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999,
                 border: '1px solid #3a2c1d', background: '#1a130d', fontWeight: 700, fontSize: 14, color: '#e8dcc6',
               }}
             >
-              <span style={{ color: '#f0c24e' }}>♛</span>1,540
+              <span style={{ color: '#f0c24e' }}>♛</span>{rating !== null ? rating.toLocaleString() : '—'}
             </div>
             <AccountMenu />
           </div>
