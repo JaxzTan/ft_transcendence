@@ -72,15 +72,6 @@ export class AuthController {
     return { twoFactorRequired: false, user: session.user };
   }
 
-  // DEV-ONLY shortcut: visit /api/auth/dev-login?user=Alice to drop straight
-  // into the app as that seed user
-  @Get('dev-login')
-  async devLogin(@Query('user') user: string, @Req() req: Request, @Res() res: Response) {
-    const session = await this.authService.devLogin(user);
-    this.setSessionCookies(res, session.accessToken, session.refreshToken);
-    res.redirect(`${frontendUrlFor(req)}/home`);
-  }
-
   // Factor two: emailed code + pendingToken buy the actual session cookies.
   @Post('2fa/verify')
   @HttpCode(200)
