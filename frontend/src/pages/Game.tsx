@@ -1,5 +1,5 @@
-import { useTranslation } from 'react-i18next'
 import { useEffect, useReducer, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
 import { ClashOverlay } from '../game/ClashOverlay'
@@ -9,17 +9,6 @@ import { navigate } from '../router'
 import { connectSocket } from '../socket'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
-
-/** Static "pieces home" pip counts per seat, as in the prototype. */
-const HOME_COUNTS = [4, 3, 2, 4]
-
-/** MOVE_LOG (data.ts) mock rows, mapped to their matching game.* locale keys by index. */
-const MOVE_LOG_KEYS = [
-  { key: 'game.movedHome', name: 'Rook' },
-  { key: 'game.rolled6', name: 'Bishop' },
-  { key: 'game.captured', name: 'Knight' },
-  { key: 'game.enteredStretch', name: undefined },
-] as const
 
 function Pips({ count, color }: { count: number; color: string }) {
   return (
@@ -41,11 +30,11 @@ function Pips({ count, color }: { count: number; color: string }) {
 
 export function Game() {
   const { t } = useTranslation()
-  const { mode, seats, dice, rolling, turn, roll, endTurn, setPlaying } = useApp()
-  const players = seats.slice(0, mode)
   const { activeMatch, setPlaying } = useApp()
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView('red'))
+  const viewRef = useRef(view)
+  viewRef.current = view
   const [connected, setConnected] = useState(false)
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
 
@@ -54,11 +43,6 @@ export function Game() {
     setPlaying(true)
     return () => setPlaying(false)
   }, [setPlaying])
-  const active = players[turn]
-  const turnLabel =
-    active?.type === 'you'
-      ? t('game.yourTurnShort')
-      : t('game.botTurn', { name: (active?.type === 'bot' && active.name) || t('common.bot') })
 
   // Connect to engine via Socket.IO
   useEffect(() => {
@@ -89,7 +73,7 @@ export function Game() {
     socket.on('dice_rolled', (e) => {
       dispatch({ type: 'dice_rolled', ...e })
       setMoveLogs((prev) => [
-        { ck: view.currentTurn, text: `Rolled a ${e.value}${e.bonusRoll ? ' (bonus)' : ''}` },
+        { ck: viewRef.current.currentTurn, text: `Rolled a ${e.value}${e.bonusRoll ? ' (bonus)' : ''}` },
         ...prev.slice(0, 7),
       ])
     })
@@ -150,7 +134,7 @@ export function Game() {
 
   const isMyTurn = view.currentTurn === view.myColor
   const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash
-  const turnLabel = isMyTurn ? 'Your turn' : `${view.currentTurn.toUpperCase()}'s turn`
+  const turnLabel = isMyTurn ? t('game.yourTurnShort') : `${view.currentTurn.toUpperCase()}'s turn`
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -165,7 +149,10 @@ export function Game() {
           >
             ← {t('game.leaveShort')}
           </div>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>{t('game.modePlayerCasual', { mode })}</div>
+          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>
+            {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
+          </div>
+          <div style={{ fontSize: 12, color: '#a99a83' }}>
             Match #{activeMatch.gameId.slice(0, 8)}
             <span style={{ marginLeft: 8, fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
               {connected ? '● Live' : '● Connecting…'}
@@ -191,13 +178,13 @@ export function Game() {
       >
         {/* Players sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ ...sectionLabel, color: '#a99a83' }}>Players</div>
+          <div style={{ ...sectionLabel, color: '#a99a83' }}>{t('lobby.players')}</div>
           {SEAT_COLORS.map((ck) => {
             const col = COL[ck]
             const playerMeta = view.players.find((p) => p.color === ck)
             const isActive = view.currentTurn === ck
             const name = playerMeta ? playerMeta.username : ck[0].toUpperCase() + ck.slice(1)
-            const sub = playerMeta?.isBot ? 'Bot' : 'Player'
+            const sub = playerMeta?.isBot ? t('common.bot') : t('common.you')
             const goalCount = playerMeta?.piecesInGoal ?? 0
             if (!playerMeta) return null
 
@@ -246,30 +233,19 @@ export function Game() {
         {/* Controls sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <div style={sectionLabel}>{rolling ? t('game.rolling') : t('game.yourRoll')}</div>
             <div style={sectionLabel}>
-              {canRoll ? 'Your roll' : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
+              {canRoll ? t('game.yourRoll') : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
             </div>
             <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
               <Die value={view.diceValue ?? 0} rolling={false} />
             </div>
-            <button onClick={roll} style={{ ...btnGold, width: '100%', padding: 14 }}>
-              {rolling ? t('game.rolling') : t('game.rollDice')}
-            </button>
             <button
-              onClick={endTurn}
-              style={{
-                width: '100%', border: '1px solid #4a3826', borderRadius: 12, padding: 12,
-                font: "700 14px 'Hanken Grotesk'", color: '#c9bda3', cursor: 'pointer', background: 'transparent',
-              }}
+              onClick={rollDice}
+              disabled={!canRoll}
+              style={{ ...btnGold, width: '100%', padding: 14, opacity: canRoll ? 1 : 0.5, cursor: canRoll ? 'pointer' : 'default' }}
             >
-              {t('game.endTurn')}
+              {t('game.rollDice')}
             </button>
-            {canRoll && (
-              <button onClick={rollDice} style={{ ...btnGold, width: '100%', padding: 14 }}>
-                Roll dice
-              </button>
-            )}
             {view.turnPhase === 'WAITING_FOR_MOVE' && isMyTurn && (
               <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
                 Click a highlighted piece to move
@@ -289,26 +265,6 @@ export function Game() {
 
           <div style={{ ...card, padding: '18px 20px' }}>
             <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>{t('game.moveLog')}</div>
-            {MOVE_LOG.map((ml, i) => {
-              const entry = MOVE_LOG_KEYS[i]
-              return (
-                <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#c9bda3' }}>
-                  <span style={{ color: COL[ml.ck].base, fontWeight: 800 }}>●</span>
-                  <span>{entry ? t(entry.key, entry.name ? { name: entry.name } : undefined) : ml.text}</span>
-                </div>
-              )
-            })}
-          </div>
-          <button
-            onClick={() => navigate('/results')}
-            style={{
-              border: '1px solid #2e4a38', borderRadius: 12, padding: 12, font: "700 13.5px 'Hanken Grotesk'",
-              color: '#8fbf9f', cursor: 'pointer', background: 'rgba(34,67,47,.3)',
-            }}
-          >
-            {t('game.endGameDemo')}
-          </button>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>Move log</div>
             {moveLogs.length === 0 ? (
               <div style={{ fontSize: 13, color: '#a99a83' }}>Game events will appear here…</div>
             ) : (
@@ -320,6 +276,16 @@ export function Game() {
               ))
             )}
           </div>
+
+          <button
+            onClick={() => navigate('/results')}
+            style={{
+              border: '1px solid #2e4a38', borderRadius: 12, padding: 12, font: "700 13.5px 'Hanken Grotesk'",
+              color: '#8fbf9f', cursor: 'pointer', background: 'rgba(34,67,47,.3)',
+            }}
+          >
+            {t('game.endGameDemo')}
+          </button>
         </div>
       </div>
 
