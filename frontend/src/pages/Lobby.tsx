@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
 import { Board } from '../components/Board'
 import { navigate, useRoute } from '../router'
-import { useApp, type Mode } from '../store'
-import { COL, SEAT_COLORS, card, feltPanel, pill, sectionLabel, type ColorKey } from '../theme'
+import { useApp, type PlayerCount } from '../store'
+import { COL, SEAT_COLORS, card, feltPanel, sectionLabel, type ColorKey } from '../theme'
 
 const COLOR_KEYS: Record<ColorKey, string> = {
   red: 'lobby.colorRed',
@@ -17,26 +17,24 @@ const COLOR_KEYS: Record<ColorKey, string> = {
 export function Lobby() {
   const { t } = useTranslation()
   const { query } = useRoute()
-  const { mode, seats, setMode, addBot, removeBot, startGame, setActiveMatch } = useApp()
+  const { seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, setActiveMatch } = useApp()
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
+  const [editingSeat, setEditingSeat] = useState<number | null>(null)
+  const [editName, setEditName] = useState('')
 
-  // Honor ?mode=2|4 in the URL so lobby links are shareable and refresh-safe.
-  useEffect(() => {
-    const q = Number(query.get('mode'))
-    if ((q === 2 || q === 4) && q !== mode) setMode(q as Mode)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Route-derived lobby configuration (single source of truth)
+  const playerCount = (Number(query.get('mode')) as PlayerCount) || 4
+  const allowAddPlayers = query.get('bots') !== '0'
 
-  const pickMode = (m: Mode) => {
-    setMode(m)
-    navigate(`/lobby?mode=${m}`, { replace: true })
-  }
-
-  const visible = seats.slice(0, mode)
+  const visible = seats.slice(0, playerCount)
   const botCount = visible.filter((s) => s.type === 'bot').length
   const emptyCount = visible.filter((s) => s.type === 'empty').length
-  const canStart = botCount >= 1
+  // Hotseat/Multiplayer can start when at least the host + 1 other is seated.
+  // Vs Bots can start once at least 1 bot is seated.
+  const canStart = allowAddPlayers
+    ? botCount >= 1
+    : visible.filter((s) => s.type === 'you' || s.type === 'player').length >= 2
 
   const startBtnStyle: CSSProperties = canStart
     ? {
@@ -54,18 +52,18 @@ export function Lobby() {
     setStartError(null)
     setStarting(true)
     try {
+      const gameMode = allowAddPlayers ? 'pve' : (playerCount === 2 ? 'hotseat' : 'pvp')
       const res = await postApi<{ gameId: string; token: string; engineUrl: string }>(
         '/api/match/create',
         {
-          mode: 'pve',
-          playerCount: mode,
-          botCount: visible.filter((s) => s.type === 'bot').length,
+          mode: gameMode,
+          playerCount: playerCount,
+          botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
           clashEnabled: true,
           color: 'red',
         },
       )
       setActiveMatch(res)
-      startGame()
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {
       setStartError(err instanceof Error ? err.message : 'Failed to create match')
@@ -91,13 +89,6 @@ export function Lobby() {
             <div style={{ color: '#a99a83', fontSize: 13 }}>{t('lobby.privateMatchDesc')}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {([2, 4] as Mode[]).map((m) => (
-            <div key={m} style={pill(mode === m)} onClick={() => pickMode(m)}>
-              {t('lobby.playersCount', { count: m })}
-            </div>
-          ))}
-        </div>
       </header>
 
       <div
@@ -107,8 +98,8 @@ export function Lobby() {
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={sectionLabel}>{t('lobby.seatsCount', { count: mode })}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={sectionLabel}>{t('lobby.seatsCount', { count: playerCount })}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: playerCount === 2 ? '1fr 1fr' : '1fr 1fr', gap: 16 }}>
             {visible.map((seat, i) => {
               const ck = SEAT_COLORS[i]
               const col = COL[ck]
@@ -157,7 +148,46 @@ export function Lobby() {
                         </div>
                       </>
                     )}
-                    {seat.type === 'empty' && (
+                    {seat.type === 'player' && (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={avStyle}>{seat.name.slice(0, 2).toUpperCase()}</div>
+                          <div style={{ flex: 1 }}>
+                            {editingSeat === i ? (
+                              <input
+                                autoFocus
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                onBlur={() => { renamePlayer(i, editName.trim() || seat.name); setEditingSeat(null) }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { renamePlayer(i, editName.trim() || seat.name); setEditingSeat(null) } }}
+                                style={{
+                                  width: '100%', background: '#1a130d', border: '1px solid #c99b45', borderRadius: 6,
+                                  color: '#f0e2c4', padding: '4px 8px', fontSize: 14, fontWeight: 800,
+                                }}
+                              />
+                            ) : (
+                              <div
+                                onClick={() => { setEditingSeat(i); setEditName(seat.name) }}
+                                style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', cursor: 'pointer' }}
+                              >
+                                {seat.name} <span style={{ color: '#a99a83', fontSize: 11, fontWeight: 700 }}>{t('lobby.playerBadge')}</span>
+                              </div>
+                            )}
+                            <div style={{ color: '#a99a83', fontSize: '12.5px' }}>{t('lobby.colorPiece', { color: colorName })}</div>
+                          </div>
+                          <div
+                            onClick={() => removePlayer(i)}
+                            style={{
+                              cursor: 'pointer', color: '#a99a83', fontSize: 15, width: 26, height: 26,
+                              display: 'grid', placeItems: 'center', borderRadius: 7, border: '1px solid #3a2c1d',
+                            }}
+                          >
+                            ✕
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {seat.type === 'empty' && allowAddPlayers && (
                       <div
                         onClick={() => addBot(i)}
                         style={{
@@ -170,6 +200,21 @@ export function Lobby() {
                           +
                         </div>
                         <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{t('lobby.addABot')}</div>
+                      </div>
+                    )}
+                    {seat.type === 'empty' && !allowAddPlayers && (
+                      <div
+                        onClick={() => addPlayer(i)}
+                        style={{
+                          cursor: 'pointer', flex: 1, border: '1.5px dashed #4a3826', borderRadius: 12, display: 'flex',
+                          flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          color: '#a99a83', minHeight: 120,
+                        }}
+                      >
+                        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '1.5px dashed #4a3826', display: 'grid', placeItems: 'center', fontSize: 22, color: '#c99b45' }}>
+                          +
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{t('lobby.addAPlayer')}</div>
                       </div>
                     )}
                   </div>
@@ -191,7 +236,7 @@ export function Lobby() {
           <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
               <span style={{ color: '#a99a83' }}>{t('lobby.players')}</span>
-              <span style={{ fontWeight: 700 }}>{mode - emptyCount} / {mode}</span>
+              <span style={{ fontWeight: 700 }}>{playerCount - emptyCount} / {playerCount}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
               <span style={{ color: '#a99a83' }}>{t('lobby.botsLabel')}</span>

@@ -92,10 +92,10 @@ export const SETTING_GROUPS = [
 ]
 
 export const MODE_CARDS = [
-  { title: 'Vs Bots', desc: 'Play against the house AI', glyph: '♟', mode: 4, hue: '#4bbf7b' },
-  { title: '4-Player Classic', desc: 'The full cross-board race', glyph: '✦', mode: 4, hue: '#f0c24e' },
-  { title: '2-Player Duel', desc: 'Head-to-head, first home wins', glyph: '⚔', mode: 2, hue: '#e4574d' },
-  { title: 'Private Table', desc: 'Invite friends to a room', glyph: '⌘', mode: 4, hue: '#4a92e0' },
+  { title: 'Vs Bots', desc: 'Play against the house AI', glyph: '♟', playerCount: 4, allowAddPlayers: true, hue: '#4bbf7b' },
+  { title: 'Multiplayer', desc: 'Multiplayer vs Humans', glyph: '✦', playerCount: 4, allowAddPlayers: false, hue: '#f0c24e' },
+  { title: 'Hotseat', desc: 'Hotseat Game vs Humans', glyph: '⚔', playerCount: 4, allowAddPlayers: false, hue: '#e4574d' },
+  { title: 'Private Table', desc: 'Invite friends to a room', glyph: '⌘', playerCount: 4, allowAddPlayers: false, hue: '#4a92e0' },
 ]
 
 export const MOVE_LOG_COLORS = ['red', 'green', 'yellow', 'blue'] as const

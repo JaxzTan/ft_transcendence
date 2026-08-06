@@ -135,7 +135,15 @@ export function Game() {
 
   const leaveGame = () => {
     socketRef.current?.emit('leave_game')
-    navigate('/home')
+    // Ensure lastResult is set so Results page renders real data
+    setLastResult({
+      winner: viewRef.current.currentTurn,
+      resultDetail: 'exit',
+      players: viewRef.current.players.map((p) => ({
+        color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+      })),
+    })
+    navigate('/results')
   }
 
   // If no match credentials exist, redirect back to lobby

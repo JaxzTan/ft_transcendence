@@ -5,7 +5,11 @@ import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.servic
 import { secret } from '../secrets';
 import Redis from 'ioredis';
 
-const BOT_ID = 'ludo-bot';
+const BOT_PREFIX = 'bot-';
+const SLOT_COLORS = ['red', 'green', 'yellow', 'blue'];
+function isBotUserId(userId: string | undefined): boolean {
+  return !!userId && userId.startsWith(BOT_PREFIX);
+}
 
 // Points-based rating (no ELO matchmaking). Winner +10, loser -5.
 const WIN_POINTS = 10;
@@ -92,9 +96,9 @@ export class MatchService {
 		} else {
 			// PvE or hotseat: started immediately, fill bot slots
 			updates.startedAt = Date.now().toString();
-			if (totalBots >= 1) updates.player2_id = BOT_ID;
-			if (totalBots >= 2) updates.player3_id = BOT_ID;
-			if (totalBots >= 3) updates.player4_id = BOT_ID;
+			if (totalBots >= 1) updates.player2_id = BOT_PREFIX + SLOT_COLORS[1];
+			if (totalBots >= 2) updates.player3_id = BOT_PREFIX + SLOT_COLORS[2];
+			if (totalBots >= 3) updates.player4_id = BOT_PREFIX + SLOT_COLORS[3];
 		}
 
 		await this.redis.hset(`match:${gameId}`, updates);
@@ -261,7 +265,7 @@ export class MatchService {
 				});
 
 				// Points-based rating (no ELO). Bots are skipped.
-				if (p.userId === BOT_ID) continue;
+				if (isBotUserId(p.userId)) continue;
 				const isWinner = p.rank === 1;
 				const ratingDelta = isWinner ? WIN_POINTS : -LOSS_POINTS;
 				const user = await tx.user.findUnique({ where: { id: p.userId } });
