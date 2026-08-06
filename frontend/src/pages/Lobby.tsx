@@ -4,10 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
 import { Board } from '../components/Board'
 import { navigate, useRoute } from '../router'
-import { useApp, type Difficulty, type Mode } from '../store'
+import { useApp, type Mode } from '../store'
 import { COL, SEAT_COLORS, card, feltPanel, pill, sectionLabel, type ColorKey } from '../theme'
-
-const DIFFS: Difficulty[] = ['easy', 'medium', 'hard']
 
 const COLOR_KEYS: Record<ColorKey, string> = {
   red: 'lobby.colorRed',
@@ -16,16 +14,10 @@ const COLOR_KEYS: Record<ColorKey, string> = {
   blue: 'lobby.colorBlue',
 }
 
-const DIFF_KEYS: Record<Difficulty, string> = {
-  easy: 'lobby.easy',
-  medium: 'lobby.medium',
-  hard: 'lobby.hard',
-}
-
 export function Lobby() {
   const { t } = useTranslation()
   const { query } = useRoute()
-  const { mode, seats, setMode, addBot, removeBot, setDiff, startGame, setActiveMatch } = useApp()
+  const { mode, seats, setMode, addBot, removeBot, startGame, setActiveMatch } = useApp()
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
 
@@ -161,30 +153,6 @@ export function Lobby() {
                             }}
                           >
                             ✕
-                          </div>
-                        </div>
-                        <div style={{ marginTop: 'auto' }}>
-                          <div style={{ fontSize: 11, color: '#a99a83', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700, marginBottom: 7 }}>
-                            {t('lobby.difficulty')}
-                          </div>
-                          <div style={{ display: 'flex', gap: 7 }}>
-                            {DIFFS.map((d) => {
-                              const active = seat.diff === d
-                              return (
-                                <div
-                                  key={d}
-                                  onClick={() => setDiff(i, d)}
-                                  style={{
-                                    cursor: 'pointer', padding: '6px 11px', borderRadius: 999, fontWeight: 700, fontSize: 12,
-                                    color: active ? col.base : '#a99a83',
-                                    background: active ? col.base + '22' : '#20180f',
-                                    border: '1px solid ' + (active ? col.base : '#4a3826'),
-                                  }}
-                                >
-                                  {t(DIFF_KEYS[d])}
-                                </div>
-                              )
-                            })}
                           </div>
                         </div>
                       </>

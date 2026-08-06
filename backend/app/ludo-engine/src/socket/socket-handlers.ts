@@ -38,14 +38,16 @@ export class SocketHandlers {
         }
 
         if (state) {
-          // Socket locking: reject non-spectator joins to games already in progress
-          if (state.status !== 'waiting' && socket.data.role !== 'spectator') {
+          const discIndex = state.disconnectedPlayers.findIndex(d => d.color === playerColor);
+          const isReconnectingPlayer = discIndex !== -1;
+
+          // Socket locking: reject non-spectator, non-reconnecting joins to games already in progress
+          if (state.status !== 'waiting' && socket.data.role !== 'spectator' && !isReconnectingPlayer) {
             socket.emit('error', 'Game already in progress — only spectators can join');
             return;
           }
 
-          const discIndex = state.disconnectedPlayers.findIndex(d => d.color === playerColor);
-          if (discIndex !== -1) {
+          if (isReconnectingPlayer) {
             await this.engine.handlePlayerReconnect(effectiveGameId, playerColor);
             state = await this.store.loadGameState(effectiveGameId);
           } else {

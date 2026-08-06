@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import i18n from './i18n'
 import { BOT_POOL } from './theme'
 import { apiFetch } from './api'
+import type { PlayerColor } from './game/types'
 
 export type AuthUser = { id: string; username: string }
 
@@ -13,10 +14,9 @@ function apiError(body: unknown, fallback: string): string {
   return typeof message === 'string' ? message : fallback
 }
 
-export type Difficulty = 'easy' | 'medium' | 'hard'
 export type Seat =
   | { type: 'you' }
-  | { type: 'bot'; name: string; diff: Difficulty }
+  | { type: 'bot'; name: string }
   | { type: 'empty' }
 
 export type Mode = 2 | 4
@@ -52,6 +52,13 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 /** Credentials returned by POST /api/match/create — stored in context so Game page can connect to the engine. */
 export type ActiveMatch = { gameId: string; token: string; engineUrl: string } | null
 
+/** Snapshot of a finished match's outcome — set from Game.tsx's `game_ended` handler so Results.tsx can render real data instead of mock podium rows. */
+export type LastResult = {
+  winner: PlayerColor
+  resultDetail: string
+  players: Array<{ color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number }>
+} | null
+
 type AppState = {
   user: AuthUser | null
   authReady: boolean
@@ -75,7 +82,6 @@ type AppState = {
   setMode: (m: Mode) => void
   addBot: (i: number) => void
   removeBot: (i: number) => void
-  setDiff: (i: number, diff: Difficulty) => void
   /** Fills remaining empty seats with Easy bots. Returns false when no bot is seated yet. */
   startGame: () => boolean
   roll: () => void
@@ -89,6 +95,8 @@ type AppState = {
   setPlaying: (playing: boolean) => void
   activeMatch: ActiveMatch
   setActiveMatch: (match: ActiveMatch) => void
+  lastResult: LastResult
+  setLastResult: (result: LastResult) => void
 }
 
 const Ctx = createContext<AppState | null>(null)
@@ -230,8 +238,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode>(4)
   const [seats, setSeats] = useState<Seat[]>([
     { type: 'you' },
-    { type: 'bot', name: 'Rook', diff: 'hard' },
-    { type: 'bot', name: 'Bishop', diff: 'medium' },
+    { type: 'bot', name: 'Rook' },
+    { type: 'bot', name: 'Bishop' },
     { type: 'empty' },
   ])
   const [dice, setDice] = useState(4)
@@ -288,7 +296,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const used = prev.filter((s) => s.type === 'bot').map((s) => s.name)
       const name = BOT_POOL.find((n) => !used.includes(n)) || 'Bot'
       const next = prev.slice()
-      next[i] = { type: 'bot', name, diff: 'medium' }
+      next[i] = { type: 'bot', name }
       return next
     })
   }, [])
@@ -301,16 +309,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const setDiff = useCallback((i: number, diff: Difficulty) => {
-    setSeats((prev) => {
-      const seat = prev[i]
-      if (seat.type !== 'bot') return prev
-      const next = prev.slice()
-      next[i] = { ...seat, diff }
-      return next
-    })
-  }, [])
-
   const startGame = useCallback((): boolean => {
     const bots = seats.slice(0, mode).filter((s) => s.type === 'bot').length
     if (bots < 1) return false
@@ -318,7 +316,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const pool = BOT_POOL.filter((n) => !used.includes(n))
     setSeats((prev) =>
       prev.map((s, i): Seat => {
-        if (i < mode && s.type === 'empty') return { type: 'bot', name: pool.shift() || 'Bot', diff: 'easy' }
+        if (i < mode && s.type === 'empty') return { type: 'bot', name: pool.shift() || 'Bot' }
         return s
       }),
     )
@@ -352,15 +350,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   )
 
   const [activeMatch, setActiveMatch] = useState<ActiveMatch>(null)
+  const [lastResult, setLastResult] = useState<LastResult>(null)
 
   const value = useMemo(
     () => ({
       user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
       mode, seats, dice, rolling, turn, settings,
-      setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
-      lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch,
+      setMode, addBot, removeBot, startGame, roll, endTurn, settingOn, toggleSetting,
+      lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch, lastResult, setLastResult,
     }),
-    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch],
+    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

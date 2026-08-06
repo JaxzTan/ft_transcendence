@@ -30,13 +30,14 @@ function Pips({ count, color }: { count: number; color: string }) {
 
 export function Game() {
   const { t } = useTranslation()
-  const { activeMatch, setPlaying } = useApp()
+  const { activeMatch, setPlaying, setLastResult } = useApp()
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView('red'))
   const viewRef = useRef(view)
   viewRef.current = view
   const [connected, setConnected] = useState(false)
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
+  const [isRolling, setIsRolling] = useState(false)
 
   // Set presence status
   useEffect(() => {
@@ -54,13 +55,19 @@ export function Game() {
     socket.on('connect', () => {
       setConnected(true)
       socket.emit('join_game', activeMatch.gameId, 'red')
+      // Socket.IO re-fires 'connect' on every reconnect, so this also covers
+      // rejoining after a drop; if a clash was frozen mid-QTE, resume it too.
+      if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
     socket.on('connect_error', (err: Error) => {
       console.error('[socket] connect_error', err.message)
     })
 
-    socket.on('disconnect', () => setConnected(false))
+    socket.on('disconnect', () => {
+      setConnected(false)
+      setIsRolling(false)
+    })
 
     socket.on('game_joined', (state) => {
       dispatch({ type: 'game_joined', ...(state as object) })
@@ -71,6 +78,7 @@ export function Game() {
     })
 
     socket.on('dice_rolled', (e) => {
+      setIsRolling(false)
       dispatch({ type: 'dice_rolled', ...e })
       setMoveLogs((prev) => [
         { ck: viewRef.current.currentTurn, text: `Rolled a ${e.value}${e.bonusRoll ? ' (bonus)' : ''}` },
@@ -90,6 +98,13 @@ export function Game() {
 
     socket.on('game_ended', (e) => {
       dispatch({ type: 'game_ended', ...(e as object) })
+      setLastResult({
+        winner: e.winner,
+        resultDetail: e.resultDetail,
+        players: viewRef.current.players.map((p) => ({
+          color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+        })),
+      })
       setTimeout(() => navigate('/results'), 2500)
     })
 
@@ -99,15 +114,21 @@ export function Game() {
     socket.on('game_timeout', () => navigate('/home'))
     socket.on('game_expired', () => navigate('/home'))
 
-    socket.on('error', (msg: string) => console.error('[engine]', msg))
+    socket.on('error', (msg: string) => {
+      console.error('[engine]', msg)
+      setIsRolling(false)
+    })
 
     return () => {
       socket.disconnect()
       socketRef.current = null
     }
-  }, [activeMatch])
+  }, [activeMatch, setLastResult])
 
-  const rollDice = () => socketRef.current?.emit('roll_dice')
+  const rollDice = () => {
+    setIsRolling(true)
+    socketRef.current?.emit('roll_dice')
+  }
   const movePiece = (pieceId: string) => socketRef.current?.emit('move_piece', pieceId)
   const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
   const clearClash = () => dispatch({ type: 'clash_clear' })
@@ -234,17 +255,20 @@ export function Game() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={sectionLabel}>
-              {canRoll ? t('game.yourRoll') : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
+              {isRolling ? t('game.rolling') : canRoll ? t('game.yourRoll') : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
             </div>
             <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
-              <Die value={view.diceValue ?? 0} rolling={false} />
+              <Die value={view.diceValue ?? 0} rolling={isRolling} />
             </div>
             <button
               onClick={rollDice}
-              disabled={!canRoll}
-              style={{ ...btnGold, width: '100%', padding: 14, opacity: canRoll ? 1 : 0.5, cursor: canRoll ? 'pointer' : 'default' }}
+              disabled={!canRoll || isRolling}
+              style={{
+                ...btnGold, width: '100%', padding: 14,
+                opacity: canRoll && !isRolling ? 1 : 0.5, cursor: canRoll && !isRolling ? 'pointer' : 'default',
+              }}
             >
-              {t('game.rollDice')}
+              {isRolling ? t('game.rolling') : t('game.rollDice')}
             </button>
             {view.turnPhase === 'WAITING_FOR_MOVE' && isMyTurn && (
               <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
