@@ -19,7 +19,7 @@ export function verifyToken(token: string): { gameId: string; userId: string; ro
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8'));
     return {
       gameId: payload.gameId,
-      userId: payload.sub || payload.userId,
+      userId: payload.playerId || payload.sub || payload.userId,
       role: payload.role || 'player',
       clashEnabled: payload.clashEnabled,
     };
@@ -50,4 +50,5 @@ export function requirePlayer(socket: GameSocket): boolean {
   return true;
 }
 
+export const BOT_ID = 'ludo-bot';
 export const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:3000';
