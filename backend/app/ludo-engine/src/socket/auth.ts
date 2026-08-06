@@ -1,6 +1,12 @@
 import { Socket } from 'socket.io';
 import type { PlayerColor } from '../types';
 
+export const BOT_PREFIX = 'bot-';
+
+export function isBotUserId(userId: string | undefined): boolean {
+  return !!userId && userId.startsWith(BOT_PREFIX);
+}
+
 /**
  * Minimal JWT verification (no external library dependency).
  * Extracts payload from a signed token using HMAC-SHA256.
@@ -44,5 +50,4 @@ export function requirePlayer(socket: GameSocket): boolean {
   return true;
 }
 
-export const BOT_ID = 'ludo-bot';
 export const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:3000';
