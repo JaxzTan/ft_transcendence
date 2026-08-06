@@ -50,5 +50,4 @@ export function requirePlayer(socket: GameSocket): boolean {
   return true;
 }
 
-export const BOT_ID = 'ludo-bot';
 export const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:3000';
