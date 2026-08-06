@@ -204,7 +204,7 @@ export function Game() {
             const col = COL[ck]
             const playerMeta = view.players.find((p) => p.color === ck)
             const isActive = view.currentTurn === ck
-            const name = playerMeta ? playerMeta.username : ck[0].toUpperCase() + ck.slice(1)
+            const name = playerMeta?.username ?? ck[0].toUpperCase() + ck.slice(1)
             const sub = playerMeta?.isBot ? t('common.bot') : t('common.you')
             const goalCount = playerMeta?.piecesInGoal ?? 0
             if (!playerMeta) return null

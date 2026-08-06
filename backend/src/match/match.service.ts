@@ -11,6 +11,9 @@ const BOT_ID = 'ludo-bot';
 const WIN_POINTS = 10;
 const LOSS_POINTS = 5;
 
+const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
+export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
+
 function generateInviteCode(): string {
 	// 6-char uppercase alphanumeric code (no I, O, 0, 1 to avoid confusion)
 	const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -109,7 +112,7 @@ export class MatchService {
 			{ expiresIn: '24h' },
 		);
 
-		const result: any = { gameId, token, engineUrl: 'ws://ludo-engine:3001' };
+		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL };
 		if (isPvP) {
 			result.inviteCode = updates.inviteCode;
 		}
@@ -192,7 +195,7 @@ export class MatchService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: 'ws://ludo-engine:3001' };
+		return { gameId, token, engineUrl: ENGINE_WS_URL };
 	}
 
 	// ─── Cancel / Abort ──────────────────────────────────────────────────────
@@ -334,7 +337,7 @@ export class MatchService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId: newGameId, token, engineUrl: 'ws://ludo-engine:3001' };
+		return { gameId: newGameId, token, engineUrl: ENGINE_WS_URL };
 	}
 
 	// ─── List Active Games (from Redis) ─────────────────────────────────────
@@ -370,7 +373,7 @@ export class MatchService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: 'ws://ludo-engine:3001' };
+		return { gameId, token, engineUrl: ENGINE_WS_URL };
 	}
 
 	// ─── Ready Game ─────────────────────────────────────────────────────────

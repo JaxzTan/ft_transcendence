@@ -1,5 +1,5 @@
 import { Controller, Post, UseGuards, Request, Body, Param, Get, Headers, UnauthorizedException } from '@nestjs/common';
-import { MatchService } from './match.service';
+import { MatchService, ENGINE_WS_URL } from './match.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { requireSecret } from '../secrets';
@@ -107,7 +107,7 @@ export class MatchController {
 			{ gameId, playerId: null, role: 'spectator' },
 			{ expiresIn: '24h' },
 		);
-		return { gameId, token, engineUrl: 'ws://ludo-engine:3001' };
+		return { gameId, token, engineUrl: ENGINE_WS_URL };
 	}
 
 	// ─── Game End (called by ludo-engine) ──────────────────────────────────
