@@ -41,7 +41,7 @@ export function Results() {
     setRematchError(null)
     setRematching(true)
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string }>('/api/match/create', {
+      const res = await postApi<{ gameId: string; token: string }>('/api/match/create', {
         mode: 'pve',
         playerCount: playerCount,
         botCount: seats.slice(0, playerCount).filter((s) => s.type === 'bot').length,

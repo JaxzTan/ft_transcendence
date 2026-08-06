@@ -49,7 +49,7 @@ export function Game() {
   useEffect(() => {
     if (!activeMatch) return
 
-    const socket = connectSocket(activeMatch.engineUrl, activeMatch.token)
+    const socket = connectSocket(activeMatch.token)
     socketRef.current = socket
 
     socket.on('connect', () => {

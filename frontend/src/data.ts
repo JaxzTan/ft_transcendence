@@ -1,16 +1,5 @@
 /** Mock data mirroring the design prototype. Replace with real API data later. */
 
-export const LEADERS = [
-  { name: 'GrandDuke', rating: 2410, wins: 412, wr: '71%' },
-  { name: 'Seraphine', rating: 2288, wins: 377, wr: '68%' },
-  { name: 'IronRook', rating: 2201, wins: 502, wr: '64%' },
-  { name: 'Marla_V', rating: 2144, wins: 298, wr: '66%' },
-  { name: 'Bishop_9', rating: 2098, wins: 255, wr: '61%' },
-  { name: 'NightKnight', rating: 2007, wins: 341, wr: '59%' },
-  { name: 'PawnStar', rating: 1955, wins: 410, wr: '57%' },
-  { name: 'CastleUp', rating: 1902, wins: 288, wr: '60%' },
-]
-
 export const MEDAL_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a']
 
 export const MY_ROW = { rank: 12, rating: 1540, wins: 198, wr: '58%' }

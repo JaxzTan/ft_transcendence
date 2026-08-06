@@ -33,8 +33,11 @@ export type ClientEvents = {
   exit_post_game: () => void
 }
 
-export function connectSocket(engineUrl: string, token: string): Socket<ServerEvents, ClientEvents> {
-  return io(engineUrl, {
+// Always connects to the page's own origin — nginx (or, in dev, the Vite
+// proxy) forwards /socket.io/ to the engine, so the browser never needs to
+// know its real hostname/port. See nginx/conf/app.inc and vite.config.ts.
+export function connectSocket(token: string): Socket<ServerEvents, ClientEvents> {
+  return io(window.location.origin, {
     auth: { token },
     transports: ['websocket'],
     reconnectionAttempts: 5,

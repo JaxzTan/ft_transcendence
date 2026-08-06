@@ -1,7 +1,7 @@
 # ═══════════════════════════════════════════════════════════
-# Shared server body — included by BOTH the :443 TLS listener
-# (local + LAN) and the :80 plain listener (ngrok upstream).
-# Kept in one file so the two can never drift apart.
+# Shared server body, included by the :443 TLS listener (local / LAN /
+# ngrok — `make tunnel` points ngrok straight at this same HTTPS port,
+# there is no separate plain :80 hop).
 # ═══════════════════════════════════════════════════════════
 
 # Security headers
@@ -42,7 +42,7 @@ location = /index.html {
 }
 
 # ═══════════════════════════════════════════════════════
-# API PROXY — forwards /api/* requests to backend (Next.js)
+# API PROXY — forwards /api/* requests to the NestJS backend.
 # Carries the WebSocket upgrade so wss:// works on the same
 # origin as the page, in every mode (local / LAN / ngrok).
 # ═══════════════════════════════════════════════════════
@@ -55,11 +55,42 @@ location /api/ {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     # Hardcoded, not $scheme: the client-facing scheme is https in every
-    # mode (:443 direct, or ngrok-terminated TLS in front of the :80 hop).
+    # mode (nginx only terminates TLS on :443, and ngrok tunnels straight
+    # into that same port).
     proxy_set_header X-Forwarded-Proto https;
     # Long-lived sockets: don't cut idle connections at the default 60s
     proxy_read_timeout 3600s;
     proxy_send_timeout 3600s;
+}
+
+# ═══════════════════════════════════════════════════════
+# GAME ENGINE PROXY — forwards Socket.IO traffic to ludo-engine.
+# Mounted at socket.io's own default handshake path (/socket.io/) so
+# the frontend needs no custom `path` option: it just connects to the
+# page's own origin, same as it already does for /api/. This is what
+# makes the connection work identically under nginx (local/LAN/ngrok)
+# and under the Vite dev proxy (see frontend/vite.config.ts) — the
+# browser never needs to know ludo-engine's real hostname or port.
+# ═══════════════════════════════════════════════════════
+location /socket.io/ {
+    proxy_pass http://ludo-engine:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+}
+
+# Build health check — external probes hit this; NestJS mounts /health at
+# its root (main.ts), not under /api, hence the rewrite instead of a plain proxy_pass.
+location = /api/health {
+    proxy_pass http://backend:3000/health;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
 }
 
 # Deny access to hidden files (e.g. .htaccess, .git, .env)
