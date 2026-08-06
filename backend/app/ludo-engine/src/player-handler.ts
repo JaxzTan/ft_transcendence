@@ -61,6 +61,7 @@ export async function handlePlayerDisconnect(
   const player = state.players.find(p => p.color === color);
   if (player && player.status === 'active') {
     player.status = 'disconnected';
+    player.isConnected = false;
   }
 
   // If it's this player's turn, advance to next active player
@@ -132,6 +133,7 @@ export async function handlePlayerReconnect(
   const player = state.players.find(p => p.color === color);
   if (player) {
     player.status = 'active';
+    player.isConnected = true;
   }
 
   await store.saveGameState(gameId, state);
@@ -191,6 +193,8 @@ export async function handlePlayerExit(
   const player = state.players.find(p => p.color === color);
   if (player) {
     player.status = 'exited';
+    player.isConnected = false;
+    player.isFinished = true;
   }
 
   if (state.currentTurn === color && state.status === 'active') {

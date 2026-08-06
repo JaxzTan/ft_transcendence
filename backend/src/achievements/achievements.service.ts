@@ -50,7 +50,7 @@ export class AchievementsService {
 
     const totalGames = allParticipations.length;
     const wins = allParticipations.filter((p: any) => p.rank === 1).length;
-    const botGames = allParticipations.filter((p: any) => p.user_id === 'ludo-bot').length; // approximation
+    const botGames = allParticipations.filter((p: any) => p.user_id?.startsWith('bot-')).length; // approximation
     const humanWins = wins; // simplified — all wins count
 
     // achFirstBlood — First win

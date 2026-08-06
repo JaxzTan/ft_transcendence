@@ -1,24 +1,28 @@
 import { useTranslation } from 'react-i18next'
 import { LEADERS, MODE_CARDS } from '../data'
 import { navigate } from '../router'
-import { useApp, type Mode } from '../store'
+import { useApp } from '../store'
 import { avatarDim, btnGold, card } from '../theme'
 
 /** Maps each MODE_CARDS entry (matched by its English title) to its locale keys. */
 const MODE_CARD_KEYS: Record<string, { title: string; desc: string }> = {
   'Vs Bots': { title: 'home.vsBotsTitle', desc: 'home.vsBotsDesc' },
-  '4-Player Classic': { title: 'home.classic4PTitle', desc: 'home.classic4PDesc' },
-  '2-Player Duel': { title: 'home.duel2PTitle', desc: 'home.duel2PDesc' },
+  'Multiplayer': { title: 'home.multiplayerTitle', desc: 'home.multiplayerDesc' },
+  'Hotseat': { title: 'home.hotseatTitle', desc: 'home.hotseatDesc' },
   'Private Table': { title: 'home.privateTableTitle', desc: 'home.privateTableDesc' },
 }
 
 export function Home() {
   const { t } = useTranslation()
-  const { user, setMode } = useApp()
+  const { user, setPlayerCount } = useApp()
 
-  const goLobby = (mode: Mode) => {
-    setMode(mode)
-    navigate(`/lobby?mode=${mode}`)
+  const goLobby = (m: typeof MODE_CARDS[number]) => {
+    setPlayerCount(m.playerCount as 2 | 3 | 4)
+    if (m.title === 'Multiplayer') {
+      navigate('/multiplayer-lobby')
+      return
+    }
+    navigate(`/lobby?mode=${m.playerCount}&bots=${m.allowAddPlayers ? '1' : '0'}`)
   }
 
   return (
@@ -80,7 +84,7 @@ export function Home() {
             <div
               key={m.title}
               className="mode-card"
-              onClick={() => goLobby(m.mode as Mode)}
+              onClick={() => goLobby(m)}
               style={{
                 cursor: 'pointer',
                 borderRadius: 16,

@@ -39,6 +39,11 @@ export class LudoEngine {
     this.eventHandler?.(event);
   }
 
+  /** Public wrapper for emitting engine events (used by socket handlers). */
+  emitEvent(event: GameEvent): void {
+    this.emit(event);
+  }
+
   async getGameState(gameId: string): Promise<GameState | null> {
     return await this.store.loadGameState(gameId);
   }
@@ -65,6 +70,9 @@ export class LudoEngine {
     }
 
     const diceValue = Math.floor(Math.random() * 6) + 1;
+    currentPlayer.hasRolled = true;
+    currentPlayer.bonusRoll = diceValue === 6;
+    currentPlayer.consecutiveSixes = diceValue === 6 ? state.consecutiveSixes : 0;
 
     // Handle three consecutive sixes: forfeit turn
     if (diceValue === 6) {
@@ -146,6 +154,20 @@ export class LudoEngine {
     // Execute move via MoveValidator (pure game logic)
     const result = MoveValidator.executeMove(state, pendingMove, diceValue);
 
+    // Sync frontend-compatible piece fields
+    const movedPiece = state.pieces.find(p => p.id === pieceId);
+    if (movedPiece) {
+      movedPiece.isInGoal = result.to === 57;
+      movedPiece.isInBase = result.to <= 0;
+    }
+    if (result.captured && result.capturedPieceId) {
+      const capturedPiece = state.pieces.find(p => p.id === result.capturedPieceId);
+      if (capturedPiece) {
+        capturedPiece.isInGoal = false;
+        capturedPiece.isInBase = true;
+      }
+    }
+
     // Record move history
     await this.store.recordMove(gameId, {
       ply: result.ply,
@@ -170,11 +192,21 @@ export class LudoEngine {
       const winnerPlayer = state.players.find(p => p.color === winner);
       if (winnerPlayer) {
         winnerPlayer.stats.piecesInGoal = piecesInGoal;
+        winnerPlayer.piecesInGoal = piecesInGoal;
+        winnerPlayer.isFinished = true;
+        winnerPlayer.finishedAt = new Date().toISOString();
       }
       state.status = 'finished';
       state.winner = winner;
       state.resultDetail = 'four_pieces';
     } else {
+      // Sync piecesInGoal for the moving player
+      const mover = state.players.find(p => p.color === result.color);
+      if (mover) {
+        mover.piecesInGoal = MoveValidator.countPiecesInGoal(state, result.color);
+        mover.hasRolled = false;
+        mover.bonusRoll = diceValue === 6 || result.captured;
+      }
       // Bonus roll on 6 or capture: same player rolls again
       // Otherwise, advance turn to next player
       if (diceValue === 6 || result.captured) {

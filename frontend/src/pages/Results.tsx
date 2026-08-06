@@ -13,7 +13,7 @@ const MY_COLOR = 'red'
 
 export function Results() {
   const { t } = useTranslation()
-  const { mode, seats, lastResult, setActiveMatch } = useApp()
+  const { playerCount, seats, lastResult, setActiveMatch } = useApp()
   const [rematching, setRematching] = useState(false)
   const [rematchError, setRematchError] = useState<string | null>(null)
 
@@ -43,8 +43,8 @@ export function Results() {
     try {
       const res = await postApi<{ gameId: string; token: string; engineUrl: string }>('/api/match/create', {
         mode: 'pve',
-        playerCount: mode,
-        botCount: seats.slice(0, mode).filter((s) => s.type === 'bot').length,
+        playerCount: playerCount,
+        botCount: seats.slice(0, playerCount).filter((s) => s.type === 'bot').length,
         clashEnabled: true,
         color: MY_COLOR,
       })
