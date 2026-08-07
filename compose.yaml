@@ -67,7 +67,7 @@ services:
     ports:
       # Loopback-only: clients always reach the backend through nginx's
       # /api/ proxy, never directly. Published purely for host-side debugging.
-      - 3000:3000"
+      - 3000:3000
     depends_on:
       db:
         condition: service_healthy

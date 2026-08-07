@@ -17,7 +17,7 @@ const MODE_CARD_KEYS: Record<string, { title: string; desc: string }> = {
 
 export function Home() {
   const { t } = useTranslation()
-  const { user, setMode } = useApp()
+  const { user, setPlayerCount } = useApp()
   const [ladder, setLadder] = useState<LadderEntry[] | null>(null)
 
   useEffect(() => {
