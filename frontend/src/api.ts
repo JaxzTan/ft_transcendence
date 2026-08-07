@@ -13,9 +13,20 @@
 
 let refreshing: Promise<boolean> | null = null
 
+// ngrok's free tier answers a fresh client's first request with an HTML
+// "you are about to visit…" interstitial instead of proxying it through,
+// unless this header is present. Harmless off ngrok — nginx/localhost just
+// ignore it. Spreading a Headers instance (`{...init.headers}`) silently
+// yields `{}`, so this goes through the Headers constructor instead.
+function withNgrokHeader(init?: RequestInit): RequestInit {
+  const headers = new Headers(init?.headers)
+  headers.set('ngrok-skip-browser-warning', 'true')
+  return { ...init, headers }
+}
+
 function refreshOnce(): Promise<boolean> {
   if (!refreshing) {
-    refreshing = fetch('/api/auth/refresh', { method: 'POST' })
+    refreshing = fetch('/api/auth/refresh', withNgrokHeader({ method: 'POST' }))
       .then((r) => r.ok)
       .catch(() => false)
       .finally(() => {
@@ -35,12 +46,13 @@ function refreshOnce(): Promise<boolean> {
  * plain values (strings/objects), not one-shot streams.
  */
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const res = await fetch(input, init)
+  const finalInit = withNgrokHeader(init)
+  const res = await fetch(input, finalInit)
   if (res.status !== 401) return res
 
   const refreshed = await refreshOnce()
   if (!refreshed) return res // session really is over — hand back the 401
-  return fetch(input, init)
+  return fetch(input, finalInit)
 }
 
 // ---------------------------------------------------------------------------

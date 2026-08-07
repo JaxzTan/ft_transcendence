@@ -3,9 +3,12 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { navigate, useRoute } from '../router'
 import { AccountMenu } from './AccountMenu'
-import { btnGold, goldText } from '../theme'
-import { apiFetch } from '../api'
+import { btnGold, btnOutline, goldText } from '../theme'
+import { apiFetch, getApi, postApi } from '../api'
+import type { PlayerColor } from '../game/types'
 import { useApp } from '../store'
+
+type PendingInvite = { gameId: string; inviteCode: string; fromUsername: string; createdAt: number }
 
 const NAV: Array<{ path: string; glyph: string; titleKey: string }> = [
   { path: '/home', glyph: '⌂', titleKey: 'nav.home' },
@@ -57,8 +60,10 @@ function railGlyphStyle(active: boolean): CSSProperties {
 export function Shell({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const { path } = useRoute()
-  const { user } = useApp()
+  const { user, setActiveMatch } = useApp()
   const [rating, setRating] = useState<number | null>(null)
+  const [invite, setInvite] = useState<PendingInvite | null>(null)
+  const [inviteBusy, setInviteBusy] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -78,6 +83,47 @@ export function Shell({ children }: { children: ReactNode }) {
       cancelled = true
     }
   }, [user])
+
+  // Presence/invites are poll-based (no push transport in this backend) —
+  // check for an incoming game invite from a friend every few seconds.
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    const poll = () => {
+      getApi<PendingInvite | null>('/api/friends/invites/pending')
+        .then((data) => { if (!cancelled) setInvite(data) })
+        .catch(() => {})
+    }
+    poll()
+    const iv = setInterval(poll, 8000)
+    return () => {
+      cancelled = true
+      clearInterval(iv)
+    }
+  }, [user])
+
+  const acceptInvite = async () => {
+    if (!invite) return
+    setInviteBusy(true)
+    try {
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(
+        `/api/match/join/${encodeURIComponent(invite.inviteCode)}`,
+        {},
+      )
+      setActiveMatch(res)
+      setInvite(null)
+      navigate(`/game?gameId=${res.gameId}`)
+    } catch {
+      setInvite(null)
+    } finally {
+      setInviteBusy(false)
+    }
+  }
+
+  const dismissInvite = () => {
+    setInvite(null)
+    postApi('/api/friends/invites/dismiss').catch(() => {})
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -130,19 +176,6 @@ export function Shell({ children }: { children: ReactNode }) {
           )
         })}
         <div style={{ flex: 1 }} />
-        <button
-          onClick={() => navigate('/lobby')}
-          style={{
-            ...btnGold,
-            padding: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 12 }}>▶</span>{t('nav.playNow')}
-        </button>
       </aside>
 
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -174,6 +207,32 @@ export function Shell({ children }: { children: ReactNode }) {
 
         <div style={{ flex: 1, overflow: 'auto', padding: 32 }}>{children}</div>
       </main>
+
+      {invite && (
+        <div
+          style={{
+            position: 'fixed', right: 24, bottom: 24, zIndex: 50, width: 320, padding: 18, borderRadius: 16,
+            background: 'linear-gradient(180deg,#241b13,#1a130d)', border: '1px solid #c99b45',
+            boxShadow: '0 20px 44px -20px rgba(0,0,0,.85)', display: 'flex', flexDirection: 'column', gap: 12,
+          }}
+        >
+          <div style={{ fontWeight: 800, fontSize: 14.5, color: '#f0e2c4' }}>
+            {t('nav.gameInviteFrom', { name: invite.fromUsername })}
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={acceptInvite}
+              disabled={inviteBusy}
+              style={{ ...btnGold, flex: 1, padding: '10px 14px', fontSize: 13, opacity: inviteBusy ? 0.6 : 1 }}
+            >
+              {inviteBusy ? '…' : t('nav.acceptInvite')}
+            </button>
+            <button onClick={dismissInvite} disabled={inviteBusy} style={{ ...btnOutline, flex: 1, padding: '10px 14px', fontSize: 13 }}>
+              {t('nav.declineInvite')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

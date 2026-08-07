@@ -1,13 +1,80 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import Redis from 'ioredis';
 import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
+import { MatchService } from '../match/match.service';
+import { secret } from '../secrets';
 
 @Injectable()
 export class FriendsService {
+  private redis: Redis;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly presence: PresenceService,
-  ) {}
+    private readonly matchService: MatchService,
+  ) {
+    const host = process.env.REDIS_HOST || 'redis';
+    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const password = secret('REDIS_PASSWORD');
+
+    this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
+    this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+  }
+
+  // ─── Game Invitations ───────────────────────────────────────────────────
+  // Presence is poll-based (no push transport in this backend), so invites are
+  // a short-lived Redis record the invitee's client picks up on its next poll —
+  // same idiom as presence:{userId}, just keyed for invites instead of status.
+  async inviteToGame(userId: string, friendId: string) {
+    if (userId === friendId) throw new BadRequestException('Cannot invite yourself');
+
+    const friendship = await this.prisma.db.friendship.findFirst({
+      where: {
+        OR: [
+          { userId, friendId, status: 'accepted' },
+          { userId: friendId, friendId: userId, status: 'accepted' },
+        ],
+      },
+    });
+    if (!friendship) throw new ForbiddenException('You are not friends with this user');
+
+    const match = await this.matchService.createInvite(userId);
+    const inviter = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+
+    await this.redis.set(
+      `invite:${friendId}`,
+      JSON.stringify({
+        gameId: match.gameId,
+        inviteCode: match.inviteCode,
+        fromUsername: inviter?.username || 'A friend',
+        createdAt: Date.now(),
+      }),
+      'EX', 300,
+    );
+
+    // Return the host's own match credentials so the caller can join its own
+    // room immediately — the host must be seated before the friend can accept,
+    // otherwise the friend's accept could create/join the room alone.
+    return {
+      message: 'Invite sent',
+      gameId: match.gameId,
+      token: match.token,
+      engineUrl: match.engineUrl,
+      color: match.color,
+      inviteCode: match.inviteCode,
+    };
+  }
+
+  async getPendingInvite(userId: string) {
+    const raw = await this.redis.get(`invite:${userId}`);
+    return raw ? JSON.parse(raw) : null;
+  }
+
+  async dismissInvite(userId: string) {
+    await this.redis.del(`invite:${userId}`);
+    return { message: 'Dismissed' };
+  }
 
   async sendFriendRequest(userId: string, targetUserId: string) {
     if (userId === targetUserId) {
