@@ -224,7 +224,7 @@ export const zh = {
     yourRoll: '你的骰子',
     endTurn: '结束回合',
     moveLog: '移动记录',
-    endGameDemo: '结束游戏（演示结果）',
+    endGameDemo: '结束游戏',
   },
   results: {
     victory: '获得胜利！',

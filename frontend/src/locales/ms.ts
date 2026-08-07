@@ -224,7 +224,7 @@ export const ms = {
     yourRoll: 'Balingan anda',
     endTurn: 'Tamatkan giliran',
     moveLog: 'Log pergerakan',
-    endGameDemo: 'Tamatkan permainan (keputusan demo)',
+    endGameDemo: 'Tamatkan permainan',
   },
   results: {
     victory: 'KEMENANGAN!',

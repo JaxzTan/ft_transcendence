@@ -268,7 +268,7 @@ export const en = {
     yourRoll: 'Your roll',
     endTurn: 'End turn',
     moveLog: 'Move log',
-    endGameDemo: 'End game (demo results)',
+    endGameDemo: 'End game',
     waitingRoomTitle: 'Waiting Room',
     chooseColor: 'Choose your color',
     readyBtn: 'Ready',
