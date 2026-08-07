@@ -8,7 +8,7 @@ import { EventPublisher } from './event-publisher';
 import { RedisBroadcaster } from './redis-broadcaster';
 import { ResultSubmitter } from './result-submitter';
 import { SocketHandlers } from './socket-handlers';
-import { verifyToken, GameSocket, BOT_ID } from './auth';
+import { verifyToken, GameSocket } from './auth';
 import { LobbyManager } from '../lobby';
 import type { PlayerColor } from '../types';
 
@@ -59,6 +59,7 @@ export class SocketServer {
 
 			if (event.type === 'game_ended') {
 				this.handleGameEnd(event.gameId);
+				this.resultSubmitter.submitGameResult(event.gameId);
 			} else if (event.type === 'game_started') {
 				this.triggerBotTurn(event.gameId);
 			} else if (event.type === 'piece_moved') {
@@ -221,6 +222,7 @@ export class SocketServer {
 			if (!payload) return next(new Error('Invalid token'));
 
 			socket.data.userId = payload.userId;
+			socket.data.username = payload.username;
 			socket.data.gameId = payload.gameId;
 			socket.data.role = payload.role as 'player' | 'spectator';
 			next();

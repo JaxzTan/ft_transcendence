@@ -41,7 +41,7 @@ export class RedisBroadcaster {
       try {
         const gameId = channel.substring(5);
         const data = JSON.parse(message);
-        io.to(gameId).emit('state_update', data);
+        io.to(gameId).emit(data.type, data);
       } catch (e) {
         console.error(`Failed to parse message on ${channel}:`, e);
       }

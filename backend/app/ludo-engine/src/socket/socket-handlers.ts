@@ -2,8 +2,10 @@ import { LudoEngine } from '../engine';
 import { RedisGameStore } from '../redis';
 import { ClashManager } from '../clash';
 import { LudoBot } from '../bot';
-import { BOT_ID, GameSocket } from './auth';
+import { GameSocket, isBotUserId, BOT_PREFIX } from './auth';
 import type { PlayerColor, PieceId } from '../types';
+
+const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
 
 export class SocketHandlers {
   constructor(
@@ -17,6 +19,7 @@ export class SocketHandlers {
   handleJoinGame(socket: GameSocket, gameId: string, playerColor: PlayerColor, userId?: string): void {
     const effectiveGameId = socket.data.gameId || gameId;
     const effectiveUserId = socket.data.userId || userId;
+    const effectiveUsername = socket.data.username;
 
     (async () => {
       try {
@@ -38,14 +41,16 @@ export class SocketHandlers {
         }
 
         if (state) {
-          // Socket locking: reject non-spectator joins to games already in progress
-          if (state.status !== 'waiting' && socket.data.role !== 'spectator') {
+          const discIndex = state.disconnectedPlayers.findIndex(d => d.color === playerColor);
+          const isReconnectingPlayer = discIndex !== -1;
+
+          // Socket locking: reject non-spectator, non-reconnecting joins to games already in progress
+          if (state.status !== 'waiting' && socket.data.role !== 'spectator' && !isReconnectingPlayer) {
             socket.emit('error', 'Game already in progress — only spectators can join');
             return;
           }
 
-          const discIndex = state.disconnectedPlayers.findIndex(d => d.color === playerColor);
-          if (discIndex !== -1) {
+          if (isReconnectingPlayer) {
             await this.engine.handlePlayerReconnect(effectiveGameId, playerColor);
             state = await this.store.loadGameState(effectiveGameId);
           } else {
@@ -53,13 +58,30 @@ export class SocketHandlers {
             if (player) player.status = 'active';
           }
 
+          // Populate PlayerMeta with frontend-compatible fields
+          const meta = state.players.find(p => p.color === playerColor);
+          if (meta) {
+            meta.username = effectiveUsername || effectiveUserId || (playerColor.charAt(0).toUpperCase() + playerColor.slice(1));
+            meta.isBot = isBotUserId(effectiveUserId);
+            meta.isConnected = true;
+            meta.status = 'active';
+          }
+
           if (state.status === 'waiting') {
             await this.store.saveGameState(effectiveGameId, state);
           }
         }
 
-        if (effectiveUserId === BOT_ID) {
+        if (isBotUserId(effectiveUserId)) {
           this.getOrCreateBot(effectiveGameId, playerColor, this.engine, this.store);
+        }
+
+        // PvE auto-fill: read match metadata and register bot seats
+        const matchData = await this.store.getMatchData(effectiveGameId);
+        if (matchData && matchData.gameType === 'PVE') {
+          await this.autoRegisterBots(effectiveGameId, matchData);
+          // Reload state — autoRegisterBots may have transitioned it to 'active'
+          state = await this.store.loadGameState(effectiveGameId);
         }
 
         if (state) socket.emit('game_joined', state);
@@ -67,6 +89,68 @@ export class SocketHandlers {
         socket.emit('error', `Failed to join game: ${error}`);
       }
     })();
+  }
+
+  /**
+   * Auto-register bot seats for PvE matches.
+   * Reads match metadata and marks bot slots as active/ready.
+   */
+  private async autoRegisterBots(gameId: string, matchData: Record<string, string>): Promise<void> {
+    const state = await this.store.loadGameState(gameId);
+    if (!state) return;
+
+    // Only auto-fill once — if game already active, bots are already registered
+    if (state.status === 'active') return;
+
+    for (let i = 2; i <= 4; i++) {
+      const slotUserId = matchData[`player${i}_id`];
+      if (!slotUserId || !isBotUserId(slotUserId)) continue;
+
+      const slotColor = SLOT_COLORS[i - 1];
+      const botUserId = `${BOT_PREFIX}${slotColor}`;
+
+      // Mark bot player as active and populate frontend-compatible metadata
+      const player = state.players.find(p => p.color === slotColor);
+      if (player) {
+        player.status = 'active';
+        player.username = botUserId;
+        player.isBot = true;
+        player.isConnected = true;
+      }
+
+      // Add bot to ready players
+      if (!state.readyPlayers.includes(slotColor)) {
+        state.readyPlayers.push(slotColor);
+      }
+
+      // Register in userIdMap
+      if (!this.userIdMap.has(gameId)) {
+        this.userIdMap.set(gameId, new Map());
+      }
+      this.userIdMap.get(gameId)!.set(slotColor, botUserId);
+
+      // Instantiate bot
+      this.getOrCreateBot(gameId, slotColor, this.engine, this.store);
+    }
+
+    // Mark human seat as active too (the joining player)
+    const humanColor = state.players.find(p => p.status === 'active')?.color;
+    if (humanColor && !state.readyPlayers.includes(humanColor)) {
+      state.readyPlayers.push(humanColor);
+    }
+
+    await this.store.saveGameState(gameId, state);
+
+    // If all active players are ready, start the game
+    const activePlayers = state.players.filter(p => p.status === 'active');
+    const allReady = activePlayers.length > 0 &&
+      activePlayers.every(p => state.readyPlayers.includes(p.color));
+
+    if (allReady && state.status === 'waiting') {
+      state.status = 'active';
+      await this.store.saveGameState(gameId, state);
+      this.engine.emitEvent({ type: 'game_started', gameId });
+    }
   }
 
   handleRollDice(socket: GameSocket): void {
@@ -81,6 +165,7 @@ export class SocketHandlers {
         if (socket.data.playerColor) {
           const state = await this.store.loadGameState(gameId);
           if (state?.status === 'active' && state.currentTurn !== socket.data.playerColor) {
+            socket.emit('error', 'Not your turn');
             return;
           }
         }

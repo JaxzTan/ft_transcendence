@@ -23,6 +23,7 @@ export type GameViewState = {
   clash: ClashState | null
   clashResult: ClashResult | null
   myColor: PlayerColor
+  readyPlayers: PlayerColor[]
 }
 
 export function initialView(myColor: PlayerColor): GameViewState {
@@ -38,6 +39,7 @@ export function initialView(myColor: PlayerColor): GameViewState {
     clash: null,
     clashResult: null,
     myColor,
+    readyPlayers: [],
   }
 }
 
@@ -56,8 +58,23 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
         legalMoves: s.pendingLegalMoves ?? state.legalMoves,
         diceValue: s.pendingDiceValue ?? state.diceValue,
         clash: s.clash ?? state.clash,
+        readyPlayers: s.readyPlayers ?? state.readyPlayers,
       }
     }
+    case 'lobby_update': {
+      const payload = (event.players as Array<{ username: string; color: PlayerColor; ready: boolean }>) ?? []
+      const players = state.players.map((p) => {
+        const seat = payload.find((e) => e.color === p.color)
+        return seat ? { ...p, username: seat.username } : p
+      })
+      return {
+        ...state,
+        players,
+        readyPlayers: payload.filter((p) => p.ready).map((p) => p.color),
+      }
+    }
+    case 'my_color_changed':
+      return { ...state, myColor: event.color as PlayerColor }
     case 'game_started':
       return { ...state, status: 'active' }
     case 'dice_rolled': {
@@ -67,6 +84,7 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
         diceValue: event.value as number,
         legalMoves,
         turnPhase: legalMoves.length > 0 ? 'WAITING_FOR_MOVE' : 'WAITING_FOR_ROLL',
+        currentTurn: (event.currentTurn as PlayerColor) ?? state.currentTurn,
       }
     }
     case 'piece_moved':

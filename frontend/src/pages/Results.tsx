@@ -1,21 +1,60 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { PODIUM } from '../data'
+import { postApi } from '../api'
+import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
-import { COL, btnOutline, goldText } from '../theme'
+import { btnGold, btnOutline, card, COL, goldText } from '../theme'
 
 const PLACE_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a', '#7a6c56']
 
-/** PODIUM (data.ts) mock detail strings ('All home' / '{n} home') mapped to locale keys. */
-function podiumDetail(t: (key: string, opts?: Record<string, unknown>) => string, detail: string): string {
-  if (detail === 'All home') return t('results.allHome')
-  const count = parseInt(detail, 10)
-  return Number.isNaN(count) ? detail : t('results.piecesHome', { count })
-}
-
 export function Results() {
   const { t } = useTranslation()
-  const { mode } = useApp()
+  const { user, playerCount, seats, lastResult, setActiveMatch } = useApp()
+  const [rematching, setRematching] = useState(false)
+  const [rematchError, setRematchError] = useState<string | null>(null)
+
+  if (!lastResult) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#12100a', color: '#f0e2c4' }}>
+        <div style={{ ...card, padding: 32, textAlign: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>No recent match result</div>
+          <div style={{ color: '#a99a83', marginBottom: 20 }}>Play a game first to see results here.</div>
+          <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '12px 24px' }}>
+            Go to Lobby
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const ranked = [...lastResult.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
+  const myColor = lastResult.players.find((p) => !p.isBot && p.username === user?.username)?.color
+  const won = lastResult.winner === myColor
+  const winnerPlayer = lastResult.players.find((p) => p.color === lastResult.winner)
+  const winnerName = winnerPlayer ? (winnerPlayer.color === myColor ? t('common.you') : winnerPlayer.username) : lastResult.winner
+  const winnerInitials = (winnerPlayer?.username ?? lastResult.winner).slice(0, 2).toUpperCase()
+
+  // "Rematch" votes (client → 'rematch' → server 'game_created') only work while still
+  // connected to the finished game's socket room; Game.tsx disconnects on navigating here.
+  // Until that's redesigned, "Play Again" creates a fresh match the same way Lobby does.
+  const onRematch = async () => {
+    setRematchError(null)
+    setRematching(true)
+    try {
+      const res = await postApi<{ gameId: string; token: string; color: PlayerColor }>('/api/match/create', {
+        mode: 'pve',
+        playerCount: playerCount,
+        botCount: seats.slice(0, playerCount).filter((s) => s.type === 'bot').length,
+        clashEnabled: true,
+      })
+      setActiveMatch(res)
+      navigate(`/game?gameId=${res.gameId}`)
+    } catch (err) {
+      setRematchError(err instanceof Error ? err.message : 'Failed to create match')
+      setRematching(false)
+    }
+  }
 
   return (
     <div
@@ -35,23 +74,28 @@ export function Results() {
           {t('results.matchComplete')}
         </div>
         <div style={{ fontFamily: "'Cinzel',serif", fontSize: 48, lineHeight: 1, margin: '14px 0 6px', ...goldText }}>
-          {t('results.victory')}
+          {won ? t('results.victory') : t('results.defeat')}
         </div>
-        <div style={{ color: '#c9bda3', fontSize: 15 }}>{t('results.victoryDesc')}</div>
+        <div style={{ color: '#c9bda3', fontSize: 15 }}>
+          {won ? t('results.victoryDesc') : lastResult.resultDetail}
+        </div>
         <div
           style={{
-            width: 96, height: 96, margin: '26px auto', borderRadius: '50%',
-            background: 'linear-gradient(180deg,#4a92e0,#2c66ad)', display: 'grid', placeItems: 'center',
-            fontSize: 34, fontWeight: 800, color: '#0d1b28',
+            width: 96, height: 96, margin: '26px auto 10px', borderRadius: '50%',
+            background: `linear-gradient(180deg,${COL[lastResult.winner].base},${COL[lastResult.winner].dark})`,
+            display: 'grid', placeItems: 'center', fontSize: 34, fontWeight: 800, color: '#0d1b28',
             boxShadow: '0 0 0 4px #f0d18a,0 0 40px rgba(240,209,138,.4)',
           }}
         >
-          YO
+          {winnerInitials}
+        </div>
+        <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 16 }}>
+          {winnerName}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '0 auto 22px', maxWidth: 340 }}>
-          {PODIUM.slice(0, mode).map((p, i) => (
+          {ranked.map((p, i) => (
             <div
-              key={p.place}
+              key={p.color}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12,
                 background: i === 0 ? 'linear-gradient(90deg,rgba(240,209,138,.16),#1a130d)' : '#1a130d',
@@ -64,39 +108,30 @@ export function Results() {
                   fontWeight: 800, fontSize: 13, color: '#241a0c', background: PLACE_COLORS[i],
                 }}
               >
-                {p.place}
+                {i + 1}
               </div>
-              <div style={{ width: 14, height: 14, borderRadius: '50%', background: COL[p.ck].base }} />
+              <div style={{ width: 14, height: 14, borderRadius: '50%', background: COL[p.color].base }} />
               <div style={{ flex: 1, textAlign: 'left', fontWeight: 700, fontSize: 14, color: '#f0e2c4' }}>
-                {p.name === 'You' ? t('common.you') : p.name}
+                {p.color === myColor ? t('common.you') : p.username}
               </div>
-              <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 600 }}>{podiumDetail(t, p.detail)}</div>
+              <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 600 }}>
+                {t('results.piecesHome', { count: p.piecesInGoal })}
+              </div>
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 22 }}>
-          <div style={{ padding: '12px 18px', borderRadius: 12, background: '#1a130d', border: '1px solid #3a2c1d' }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#f0c24e' }}>+18</div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>{t('results.ratingLabel')}</div>
-          </div>
-          <div style={{ padding: '12px 18px', borderRadius: 12, background: '#1a130d', border: '1px solid #3a2c1d' }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#5fd08a' }}>+180</div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>{t('results.xpLabel')}</div>
-          </div>
-          <div style={{ padding: '12px 18px', borderRadius: 12, background: '#1a130d', border: '1px solid #3a2c1d' }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#f0d18a' }}>+75 ◈</div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>{t('results.coinsLabel')}</div>
-          </div>
-        </div>
+        {rematchError && (
+          <div style={{ color: '#e05050', fontSize: 13, marginBottom: 12 }}>{rematchError}</div>
+        )}
         <div style={{ display: 'flex', gap: 12 }}>
           <button
-            onClick={() => navigate('/game')}
-            style={{
-              flex: 1, border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
-              color: '#2a1c07', cursor: 'pointer', background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
-            }}
+            onClick={onRematch}
+            disabled={rematching}
+            style={{ flex: 1, border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
+              color: '#2a1c07', cursor: rematching ? 'default' : 'pointer', opacity: rematching ? 0.6 : 1,
+              background: 'linear-gradient(180deg,#f0d18a,#c99b45)' }}
           >
-            {t('results.rematchBtn')}
+            {rematching ? '…' : t('results.rematchBtn')}
           </button>
           <button onClick={() => navigate('/leaderboard')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
             {t('nav.leaderboard')}

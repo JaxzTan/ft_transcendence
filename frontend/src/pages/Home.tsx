@@ -1,25 +1,31 @@
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { LEADERS, MODE_CARDS } from '../data'
 import { navigate } from '../router'
-import { useApp, type Mode } from '../store'
+import { useApp } from '../store'
 import { avatarDim, btnGold, card } from '../theme'
 
-/** Maps each MODE_CARDS entry (matched by its English title) to its locale keys. */
-const MODE_CARD_KEYS: Record<string, { title: string; desc: string }> = {
-  'Vs Bots': { title: 'home.vsBotsTitle', desc: 'home.vsBotsDesc' },
-  '4-Player Classic': { title: 'home.classic4PTitle', desc: 'home.classic4PDesc' },
-  '2-Player Duel': { title: 'home.duel2PTitle', desc: 'home.duel2PDesc' },
-  'Private Table': { title: 'home.privateTableTitle', desc: 'home.privateTableDesc' },
-}
+type LadderEntry = { username: string; rating: number }
 
 export function Home() {
   const { t } = useTranslation()
-  const { user, setMode } = useApp()
+  const { user } = useApp()
+  const [ladder, setLadder] = useState<LadderEntry[] | null>(null)
 
-  const goLobby = (mode: Mode) => {
-    setMode(mode)
-    navigate(`/lobby?mode=${mode}`)
-  }
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/leaderboard?mode=global&limit=4', { credentials: 'include' })
+      .then((r) => (r.ok ? (r.json() as Promise<{ entries: LadderEntry[] }>) : Promise.reject(r.status)))
+      .then((body) => {
+        if (!cancelled) setLadder(body.entries)
+      })
+      .catch((e) => {
+        console.error(e)
+        if (!cancelled) setLadder([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <div className="home-page" style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
@@ -73,47 +79,6 @@ export function Home() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
-        {MODE_CARDS.map((m) => {
-          const keys = MODE_CARD_KEYS[m.title]
-          return (
-            <div
-              key={m.title}
-              className="mode-card"
-              onClick={() => goLobby(m.mode as Mode)}
-              style={{
-                cursor: 'pointer',
-                borderRadius: 16,
-                background: 'linear-gradient(180deg,#241b13,#1a130d)',
-                border: '1px solid #3a2c1d',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.045),0 20px 44px -24px rgba(0,0,0,.85)',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform .12s,border-color .12s',
-              }}
-            >
-              <div
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 12,
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontSize: 22,
-                  color: m.hue,
-                  background: 'rgba(255,255,255,.04)',
-                  border: `1px solid ${m.hue}44`,
-                }}
-              >
-                {m.glyph}
-              </div>
-              <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>{keys ? t(keys.title) : m.title}</div>
-              <div style={{ color: '#a99a83', fontSize: 13, lineHeight: 1.4 }}>{keys ? t(keys.desc) : m.desc}</div>
-            </div>
-          )
-        })}
-      </div>
-
       <div className="home-ladder" style={{ ...card }}>
         <div className="home-ladder-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>{t('home.topLadder')}</div>
@@ -121,18 +86,28 @@ export function Home() {
             {t('home.viewAll')}
           </a>
         </div>
-        {LEADERS.slice(0, 4).map((l, i) => (
-          <div
-            key={l.name}
-            className="home-ladder-row"
-            style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #2a2015' }}
-          >
-            <div style={{ width: 22, textAlign: 'center', fontWeight: 800, color: '#a99a83', fontSize: 14 }}>{i + 1}</div>
-            <div style={avatarDim(32)}>{l.name.slice(0, 2).toUpperCase()}</div>
-            <div style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{l.name}</div>
-            <div style={{ color: '#f0c24e', fontWeight: 800, fontSize: 14 }}>♛ {l.rating}</div>
+        {ladder === null ? (
+          <div style={{ padding: '16px 0', textAlign: 'center', color: '#a99a83', fontSize: '13.5px' }}>
+            {t('common.loading')}
           </div>
-        ))}
+        ) : ladder.length === 0 ? (
+          <div style={{ padding: '16px 0', textAlign: 'center', color: '#a99a83', fontSize: '13.5px' }}>
+            {t('leaderboard.noRankedPlayers')}
+          </div>
+        ) : (
+          ladder.map((l, i) => (
+            <div
+              key={l.username}
+              className="home-ladder-row"
+              style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #2a2015' }}
+            >
+              <div style={{ width: 22, textAlign: 'center', fontWeight: 800, color: '#a99a83', fontSize: 14 }}>{i + 1}</div>
+              <div style={avatarDim(32)}>{l.username.slice(0, 2).toUpperCase()}</div>
+              <div style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{l.username}</div>
+              <div style={{ color: '#f0c24e', fontWeight: 800, fontSize: 14 }}>♛ {l.rating}</div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )
