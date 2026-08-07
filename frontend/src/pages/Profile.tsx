@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useRoute } from '../router'
 import { useEffect, useState, useRef } from 'react'
 import { useRoute, navigate } from '../router'
 import { useApp } from '../store'
@@ -360,6 +358,7 @@ function StatBox({ label, value, color }: { label: string; value: React.ReactNod
 }
 
 function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null, navigate: (url: string) => void }) {
+  const { t } = useTranslation()
   return (
     <div style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 32 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
