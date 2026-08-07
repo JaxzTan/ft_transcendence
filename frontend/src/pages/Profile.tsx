@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useEffect, useState, useRef } from 'react'
 import { useRoute } from '../router'
 import { useApp } from '../store'
 import { card, goldText, avatarBlue, STATUS_STYLE, type PresenceStatus } from '../theme'
