@@ -70,6 +70,67 @@ export function Profile() {
   const [friendsData, setFriendsData] = useState<Friend[] | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [avatarBuster, setAvatarBuster] = useState(Date.now())
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError('File size must be less than 2MB.')
+      return
+    }
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Invalid file type. Allowed: PNG, JPEG, GIF, WebP.')
+      return
+    }
+
+    setUploading(true)
+    setUploadError('')
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    try {
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        setUploadError(err.message || 'Failed to upload avatar.')
+      } else {
+        setAvatarBuster(Date.now())
+      }
+    } catch (e) {
+      setUploadError('An error occurred during upload.')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    setUploading(true)
+    setUploadError('')
+    try {
+      await fetch('/api/user/avatar', {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+      setAvatarBuster(Date.now())
+    } catch (e) {
+      setUploadError('Failed to remove avatar.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   useEffect(() => {
     if (!username) return
     setLoading(true)
@@ -122,7 +183,7 @@ export function Profile() {
     )
   }
 
-  const initials = profile.username.slice(0, 2).toUpperCase()
+
   const totalGames = profile.wins + profile.losses
   const winRate = totalGames > 0 ? Math.round((profile.wins / totalGames) * 100) : 0
   const statusStyle = STATUS_STYLE[profile.status] ?? STATUS_STYLE.offline
@@ -141,15 +202,42 @@ export function Profile() {
           }} />
 
           <div style={{ position: 'relative' }}>
-            <div style={{ ...avatarBlue(100, 36, 30), boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d' }}>
-              {initials}
-            </div>
+            <UserAvatar 
+              username={profile.username}
+              size={100}
+              fallbackStyle={avatarBlue(100, 36, 30)}
+              style={{ boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d' }}
+              cacheBuster={avatarBuster}
+            />
             <span
               title={statusStyle.label}
               style={{
                 position: 'absolute', right: 4, bottom: 4, width: 18, height: 18, borderRadius: '50%',
                 background: statusStyle.color, border: '3px solid #1a130d',
               }}
+            />
+            {isOwnProfile && (
+              <div 
+                onClick={() => !uploading && fileInputRef.current?.click()}
+                style={{
+                  position: 'absolute', inset: 0, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer',
+                  opacity: 0, transition: 'opacity 0.2s',
+                  boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '0'}
+              >
+                {uploading ? '...' : 'Upload'}
+              </div>
+            )}
+            <input 
+              type="file" 
+              accept="image/png, image/jpeg, image/gif, image/webp" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              style={{ display: 'none' }} 
             />
           </div>
 
@@ -163,6 +251,14 @@ export function Profile() {
             <div style={{ color: '#a99a83', fontSize: 14, marginTop: 2, fontWeight: 500 }}>
               {t('profile.memberSince')} {new Date(profile.createdAt).toLocaleDateString()}
             </div>
+            {isOwnProfile && (
+              <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center' }}>
+                <span onClick={handleRemoveAvatar} style={{ color: '#e4574d', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: 0.8 }} onMouseOver={(e) => e.currentTarget.style.opacity = '1'} onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}>
+                  Remove Avatar
+                </span>
+                {uploadError && <span style={{ color: '#e4574d', fontSize: 12, fontWeight: 700 }}>· {uploadError}</span>}
+              </div>
+            )}
           </div>
 
           <div style={{ textAlign: 'center', background: 'linear-gradient(180deg,#241b13,#17110b)', padding: '16px 28px', borderRadius: 20, border: '1px solid #3a2c1d', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.05)' }}>
@@ -171,7 +267,6 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
           <StatBox label={t('profile.wins')} value={profile.wins} color="#4bbf7b" />
           <StatBox label={t('profile.losses')} value={profile.losses} color="#e4574d" />
@@ -179,7 +274,6 @@ export function Profile() {
           <StatBox label={t('profile.bestStreak')} value={profile.bestWinStreak} color="#f0c24e" />
         </div>
 
-        {/* Match History */}
         <div style={{ ...card, padding: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <h3 style={{ margin: 0, fontSize: 20, color: '#f0e2c4', fontWeight: 700, fontFamily: "'Cinzel',serif" }}>{t('profile.recentMatches')}</h3>
@@ -200,7 +294,6 @@ export function Profile() {
                 const resultText = isWinner ? t('profile.resultVictory') : (isDraw ? t('profile.resultDraw') : t('profile.resultDefeat'))
                 const resultColor = isWinner ? '#4bbf7b' : (isDraw ? '#a99a83' : '#e4574d')
 
-                // Filter out current user from opponents list to show who they played against
                 const opponents = game.participants.filter(p => p.username !== profile.username)
 
                 return (
@@ -242,9 +335,8 @@ export function Profile() {
         </div>
       </div>
 
-      {/* Right Column: Friends List Sidebar */}
       {isOwnProfile && (
-        <FriendsSidebar friends={friendsData} />
+        <FriendsSidebar friends={friendsData} navigate={navigate} />
       )}
     </div>
   )
@@ -293,14 +385,17 @@ function FriendsSidebar({ friends }: { friends: Friend[] | null }) {
                 display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#1a140e',
                 borderRadius: 12, border: '1px solid #2e2115', cursor: 'pointer', transition: 'background 0.2s'
               }}
+                onClick={() => navigate(`/profile?u=${friend.username}`)}
                 onMouseOver={(e) => { e.currentTarget.style.background = '#241b13' }}
                 onMouseOut={(e) => { e.currentTarget.style.background = '#1a140e' }}
               >
-                {/* Avatar */}
                 <div style={{ position: 'relative', marginRight: 12, flexShrink: 0 }}>
-                  <div style={{ ...avatarBlue(36, 12, 10), boxShadow: '0 0 0 2px #1a130d, 0 0 0 1px #3a2c1d' }}>
-                    {friend.username.slice(0, 2).toUpperCase()}
-                  </div>
+                  <UserAvatar 
+                    username={friend.username}
+                    size={36}
+                    fallbackStyle={avatarBlue(36, 12, 10)}
+                    style={{ boxShadow: '0 0 0 2px #1a130d, 0 0 0 1px #3a2c1d' }}
+                  />
                   <span
                     style={{
                       position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%',
@@ -309,9 +404,8 @@ function FriendsSidebar({ friends }: { friends: Friend[] | null }) {
                   />
                 </div>
 
-                {/* Name & Status */}
                 <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ color: '#f0e2c4', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#f0e2c4', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                     {friend.username}
                   </div>
                   <div style={{ color: status.color, fontSize: 11, fontWeight: 600 }}>
