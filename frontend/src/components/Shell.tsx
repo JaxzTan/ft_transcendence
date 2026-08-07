@@ -106,7 +106,7 @@ export function Shell({ children }: { children: ReactNode }) {
     if (!invite) return
     setInviteBusy(true)
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor }>(
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(
         `/api/match/join/${encodeURIComponent(invite.inviteCode)}`,
         {},
       )

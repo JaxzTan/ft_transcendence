@@ -54,7 +54,7 @@ export function Lobby() {
     setStarting(true)
     try {
       const gameMode = allowAddPlayers ? 'pve' : (playerCount === 2 ? 'hotseat' : 'pvp')
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor }>(
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(
         '/api/match/create',
         {
           mode: gameMode,
@@ -85,7 +85,7 @@ export function Lobby() {
             ←
           </div>
           <div>
-            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>{t('lobby.tableSetup')}</div>
+            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>{t('lobby.roomSetup')}</div>
             <div style={{ color: '#a99a83', fontSize: 13 }}>{t('lobby.privateMatchDesc')}</div>
           </div>
         </div>

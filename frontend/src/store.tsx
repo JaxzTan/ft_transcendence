@@ -52,7 +52,7 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 }
 
 /** Credentials returned by POST /api/match/create — stored in context so Game page can connect to the engine. */
-export type ActiveMatch = { gameId: string; token: string; color: PlayerColor } | null
+export type ActiveMatch = { gameId: string; token: string; color: PlayerColor; inviteCode?: string } | null
 
 function storedActiveMatch(): ActiveMatch {
   try {

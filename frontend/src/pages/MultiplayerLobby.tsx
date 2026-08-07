@@ -17,7 +17,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('create')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor }>('/api/match/create', {
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>('/api/match/create', {
         mode: 'pvp',
         playerCount: 4,
         botCount: 0,
@@ -36,7 +36,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('join')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor }>(`/api/match/join/${encodeURIComponent(inviteCode.trim())}`, {})
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(`/api/match/join/${encodeURIComponent(inviteCode.trim())}`, {})
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {

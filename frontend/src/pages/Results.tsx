@@ -31,6 +31,9 @@ export function Results() {
   const ranked = [...lastResult.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
   const myColor = lastResult.players.find((p) => !p.isBot && p.username === user?.username)?.color
   const won = lastResult.winner === myColor
+  const winnerPlayer = lastResult.players.find((p) => p.color === lastResult.winner)
+  const winnerName = winnerPlayer ? (winnerPlayer.color === myColor ? t('common.you') : winnerPlayer.username) : lastResult.winner
+  const winnerInitials = (winnerPlayer?.username ?? lastResult.winner).slice(0, 2).toUpperCase()
 
   // "Rematch" votes (client → 'rematch' → server 'game_created') only work while still
   // connected to the finished game's socket room; Game.tsx disconnects on navigating here.
@@ -78,13 +81,16 @@ export function Results() {
         </div>
         <div
           style={{
-            width: 96, height: 96, margin: '26px auto', borderRadius: '50%',
+            width: 96, height: 96, margin: '26px auto 10px', borderRadius: '50%',
             background: `linear-gradient(180deg,${COL[lastResult.winner].base},${COL[lastResult.winner].dark})`,
             display: 'grid', placeItems: 'center', fontSize: 34, fontWeight: 800, color: '#0d1b28',
             boxShadow: '0 0 0 4px #f0d18a,0 0 40px rgba(240,209,138,.4)',
           }}
         >
-          {lastResult.winner.slice(0, 2).toUpperCase()}
+          {winnerInitials}
+        </div>
+        <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 16 }}>
+          {winnerName}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '0 auto 22px', maxWidth: 340 }}>
           {ranked.map((p, i) => (

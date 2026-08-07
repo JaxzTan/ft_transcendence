@@ -211,7 +211,7 @@ export class MatchService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: ENGINE_WS_URL, color: assignedColor };
+		return { gameId, token, engineUrl: ENGINE_WS_URL, color: assignedColor, inviteCode: data.inviteCode || undefined };
 	}
 
 	// ─── Resolve a user's display username for embedding in match JWTs ───────
@@ -477,7 +477,7 @@ export class MatchService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: ENGINE_WS_URL, color };
+		return { gameId, token, engineUrl: ENGINE_WS_URL, color, inviteCode: data.inviteCode || undefined };
 	}
 
 	// ─── Spectate ───────────────────────────────────────────────────────────

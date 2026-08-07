@@ -53,7 +53,17 @@ export class FriendsService {
       'EX', 300,
     );
 
-    return { message: 'Invite sent', gameId: match.gameId };
+    // Return the host's own match credentials so the caller can join its own
+    // room immediately — the host must be seated before the friend can accept,
+    // otherwise the friend's accept could create/join the room alone.
+    return {
+      message: 'Invite sent',
+      gameId: match.gameId,
+      token: match.token,
+      engineUrl: match.engineUrl,
+      color: match.color,
+      inviteCode: match.inviteCode,
+    };
   }
 
   async getPendingInvite(userId: string) {

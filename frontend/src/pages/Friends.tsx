@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
+import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
+import { useApp } from '../store'
 import { avatarDim, btnGoldSmall, card, input, STATUS_STYLE, type PresenceStatus } from '../theme'
 
 type Friend = {
@@ -29,6 +31,7 @@ const STATUS_KEYS: Record<PresenceStatus, string> = {
 
 export function Friends() {
   const { t } = useTranslation()
+  const { setActiveMatch } = useApp()
   const [friends, setFriends] = useState<Friend[]>([])
   const [requests, setRequests] = useState<FriendRequest[]>([])
   const [searchUsername, setSearchUsername] = useState('')
@@ -125,11 +128,15 @@ export function Friends() {
     setInvitingId(friendId)
     setMsg(null)
     try {
-      await postApi('/api/friends/' + friendId + '/invite')
-      setMsg({ text: t('friends.inviteSent'), type: 'success' })
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(
+        '/api/friends/' + friendId + '/invite',
+      )
+      // Seat the host in the room now, before the friend can accept — otherwise
+      // the friend would be the only one who ever actually joins the engine game.
+      setActiveMatch(res)
+      navigate(`/game?gameId=${res.gameId}`)
     } catch (e) {
       setMsg({ text: e instanceof Error ? e.message : t('friends.genericError'), type: 'error' })
-    } finally {
       setInvitingId(null)
     }
   }
