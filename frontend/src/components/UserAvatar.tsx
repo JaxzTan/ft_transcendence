@@ -10,7 +10,6 @@ type UserAvatarProps = {
 
 export function UserAvatar({ username, size, fallbackStyle, style, cacheBuster }: UserAvatarProps) {
   const [error, setError] = useState(false)
-  const initials = username ? username.slice(0, 2).toUpperCase() : '??'
 
   // Reset error state if username or cache buster changes
   useEffect(() => {
@@ -19,8 +18,22 @@ export function UserAvatar({ username, size, fallbackStyle, style, cacheBuster }
 
   if (error || !username) {
     return (
-      <div style={{ ...fallbackStyle, width: size, height: size, ...style, flex: 'none' }}>
-        {initials}
+      <div style={{ ...fallbackStyle, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style, flex: 'none' }}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={size * 0.55} // Scale icon relative to avatar size
+          height={size * 0.55}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ color: fallbackStyle.color || '#a99a83', opacity: 0.8 }}
+        >
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
       </div>
     )
   }
