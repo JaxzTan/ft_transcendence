@@ -58,6 +58,15 @@ build: check-secrets
 start:
 	@docker compose -f $(COMPOSE_FILE) up -d
 
+
+# stop/down/logs carry --profile dev so they still reach frontend-dev; without
+# it compose ignores profiled services and leaves the container orphaned.
+stop:
+	@docker compose -f $(COMPOSE_FILE) --profile dev stop
+
+down:
+	@docker compose -f $(COMPOSE_FILE) --profile dev down
+
 # Brings up the whole stack plus the Vite HMR server, then stays attached in
 # watch mode: `compose watch` builds+starts everything first (like `up -d
 # --build`), then rebuilds/restarts backend and ludo-engine on source changes
@@ -68,18 +77,10 @@ start:
 # tearing anything down. The dev profile is off by default, hence --profile
 # here but not in all. Ctrl-C stops watching; the containers keep running
 # (use `make stop`/`make down`).
-dev: check-secrets
+dev: down check-secrets
 	@echo "🔥 HMR dev server:    http://localhost:8080"
 	@echo "🔒 nginx (built SPA): https://localhost:8443"
 	@docker compose -f $(COMPOSE_FILE) --profile dev watch
-
-# stop/down/logs carry --profile dev so they still reach frontend-dev; without
-# it compose ignores profiled services and leaves the container orphaned.
-stop:
-	@docker compose -f $(COMPOSE_FILE) --profile dev stop
-
-down:
-	@docker compose -f $(COMPOSE_FILE) --profile dev down
 
 logs:
 	@docker compose -f $(COMPOSE_FILE) --profile dev logs -f

@@ -1,16 +1,5 @@
 /** Mock data mirroring the design prototype. Replace with real API data later. */
 
-export const LEADERS = [
-  { name: 'GrandDuke', rating: 2410, wins: 412, wr: '71%' },
-  { name: 'Seraphine', rating: 2288, wins: 377, wr: '68%' },
-  { name: 'IronRook', rating: 2201, wins: 502, wr: '64%' },
-  { name: 'Marla_V', rating: 2144, wins: 298, wr: '66%' },
-  { name: 'Bishop_9', rating: 2098, wins: 255, wr: '61%' },
-  { name: 'NightKnight', rating: 2007, wins: 341, wr: '59%' },
-  { name: 'PawnStar', rating: 1955, wins: 410, wr: '57%' },
-  { name: 'CastleUp', rating: 1902, wins: 288, wr: '60%' },
-]
-
 export const MEDAL_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a']
 
 export const MY_ROW = { rank: 12, rating: 1540, wins: 198, wr: '58%' }
@@ -92,10 +81,10 @@ export const SETTING_GROUPS = [
 ]
 
 export const MODE_CARDS = [
-  { title: 'Vs Bots', desc: 'Play against the house AI', glyph: '♟', mode: 4, hue: '#4bbf7b' },
-  { title: '4-Player Classic', desc: 'The full cross-board race', glyph: '✦', mode: 4, hue: '#f0c24e' },
-  { title: '2-Player Duel', desc: 'Head-to-head, first home wins', glyph: '⚔', mode: 2, hue: '#e4574d' },
-  { title: 'Private Table', desc: 'Invite friends to a room', glyph: '⌘', mode: 4, hue: '#4a92e0' },
+  { title: 'Vs Bots', desc: 'Play against the house AI', glyph: '♟', playerCount: 4, allowAddPlayers: true, hue: '#4bbf7b' },
+  { title: 'Multiplayer', desc: 'Multiplayer vs Humans', glyph: '✦', playerCount: 4, allowAddPlayers: false, hue: '#f0c24e' },
+  { title: 'Hotseat', desc: 'Hotseat Game vs Humans', glyph: '⚔', playerCount: 4, allowAddPlayers: false, hue: '#e4574d' },
+  { title: 'Private Table', desc: 'Invite friends to a room', glyph: '⌘', playerCount: 4, allowAddPlayers: false, hue: '#4a92e0' },
 ]
 
 export const MOVE_LOG_COLORS = ['red', 'green', 'yellow', 'blue'] as const

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AuthLayout } from '../components/AuthLayout'
 import { navigate } from '../router'
 import { btnGold, goldText, input, label } from '../theme'
@@ -11,6 +12,7 @@ import { useApp } from '../store'
  * reveals whether the address was registered, and neither do we.
  */
 export function ForgotPassword() {
+  const { t } = useTranslation()
   const { forgotPassword } = useApp()
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +32,7 @@ export function ForgotPassword() {
 
   if (sent) {
     return (
-      <AuthLayout tag="CHECK YOUR INBOX">
+      <AuthLayout tag={t('auth.checkInboxTag')}>
         <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div
             style={{
@@ -42,16 +44,16 @@ export function ForgotPassword() {
               ...goldText,
             }}
           >
-            Check your inbox
+            {t('auth.checkInboxTitle')}
           </div>
           <div style={{ color: '#a99a83', fontSize: '14.5px', lineHeight: 1.5 }}>
-            If <b style={{ color: '#f0e2c4' }}>{email}</b> belongs to an account, we've sent a
-            password reset link. It expires in 1 hour and can be used once.
+            {t('auth.resetSentPrefix')} <b style={{ color: '#f0e2c4' }}>{email}</b>{' '}
+            {t('auth.resetSentSuffix')}
           </div>
           <div style={{ color: '#a99a83', fontSize: 14 }}>
-            Remembered it?{' '}
+            {t('auth.rememberedIt')}{' '}
             <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
-              Back to sign in
+              {t('auth.backToSignIn')}
             </a>
           </div>
         </div>
@@ -60,7 +62,7 @@ export function ForgotPassword() {
   }
 
   return (
-    <AuthLayout tag="FORGOT YOUR PASSWORD?">
+    <AuthLayout tag={t('auth.forgotYourPasswordTag')}>
       <form
         onSubmit={onSubmit}
         style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 20 }}
@@ -76,14 +78,14 @@ export function ForgotPassword() {
               ...goldText,
             }}
           >
-            Reset your password
+            {t('auth.resetYourPasswordTitle')}
           </div>
           <div style={{ color: '#a99a83', fontSize: '14.5px', marginTop: 8 }}>
-            Enter your email and we'll send you a link to choose a new one.
+            {t('auth.forgotDesc')}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <div style={label}>Email</div>
+          <div style={label}>{t('auth.emailLabel')}</div>
           <input
             type="email"
             value={email}
@@ -99,12 +101,12 @@ export function ForgotPassword() {
           <div style={{ color: '#e4574d', fontSize: '13.5px', lineHeight: 1.4 }}>{error}</div>
         )}
         <button type="submit" disabled={submitting} style={{ ...btnGold, opacity: submitting ? 0.6 : 1 }}>
-          {submitting ? 'Sending…' : 'Send reset link'}
+          {submitting ? t('auth.sendingBtn') : t('auth.sendResetLink')}
         </button>
         <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 14 }}>
-          Remembered it?{' '}
+          {t('auth.rememberedIt')}{' '}
           <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
-            Back to sign in
+            {t('auth.backToSignIn')}
           </a>
         </div>
       </form>

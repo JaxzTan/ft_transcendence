@@ -4,6 +4,59 @@ import { COL, type ColorKey } from '../theme'
 const CELL_BG = '#efe6d6'
 const LINE = '#c9b995'
 
+// ─── Track geometry ─────────────────────────────────────────────────────────
+// The engine works purely in logical steps (0-57, see board-mapper.ts) and has
+// no concept of board coordinates — the UI owns that mapping entirely. Red's
+// 13-cell path segment below was derived from the existing STARTS/laneColor
+// cells already in this file, then the other 3 colors' segments are generated
+// by rotating it 90° around the grid center — the classic 15×15 cross board
+// has exact 4-fold rotational symmetry, and this closes correctly (each
+// color's last cell is adjacent to the next color's start, verified by hand).
+type Cell = { r: number; c: number }
+
+const RED_SEGMENT: Cell[] = [
+  { r: 6, c: 1 }, { r: 6, c: 2 }, { r: 6, c: 3 }, { r: 6, c: 4 }, { r: 6, c: 5 },
+  { r: 5, c: 6 }, { r: 4, c: 6 }, { r: 3, c: 6 }, { r: 2, c: 6 }, { r: 1, c: 6 }, { r: 0, c: 6 },
+  { r: 0, c: 7 }, { r: 0, c: 8 },
+]
+
+/** 90° clockwise rotation about the 15×15 grid's center (7,7). */
+function rotate90({ r, c }: Cell): Cell {
+  return { r: c, c: 14 - r }
+}
+
+function rotateN(cell: Cell, n: number): Cell {
+  let out = cell
+  for (let i = 0; i < n; i++) out = rotate90(out)
+  return out
+}
+
+/** The full 52-cell shared outer loop, track position 1-52 → board cell. */
+const TRACK_CELLS: Cell[] = [0, 1, 2, 3].flatMap((rot) => RED_SEGMENT.map((cell) => rotateN(cell, rot)))
+
+const RED_HOME_LANE: Cell[] = [
+  { r: 7, c: 1 }, { r: 7, c: 2 }, { r: 7, c: 3 }, { r: 7, c: 4 }, { r: 7, c: 5 },
+]
+
+const HOME_LANES: Record<ColorKey, Cell[]> = {
+  red: RED_HOME_LANE,
+  green: RED_HOME_LANE.map((cell) => rotateN(cell, 1)),
+  yellow: RED_HOME_LANE.map((cell) => rotateN(cell, 2)),
+  blue: RED_HOME_LANE.map((cell) => rotateN(cell, 3)),
+}
+
+const TRACK_OFFSET: Record<ColorKey, number> = { red: 0, green: 13, yellow: 26, blue: 39 }
+
+/** Map a piece's logical step (1-57) to a board cell, or null if not on the board (base/goal). */
+function stepToCell(color: ColorKey, step: number): Cell | null {
+  if (step >= 52 && step <= 56) return HOME_LANES[color][step - 52]
+  if (step >= 1 && step <= 51) {
+    const trackPos = ((step + TRACK_OFFSET[color] - 1) % 52) + 1
+    return TRACK_CELLS[trackPos - 1]
+  }
+  return null
+}
+
 function Sphere({ ck }: { ck: ColorKey }) {
   const c = COL[ck]
   return (
@@ -34,7 +87,16 @@ function Ring({ ck }: { ck: ColorKey }) {
   )
 }
 
-function Yard({ r, c, ck, tokens }: { r: number; c: number; ck: ColorKey; tokens: number }) {
+function Yard({
+  r, c, ck, basePieces, legalPieceIds, onPieceClick,
+}: {
+  r: number
+  c: number
+  ck: ColorKey
+  basePieces: Array<{ id: string }>
+  legalPieceIds: Set<string>
+  onPieceClick?: (pieceId: string) => void
+}) {
   const col = COL[ck]
   return (
     <div
@@ -61,19 +123,27 @@ function Yard({ r, c, ck, tokens }: { r: number; c: number; ck: ColorKey; tokens
           boxShadow: 'inset 0 2px 6px rgba(0,0,0,.2)',
         }}
       >
-        {[0, 1, 2, 3].map((s) => (
-          <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {s < tokens ? <Sphere ck={ck} /> : <Ring ck={ck} />}
-          </div>
-        ))}
+        {[0, 1, 2, 3].map((s) => {
+          const piece = basePieces[s]
+          if (!piece) return <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ring ck={ck} /></div>
+          const isLegal = legalPieceIds.has(piece.id)
+          return (
+            <div
+              key={s}
+              onClick={() => isLegal && onPieceClick?.(piece.id)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: isLegal ? 'pointer' : 'default',
+                filter: isLegal ? 'drop-shadow(0 0 6px #f0d18a)' : 'none',
+              }}
+            >
+              <Sphere ck={ck} />
+            </div>
+          )
+        })}
       </div>
     </div>
   )
-}
-
-/** Demo token positions on the track: "row,col" → color. */
-const TOKENS: Record<string, ColorKey> = {
-  '6,1': 'red', '7,3': 'red', '1,8': 'green', '8,13': 'yellow', '7,11': 'yellow', '13,6': 'blue',
 }
 
 /** Star/safe start cells, tinted the owner color. */
@@ -88,8 +158,20 @@ function laneColor(r: number, c: number): string | null {
   return null
 }
 
+type BoardProps = {
+  pieces?: Array<{ id: string; color: string; step: number; isInGoal: boolean; isInBase: boolean }>
+  players?: Array<{ color: string; status: string }>
+  legalMoves?: Array<{ pieceId: string; from: number; to: number; isCapture: boolean; isHomeEntry: boolean }>
+  onPieceClick?: (pieceId: string) => void
+}
+
 /** The classic 15×15 cross board, rendered procedurally — no images. */
-export function Board() {
+export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: BoardProps = {}) {
+  const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
+  const activeColors = new Set(players.filter((p) => p.status === 'active').map((p) => p.color))
+  const basePieces = (ck: ColorKey) =>
+    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase) : []
+
   const cells: ReactNode[] = []
   for (let r = 0; r < 15; r++) {
     for (let c = 0; c < 15; c++) {
@@ -110,8 +192,7 @@ export function Board() {
         boxSizing: 'border-box',
       }
       let inner: ReactNode = null
-      if (TOKENS[key]) inner = <Sphere ck={TOKENS[key]} />
-      else if (startCol)
+      if (startCol)
         inner = (
           <div
             style={{
@@ -131,34 +212,87 @@ export function Board() {
     }
   }
 
+  // Render engine-driven pieces on the actual track cell their step maps to.
+  // Grouped by cell so pieces sharing a square (common near base/captures)
+  // fan out into sub-positions instead of fully overlapping.
+  const byCell = new Map<string, Array<{ id: string; ck: ColorKey; isLegal: boolean }>>()
+  for (const piece of pieces) {
+    if (!activeColors.has(piece.color) || piece.isInBase || piece.isInGoal || piece.step <= 0) continue
+    const ck = piece.color as ColorKey
+    const cell = stepToCell(ck, piece.step)
+    if (!cell) continue
+    const key = `${cell.r},${cell.c}`
+    const list = byCell.get(key) ?? []
+    list.push({ id: piece.id, ck, isLegal: legalPieceIds.has(piece.id) })
+    byCell.set(key, list)
+  }
+
+  // Sub-cell offsets so up to 4 stacked pieces stay individually visible/clickable.
+  const SUB_OFFSETS = [
+    { x: -22, y: -22 }, { x: 22, y: -22 }, { x: -22, y: 22 }, { x: 22, y: 22 },
+  ]
+
+  const enginePieces: ReactNode[] = []
+  for (const [key, list] of byCell) {
+    const [r, c] = key.split(',').map(Number)
+    list.forEach((p, i) => {
+      const col = COL[p.ck]
+      const offset = list.length > 1 ? SUB_OFFSETS[i % SUB_OFFSETS.length] : { x: 0, y: 0 }
+      enginePieces.push(
+        <div
+          key={p.id}
+          onClick={() => p.isLegal && onPieceClick?.(p.id)}
+          style={{
+            gridRow: r + 1,
+            gridColumn: c + 1,
+            width: 20,
+            height: 20,
+            alignSelf: 'center',
+            justifySelf: 'center',
+            borderRadius: '50%',
+            background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${col.base} 52%, ${col.dark})`,
+            border: p.isLegal ? '2.5px solid #f0d18a' : '2px solid rgba(0,0,0,.28)',
+            boxShadow: p.isLegal ? '0 0 8px #f0d18a88' : '0 2px 4px rgba(0,0,0,.45)',
+            cursor: p.isLegal ? 'pointer' : 'default',
+            zIndex: 10,
+            transform: `translate(${offset.x}%, ${offset.y}%)`,
+          }}
+        />,
+      )
+    })
+  }
+
   return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '1',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(15,1fr)',
-        gridTemplateRows: 'repeat(15,1fr)',
-        gap: 1,
-        padding: '2.5%',
-        borderRadius: 12,
-        background: 'linear-gradient(160deg,#25150f,#1a0f0a)',
-        boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5)',
-      }}
-    >
-      <Yard r={0} c={0} ck="red" tokens={2} />
-      <Yard r={0} c={9} ck="green" tokens={3} />
-      <Yard r={9} c={9} ck="yellow" tokens={1} />
-      <Yard r={9} c={0} ck="blue" tokens={4} />
+    <div style={{ position: 'relative' }}>
       <div
         style={{
-          gridRow: '7 / span 3',
-          gridColumn: '7 / span 3',
-          background: `conic-gradient(from 45deg, ${COL.green.base} 0 90deg, ${COL.yellow.base} 90deg 180deg, ${COL.blue.base} 180deg 270deg, ${COL.red.base} 270deg 360deg)`,
-          boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
+          width: '100%',
+          aspectRatio: '1',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(15,1fr)',
+          gridTemplateRows: 'repeat(15,1fr)',
+          gap: 1,
+          padding: '2.5%',
+          borderRadius: 12,
+          background: 'linear-gradient(160deg,#25150f,#1a0f0a)',
+          boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5)',
         }}
-      />
-      {cells}
+      >
+        <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={0} c={9} ck="green" basePieces={basePieces('green')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={9} c={9} ck="yellow" basePieces={basePieces('yellow')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={9} c={0} ck="blue" basePieces={basePieces('blue')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <div
+          style={{
+            gridRow: '7 / span 3',
+            gridColumn: '7 / span 3',
+            background: `conic-gradient(from 45deg, ${COL.green.base} 0 90deg, ${COL.yellow.base} 90deg 180deg, ${COL.blue.base} 180deg 270deg, ${COL.red.base} 270deg 360deg)`,
+            boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
+          }}
+        />
+        {cells}
+        {enginePieces}
+      </div>
     </div>
   )
 }

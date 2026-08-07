@@ -8,6 +8,7 @@ services:
     build:
       context: ./backend/app/postgres_16_db
       dockerfile: Dockerfile
+    container_name: db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-db_bossman}
@@ -18,7 +19,7 @@ services:
     ports:
       # Loopback-only: in LAN mode a bare "5432:5432" would expose Postgres
       # to every device on the WiFi. Still reachable from the host for psql.
-      - "127.0.0.1:5432:5432"
+      - 5432:5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_bossman} -d postgres"]
       interval: 5s
@@ -31,6 +32,7 @@ services:
     build:
       context: ./backend/app/redis
       dockerfile: Dockerfile
+    container_name: redis
     restart: unless-stopped
     networks:
       - transcendence_network
@@ -39,6 +41,7 @@ services:
       - redis_data:/data
     expose:
       - "6379"
+
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -49,6 +52,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: backend
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
@@ -63,7 +67,7 @@ services:
     ports:
       # Loopback-only: clients always reach the backend through nginx's
       # /api/ proxy, never directly. Published purely for host-side debugging.
-      - "127.0.0.1:3000:3000"
+      - 3000:3000
     depends_on:
       db:
         condition: service_healthy
@@ -87,6 +91,7 @@ services:
     build:
       context: ./backend/app/ludo-engine
       dockerfile: Dockerfile
+    container_name: ludo-engine
     restart: unless-stopped
     networks:
       - transcendence_network
@@ -95,8 +100,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     environment:
       SECRETS_DIR: /secrets
       REDIS_HOST: redis
@@ -123,6 +128,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: frontend
     restart: unless-stopped
     volumes:
       - spa_dist:/export
@@ -146,6 +152,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
+    container_name: frontend-dev
     profiles:
       - dev
     restart: unless-stopped
@@ -159,8 +166,11 @@ services:
     environment:
       VITE_IN_CONTAINER: "true"
       VITE_API_TARGET: http://backend:3000
+      VITE_ENGINE_TARGET: http://ludo-engine:3001
     depends_on:
       backend:
+        condition: service_started
+      ludo-engine:
         condition: service_started
     networks:
       - transcendence_network
@@ -169,12 +179,14 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    container_name: nginx
     restart: unless-stopped
     ports:
       - "8443:443"
     volumes:
       - spa_dist:/usr/share/nginx/html:ro
       - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf/app.inc:/etc/nginx/app.inc:ro
     depends_on:
       # Waiting on the healthcheck (first publish) is what keeps nginx from
       # booting onto an empty document root the first time the stack comes up.

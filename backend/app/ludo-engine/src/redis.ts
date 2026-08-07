@@ -42,13 +42,21 @@ export class RedisGameStore {
     const pieces: Piece[] = [];
     for (const color of COLORS) {
       for (let i = 0; i < 4; i++) {
-        pieces.push({ id: `${color}-${i}`, color, step: 0 });
+        pieces.push({ id: `${color}-${i}`, color, step: 0, isInGoal: false, isInBase: true });
       }
     }
     
     const players: PlayerMeta[] = COLORS.map(color => ({
       color,
       status: 'inactive',
+      username: color === 'red' ? 'You' : color.charAt(0).toUpperCase() + color.slice(1),
+      isBot: false,
+      isConnected: false,
+      piecesInGoal: 0,
+      hasRolled: false,
+      consecutiveSixes: 0,
+      bonusRoll: false,
+      isFinished: false,
       stats: { turns: 0, captures: 0, piecesInGoal: 0 }
     }));
     

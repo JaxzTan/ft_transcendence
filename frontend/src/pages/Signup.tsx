@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AuthLayout, GoldCheck } from '../components/AuthLayout'
 import { OAuthButtons, OrDivider } from '../components/OAuthButtons'
 import { navigate } from '../router'
@@ -8,6 +9,7 @@ import { useApp } from '../store'
 import { passwordError } from '../validatePassword'
 
 export function Signup() {
+  const { t } = useTranslation()
   const { register } = useApp()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -28,7 +30,7 @@ export function Signup() {
       return
     }
     if (password !== confirm) {
-      setError('Passwords do not match')
+      setError(t('auth.passwordMismatch'))
       return
     }
     setSubmitting(true)
@@ -41,7 +43,7 @@ export function Signup() {
 
   if (sent) {
     return (
-      <AuthLayout tag="ONE MORE STEP">
+      <AuthLayout tag={t('auth.oneMoreStep')}>
         <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div
             style={{
@@ -53,16 +55,16 @@ export function Signup() {
               ...goldText,
             }}
           >
-            Check your inbox
+            {t('auth.checkInboxTitle')}
           </div>
           <div style={{ color: '#a99a83', fontSize: '14.5px', lineHeight: 1.5 }}>
-            We sent a verification link to <b style={{ color: '#f0e2c4' }}>{email}</b>. Open it to
-            activate your seat, then sign in. The link expires in 24 hours.
+            {t('auth.verificationSentPrefix')} <b style={{ color: '#f0e2c4' }}>{email}</b>.{' '}
+            {t('auth.verificationSentSuffix')}
           </div>
           <div style={{ color: '#a99a83', fontSize: 14 }}>
-            Done verifying?{' '}
+            {t('auth.doneVerifying')}{' '}
             <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
-              Sign in
+              {t('auth.signInLink')}
             </a>
           </div>
         </div>
@@ -71,7 +73,7 @@ export function Signup() {
   }
 
   return (
-    <AuthLayout tag="JOIN 2.4M PLAYERS WORLDWIDE">
+    <AuthLayout tag={t('auth.signupTag')}>
       <form
         onSubmit={onSubmit}
         style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}
@@ -87,29 +89,29 @@ export function Signup() {
               ...goldText,
             }}
           >
-            Create your seat
+            {t('auth.createSeatTitle')}
           </div>
           <div style={{ color: '#a99a83', fontSize: '14.5px', marginTop: 8 }}>
-            Claim your name at the table. It's free to play.
+            {t('auth.claimSeatDesc')}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={label}>Username</div>
+          <div style={label}>{t('auth.usernameLabel')}</div>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="e.g. NightRook (3+ characters)"
+            placeholder={t('auth.usernamePlaceholder')}
             autoComplete="username"
             style={input}
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={label}>Email</div>
+          <div style={label}>{t('auth.emailLabel')}</div>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@parlor.gg — verification + login codes go here"
+            placeholder={t('auth.emailPlaceholderSignup')}
             autoComplete="email"
             required
             style={input}
@@ -117,18 +119,18 @@ export function Signup() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={label}>Password</div>
+            <div style={label}>{t('auth.passwordLabel')}</div>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="12+ chars, upper, lower, number, symbol"
+              placeholder={t('auth.passwordPlaceholderSignup')}
               autoComplete="new-password"
               style={input}
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={label}>Confirm</div>
+            <div style={label}>{t('auth.confirmLabel')}</div>
             <input
               type="password"
               value={confirm}
@@ -154,17 +156,17 @@ export function Signup() {
           }}
         >
           <GoldCheck offsetTop />
-          I agree to the House Rules and Privacy terms.
+          {t('auth.agreeTerms')}
         </label>
         <button type="submit" disabled={submitting} style={{ ...btnGold, opacity: submitting ? 0.6 : 1 }}>
-          {submitting ? 'Creating…' : 'Create account & play'}
+          {submitting ? t('auth.creatingBtn') : t('auth.createAccountBtn')}
         </button>
-        <OrDivider text="OR SIGN UP WITH" />
+        <OrDivider text={t('auth.orSignUpWith')} />
         <OAuthButtons />
         <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 14 }}>
-          Already have a seat?{' '}
+          {t('auth.alreadyHaveSeat')}{' '}
           <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
-            Sign in
+            {t('auth.signInLink')}
           </a>
         </div>
       </form>
