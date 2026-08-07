@@ -6,18 +6,21 @@ const COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
 const DISCONNECT_GRACE_MS = 30000; // 30 seconds to reconnect before forfeit
 
 /**
- * Advance turn to the next non-exited, non-disconnected player.
+ * Advance turn to the next seated (active) player.
  * Mutates state in-place.
  */
 export function advanceTurnInState(state: GameState): void {
   const currentIndex = COLORS.indexOf(state.currentTurn);
   let nextIndex = (currentIndex + 1) % 4;
-  
+
   let loopCount = 0;
   while (loopCount < 4) {
     const p = state.players[nextIndex];
-    // Skip exited and temporarily disconnected players
-    if (p.status !== 'exited' && p.status !== 'disconnected') {
+    // Only an *active* seat can hold the turn — 'inactive' means the seat was
+    // never joined at all (e.g. the unused 2 colors in a 2-player match), and
+    // was previously falling through this check, permanently stalling the
+    // turn on a seat nobody controls.
+    if (p.status === 'active') {
       break;
     }
     nextIndex = (nextIndex + 1) % 4;

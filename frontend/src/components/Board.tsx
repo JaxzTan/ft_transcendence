@@ -34,7 +34,16 @@ function Ring({ ck }: { ck: ColorKey }) {
   )
 }
 
-function Yard({ r, c, ck, tokens }: { r: number; c: number; ck: ColorKey; tokens: number }) {
+function Yard({
+  r, c, ck, basePieces, legalPieceIds, onPieceClick,
+}: {
+  r: number
+  c: number
+  ck: ColorKey
+  basePieces: Array<{ id: string }>
+  legalPieceIds: Set<string>
+  onPieceClick?: (pieceId: string) => void
+}) {
   const col = COL[ck]
   return (
     <div
@@ -61,11 +70,24 @@ function Yard({ r, c, ck, tokens }: { r: number; c: number; ck: ColorKey; tokens
           boxShadow: 'inset 0 2px 6px rgba(0,0,0,.2)',
         }}
       >
-        {[0, 1, 2, 3].map((s) => (
-          <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {s < tokens ? <Sphere ck={ck} /> : <Ring ck={ck} />}
-          </div>
-        ))}
+        {[0, 1, 2, 3].map((s) => {
+          const piece = basePieces[s]
+          if (!piece) return <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ring ck={ck} /></div>
+          const isLegal = legalPieceIds.has(piece.id)
+          return (
+            <div
+              key={s}
+              onClick={() => isLegal && onPieceClick?.(piece.id)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: isLegal ? 'pointer' : 'default',
+                filter: isLegal ? 'drop-shadow(0 0 6px #f0d18a)' : 'none',
+              }}
+            >
+              <Sphere ck={ck} />
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -94,8 +116,8 @@ type BoardProps = {
 export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: BoardProps = {}) {
   const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
   const activeColors = new Set(players.filter((p) => p.status === 'active').map((p) => p.color))
-  const basePieceCount = (ck: ColorKey) =>
-    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase).length : 0
+  const basePieces = (ck: ColorKey) =>
+    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase) : []
 
   const cells: ReactNode[] = []
   for (let r = 0; r < 15; r++) {
@@ -182,10 +204,10 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
           boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5)',
         }}
       >
-        <Yard r={0} c={0} ck="red" tokens={basePieceCount('red')} />
-        <Yard r={0} c={9} ck="green" tokens={basePieceCount('green')} />
-        <Yard r={9} c={9} ck="yellow" tokens={basePieceCount('yellow')} />
-        <Yard r={9} c={0} ck="blue" tokens={basePieceCount('blue')} />
+        <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={0} c={9} ck="green" basePieces={basePieces('green')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={9} c={9} ck="yellow" basePieces={basePieces('yellow')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={9} c={0} ck="blue" basePieces={basePieces('blue')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
         <div
           style={{
             gridRow: '7 / span 3',
