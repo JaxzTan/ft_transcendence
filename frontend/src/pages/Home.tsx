@@ -1,23 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MODE_CARDS } from '../data'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { avatarDim, btnGold, card } from '../theme'
 
 type LadderEntry = { username: string; rating: number }
 
-/** Maps each MODE_CARDS entry (matched by its English title) to its locale keys. */
-const MODE_CARD_KEYS: Record<string, { title: string; desc: string }> = {
-  'Vs Bots': { title: 'home.vsBotsTitle', desc: 'home.vsBotsDesc' },
-  'Multiplayer': { title: 'home.multiplayerTitle', desc: 'home.multiplayerDesc' },
-  'Hotseat': { title: 'home.hotseatTitle', desc: 'home.hotseatDesc' },
-  'Private Table': { title: 'home.privateTableTitle', desc: 'home.privateTableDesc' },
-}
-
 export function Home() {
   const { t } = useTranslation()
-  const { user, setPlayerCount } = useApp()
+  const { user } = useApp()
   const [ladder, setLadder] = useState<LadderEntry[] | null>(null)
 
   useEffect(() => {
@@ -35,15 +26,6 @@ export function Home() {
       cancelled = true
     }
   }, [])
-
-  const goLobby = (m: typeof MODE_CARDS[number]) => {
-    setPlayerCount(m.playerCount as 2 | 3 | 4)
-    if (m.title === 'Multiplayer') {
-      navigate('/multiplayer-lobby')
-      return
-    }
-    navigate(`/lobby?mode=${m.playerCount}&bots=${m.allowAddPlayers ? '1' : '0'}`)
-  }
 
   return (
     <div className="home-page" style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
@@ -95,47 +77,6 @@ export function Home() {
             </button>
           </div>
         </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
-        {MODE_CARDS.map((m) => {
-          const keys = MODE_CARD_KEYS[m.title]
-          return (
-            <div
-              key={m.title}
-              className="mode-card"
-              onClick={() => goLobby(m)}
-              style={{
-                cursor: 'pointer',
-                borderRadius: 16,
-                background: 'linear-gradient(180deg,#241b13,#1a130d)',
-                border: '1px solid #3a2c1d',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,.045),0 20px 44px -24px rgba(0,0,0,.85)',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform .12s,border-color .12s',
-              }}
-            >
-              <div
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 12,
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontSize: 22,
-                  color: m.hue,
-                  background: 'rgba(255,255,255,.04)',
-                  border: `1px solid ${m.hue}44`,
-                }}
-              >
-                {m.glyph}
-              </div>
-              <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>{keys ? t(keys.title) : m.title}</div>
-              <div style={{ color: '#a99a83', fontSize: 13, lineHeight: 1.4 }}>{keys ? t(keys.desc) : m.desc}</div>
-            </div>
-          )
-        })}
       </div>
 
       <div className="home-ladder" style={{ ...card }}>

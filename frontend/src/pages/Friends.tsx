@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { postApi } from '../api'
 import { navigate } from '../router'
 import { avatarDim, btnGoldSmall, card, input, STATUS_STYLE, type PresenceStatus } from '../theme'
 
@@ -118,6 +119,21 @@ export function Friends() {
     fetchData()
   }
 
+  const [invitingId, setInvitingId] = useState<string | null>(null)
+
+  const handleInvite = async (friendId: string) => {
+    setInvitingId(friendId)
+    setMsg(null)
+    try {
+      await postApi('/api/friends/' + friendId + '/invite')
+      setMsg({ text: t('friends.inviteSent'), type: 'success' })
+    } catch (e) {
+      setMsg({ text: e instanceof Error ? e.message : t('friends.genericError'), type: 'error' })
+    } finally {
+      setInvitingId(null)
+    }
+  }
+
   const handleRemove = async (friendId: string) => {
     await fetch(`/api/friends/remove/${friendId}`, {
       method: 'DELETE',
@@ -227,9 +243,10 @@ export function Friends() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
-                    onClick={() => navigate('/lobby')}
+                    onClick={() => handleInvite(f.id)}
+                    disabled={invitingId === f.id}
                     style={{
-                      cursor: 'pointer',
+                      cursor: invitingId === f.id ? 'default' : 'pointer',
                       border: '1px solid #b8873a',
                       borderRadius: 9,
                       padding: '7px 15px',
@@ -237,9 +254,10 @@ export function Friends() {
                       fontSize: '12.5px',
                       color: '#2a1c07',
                       background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
+                      opacity: invitingId === f.id ? 0.6 : 1,
                     }}
                   >
-                    {t('friends.playBtn')}
+                    {invitingId === f.id ? t('friends.invitingBtn') : t('friends.playBtn')}
                   </button>
                   <button
                     onClick={() => handleRemove(f.id)}

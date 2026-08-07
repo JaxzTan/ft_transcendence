@@ -12,7 +12,7 @@ export function isBotUserId(userId: string | undefined): boolean {
  * Extracts payload from a signed token using HMAC-SHA256.
  * In production, use a proper JWT library.
  */
-export function verifyToken(token: string): { gameId: string; userId: string; role: string; clashEnabled?: boolean; mode?: string } | null {
+export function verifyToken(token: string): { gameId: string; userId: string; username?: string; role: string; clashEnabled?: boolean; mode?: string } | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -20,6 +20,7 @@ export function verifyToken(token: string): { gameId: string; userId: string; ro
     return {
       gameId: payload.gameId,
       userId: payload.playerId || payload.sub || payload.userId,
+      username: payload.username,
       role: payload.role || 'player',
       clashEnabled: payload.clashEnabled,
     };
@@ -33,6 +34,7 @@ export interface SocketData {
   gameId?: string;
   playerColor?: PlayerColor;
   userId?: string;
+  username?: string;
   role?: 'player' | 'spectator';
   clashEnabled?: boolean;
   mode?: 'pvp' | 'pve' | 'hotseat';

@@ -47,4 +47,23 @@ export class FriendsController {
   blockUser(@Request() req: { user: { id: string } }, @Param('userId') targetUserId: string) {
     return this.friends.blockUser(req.user.id, targetUserId);
   }
+
+  // ─── Game Invitations ───────────────────────────────────────────────────
+  @UseGuards(JwtAuthGuard)
+  @Post('api/friends/:friendId/invite')
+  inviteToGame(@Request() req: { user: { id: string } }, @Param('friendId') friendId: string) {
+    return this.friends.inviteToGame(req.user.id, friendId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('api/friends/invites/pending')
+  getPendingInvite(@Request() req: { user: { id: string } }) {
+    return this.friends.getPendingInvite(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('api/friends/invites/dismiss')
+  dismissInvite(@Request() req: { user: { id: string } }) {
+    return this.friends.dismissInvite(req.user.id);
+  }
 }

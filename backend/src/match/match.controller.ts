@@ -12,85 +12,79 @@ export class MatchController {
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/pvp/random')
 	pvpRandom(
-		@Request() req: { user: { sub: string } },
+		@Request() req: { user: { id: string } },
 		@Body('clashEnabled') clashEnabled?: boolean,
-		@Body('color') color?: string,
 	) {
-		return this.match.findRandomMatch(req.user.sub, clashEnabled, color);
+		return this.match.findRandomMatch(req.user.id, clashEnabled);
 	}
 
 	// ─── PvP: Create invite game (share code via chat) ────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/pvp/invite')
 	pvpInvite(
-		@Request() req: { user: { sub: string } },
+		@Request() req: { user: { id: string } },
 		@Body('clashEnabled') clashEnabled?: boolean,
-		@Body('color') color?: string,
 	) {
-		return this.match.createInvite(req.user.sub, clashEnabled, color);
+		return this.match.createInvite(req.user.id, clashEnabled);
 	}
 
 	// ─── PvP: Join by invite code ────────────────────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/join/:code')
 	joinInvite(
-		@Request() req: { user: { sub: string } },
+		@Request() req: { user: { id: string } },
 		@Param('code') code: string,
-		@Body('color') color?: string,
 	) {
-		return this.match.joinByInvite(code, req.user.sub, color);
+		return this.match.joinByInvite(code, req.user.id);
 	}
 
 	// ─── PvE: Human vs Bot (2p or 4p) ────────────────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/pve')
 	pve(
-		@Request() req: { user: { sub: string } },
+		@Request() req: { user: { id: string } },
 		@Body('playerCount') playerCount: number,
 		@Body('clashEnabled') clashEnabled?: boolean,
-		@Body('color') color?: string,
 	) {
-		return this.match.playBot(req.user.sub, playerCount || 2, clashEnabled, color);
+		return this.match.playBot(req.user.id, playerCount || 2, clashEnabled);
 	}
 
 	// ─── Unified Match Creation ────────────────────────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/create')
 	create(
-		@Request() req: { user: { sub: string } },
+		@Request() req: { user: { id: string } },
 		@Body('mode') mode: 'pvp' | 'pve' | 'hotseat',
 		@Body('playerCount') playerCount: number,
 		@Body('botCount') botCount: number,
 		@Body('clashEnabled') clashEnabled?: boolean,
-		@Body('color') color?: string,
 	) {
 		return this.match.createMatch(
-			req.user.sub,
+			req.user.id,
 			mode || 'pve',
 			playerCount || 2,
 			botCount || 0,
 			clashEnabled,
-			color,
 		);
 	}
 
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/rematch/:gameId')
-	rematch(@Request() req: { user: { sub: string } }, @Param('gameId') gameId: string) {
-		return this.match.rematch(gameId, req.user.sub);
+	rematch(@Request() req: { user: { id: string } }, @Param('gameId') gameId: string) {
+		return this.match.rematch(gameId, req.user.id);
 	}
 
 	// ─── Game Actions ───────────────────────────────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/game/:id/ready')
-	ready(@Request() req: { user: { sub: string } }, @Param('id') gameId: string) {
-		return this.match.readyGame(gameId, req.user.sub);
+	ready(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
+		return this.match.readyGame(gameId, req.user.id);
 	}
 
 	@UseGuards(JwtAuthGuard)
 	@Post('api/game/:id/resign')
-	resign(@Request() req: { user: { sub: string } }, @Param('id') gameId: string) {
-		return this.match.resign(gameId, req.user.sub);
+	resign(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
+		return this.match.resign(gameId, req.user.id);
 	}
 
 	// ─── Browse Games ───────────────────────────────────────────────────────
@@ -100,9 +94,29 @@ export class MatchController {
 		return this.match.listActiveGames();
 	}
 
+	// ─── Browse Open Rooms (WAITING PvP games — joinable) ──────────────────
+	@UseGuards(JwtAuthGuard)
+	@Get('api/games/rooms')
+	listRooms() {
+		return this.match.listOpenRooms();
+	}
+
+	// ─── My Rooms (WAITING/ACTIVE games I'm seated in — rejoin after refresh) ─
+	@UseGuards(JwtAuthGuard)
+	@Get('api/games/mine')
+	listMine(@Request() req: { user: { id: string } }) {
+		return this.match.listMyRooms(req.user.id);
+	}
+
+	@UseGuards(JwtAuthGuard)
+	@Post('api/game/:id/rejoin')
+	rejoin(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
+		return this.match.rejoin(gameId, req.user.id);
+	}
+
 	@UseGuards(JwtAuthGuard)
 	@Post('api/games/:id/spectate')
-	spectate(@Request() req: { user: { sub: string } }, @Param('id') gameId: string) {
+	spectate(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
 		const token = this.jwt.sign(
 			{ gameId, playerId: null, role: 'spectator' },
 			{ expiresIn: '24h' },
@@ -122,8 +136,8 @@ export class MatchController {
 	// ─── Exit Game (player acknowledges leaving) ────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/game/:id/exit')
-	exitGame(@Request() req: { user: { sub: string } }, @Param('id') gameId: string) {
-		return this.match.exitGame(gameId, req.user.sub);
+	exitGame(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
+		return this.match.exitGame(gameId, req.user.id);
 	}
 
 	// ─── Cleanup ─────────────────────────────────────────────────────────────
@@ -136,7 +150,7 @@ export class MatchController {
 	// ─── Abort Game ──────────────────────────────────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/game/:id/abort')
-	abort(@Request() req: { user: { sub: string } }, @Param('id') gameId: string) {
-		return this.match.cancelGame(gameId, req.user.sub);
+	abort(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
+		return this.match.cancelGame(gameId, req.user.id);
 	}
 }

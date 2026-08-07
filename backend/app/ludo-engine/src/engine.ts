@@ -84,7 +84,7 @@ export class LudoEngine {
         state.pendingDiceValue = undefined;
         advanceTurnInState(state);
         await this.store.saveGameState(gameId, state);
-        this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll: false });
+        this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll: false, currentTurn: state.currentTurn });
         return { value: diceValue, legalMoves: [], bonusRoll: false };
       }
     } else {
@@ -107,7 +107,7 @@ export class LudoEngine {
         advanceTurnInState(state);
       }
       await this.store.saveGameState(gameId, state);
-      this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll });
+      this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll, currentTurn: state.currentTurn });
       return { value: diceValue, legalMoves: [], bonusRoll };
     }
 
@@ -118,7 +118,7 @@ export class LudoEngine {
     await this.store.saveGameState(gameId, state);
     
     const bonusRoll = diceValue === 6;
-    this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves, bonusRoll });
+    this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves, bonusRoll, currentTurn: state.currentTurn });
     return { value: diceValue, legalMoves, bonusRoll };
   }
 
@@ -243,7 +243,8 @@ export class LudoEngine {
   }
 
   async handlePlayerReady(gameId: string, color: PlayerColor): Promise<void> {
-    return handlePlayerReady(this.store, (e) => this.emit(e), gameId, color);
+    await handlePlayerReady(this.store, (e) => this.emit(e), gameId, color);
+    await this.emitLobbyUpdate(gameId);
   }
 
   async handlePlayerExit(gameId: string, color: PlayerColor): Promise<void> {
@@ -255,5 +256,25 @@ export class LudoEngine {
       throw new Error('Lobby manager not initialized');
     }
     await this.lobbyManager.handleSelectColor(gameId, userId, color);
+    await this.emitLobbyUpdate(gameId);
+  }
+
+  /**
+   * Broadcast the current waiting-room roster (seat, username, ready flag) so every
+   * connected client's lobby screen stays in sync after a ready-toggle or color swap.
+   */
+  private async emitLobbyUpdate(gameId: string): Promise<void> {
+    const state = await this.store.loadGameState(gameId);
+    if (!state) return;
+    const players = state.players
+      .filter(p => p.status !== 'inactive')
+      .map(p => ({
+        userId: '',
+        username: p.username,
+        avatarStyle: '',
+        color: p.color,
+        ready: state.readyPlayers.includes(p.color),
+      }));
+    this.emit({ type: 'lobby_update', gameId, players });
   }
 }

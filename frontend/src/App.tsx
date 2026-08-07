@@ -7,6 +7,7 @@ import { Game } from './pages/Game'
 import { Home } from './pages/Home'
 import { Leaderboard } from './pages/Leaderboard'
 import { Lobby } from './pages/Lobby'
+import { LudoLobby } from './pages/LudoLobby'
 import { Login } from './pages/Login'
 import { Results } from './pages/Results'
 import { Signup } from './pages/Signup'
@@ -35,7 +36,8 @@ const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/2fa': () => <TwoFactor />,
   '/forgot-password': () => <ForgotPassword />,
   '/reset-password': () => <ResetPassword />,
-  '/lobby': () => <Lobby />,
+  '/lobby': () => <LudoLobby />,
+  '/lobby/table': () => <Lobby />,
   '/game': () => <Game />,
   '/results': () => <Results />,
 }

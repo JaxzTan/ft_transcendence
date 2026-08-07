@@ -36,7 +36,8 @@ export class LobbyManager {
 
     // Check if color is already taken by another player
     const currentColorKey = `player${slotIndex + 1}_color`;
-    if (data[currentColorKey] === color) return; // already has this color
+    const currentColor = (data[currentColorKey] as PlayerColor) || SLOT_COLORS[slotIndex];
+    if (currentColor === color) return; // already has this color
 
     const takenBy = [data.player1_id, data.player2_id, data.player3_id, data.player4_id]
       .find((id, idx) => id && id !== userId && (data[`player${idx + 1}_color`] as string) === color);
@@ -54,6 +55,23 @@ export class LobbyManager {
     } else {
       // Color is free, just assign
       await this.store.updateMatchData(gameId, { [currentColorKey]: color });
+    }
+
+    // Mirror the swap into the live engine GameState so display and gameplay
+    // (turn/move ownership is color-keyed) stay in sync. This is pre-game only
+    // (status === 'WAITING' guard above), so board pieces are untouched — all
+    // still sitting in base — only seat *identity* moves between the two slots.
+    const state = await this.store.loadGameState(gameId);
+    if (state) {
+      const a = state.players.find(p => p.color === currentColor);
+      const b = state.players.find(p => p.color === color);
+      if (a && b) {
+        const { color: _colorA, ...aRest } = a;
+        const { color: _colorB, ...bRest } = b;
+        Object.assign(a, bRest);
+        Object.assign(b, aRest);
+        await this.store.saveGameState(gameId, state);
+      }
     }
   }
 

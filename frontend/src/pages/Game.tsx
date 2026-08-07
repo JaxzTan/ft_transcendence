@@ -10,6 +10,20 @@ import { connectSocket } from '../socket'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
 
+function toMatchCode(id: string): string {
+  // Deterministic 6-char uppercase alphanumeric code, derived from the gameId
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    let hash = i + 1
+    for (let j = 0; j < id.length; j++) {
+      hash = (hash * 31 + id.charCodeAt(j)) >>> 0
+    }
+    code += chars[hash % chars.length]
+  }
+  return code
+}
+
 function Pips({ count, color }: { count: number; color: string }) {
   return (
     <div style={{ display: 'flex', gap: 3 }}>
@@ -30,9 +44,9 @@ function Pips({ count, color }: { count: number; color: string }) {
 
 export function Game() {
   const { t } = useTranslation()
-  const { activeMatch, setPlaying, setLastResult } = useApp()
+  const { user, activeMatch, setPlaying, setLastResult } = useApp()
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
-  const [view, dispatch] = useReducer(applyEvent, null, () => initialView('red'))
+  const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
   const viewRef = useRef(view)
   viewRef.current = view
   const [connected, setConnected] = useState(false)
@@ -54,7 +68,7 @@ export function Game() {
 
     socket.on('connect', () => {
       setConnected(true)
-      socket.emit('join_game', activeMatch.gameId, 'red')
+      socket.emit('join_game', activeMatch.gameId, activeMatch.color)
       // Socket.IO re-fires 'connect' on every reconnect, so this also covers
       // rejoining after a drop; if a clash was frozen mid-QTE, resume it too.
       if (viewRef.current.clash) socket.emit('reconnect_clash')
@@ -73,44 +87,56 @@ export function Game() {
       dispatch({ type: 'game_joined', ...(state as object) })
     })
 
+    // The engine only ever broadcasts game events through this one channel —
+    // dice_rolled / piece_moved / game_started / game_ended / clash_start /
+    // clash_result / player_exited are never emitted under their own
+    // Socket.IO event name (they all go engine → EventPublisher → Redis →
+    // redis-broadcaster.ts, which hardcodes `io.to(gameId).emit('state_update', data)`
+    // regardless of the event's own type). The real event name lives in
+    // `state.type`; spreading it after the literal 'state_update' below lets
+    // it win, so the reducer still resolves the correct case. Side effects
+    // for each type have to live here too — a dedicated `socket.on('dice_rolled', ...)`
+    // handler would simply never fire.
     socket.on('state_update', (state) => {
+      const type = (state as { type?: string }).type
       dispatch({ type: 'state_update', ...(state as object) })
+
+      if (type === 'dice_rolled') {
+        setIsRolling(false)
+        const e = state as unknown as { value: number; bonusRoll: boolean }
+        setMoveLogs((prev) => [
+          { ck: viewRef.current.currentTurn, text: `Rolled a ${e.value}${e.bonusRoll ? ' (bonus)' : ''}` },
+          ...prev.slice(0, 7),
+        ])
+      } else if (type === 'piece_moved') {
+        const e = state as unknown as { color: PlayerColor; captured: boolean; to: number }
+        setMoveLogs((prev) => [
+          { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to step ${e.to}` },
+          ...prev.slice(0, 7),
+        ])
+      } else if (type === 'lobby_update') {
+        // If a color swap moved *my* seat, resync the socket's own notion of
+        // playerColor by re-joining with the new color (server derives move/roll
+        // authorization from socket.data.playerColor, set once at join_game time).
+        const e = state as unknown as { players: Array<{ username: string; color: PlayerColor }> }
+        const mine = e.players.find((p) => p.username === user?.username)
+        if (mine && mine.color !== viewRef.current.myColor) {
+          dispatch({ type: 'my_color_changed', color: mine.color })
+          socket.emit('join_game', activeMatch.gameId, mine.color)
+        }
+      } else if (type === 'game_ended') {
+        const e = state as unknown as { winner: PlayerColor; resultDetail: string }
+        setLastResult({
+          winner: e.winner,
+          resultDetail: e.resultDetail,
+          players: viewRef.current.players.map((p) => ({
+            color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+          })),
+        })
+        setTimeout(() => navigate('/results'), 2500)
+      }
     })
 
-    socket.on('dice_rolled', (e) => {
-      setIsRolling(false)
-      dispatch({ type: 'dice_rolled', ...e })
-      setMoveLogs((prev) => [
-        { ck: viewRef.current.currentTurn, text: `Rolled a ${e.value}${e.bonusRoll ? ' (bonus)' : ''}` },
-        ...prev.slice(0, 7),
-      ])
-    })
-
-    socket.on('piece_moved', (e) => {
-      dispatch({ type: 'piece_moved', ...e })
-      setMoveLogs((prev) => [
-        { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to step ${e.to}` },
-        ...prev.slice(0, 7),
-      ])
-    })
-
-    socket.on('game_started', (e) => dispatch({ type: 'game_started', ...(e as object) }))
-
-    socket.on('game_ended', (e) => {
-      dispatch({ type: 'game_ended', ...(e as object) })
-      setLastResult({
-        winner: e.winner,
-        resultDetail: e.resultDetail,
-        players: viewRef.current.players.map((p) => ({
-          color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
-        })),
-      })
-      setTimeout(() => navigate('/results'), 2500)
-    })
-
-    socket.on('clash_start', (e) => dispatch({ type: 'clash_start', ...(e as object) }))
-    socket.on('clash_result', (e) => dispatch({ type: 'clash_result', ...(e as object) }))
-    socket.on('player_exited', (e) => dispatch({ type: 'player_exited', ...(e as object) }))
     socket.on('game_timeout', () => navigate('/home'))
     socket.on('game_expired', () => navigate('/home'))
 
@@ -130,6 +156,8 @@ export function Game() {
     socketRef.current?.emit('roll_dice')
   }
   const movePiece = (pieceId: string) => socketRef.current?.emit('move_piece', pieceId)
+  const markReady = () => socketRef.current?.emit('player_ready')
+  const selectColor = (color: PlayerColor) => socketRef.current?.emit('select_color', color)
   const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
   const clearClash = () => dispatch({ type: 'clash_clear' })
 
@@ -163,7 +191,9 @@ export function Game() {
 
   const isMyTurn = view.currentTurn === view.myColor
   const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash
-  const turnLabel = isMyTurn ? t('game.yourTurnShort') : `${view.currentTurn.toUpperCase()}'s turn`
+  const turnLabel = view.status === 'waiting'
+    ? t('game.waitingRoomTitle')
+    : isMyTurn ? t('game.yourTurnShort') : `${view.currentTurn.toUpperCase()}'s turn`
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -182,7 +212,7 @@ export function Game() {
             {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
           </div>
           <div style={{ fontSize: 12, color: '#a99a83' }}>
-            Match #{activeMatch.gameId.slice(0, 8)}
+            Match #{toMatchCode(activeMatch.gameId)}
             <span style={{ marginLeft: 8, fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
               {connected ? '● Live' : '● Connecting…'}
             </span>
@@ -211,11 +241,52 @@ export function Game() {
           {SEAT_COLORS.map((ck) => {
             const col = COL[ck]
             const playerMeta = view.players.find((p) => p.color === ck)
+            const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
             const isActive = view.currentTurn === ck
-            const name = playerMeta?.username ?? ck[0].toUpperCase() + ck.slice(1)
-            const sub = playerMeta?.isBot ? t('common.bot') : t('common.you')
-            const goalCount = playerMeta?.piecesInGoal ?? 0
-            if (!playerMeta) return null
+
+            if (view.status === 'waiting') {
+              const isYou = ck === view.myColor
+              const isReady = view.readyPlayers.includes(ck)
+              return (
+                <div
+                  key={ck}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 13,
+                    border: '1px solid ' + (isYou ? col.base : '#3a2c1d'),
+                    background: occupied ? 'linear-gradient(180deg,#241b13,#1a130d)' : 'rgba(255,255,255,.02)',
+                    opacity: occupied ? 1 : 0.55,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                      fontWeight: 800, fontSize: 13, color: '#12100a',
+                      background: occupied ? `linear-gradient(180deg,${col.base},${col.dark})` : 'transparent',
+                      border: occupied ? 'none' : `1.5px dashed ${col.base}88`,
+                    }}
+                  >
+                    {occupied ? playerMeta!.username.slice(0, 2).toUpperCase() : ''}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: occupied ? '#f0e2c4' : '#8a7c66' }}>
+                      {occupied ? playerMeta!.username : t('game.emptySeat')}
+                    </div>
+                    <div style={{ color: '#a99a83', fontSize: 12 }}>{isYou ? t('common.you') : ck}</div>
+                  </div>
+                  {occupied && (
+                    <span style={{ fontSize: 11, fontWeight: 800, color: isReady ? '#5fd08a' : '#a99a83' }}>
+                      {isReady ? `✓ ${t('game.readyBadge')}` : t('game.notReadyBadge')}
+                    </span>
+                  )}
+                </div>
+              )
+            }
+
+            if (!playerMeta || playerMeta.status !== 'active') return null
+            const isYou = !playerMeta.isBot && playerMeta.username === user?.username
+            const name = playerMeta.username
+            const sub = playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : 'Player'
+            const goalCount = playerMeta.piecesInGoal ?? 0
 
             return (
               <div
@@ -255,45 +326,89 @@ export function Game() {
               border: '1px solid #4a3826',
             }}
           >
-            <Board pieces={view.pieces} legalMoves={view.legalMoves} onPieceClick={movePiece} />
+            <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} />
           </div>
         </div>
 
         {/* Controls sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <div style={sectionLabel}>
-              {isRolling ? t('game.rolling') : canRoll ? t('game.yourRoll') : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
-            </div>
-            <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
-              <Die value={view.diceValue ?? 0} rolling={isRolling} />
-            </div>
-            <button
-              onClick={rollDice}
-              disabled={!canRoll || isRolling}
-              style={{
-                ...btnGold, width: '100%', padding: 14,
-                opacity: canRoll && !isRolling ? 1 : 0.5, cursor: canRoll && !isRolling ? 'pointer' : 'default',
-              }}
-            >
-              {isRolling ? t('game.rolling') : t('game.rollDice')}
-            </button>
-            {view.turnPhase === 'WAITING_FOR_MOVE' && isMyTurn && (
-              <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
-                Click a highlighted piece to move
+          {view.status === 'waiting' ? (
+            <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={sectionLabel}>{t('game.waitingRoomTitle')}</div>
+
+              <div>
+                <div style={{ fontSize: 12.5, color: '#a99a83', marginBottom: 8 }}>{t('game.chooseColor')}</div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {SEAT_COLORS.map((ck) => {
+                    const col = COL[ck]
+                    const takenByOther = view.players.some((p) => p.color === ck && p.status === 'active' && ck !== view.myColor)
+                    return (
+                      <div
+                        key={ck}
+                        onClick={() => selectColor(ck)}
+                        title={ck}
+                        style={{
+                          width: 34, height: 34, borderRadius: 10, cursor: 'pointer',
+                          background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                          border: ck === view.myColor ? '2px solid #f0e2c4' : '2px solid transparent',
+                          boxShadow: ck === view.myColor ? `0 0 0 2px ${col.base}` : 'none',
+                          opacity: takenByOther ? 0.55 : 1,
+                        }}
+                      />
+                    )
+                  })}
+                </div>
               </div>
-            )}
-            {!isMyTurn && view.status === 'active' && (
-              <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
-                Waiting for {view.currentTurn}…
-              </div>
-            )}
-            {view.status === 'waiting' && (
+
+              <button
+                onClick={markReady}
+                disabled={view.readyPlayers.includes(view.myColor)}
+                style={{
+                  ...btnGold, width: '100%', padding: 14,
+                  opacity: view.readyPlayers.includes(view.myColor) ? 0.6 : 1,
+                  cursor: view.readyPlayers.includes(view.myColor) ? 'default' : 'pointer',
+                }}
+              >
+                {view.readyPlayers.includes(view.myColor) ? t('game.readyWaitingBtn') : t('game.readyBtn')}
+              </button>
+
               <div style={{ fontSize: 13, color: '#5fd08a', textAlign: 'center' }}>
-                Waiting for players…
+                {t('game.readyCount', {
+                  ready: view.readyPlayers.length,
+                  total: view.players.filter((p) => p.status === 'active').length,
+                })}
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div style={sectionLabel}>
+                {isRolling ? t('game.rolling') : canRoll ? t('game.yourRoll') : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
+              </div>
+              <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
+                <Die value={view.diceValue ?? 0} rolling={isRolling} />
+              </div>
+              <button
+                onClick={rollDice}
+                disabled={!canRoll || isRolling}
+                style={{
+                  ...btnGold, width: '100%', padding: 14,
+                  opacity: canRoll && !isRolling ? 1 : 0.5, cursor: canRoll && !isRolling ? 'pointer' : 'default',
+                }}
+              >
+                {isRolling ? t('game.rolling') : t('game.rollDice')}
+              </button>
+              {view.turnPhase === 'WAITING_FOR_MOVE' && isMyTurn && (
+                <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
+                  Click a highlighted piece to move
+                </div>
+              )}
+              {!isMyTurn && (
+                <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
+                  Waiting for {view.currentTurn}…
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ ...card, padding: '18px 20px' }}>
             <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>{t('game.moveLog')}</div>

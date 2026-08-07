@@ -71,11 +71,6 @@ function Yard({ r, c, ck, tokens }: { r: number; c: number; ck: ColorKey; tokens
   )
 }
 
-/** Demo token positions on the track: "row,col" → color. */
-const TOKENS: Record<string, ColorKey> = {
-  '6,1': 'red', '7,3': 'red', '1,8': 'green', '8,13': 'yellow', '7,11': 'yellow', '13,6': 'blue',
-}
-
 /** Star/safe start cells, tinted the owner color. */
 const STARTS: Record<string, ColorKey> = { '6,1': 'red', '1,8': 'green', '8,13': 'yellow', '13,6': 'blue' }
 
@@ -90,13 +85,17 @@ function laneColor(r: number, c: number): string | null {
 
 type BoardProps = {
   pieces?: Array<{ id: string; color: string; step: number; isInGoal: boolean; isInBase: boolean }>
+  players?: Array<{ color: string; status: string }>
   legalMoves?: Array<{ pieceId: string; from: number; to: number; isCapture: boolean; isHomeEntry: boolean }>
   onPieceClick?: (pieceId: string) => void
 }
 
 /** The classic 15×15 cross board, rendered procedurally — no images. */
-export function Board({ pieces, legalMoves, onPieceClick }: BoardProps = {}) {
+export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: BoardProps = {}) {
   const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
+  const activeColors = new Set(players.filter((p) => p.status === 'active').map((p) => p.color))
+  const basePieceCount = (ck: ColorKey) =>
+    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase).length : 0
 
   const cells: ReactNode[] = []
   for (let r = 0; r < 15; r++) {
@@ -118,8 +117,7 @@ export function Board({ pieces, legalMoves, onPieceClick }: BoardProps = {}) {
         boxSizing: 'border-box',
       }
       let inner: ReactNode = null
-      if (TOKENS[key]) inner = <Sphere ck={TOKENS[key]} />
-      else if (startCol)
+      if (startCol)
         inner = (
           <div
             style={{
@@ -139,11 +137,11 @@ export function Board({ pieces, legalMoves, onPieceClick }: BoardProps = {}) {
     }
   }
 
-  // Render engine-driven pieces on top when pieces prop is provided
+  // Render engine-driven pieces on top, only for players actually in this match
   const enginePieces: ReactNode[] = []
-  if (pieces && pieces.length > 0) {
+  if (pieces.length > 0) {
     for (const piece of pieces) {
-      if (piece.isInBase || piece.step <= 0) continue
+      if (!activeColors.has(piece.color) || piece.isInBase || piece.step <= 0) continue
       const isLegal = legalPieceIds.has(piece.id)
       const ck = piece.color as ColorKey
       const col = COL[ck]
@@ -184,10 +182,10 @@ export function Board({ pieces, legalMoves, onPieceClick }: BoardProps = {}) {
           boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5)',
         }}
       >
-        <Yard r={0} c={0} ck="red" tokens={2} />
-        <Yard r={0} c={9} ck="green" tokens={3} />
-        <Yard r={9} c={9} ck="yellow" tokens={1} />
-        <Yard r={9} c={0} ck="blue" tokens={4} />
+        <Yard r={0} c={0} ck="red" tokens={basePieceCount('red')} />
+        <Yard r={0} c={9} ck="green" tokens={basePieceCount('green')} />
+        <Yard r={9} c={9} ck="yellow" tokens={basePieceCount('yellow')} />
+        <Yard r={9} c={0} ck="blue" tokens={basePieceCount('blue')} />
         <div
           style={{
             gridRow: '7 / span 3',

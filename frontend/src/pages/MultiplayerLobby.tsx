@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
+import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { btnGold, btnOutline, card } from '../theme'
@@ -16,12 +17,11 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('create')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string }>('/api/match/create', {
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor }>('/api/match/create', {
         mode: 'pvp',
         playerCount: 4,
         botCount: 0,
         clashEnabled: true,
-        color: 'red',
       })
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
@@ -36,7 +36,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('join')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string }>(`/api/match/join/${encodeURIComponent(inviteCode.trim())}`, {})
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor }>(`/api/match/join/${encodeURIComponent(inviteCode.trim())}`, {})
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {

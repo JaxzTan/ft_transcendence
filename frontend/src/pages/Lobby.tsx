@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
 import { Board } from '../components/Board'
+import type { PlayerColor } from '../game/types'
 import { navigate, useRoute } from '../router'
 import { useApp, type PlayerCount } from '../store'
 import { COL, SEAT_COLORS, card, feltPanel, sectionLabel, type ColorKey } from '../theme'
@@ -53,14 +54,13 @@ export function Lobby() {
     setStarting(true)
     try {
       const gameMode = allowAddPlayers ? 'pve' : (playerCount === 2 ? 'hotseat' : 'pvp')
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string }>(
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor }>(
         '/api/match/create',
         {
           mode: gameMode,
           playerCount: playerCount,
           botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
           clashEnabled: true,
-          color: 'red',
         },
       )
       setActiveMatch(res)
@@ -120,7 +120,7 @@ export function Lobby() {
                             <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>
                               {t('common.you')} <span style={{ color: '#c99b45', fontSize: 11, fontWeight: 700 }}>{t('lobby.hostBadge')}</span>
                             </div>
-                            <div style={{ color: '#a99a83', fontSize: '12.5px' }}>♛ 1,540 · {colorName}</div>
+                            <div style={{ color: '#a99a83', fontSize: '12.5px' }}>{colorName}</div>
                           </div>
                         </div>
                         <div style={{ marginTop: 'auto', fontSize: '12.5px', color: '#7fae91', fontWeight: 700 }}>✓ {t('lobby.readyBadge')}</div>

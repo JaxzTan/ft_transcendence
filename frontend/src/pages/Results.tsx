@@ -1,19 +1,16 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
+import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { btnGold, btnOutline, card, COL, goldText } from '../theme'
 
 const PLACE_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a', '#7a6c56']
 
-// The app currently only ever joins matches as 'red' (see Game.tsx / initialView) — no
-// per-user color assignment exists yet, so this mirrors that same standing assumption.
-const MY_COLOR = 'red'
-
 export function Results() {
   const { t } = useTranslation()
-  const { playerCount, seats, lastResult, setActiveMatch } = useApp()
+  const { user, playerCount, seats, lastResult, setActiveMatch } = useApp()
   const [rematching, setRematching] = useState(false)
   const [rematchError, setRematchError] = useState<string | null>(null)
 
@@ -32,7 +29,8 @@ export function Results() {
   }
 
   const ranked = [...lastResult.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
-  const won = lastResult.winner === MY_COLOR
+  const myColor = lastResult.players.find((p) => !p.isBot && p.username === user?.username)?.color
+  const won = lastResult.winner === myColor
 
   // "Rematch" votes (client → 'rematch' → server 'game_created') only work while still
   // connected to the finished game's socket room; Game.tsx disconnects on navigating here.
@@ -41,12 +39,11 @@ export function Results() {
     setRematchError(null)
     setRematching(true)
     try {
-      const res = await postApi<{ gameId: string; token: string }>('/api/match/create', {
+      const res = await postApi<{ gameId: string; token: string; color: PlayerColor }>('/api/match/create', {
         mode: 'pve',
         playerCount: playerCount,
         botCount: seats.slice(0, playerCount).filter((s) => s.type === 'bot').length,
         clashEnabled: true,
-        color: MY_COLOR,
       })
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
@@ -109,7 +106,7 @@ export function Results() {
               </div>
               <div style={{ width: 14, height: 14, borderRadius: '50%', background: COL[p.color].base }} />
               <div style={{ flex: 1, textAlign: 'left', fontWeight: 700, fontSize: 14, color: '#f0e2c4' }}>
-                {p.color === MY_COLOR ? t('common.you') : p.username}
+                {p.color === myColor ? t('common.you') : p.username}
               </div>
               <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 600 }}>
                 {t('results.piecesHome', { count: p.piecesInGoal })}

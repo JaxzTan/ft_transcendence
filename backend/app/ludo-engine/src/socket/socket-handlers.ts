@@ -19,6 +19,7 @@ export class SocketHandlers {
   handleJoinGame(socket: GameSocket, gameId: string, playerColor: PlayerColor, userId?: string): void {
     const effectiveGameId = socket.data.gameId || gameId;
     const effectiveUserId = socket.data.userId || userId;
+    const effectiveUsername = socket.data.username;
 
     (async () => {
       try {
@@ -60,7 +61,7 @@ export class SocketHandlers {
           // Populate PlayerMeta with frontend-compatible fields
           const meta = state.players.find(p => p.color === playerColor);
           if (meta) {
-            meta.username = effectiveUserId || (playerColor.charAt(0).toUpperCase() + playerColor.slice(1));
+            meta.username = effectiveUsername || effectiveUserId || (playerColor.charAt(0).toUpperCase() + playerColor.slice(1));
             meta.isBot = isBotUserId(effectiveUserId);
             meta.isConnected = true;
             meta.status = 'active';

@@ -58,7 +58,6 @@ export class MatchService {
 		playerCount: number,
 		botCount: number,
 		clashEnabled: boolean = true,
-		color?: string,
 	) {
 		if (playerCount < 2 || playerCount > 4) {
 			throw new BadRequestException('Player count must be between 2 and 4');
@@ -79,13 +78,17 @@ export class MatchService {
 		const gameId = crypto.randomUUID();
 		const totalBots = botCount;
 		const isPvP = mode === 'pvp';
+		// Seat colors are assigned deterministically by slot (player1=red, player2=green, ...)
+		// so every client can be told unambiguously which color it controls.
+		const player1Color = SLOT_COLORS[0];
 
 		const updates: Record<string, string> = {
 			id: gameId,
 			status: isPvP ? 'WAITING' : 'ACTIVE',
 			gameType: mode.toUpperCase(),
+			playerCount: playerCount.toString(),
 			player1_id: userId,
-			player1_color: color || '',
+			player1_color: player1Color,
 			clashEnabled: clashEnabled.toString(),
 			createdAt: Date.now().toString(),
 		};
@@ -104,19 +107,21 @@ export class MatchService {
 		await this.redis.hset(`match:${gameId}`, updates);
 		await this.redis.expire(`match:${gameId}`, 86400);
 
+		const username = await this.resolveUsername(userId);
 		const token = this.jwt.sign(
 			{
 				gameId,
 				playerId: userId,
+				username: username || undefined,
 				role: 'player1',
 				mode,
 				clashEnabled,
-				color: color || undefined,
+				color: player1Color,
 			},
 			{ expiresIn: '24h' },
 		);
 
-		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL };
+		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color };
 		if (isPvP) {
 			result.inviteCode = updates.inviteCode;
 		}
@@ -124,7 +129,7 @@ export class MatchService {
 	}
 
 	// ─── Legacy Endpoints (kept for backward compatibility) ───────────────────
-	async findRandomMatch(userId: string, clashEnabled: boolean = true, color?: string) {
+	async findRandomMatch(userId: string, clashEnabled: boolean = true) {
 		// Scan Redis for a WAITING PvP game with an open slot
 		let cursor = '0';
 		do {
@@ -138,30 +143,30 @@ export class MatchService {
 					data.player1_id !== userId &&
 					!data.player2_id
 				) {
-					return this.joinMatch(data.id, userId, color);
+					return this.joinMatch(data.id, userId);
 				}
 			}
 		} while (cursor !== '0');
-		return this.createMatch(userId, 'pvp', 4, 0, clashEnabled, color);
+		return this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
 	}
 
 
-	async createInvite(userId: string, clashEnabled: boolean = true, color?: string) {
-		const result = await this.createMatch(userId, 'pvp', 4, 0, clashEnabled, color);
+	async createInvite(userId: string, clashEnabled: boolean = true) {
+		const result = await this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
 		// createMatch returns inviteCode for PvP
 		return result;
 	}
 
-	async playBot(userId: string, playerCount: number = 2, clashEnabled: boolean = true, color?: string) {
+	async playBot(userId: string, playerCount: number = 2, clashEnabled: boolean = true) {
 		if (playerCount !== 2 && playerCount !== 4) {
 			throw new BadRequestException('Player count must be 2 or 4');
 		}
 		const botCount = playerCount - 1;
-		return this.createMatch(userId, 'pve', playerCount, botCount, clashEnabled, color);
+		return this.createMatch(userId, 'pve', playerCount, botCount, clashEnabled);
 	}
 
 	// ─── PvP: Join by invite code ────────────────────────────────────────────
-	async joinByInvite(inviteCode: string, userId: string, color?: string) {
+	async joinByInvite(inviteCode: string, userId: string) {
 		let cursor = '0';
 		do {
 			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
@@ -172,7 +177,7 @@ export class MatchService {
 					if (data.player1_id === userId) {
 						throw new BadRequestException('You cannot join your own invite');
 					}
-					return this.joinMatch(data.id, userId, color);
+					return this.joinMatch(data.id, userId);
 				}
 			}
 		} while (cursor !== '0');
@@ -180,26 +185,41 @@ export class MatchService {
 	}
 
 	// ─── Internal: join an existing match by filling next slot ───────────────
-	async joinMatch(gameId: string, userId: string, color?: string) {
+	async joinMatch(gameId: string, userId: string) {
 		const data = await this.redis.hgetall(`match:${gameId}`);
 		if (!data || !data.id) throw new NotFoundException('Game not found');
 		if (data.status !== 'WAITING') throw new ForbiddenException('Game already started');
 
+		const maxSeats = parseInt(data.playerCount || '4', 10);
+		const occupiedIds = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].filter(Boolean);
+		if (occupiedIds.length >= maxSeats) throw new ForbiddenException('Room is full');
+
 		const clashEnabled = data.clashEnabled === 'true';
-		const slotKey = !data.player2_id ? 'player2' : !data.player3_id ? 'player3' : 'player4';
+		const slotIndex = !data.player2_id ? 1 : !data.player3_id ? 2 : 3;
+		const slotKey = `player${slotIndex + 1}`;
+		const assignedColor = SLOT_COLORS[slotIndex];
 
 		// Stay in WAITING — players must click "ready" to start
-		await this.redis.hset(`match:${gameId}`, `${slotKey}_id`, userId, `${slotKey}_color`, color || '');
+		await this.redis.hset(`match:${gameId}`, `${slotKey}_id`, userId, `${slotKey}_color`, assignedColor);
 
 		const players = [data.player1_id, userId, data.player3_id, data.player4_id].filter(Boolean);
 		const playerCount = players.length;
 
+		const username = await this.resolveUsername(userId);
 		const token = this.jwt.sign(
-			{ gameId, playerId: userId, role: 'player', clashEnabled, color: color || undefined },
+			{ gameId, playerId: userId, username: username || undefined, role: 'player', clashEnabled, color: assignedColor },
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: ENGINE_WS_URL };
+		return { gameId, token, engineUrl: ENGINE_WS_URL, color: assignedColor };
+	}
+
+	// ─── Resolve a user's display username for embedding in match JWTs ───────
+	// (ludo-engine has no DB access — it only knows what the token tells it)
+	private async resolveUsername(userId: string): Promise<string | null> {
+		if (isBotUserId(userId)) return null;
+		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+		return user?.username ?? null;
 	}
 
 	// ─── Cancel / Abort ──────────────────────────────────────────────────────
@@ -336,8 +356,9 @@ export class MatchService {
 		await this.redis.expire(`match:${newGameId}`, 86400);
 		await this.redis.del(pendingKey);
 
+		const username = await this.resolveUsername(userId);
 		const token = this.jwt.sign(
-			{ gameId: newGameId, playerId: userId, role: 'player1' },
+			{ gameId: newGameId, playerId: userId, username: username || undefined, role: 'player1' },
 			{ expiresIn: '24h' },
 		);
 
@@ -364,6 +385,99 @@ export class MatchService {
 			}
 		} while (cursor !== '0');
 		return games;
+	}
+
+	// ─── List Open Rooms (WAITING PvP games — joinable) ─────────────────────
+	async listOpenRooms() {
+		let cursor = '0';
+		const rooms: Array<{ id: string; roomCode: string; hostId: string; seats: number; maxSeats: number }> = [];
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				if (data.status === 'WAITING' && data.gameType === 'PVP' && data.player1_id) {
+					const seats = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].filter(Boolean).length;
+					rooms.push({
+						id: data.id,
+						roomCode: data.inviteCode,
+						hostId: data.player1_id,
+						seats,
+						maxSeats: parseInt(data.playerCount || '4', 10),
+					});
+				}
+			}
+		} while (cursor !== '0');
+
+		const hostIds = [...new Set(rooms.map((r) => r.hostId))];
+		const hosts = await this.prisma.db.user.findMany({
+			where: { id: { in: hostIds } },
+			select: { id: true, username: true },
+		});
+		const usernames = new Map(hosts.map((u) => [u.id, u.username]));
+
+		return rooms.map((r) => ({
+			id: r.id,
+			roomCode: r.roomCode,
+			host: usernames.get(r.hostId) || 'Unknown',
+			seats: r.seats,
+			maxSeats: r.maxSeats,
+			mode: r.maxSeats === 2 ? 'duel' : 'classic',
+		}));
+	}
+
+	// ─── List My Rooms (WAITING or ACTIVE games I'm seated in) ──────────────
+	// Distinct from listOpenRooms: this is a private "find my way back in" list
+	// (survives closing the tab — sessionStorage's activeMatch doesn't), not the
+	// public browse-any-room list.
+	async listMyRooms(userId: string) {
+		let cursor = '0';
+		const rooms: Array<{ id: string; roomCode: string | null; status: string; gameType: string; seats: number; maxSeats: number }> = [];
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				const seatIds = [data.player1_id, data.player2_id, data.player3_id, data.player4_id];
+				if (!seatIds.includes(userId)) continue;
+				if (data.status !== 'WAITING' && data.status !== 'ACTIVE') continue;
+				rooms.push({
+					id: data.id,
+					roomCode: data.inviteCode || null,
+					status: data.status,
+					gameType: data.gameType,
+					seats: seatIds.filter(Boolean).length,
+					maxSeats: parseInt(data.playerCount || '4', 10),
+				});
+			}
+		} while (cursor !== '0');
+		return rooms;
+	}
+
+	// ─── Rejoin a room I'm already seated in (fresh token, no new slot) ─────
+	async rejoin(gameId: string, userId: string) {
+		const data = await this.redis.hgetall(`match:${gameId}`);
+		if (!data || !data.id) throw new NotFoundException('Game not found');
+
+		const slotIndex = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(userId);
+		if (slotIndex === -1) throw new ForbiddenException('You are not a player in this game');
+
+		const color = (data[`player${slotIndex + 1}_color`] as string) || SLOT_COLORS[slotIndex];
+		const clashEnabled = data.clashEnabled === 'true';
+		const username = await this.resolveUsername(userId);
+		const token = this.jwt.sign(
+			{
+				gameId,
+				playerId: userId,
+				username: username || undefined,
+				role: slotIndex === 0 ? 'player1' : 'player',
+				clashEnabled,
+				color,
+			},
+			{ expiresIn: '24h' },
+		);
+
+		return { gameId, token, engineUrl: ENGINE_WS_URL, color };
 	}
 
 	// ─── Spectate ───────────────────────────────────────────────────────────

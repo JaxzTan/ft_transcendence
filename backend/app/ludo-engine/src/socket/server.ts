@@ -222,6 +222,7 @@ export class SocketServer {
 			if (!payload) return next(new Error('Invalid token'));
 
 			socket.data.userId = payload.userId;
+			socket.data.username = payload.username;
 			socket.data.gameId = payload.gameId;
 			socket.data.role = payload.role as 'player' | 'spectator';
 			next();
