@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useRoute } from '../router'
+import { UserAvatar } from '../components/UserAvatar'
+import { useRoute, navigate } from '../router'
 import { useApp } from '../store'
 import { card, goldText, avatarBlue, STATUS_STYLE, type PresenceStatus } from '../theme'
 
@@ -356,7 +357,7 @@ function StatBox({ label, value, color }: { label: string; value: React.ReactNod
   )
 }
 
-function FriendsSidebar({ friends }: { friends: Friend[] | null }) {
+function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null; navigate: (path: string) => void }) {
   const { t } = useTranslation()
   return (
     <div style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 32 }}>
