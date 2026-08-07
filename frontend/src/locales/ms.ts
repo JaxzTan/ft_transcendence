@@ -28,7 +28,7 @@ export const ms = {
     greeting: 'Selamat malam, {{name}}',
     readyToRoll: 'Bersedia untuk membaling dadu?',
     heroDesc: 'Sediakan meja peribadi menentang bot, atau sertai perlawanan berpangkat. Yang pertama membawa keempat-empat buah ke rumah memenangi mahkota.',
-    createTable: 'Cipta meja',
+    createTable: 'Cipta bilik',
     resumeGame: 'Sambung permainan',
     vsBotsTitle: 'Lawan Bot',
     vsBotsDesc: 'Main menentang AI rumah',

@@ -10,20 +10,6 @@ import { connectSocket } from '../socket'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
 
-function toMatchCode(id: string): string {
-  // Deterministic 6-char uppercase alphanumeric code, derived from the gameId
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    let hash = i + 1
-    for (let j = 0; j < id.length; j++) {
-      hash = (hash * 31 + id.charCodeAt(j)) >>> 0
-    }
-    code += chars[hash % chars.length]
-  }
-  return code
-}
-
 function Pips({ count, color }: { count: number; color: string }) {
   return (
     <div style={{ display: 'flex', gap: 3 }}>
@@ -127,9 +113,11 @@ export function Game() {
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
-          players: viewRef.current.players.map((p) => ({
-            color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
-          })),
+          players: viewRef.current.players
+            .filter((p) => p.status === 'active')
+            .map((p) => ({
+              color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+            })),
         })
         setTimeout(() => navigate('/results'), 2500)
       }
@@ -176,9 +164,11 @@ export function Game() {
     setLastResult({
       winner: viewRef.current.currentTurn,
       resultDetail: 'exit',
-      players: viewRef.current.players.map((p) => ({
-        color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
-      })),
+      players: viewRef.current.players
+        .filter((p) => p.status === 'active')
+        .map((p) => ({
+          color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+        })),
     })
     navigate('/results')
   }
@@ -221,8 +211,12 @@ export function Game() {
             {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
           </div>
           <div style={{ fontSize: 12, color: '#a99a83' }}>
-            Match #{toMatchCode(activeMatch.gameId)}
-            <span style={{ marginLeft: 8, fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
+            {activeMatch.inviteCode && (
+              <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#c9bda3' }}>
+                {t('game.roomCode')} {activeMatch.inviteCode}
+              </span>
+            )}
+            <span style={{ marginLeft: activeMatch.inviteCode ? 8 : 0, fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
               {connected ? '● Live' : '● Connecting…'}
             </span>
           </div>
