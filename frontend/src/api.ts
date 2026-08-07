@@ -42,3 +42,26 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   if (!refreshed) return res // session really is over — hand back the 401
   return fetch(input, init)
 }
+
+// ---------------------------------------------------------------------------
+// Typed JSON helpers for REST calls that return JSON.
+// Builds on apiFetch so 401 → refresh → retry is transparent.
+// ---------------------------------------------------------------------------
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await apiFetch(path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    const msg = (body as { message?: string | string[] } | null)?.message
+    throw new Error(Array.isArray(msg) ? msg.join('. ') : (msg ?? `Request failed (${res.status})`))
+  }
+  return res.json() as Promise<T>
+}
+
+export const getApi = <T>(path: string) => request<T>(path)
+export const postApi = <T>(path: string, body?: unknown) =>
+  request<T>(path, { method: 'POST', body: body != null ? JSON.stringify(body) : undefined })
+export const deleteApi = <T>(path: string) => request<T>(path, { method: 'DELETE' })

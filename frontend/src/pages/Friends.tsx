@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { navigate } from '../router'
 import { avatarDim, btnGoldSmall, card, input, STATUS_STYLE, type PresenceStatus } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
@@ -20,7 +21,14 @@ type FriendRequest = {
   createdAt: string
 }
 
+const STATUS_KEYS: Record<PresenceStatus, string> = {
+  online: 'friends.online',
+  playing: 'friends.inGame',
+  offline: 'friends.offline',
+}
+
 export function Friends() {
+  const { t } = useTranslation()
   const [friends, setFriends] = useState<Friend[]>([])
   const [requests, setRequests] = useState<FriendRequest[]>([])
   const [searchUsername, setSearchUsername] = useState('')
@@ -61,12 +69,12 @@ export function Friends() {
     try {
       const userRes = await fetch(`/api/user/${searchUsername.trim()}`)
       if (!userRes.ok) {
-        setMsg({ text: 'User not found.', type: 'error' })
+        setMsg({ text: t('friends.userNotFound'), type: 'error' })
         return
       }
       const userData = await userRes.json()
 
-      const reqRes = await fetch(`/api/friends/request/${userData.id}`, { 
+      const reqRes = await fetch(`/api/friends/request/${userData.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -75,7 +83,7 @@ export function Friends() {
         credentials: 'include'
       })
       if (!reqRes.ok) {
-        let errorMsg = 'Could not send request.'
+        let errorMsg = t('friends.couldNotSendRequest')
         try {
           const errorData = await reqRes.json()
           errorMsg = errorData.message || errorMsg
@@ -84,68 +92,68 @@ export function Friends() {
         return
       }
 
-      setMsg({ text: 'Friend request sent!', type: 'success' })
+      setMsg({ text: t('friends.requestSent'), type: 'success' })
       setSearchUsername('')
     } catch (e) {
-      setMsg({ text: 'An error occurred.', type: 'error' })
+      setMsg({ text: t('friends.genericError'), type: 'error' })
     }
   }
 
   const handleAccept = async (requestId: string) => {
-    await fetch(`/api/friends/accept/${requestId}`, { 
-      method: 'POST', 
+    await fetch(`/api/friends/accept/${requestId}`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
-      credentials: 'include' 
+      credentials: 'include'
     })
     fetchData()
   }
 
   const handleDecline = async (requestId: string) => {
-    await fetch(`/api/friends/decline/${requestId}`, { 
-      method: 'POST', 
+    await fetch(`/api/friends/decline/${requestId}`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
-      credentials: 'include' 
+      credentials: 'include'
     })
     fetchData()
   }
 
   const handleRemove = async (friendId: string) => {
-    await fetch(`/api/friends/remove/${friendId}`, { 
-      method: 'DELETE', 
+    await fetch(`/api/friends/remove/${friendId}`, {
+      method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
-      credentials: 'include' 
+      credentials: 'include'
     })
     fetchData()
   }
 
   if (loading) {
-    return <div style={{ color: '#a99a83', textAlign: 'center', marginTop: 80, fontSize: 18 }}>Loading friends...</div>
+    return <div style={{ color: '#a99a83', textAlign: 'center', marginTop: 80, fontSize: 18 }}>{t('friends.loadingFriends')}</div>
   }
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 40 }}>
-      
+
       {/* Search Bar */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 10 }}>
-          <input 
+          <input
             value={searchUsername}
             onChange={(e) => setSearchUsername(e.target.value)}
-            placeholder="Add a friend by username" 
-            style={{ ...input, flex: 1, width: undefined }} 
+            placeholder={t('friends.addByUsernamePlaceholder')}
+            style={{ ...input, flex: 1, width: undefined }}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAddFriend() }}
           />
-          <button onClick={handleAddFriend} style={btnGoldSmall}>Add friend</button>
+          <button onClick={handleAddFriend} style={btnGoldSmall}>{t('friends.addFriendAction')}</button>
         </div>
         {msg && (
-          <div style={{ 
-            color: msg.type === 'error' ? '#e4574d' : '#4bbf7b', 
-            fontSize: 13, 
+          <div style={{
+            color: msg.type === 'error' ? '#e4574d' : '#4bbf7b',
+            fontSize: 13,
             fontWeight: 600,
-            paddingLeft: 4 
+            paddingLeft: 4
           }}>
             {msg.text}
           </div>
@@ -154,10 +162,10 @@ export function Friends() {
 
       {/* Requests */}
       <div style={{ ...card, padding: '20px 22px' }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', marginBottom: 12 }}>Pending Requests · {requests.length}</div>
-        
+        <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', marginBottom: 12 }}>{t('friends.pendingRequests')} · {requests.length}</div>
+
         {requests.length === 0 ? (
-          <div style={{ color: '#a99a83', fontStyle: 'italic', fontSize: 14 }}>No pending requests.</div>
+          <div style={{ color: '#a99a83', fontStyle: 'italic', fontSize: 14 }}>{t('friends.noPendingRequests')}</div>
         ) : (
           requests.map((r) => (
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid #2a2015' }}>
@@ -174,7 +182,7 @@ export function Friends() {
                   color: '#0d1b12', cursor: 'pointer', background: 'linear-gradient(180deg,#5fd08a,#2c8a53)',
                 }}
               >
-                Accept
+                {t('friends.accept')}
               </button>
               <button
                 onClick={() => handleDecline(r.id)}
@@ -183,7 +191,7 @@ export function Friends() {
                   color: '#c9bda3', cursor: 'pointer', background: 'transparent',
                 }}
               >
-                Ignore
+                {t('friends.ignoreBtn')}
               </button>
             </div>
           ))
@@ -192,10 +200,10 @@ export function Friends() {
 
       {/* Friends */}
       <div style={{ ...card, padding: '20px 22px' }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', marginBottom: 12 }}>Your friends · {friends.length}</div>
-        
+        <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', marginBottom: 12 }}>{t('friends.yourFriendsLabel')} · {friends.length}</div>
+
         {friends.length === 0 ? (
-          <div style={{ color: '#a99a83', fontStyle: 'italic', fontSize: 14 }}>You have no friends yet.</div>
+          <div style={{ color: '#a99a83', fontStyle: 'italic', fontSize: 14 }}>{t('friends.noFriendsYet')}</div>
         ) : (
           friends.map((f) => {
             const status = STATUS_STYLE[f.status] ?? STATUS_STYLE.offline
@@ -219,11 +227,11 @@ export function Friends() {
                     {f.username}
                   </div>
                   <div style={{ fontSize: '12.5px', color: status.color, fontWeight: 600 }}>
-                    {status.label}
+                    {t(STATUS_KEYS[f.status] ?? STATUS_KEYS.offline)}
                   </div>
                 </div>
                 <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 700 }}>♛ {f.rating}</div>
-                
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <button
                     onClick={() => navigate('/lobby')}
@@ -238,7 +246,7 @@ export function Friends() {
                       background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
                     }}
                   >
-                    Play
+                    {t('friends.playBtn')}
                   </button>
                   <button
                     onClick={() => handleRemove(f.id)}
@@ -253,7 +261,7 @@ export function Friends() {
                       background: 'transparent',
                     }}
                   >
-                    Unfriend
+                    {t('friends.unfriendBtn')}
                   </button>
                 </div>
               </div>

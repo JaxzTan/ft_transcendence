@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import i18n from './i18n'
 import { BOT_POOL } from './theme'
 import { apiFetch } from './api'
 
@@ -48,6 +49,9 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
   '2-1': false, // Weekly recap
 }
 
+/** Credentials returned by POST /api/match/create — stored in context so Game page can connect to the engine. */
+export type ActiveMatch = { gameId: string; token: string; engineUrl: string } | null
+
 type AppState = {
   user: AuthUser | null
   authReady: boolean
@@ -83,6 +87,8 @@ type AppState = {
   twoFactor: boolean
   toggleTwoFactor: () => void
   setPlaying: (playing: boolean) => void
+  activeMatch: ActiveMatch
+  setActiveMatch: (match: ActiveMatch) => void
 }
 
 const Ctx = createContext<AppState | null>(null)
@@ -241,6 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLangState(l)
     localStorage.setItem(LANG_KEY, l)
     document.documentElement.lang = l
+    i18n.changeLanguage(l)
   }, [])
 
   // Load the account's real 2FA preference once signed in — GET /api/auth/2fa.
@@ -344,14 +351,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const [activeMatch, setActiveMatch] = useState<ActiveMatch>(null)
+
   const value = useMemo(
     () => ({
       user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
       mode, seats, dice, rolling, turn, settings,
       setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
-      lang, setLang, twoFactor, toggleTwoFactor, setPlaying,
+      lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch,
     }),
-    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying],
+    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
