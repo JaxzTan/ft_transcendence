@@ -23,6 +23,7 @@ export class EventPublisher {
           value: event.value,
           legalMoves: event.legalMoves,
           bonusRoll: event.bonusRoll,
+          currentTurn: event.currentTurn,
         }));
         break;
 

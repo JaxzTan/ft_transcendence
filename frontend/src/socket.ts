@@ -3,7 +3,7 @@ import type { GameState, PlayerColor, LegalMove, MoveResult } from './game/types
 
 export type ServerEvents = {
   game_joined: (state: GameState) => void
-  dice_rolled: (e: { value: number; legalMoves: LegalMove[]; bonusRoll: boolean }) => void
+  dice_rolled: (e: { value: number; legalMoves: LegalMove[]; bonusRoll: boolean; currentTurn: PlayerColor }) => void
   piece_moved: (e: MoveResult) => void
   game_started: (e: { gameId: string }) => void
   game_ended: (e: { winner: PlayerColor; resultDetail: string }) => void
@@ -12,6 +12,7 @@ export type ServerEvents = {
   clash_press_registered: (presses: number) => void
   clash_frozen: (e: { reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }) => void
   player_exited: (e: { color: PlayerColor }) => void
+  lobby_update: (e: { players: Array<{ username: string; color: PlayerColor; ready: boolean }> }) => void
   game_timeout: () => void
   game_expired: () => void
   game_created: (newGameId: string) => void

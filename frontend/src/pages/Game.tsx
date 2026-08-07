@@ -87,17 +87,15 @@ export function Game() {
       dispatch({ type: 'game_joined', ...(state as object) })
     })
 
-    // The engine only ever broadcasts game events through this one channel —
-    // dice_rolled / piece_moved / game_started / game_ended / clash_start /
-    // clash_result / player_exited are never emitted under their own
-    // Socket.IO event name (they all go engine → EventPublisher → Redis →
-    // redis-broadcaster.ts, which hardcodes `io.to(gameId).emit('state_update', data)`
-    // regardless of the event's own type). The real event name lives in
-    // `state.type`; spreading it after the literal 'state_update' below lets
-    // it win, so the reducer still resolves the correct case. Side effects
-    // for each type have to live here too — a dedicated `socket.on('dice_rolled', ...)`
-    // handler would simply never fire.
-    socket.on('state_update', (state) => {
+    // The engine publishes events through Redis pub/sub, and redis-broadcaster.ts
+    // now forwards each one under its own Socket.IO event name (e.g. `dice_rolled`,
+    // `piece_moved`, `game_started`, `game_ended`, `player_exited`, `clash_start`,
+    // `clash_result`, `clash_frozen`, `lobby_update`). We register a single
+    // `handleEngineEvent` on all of those names (plus `state_update` for safety).
+    // Every payload carries its own `type`; spreading it after the literal
+    // 'state_update' below lets it win, so the reducer still resolves the correct
+    // case. Side effects for each type live here too.
+    const handleEngineEvent = (state: unknown) => {
       const type = (state as { type?: string }).type
       dispatch({ type: 'state_update', ...(state as object) })
 
@@ -135,7 +133,18 @@ export function Game() {
         })
         setTimeout(() => navigate('/results'), 2500)
       }
-    })
+    }
+
+    socket.on('state_update', handleEngineEvent)
+    socket.on('dice_rolled', handleEngineEvent)
+    socket.on('piece_moved', handleEngineEvent)
+    socket.on('game_started', handleEngineEvent)
+    socket.on('game_ended', handleEngineEvent)
+    socket.on('player_exited', handleEngineEvent)
+    socket.on('clash_start', handleEngineEvent)
+    socket.on('clash_result', handleEngineEvent)
+    socket.on('clash_frozen', handleEngineEvent)
+    socket.on('lobby_update', handleEngineEvent)
 
     socket.on('game_timeout', () => navigate('/home'))
     socket.on('game_expired', () => navigate('/home'))

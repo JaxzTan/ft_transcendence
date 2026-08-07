@@ -101,7 +101,7 @@ services:
       redis:
         condition: service_healthy
     expose:
-      - "3001:3001"
+      - "3001"
     environment:
       SECRETS_DIR: /secrets
       REDIS_HOST: redis
