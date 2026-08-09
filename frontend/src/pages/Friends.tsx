@@ -5,6 +5,7 @@ import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { avatarDim, btnGoldSmall, card, input, STATUS_STYLE, type PresenceStatus } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 type Friend = {
   id: string
@@ -191,7 +192,11 @@ export function Friends() {
         ) : (
           requests.map((r) => (
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid #2a2015' }}>
-              <div style={{ ...avatarDim(38), fontSize: 13 }}>{r.username.slice(0, 2).toUpperCase()}</div>
+              <UserAvatar 
+                username={r.username}
+                size={38}
+                fallbackStyle={{ ...avatarDim(38), fontSize: 13 }}
+              />
               <div style={{ flex: 1, fontWeight: 700, fontSize: '14.5px' }}>{r.username}</div>
               <button
                 onClick={() => handleAccept(r.id)}
@@ -227,10 +232,12 @@ export function Friends() {
             const status = STATUS_STYLE[f.status] ?? STATUS_STYLE.offline
             return (
               <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 0', borderBottom: '1px solid #2a2015' }}>
-                <div style={{ position: 'relative', flex: 'none' }}>
-                  <div style={{ ...avatarDim(40), fontSize: 13, cursor: 'pointer' }} onClick={() => navigate(`/profile?u=${f.username}`)}>
-                    {f.username.slice(0, 2).toUpperCase()}
-                  </div>
+                <div style={{ position: 'relative', flex: 'none', cursor: 'pointer' }} onClick={() => navigate(`/profile?u=${f.username}`)}>
+                  <UserAvatar 
+                    username={f.username}
+                    size={40}
+                    fallbackStyle={{ ...avatarDim(40), fontSize: 13 }}
+                  />
                   <span
                     style={{
                       position: 'absolute', right: -1, bottom: -1, width: 12, height: 12, borderRadius: '50%',

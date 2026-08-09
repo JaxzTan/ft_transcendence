@@ -4,29 +4,6 @@ export const MEDAL_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a']
 
 export const MY_ROW = { rank: 12, rating: 1540, wins: 198, wr: '58%' }
 
-export const STAT_TILES = [
-  { value: '♛ 1,540', label: 'Rating' },
-  { value: '342', label: 'Games played' },
-  { value: '58%', label: 'Win rate' },
-  { value: '4 🔥', label: 'Current streak' },
-  { value: '11', label: 'Best streak' },
-]
-
-export const MATCHES = [
-  { mode: '4P', win: true, delta: '+18', opp: 'Rook, Bishop, Knight', when: '2h ago' },
-  { mode: '2P', win: false, delta: '-12', opp: 'Seraphine', when: '5h ago' },
-  { mode: '4P', win: true, delta: '+15', opp: '3 house bots', when: 'Yesterday' },
-  { mode: '4P', win: true, delta: '+9', opp: 'Marla_V & 2 others', when: 'Yesterday' },
-  { mode: '2P', win: false, delta: '-14', opp: 'IronRook', when: '2 days ago' },
-]
-
-export const ACHIEVEMENTS = [
-  { name: 'First Blood', glyph: '♟', unlocked: true },
-  { name: 'Hat-Trick', glyph: '♛', unlocked: true },
-  { name: 'Comeback King', glyph: '⚑', unlocked: true },
-  { name: 'Untouchable', glyph: '◈', unlocked: false },
-]
-
 export type FriendStatus = 'online' | 'ingame' | 'offline'
 
 export const FRIENDS: Array<{ name: string; status: FriendStatus; rating: number }> = [
