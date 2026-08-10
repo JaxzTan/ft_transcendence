@@ -2,6 +2,7 @@
 secrets/
 backend/generated/
 backend/dist/
+docs/
 
 # Logs
 logs
@@ -40,6 +41,7 @@ API-list.md
 Ludo_Rules.md
 security-audit.md
 fixdice.md
+hotfixes-7thAugNight.md
 
 # dependencies
 /node_modules
