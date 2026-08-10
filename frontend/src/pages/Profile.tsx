@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next'
 import { useEffect, useState, useRef } from 'react'
-import { useRoute } from '../router'
+import { useRoute, navigate } from '../router'
 import { useApp } from '../store'
 import { card, goldText, avatarBlue, STATUS_STYLE, type PresenceStatus } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 const STATUS_KEYS: Record<PresenceStatus, string> = {
   online: 'friends.online',
