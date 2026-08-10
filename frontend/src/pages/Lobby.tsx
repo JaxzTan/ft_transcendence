@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
@@ -18,15 +18,27 @@ const COLOR_KEYS: Record<ColorKey, string> = {
 export function Lobby() {
   const { t } = useTranslation()
   const { query } = useRoute()
-  const { seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, setActiveMatch } = useApp()
+  const { seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, setActiveMatch } = useApp()
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
   const [editingSeat, setEditingSeat] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
 
+  // A fresh room must never inherit bots/players seated during a previous
+  // visit — seats live in the app-wide store, not scoped to this page.
+  useEffect(() => {
+    resetSeats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Route-derived lobby configuration (single source of truth)
   const playerCount = (Number(query.get('mode')) as PlayerCount) || 4
   const allowAddPlayers = query.get('bots') !== '0'
+  // Local (hotseat) pass-and-play — same seat-setup UI as PvP/PvE, but a
+  // single device joins every filled seat itself (see Game.tsx), so the
+  // backend must be told exactly how many seats were actually filled, not
+  // the route's max (mode=4 gives up to 4 slots; fewer is fine).
+  const isLocal = query.get('local') === '1'
 
   const visible = seats.slice(0, playerCount)
   const botCount = visible.filter((s) => s.type === 'bot').length
@@ -53,12 +65,15 @@ export function Lobby() {
     setStartError(null)
     setStarting(true)
     try {
-      const gameMode = allowAddPlayers ? 'pve' : (playerCount === 2 ? 'hotseat' : 'pvp')
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(
+      const gameMode = allowAddPlayers ? 'pve' : (isLocal || playerCount === 2) ? 'hotseat' : 'pvp'
+      // Hotseat has no separate accounts to fill unfilled seats with — send
+      // the actual number of occupied seats, not the route's max slot count.
+      const filledCount = visible.filter((s) => s.type === 'you' || s.type === 'player').length
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>(
         '/api/match/create',
         {
           mode: gameMode,
-          playerCount: playerCount,
+          playerCount: gameMode === 'hotseat' ? filledCount : playerCount,
           botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
           clashEnabled: true,
         },

@@ -8,6 +8,12 @@ import type { PlayerColor, PieceId } from '../types';
 const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
 
 export class SocketHandlers {
+  // Serializes each game's join_game critical section (load → mutate → save
+  // against Redis). Hotseat fires several join_game calls back-to-back on
+  // connect (one per local seat); without this, their async load/save cycles
+  // interleave and the last save wins, silently dropping the earlier joins.
+  private joinLocks = new Map<string, Promise<unknown>>();
+
   constructor(
     private store: RedisGameStore,
     private engine: LudoEngine,
@@ -16,12 +22,19 @@ export class SocketHandlers {
     private getOrCreateBot: (gameId: string, color: PlayerColor, engine: LudoEngine, store: RedisGameStore) => LudoBot,
   ) {}
 
-  handleJoinGame(socket: GameSocket, gameId: string, playerColor: PlayerColor, userId?: string): void {
+  private withGameLock<T>(gameId: string, fn: () => Promise<T>): Promise<T> {
+    const prev = this.joinLocks.get(gameId) ?? Promise.resolve();
+    const run = prev.then(fn, fn);
+    this.joinLocks.set(gameId, run.catch(() => undefined));
+    return run;
+  }
+
+  handleJoinGame(socket: GameSocket, gameId: string, playerColor: PlayerColor, userId?: string, displayName?: string): void {
     const effectiveGameId = socket.data.gameId || gameId;
     const effectiveUserId = socket.data.userId || userId;
-    const effectiveUsername = socket.data.username;
+    const effectiveUsername = displayName || socket.data.username;
 
-    (async () => {
+    this.withGameLock(effectiveGameId, async () => {
       try {
         socket.join(effectiveGameId);
         socket.data.gameId = effectiveGameId;
@@ -76,11 +89,13 @@ export class SocketHandlers {
           this.getOrCreateBot(effectiveGameId, playerColor, this.engine, this.store);
         }
 
-        // PvE auto-fill: read match metadata and register bot seats
+        // PvE/Hotseat auto-start: neither has a second real remote player to
+        // wait on (PvE's other seats are bots; hotseat's other seats are the
+        // same physical device), so skip the manual ready-check entirely.
         const matchData = await this.store.getMatchData(effectiveGameId);
-        if (matchData && matchData.gameType === 'PVE') {
-          await this.autoRegisterBots(effectiveGameId, matchData);
-          // Reload state — autoRegisterBots may have transitioned it to 'active'
+        if (matchData && (matchData.gameType === 'PVE' || matchData.gameType === 'HOTSEAT')) {
+          await this.autoStartIfReady(effectiveGameId, matchData);
+          // Reload state — autoStartIfReady may have transitioned it to 'active'
           state = await this.store.loadGameState(effectiveGameId);
         }
 
@@ -88,65 +103,71 @@ export class SocketHandlers {
       } catch (error) {
         socket.emit('error', `Failed to join game: ${error}`);
       }
-    })();
+    });
   }
 
   /**
-   * Auto-register bot seats for PvE matches.
-   * Reads match metadata and marks bot slots as active/ready.
+   * Auto-start PvE and hotseat matches — neither has a genuine second remote
+   * player to run a ready-check quorum against, so skip it. PvE registers its
+   * bot seats here; hotseat just waits for every local seat (playerCount,
+   * since hotseat never populates player2_id../player4_id — one real account
+   * plays every seat) to have joined before flipping the game active.
    */
-  private async autoRegisterBots(gameId: string, matchData: Record<string, string>): Promise<void> {
+  private async autoStartIfReady(gameId: string, matchData: Record<string, string>): Promise<void> {
     const state = await this.store.loadGameState(gameId);
     if (!state) return;
 
-    // Only auto-fill once — if game already active, bots are already registered
+    // Only auto-fill once — if game already active, seats are already registered
     if (state.status === 'active') return;
 
-    for (let i = 2; i <= 4; i++) {
-      const slotUserId = matchData[`player${i}_id`];
-      if (!slotUserId || !isBotUserId(slotUserId)) continue;
+    if (matchData.gameType === 'PVE') {
+      for (let i = 2; i <= 4; i++) {
+        const slotUserId = matchData[`player${i}_id`];
+        if (!slotUserId || !isBotUserId(slotUserId)) continue;
 
-      const slotColor = SLOT_COLORS[i - 1];
-      const botUserId = `${BOT_PREFIX}${slotColor}`;
+        const slotColor = SLOT_COLORS[i - 1];
+        const botUserId = `${BOT_PREFIX}${slotColor}`;
 
-      // Mark bot player as active and populate frontend-compatible metadata
-      const player = state.players.find(p => p.color === slotColor);
-      if (player) {
-        player.status = 'active';
-        player.username = botUserId;
-        player.isBot = true;
-        player.isConnected = true;
+        // Mark bot player as active and populate frontend-compatible metadata
+        const player = state.players.find(p => p.color === slotColor);
+        if (player) {
+          player.status = 'active';
+          player.username = botUserId;
+          player.isBot = true;
+          player.isConnected = true;
+        }
+
+        // Register in userIdMap
+        if (!this.userIdMap.has(gameId)) {
+          this.userIdMap.set(gameId, new Map());
+        }
+        this.userIdMap.get(gameId)!.set(slotColor, botUserId);
+
+        // Instantiate bot
+        this.getOrCreateBot(gameId, slotColor, this.engine, this.store);
       }
-
-      // Add bot to ready players
-      if (!state.readyPlayers.includes(slotColor)) {
-        state.readyPlayers.push(slotColor);
-      }
-
-      // Register in userIdMap
-      if (!this.userIdMap.has(gameId)) {
-        this.userIdMap.set(gameId, new Map());
-      }
-      this.userIdMap.get(gameId)!.set(slotColor, botUserId);
-
-      // Instantiate bot
-      this.getOrCreateBot(gameId, slotColor, this.engine, this.store);
     }
 
-    // Mark human seat as active too (the joining player)
-    const humanColor = state.players.find(p => p.status === 'active')?.color;
-    if (humanColor && !state.readyPlayers.includes(humanColor)) {
-      state.readyPlayers.push(humanColor);
+    // Every seat that has actually joined (human, local hotseat seat, or bot
+    // just registered above) is auto-ready — there's nobody real left to wait on.
+    for (const p of state.players) {
+      if (p.status === 'active' && !state.readyPlayers.includes(p.color)) {
+        state.readyPlayers.push(p.color);
+      }
     }
 
     await this.store.saveGameState(gameId, state);
 
-    // If all active players are ready, start the game
+    // Hotseat must wait for every local seat to have joined (they join one at
+    // a time, via separate join_game calls on the same socket) before
+    // starting — otherwise it'd fire after just the first seat.
+    const expectedSeats = matchData.gameType === 'HOTSEAT' ? parseInt(matchData.playerCount || '2', 10) : 0;
     const activePlayers = state.players.filter(p => p.status === 'active');
+    const allJoined = activePlayers.length >= expectedSeats;
     const allReady = activePlayers.length > 0 &&
       activePlayers.every(p => state.readyPlayers.includes(p.color));
 
-    if (allReady && state.status === 'waiting') {
+    if (allJoined && allReady && state.status === 'waiting') {
       state.status = 'active';
       await this.store.saveGameState(gameId, state);
       this.engine.emitEvent({ type: 'game_started', gameId });

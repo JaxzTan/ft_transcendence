@@ -194,7 +194,7 @@ export function LudoLobby() {
       glyph: '✕',
       hue: COL.red.base,
       badge: 'ranked',
-      onClick: () => navigate('/lobby/table?mode=2&bots=0'),
+      onClick: () => navigate('/lobby/table?mode=4&bots=0&local=1'),
     },
     {
       key: 'privateTable',

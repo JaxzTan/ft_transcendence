@@ -231,8 +231,8 @@ export class SocketServer {
 		this.io.on('connection', (socket: GameSocket) => {
 			console.log(`Client connected: ${socket.id}${socket.data.userId ? ` (user: ${socket.data.userId})` : ''}`);
 
-			socket.on('join_game', (gameId: string, playerColor: PlayerColor, userId?: string) =>
-				this.handlers.handleJoinGame(socket, gameId, playerColor, userId));
+			socket.on('join_game', (gameId: string, playerColor: PlayerColor, userId?: string, displayName?: string) =>
+				this.handlers.handleJoinGame(socket, gameId, playerColor, userId, displayName));
 
 			socket.on('roll_dice', () =>
 				this.handlers.handleRollDice(socket));
