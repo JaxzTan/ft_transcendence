@@ -28,9 +28,22 @@ function Pips({ count, color }: { count: number; color: string }) {
   )
 }
 
+// Matches the backend's SLOT_COLORS — hotseat seat index i always maps to
+// this color, regardless of the Lobby seat-picker's own (unrelated) display order.
+const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+
 export function Game() {
   const { t } = useTranslation()
-  const { user, activeMatch, setPlaying, setLastResult } = useApp()
+  const { user, activeMatch, seats, setPlaying, setLastResult } = useApp()
+
+  // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
+  // seat 0 is always the logged-in host (uses their real username instead),
+  // so only look at seats[1..].
+  const localNames: Partial<Record<PlayerColor, string>> = {}
+  seats.forEach((seat, i) => {
+    if (i === 0) return
+    if (seat.type === 'player') localNames[SLOT_COLORS[i]] = seat.name
+  })
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
   const viewRef = useRef(view)
@@ -54,6 +67,19 @@ export function Game() {
 
     socket.on('connect', () => {
       setConnected(true)
+      // Hotseat: one physical device controls every seat — the engine has no
+      // separate accounts to join with, so this single socket must join_game
+      // for every local color up front (else an un-joined seat stays 'inactive'
+      // forever and advanceTurnInState skips it, effectively stranding the
+      // game on whoever joined first). Join the others first, own color last,
+      // so socket.data.playerColor (server-side move/roll authorization,
+      // overwritten by each join_game call) ends up on red — the color that
+      // actually goes first.
+      if (activeMatch.mode === 'hotseat') {
+        for (const ck of Object.keys(localNames) as PlayerColor[]) {
+          socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
+        }
+      }
       socket.emit('join_game', activeMatch.gameId, activeMatch.color)
       // Socket.IO re-fires 'connect' on every reconnect, so this also covers
       // rejoining after a drop; if a clash was frozen mid-QTE, resume it too.
@@ -95,7 +121,7 @@ export function Game() {
       } else if (type === 'piece_moved') {
         const e = state as unknown as { color: PlayerColor; captured: boolean; to: number }
         setMoveLogs((prev) => [
-          { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to step ${e.to}` },
+          { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to box ${e.to}` },
           ...prev.slice(0, 7),
         ])
       } else if (type === 'lobby_update') {
@@ -147,6 +173,19 @@ export function Game() {
       socketRef.current = null
     }
   }, [activeMatch, setLastResult])
+
+  // Hotseat: keep the single socket's server-side authorization (playerColor)
+  // pointed at whoever's turn it currently is, so the same device can roll for
+  // every local seat in turn. Re-emitting join_game is the only way to update
+  // that — see the eager multi-join above for why the same mechanism applies.
+  useEffect(() => {
+    if (!activeMatch || activeMatch.mode !== 'hotseat') return
+    if (view.status !== 'active' || view.currentTurn === viewRef.current.myColor) return
+    const seat = viewRef.current.players.find((p) => p.color === view.currentTurn)
+    if (!seat || seat.isBot || seat.status !== 'active') return
+    dispatch({ type: 'my_color_changed', color: view.currentTurn })
+    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
+  }, [view.currentTurn, view.status, activeMatch])
 
   const rollDice = () => {
     setIsRolling(true)
@@ -286,9 +325,15 @@ export function Game() {
             }
 
             if (!playerMeta || playerMeta.status !== 'active') return null
-            const isYou = !playerMeta.isBot && playerMeta.username === user?.username
+            const isHotseat = activeMatch.mode === 'hotseat'
+            // Hotseat: every seat is controlled by the same device, so "isYou"
+            // means "whoever's turn this device is currently authorized to
+            // play" (view.myColor) rather than a username match — the other
+            // local seat has its own typed-in name (see localNames) but still
+            // isn't a separate real account.
+            const isYou = isHotseat ? ck === view.myColor : !playerMeta.isBot && playerMeta.username === user?.username
             const name = playerMeta.username
-            const sub = playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : 'Player'
+            const sub = playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : isHotseat ? t('game.localPlayer') : 'Player'
             const goalCount = playerMeta.piecesInGoal ?? 0
 
             return (

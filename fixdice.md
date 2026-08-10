@@ -98,7 +98,7 @@ const handleEngineEvent = (state: unknown) => {
   } else if (type === 'piece_moved') {
     const e = state as unknown as { color: PlayerColor; captured: boolean; to: number }
     setMoveLogs((prev) => [
-      { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to step ${e.to}` },
+      { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to box ${e.to}` },
       ...prev.slice(0, 7),
     ])
   } else if (type === 'lobby_update') {

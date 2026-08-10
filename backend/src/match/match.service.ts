@@ -121,7 +121,7 @@ export class MatchService {
 			{ expiresIn: '24h' },
 		);
 
-		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color };
+		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color, mode, playerCount };
 		if (isPvP) {
 			result.inviteCode = updates.inviteCode;
 		}

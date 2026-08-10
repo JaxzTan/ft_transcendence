@@ -14,7 +14,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-db_bossman}
       POSTGRES_DB: ${POSTGRES_DB:-transcendence}
     volumes:
-      - ./secrets:/secrets:ro
+      - secrets_data:/secrets:ro
       - db_data:/var/lib/postgresql/data
     ports:
       # Loopback-only: in LAN mode a bare "5432:5432" would expose Postgres
@@ -37,7 +37,7 @@ services:
     networks:
       - transcendence_network
     volumes:
-      - ./secrets:/secrets:ro
+      - secrets_data:/secrets:ro
       - redis_data:/data
     expose:
       - "6379"
@@ -63,7 +63,7 @@ services:
       # ngrok OAuth apps and frontend origin instead of the localhost ones.
       TUNNEL_MODE: ${TUNNEL_MODE:-false}
     volumes:
-      - ./secrets:/secrets:ro
+      - secrets_data:/secrets:ro
     ports:
       # Loopback-only: clients always reach the backend through nginx's
       # /api/ proxy, never directly. Published purely for host-side debugging.
@@ -96,7 +96,7 @@ services:
     networks:
       - transcendence_network
     volumes:
-      - ./secrets:/secrets:ro
+      - secrets_data:/secrets:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -203,3 +203,12 @@ volumes:
   db_data:
   redis_data:
   spa_dist:
+  # Not a bind mount — Docker Desktop's macOS virtiofs share deadlocks
+  # (EDEADLK) on reads through a live bind mount of ./secrets, sporadically
+  # and non-transiently (observed stuck >30s on retry). `docker cp` bypasses
+  # that path entirely, so `make seed-secrets` seeds this real Docker volume
+  # from the host once per run instead. `external: true` because Make (not
+  # compose) owns its lifecycle — compose must never try to create it itself
+  # with an empty/no-op volume.
+  secrets_data:
+    external: true

@@ -25,21 +25,45 @@ function resolveDir(): string {
 const SECRETS_DIR = resolveDir();
 const cache = new Map<string, string | undefined>();
 
+/** Blocking sleep — acceptable here since secret reads only happen once at boot. */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+const READ_RETRIES = 5;
+const READ_RETRY_DELAY_MS = 100;
+
 /** Read a secret by its variable name. Returns undefined if there's no file. */
 export function secret(name: string): string | undefined {
   if (cache.has(name)) return cache.get(name);
 
   const file = join(SECRETS_DIR, `${name.toLowerCase()}.txt`);
   let value: string | undefined;
+  let lastError: NodeJS.ErrnoException | undefined;
 
-  try {
-    value = readFileSync(file, 'utf8').trim() || undefined;
-  } catch {
+  // Bind-mounted secrets can hit transient, non-ENOENT read errors (observed:
+  // EDEADLK on Docker Desktop's macOS virtiofs share) — retry those a few
+  // times before giving up. A genuinely missing file (ENOENT) fails fast.
+  for (let attempt = 0; attempt < READ_RETRIES; attempt++) {
+    try {
+      value = readFileSync(file, 'utf8').trim() || undefined;
+      lastError = undefined;
+      break;
+    } catch (err) {
+      lastError = err as NodeJS.ErrnoException;
+      if (lastError.code === 'ENOENT') break;
+      sleepSync(READ_RETRY_DELAY_MS);
+    }
+  }
+
+  if (lastError) {
     // Env fallback keeps CI and one-off scripts working when no secrets
     // directory is mounted. Not a path any deployed service should take.
     value = process.env[name];
     if (value) {
-      console.warn(`[secrets] ${file} missing, falling back to process.env.${name}`);
+      console.warn(`[secrets] ${file} unreadable (${lastError.code}), falling back to process.env.${name}`);
+    } else if (lastError.code !== 'ENOENT') {
+      console.warn(`[secrets] ${file} unreadable after ${READ_RETRIES} attempts: ${lastError.message}`);
     }
   }
 
