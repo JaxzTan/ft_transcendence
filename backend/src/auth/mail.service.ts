@@ -52,15 +52,15 @@ export class MailService {
   sendVerification(to: string, link: string): Promise<void> {
     return this.send(
       to,
-      'Verify your Ludo Royale account',
-      `Welcome to Ludo Royale!\n\nConfirm this email address by opening:\n\n${link}\n\nThe link expires in 24 hours. If you did not sign up, ignore this mail.`,
+      'Verify your 42 Ludo account',
+      `Welcome to 42 Ludo!\n\nConfirm this email address by opening:\n\n${link}\n\nThe link expires in 24 hours. If you did not sign up, ignore this mail.`,
     );
   }
 
   sendPasswordReset(to: string, link: string): Promise<void> {
     return this.send(
       to,
-      'Reset your Ludo Royale password',
+      'Reset your 42 Ludo password',
       `We received a request to reset your password.\n\nChoose a new one here:\n\n${link}\n\nThe link expires in 1 hour and can be used once. If you did not request this, ignore this mail — your password stays unchanged.`,
     );
   }
