@@ -68,7 +68,7 @@ export class MailService {
   send2faCode(to: string, code: string): Promise<void> {
     return this.send(
       to,
-      `${code} is your Ludo Royale login code`,
+      `${code} is your 42 Ludo login code`,
       `Your login code is: ${code}\n\nIt expires in 5 minutes. If you did not try to log in, someone knows your password — change it.`,
     );
   }
