@@ -51,6 +51,15 @@ export function Game() {
   const [connected, setConnected] = useState(false)
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const [isRolling, setIsRolling] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
+
+  const copyRoomCode = () => {
+    if (!activeMatch?.inviteCode) return
+    navigator.clipboard.writeText(activeMatch.inviteCode).then(() => {
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 1500)
+    })
+  }
 
   // Set presence status
   useEffect(() => {
@@ -249,13 +258,26 @@ export function Game() {
           <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>
             {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
           </div>
-          <div style={{ fontSize: 12, color: '#a99a83' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#a99a83' }}>
             {activeMatch.inviteCode && (
-              <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#c9bda3' }}>
-                {t('game.roomCode')} {activeMatch.inviteCode}
-              </span>
+              <>
+                <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#c9bda3' }}>
+                  {t('game.roomCode')} {activeMatch.inviteCode}
+                </span>
+                <div
+                  onClick={copyRoomCode}
+                  title={t('game.copyRoomCode')}
+                  style={{
+                    cursor: 'pointer', padding: '3px 9px', borderRadius: 7, border: '1px solid #3a2c1d',
+                    background: codeCopied ? '#22432f' : '#140e0b', fontSize: 11, fontWeight: 700,
+                    color: codeCopied ? '#5fd08a' : '#c9bda3',
+                  }}
+                >
+                  {codeCopied ? t('game.copiedBtn') : t('game.copyBtn')}
+                </div>
+              </>
             )}
-            <span style={{ marginLeft: activeMatch.inviteCode ? 8 : 0, fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
+            <span style={{ fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
               {connected ? '● Live' : '● Connecting…'}
             </span>
           </div>
@@ -408,17 +430,25 @@ export function Game() {
                 </div>
               </div>
 
-              <button
-                onClick={markReady}
-                disabled={view.readyPlayers.includes(view.myColor)}
-                style={{
-                  ...btnGold, width: '100%', padding: 14,
-                  opacity: view.readyPlayers.includes(view.myColor) ? 0.6 : 1,
-                  cursor: view.readyPlayers.includes(view.myColor) ? 'default' : 'pointer',
-                }}
-              >
-                {view.readyPlayers.includes(view.myColor) ? t('game.readyWaitingBtn') : t('game.readyBtn')}
-              </button>
+              {(() => {
+                const activeCount = view.players.filter((p) => p.status === 'active').length
+                const alreadyReady = view.readyPlayers.includes(view.myColor)
+                const soloRoom = activeCount < 2
+                const disabled = alreadyReady || soloRoom
+                return (
+                  <button
+                    onClick={markReady}
+                    disabled={disabled}
+                    style={{
+                      ...btnGold, width: '100%', padding: 14,
+                      opacity: disabled ? 0.6 : 1,
+                      cursor: disabled ? 'default' : 'pointer',
+                    }}
+                  >
+                    {alreadyReady ? t('game.readyWaitingBtn') : soloRoom ? t('game.readyNeedsOpponent') : t('game.readyBtn')}
+                  </button>
+                )
+              })()}
 
               <div style={{ fontSize: 13, color: '#5fd08a', textAlign: 'center' }}>
                 {t('game.readyCount', {
