@@ -14,6 +14,7 @@ import type { PlayerColor } from '../types';
 
 const LOBBY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
 const POST_GAME_TIMEOUT_MS = 60 * 1000; // 60 seconds
+const BOT_TURN_DELAY_MS = 1000; // Pace out bot rolls/moves so the frontend can render each step
 
 /**
  * SocketServer orchestrates the ludo engine, socket connections,
@@ -120,7 +121,7 @@ export class SocketServer {
 			if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
 
 			const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
-			bot.takeTurn();
+			setTimeout(() => bot.takeTurn(), BOT_TURN_DELAY_MS);
 			// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
 		});
 	}

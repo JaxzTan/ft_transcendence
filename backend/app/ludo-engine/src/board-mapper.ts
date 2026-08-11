@@ -5,8 +5,8 @@ import type { PlayerColor, PieceId } from './types';
  * The engine works with logical steps (0-57), not board coordinates.
  */
 export class BoardMapper {
-  // Safe zone track positions (shared by all players)
-  private static readonly SAFE_TRACK_POSITIONS = [8, 13, 21, 26, 34, 39, 47];
+  // Safe zone track positions (shared by all players).
+  private static readonly SAFE_TRACK_POSITIONS = [1, 9, 14, 22, 27, 35, 40, 48];
 
   /**
    * Parse piece ID into color and index
@@ -18,7 +18,7 @@ export class BoardMapper {
 
   /**
    * Check if a move destination (by step) lands on a safe zone.
-   * Safe zones are at track positions: 8, 13, 21, 26, 34, 39, 47
+   * Safe zones are at shared track positions: 1, 9, 14, 22, 27, 35, 40, 48
    */
   static isSafeZoneStep(pieceId: PieceId, step: number): boolean {
     if (step < 1 || step > 51) return false;
@@ -39,5 +39,22 @@ export class BoardMapper {
 
     const offset = { red: 0, green: 13, yellow: 26, blue: 39 }[color];
     return ((step + offset - 1) % 52) + 1;
+  }
+
+  /**
+   * Check whether a shared board track position (1-52) is occupied by a blockade —
+   * i.e. two or more pieces of the same opponent color on one square.
+   * Only the main track (steps 1-51) participates; prison/goal/done (<=0, >=52)
+   * and safe zones never form/block via this helper.
+   */
+  static isBlockadeAtTrackPos(
+    pieces: { id: PieceId; color: PlayerColor; step: number }[],
+    blockerColor: PlayerColor,
+    trackPos: number,
+  ): boolean {
+    if (trackPos < 1 || trackPos > 52) return false;
+
+    const targetColorPieces = pieces.filter(p => p.color === blockerColor && p.step >= 1 && p.step <= 51);
+    return targetColorPieces.filter(p => this.toTrackPosition(p.id, p.step) === trackPos).length >= 2;
   }
 }

@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { useEffect, useRef } from 'react'
 import { COL, type ColorKey } from '../theme'
 
 const CELL_BG = '#efe6d6'
@@ -134,7 +135,10 @@ function Yard({
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: isLegal ? 'pointer' : 'default',
-                filter: isLegal ? 'drop-shadow(0 0 6px #f0d18a)' : 'none',
+                border: isLegal ? '2.5px solid #9aa4ad' : 'none',
+                boxShadow: isLegal ? '0 0 0 4px rgba(160,165,170,.35), 0 0 10px rgba(0,0,0,.45)' : 'none',
+                animation: isLegal ? 'haloPulse 1.8s ease-in-out infinite' : 'none',
+                borderRadius: '50%',
               }}
             >
               <Sphere ck={ck} />
@@ -148,6 +152,17 @@ function Yard({
 
 /** Star/safe start cells, tinted the owner color. */
 const STARTS: Record<string, ColorKey> = { '6,1': 'red', '1,8': 'green', '8,13': 'yellow', '13,6': 'blue' }
+
+// Pre-start safe cells matching the backend's SAFE_TRACK_POSITIONS.
+const SAFE_STAR_CELLS: Record<string, boolean> = (() => {
+  const SAFE_TRACK_POSITIONS = [1, 9, 14, 22, 27, 35, 40, 48];
+  const m: Record<string, boolean> = {};
+  for (const tp of SAFE_TRACK_POSITIONS) {
+    const cell = TRACK_CELLS[tp - 1];
+    m[`${cell.r},${cell.c}`] = true;
+  }
+  return m;
+})();
 
 /** Home-stretch lane color for a track cell, or null for a plain cell. */
 function laneColor(r: number, c: number): string | null {
@@ -204,6 +219,18 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
             }}
           />
         )
+      else if (SAFE_STAR_CELLS[key])
+        inner = (
+          <div
+            style={{
+              width: '36%',
+              height: '36%',
+              clipPath:
+                'polygon(50% 0,61% 35%,100% 35%,68% 57%,79% 100%,50% 72%,21% 100%,32% 57%,0 35%,39% 35%)',
+              background: '#000',
+            }}
+          />
+        )
       cells.push(
         <div key={`p${key}`} style={style}>
           {inner}
@@ -232,6 +259,25 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
     { x: -22, y: -22 }, { x: 22, y: -22 }, { x: -22, y: 22 }, { x: 22, y: 22 },
   ]
 
+  // Inject halo pulse keyframes once
+  const injected = useRef(false)
+  useEffect(() => {
+    if (injected.current) return
+    injected.current = true
+    const id = 'board-halo-keyframes'
+    if (document.getElementById(id)) return
+    const style = document.createElement('style')
+    style.id = id
+    style.textContent = `
+      @keyframes haloPulse {
+        0% { box-shadow: 0 0 0 4px rgba(160,165,170,.35), 0 0 6px rgba(0,0,0,.45); }
+        50% { box-shadow: 0 0 0 7px rgba(160,165,170,.55), 0 0 14px rgba(0,0,0,.55); }
+        100% { box-shadow: 0 0 0 4px rgba(160,165,170,.35), 0 0 6px rgba(0,0,0,.45); }
+      }
+    `
+    document.head.appendChild(style)
+  }, [])
+
   const enginePieces: ReactNode[] = []
   for (const [key, list] of byCell) {
     const [r, c] = key.split(',').map(Number)
@@ -251,8 +297,9 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
             justifySelf: 'center',
             borderRadius: '50%',
             background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${col.base} 52%, ${col.dark})`,
-            border: p.isLegal ? '2.5px solid #f0d18a' : '2px solid rgba(0,0,0,.28)',
-            boxShadow: p.isLegal ? '0 0 8px #f0d18a88' : '0 2px 4px rgba(0,0,0,.45)',
+            border: p.isLegal ? '2.5px solid #9aa4ad' : '2px solid rgba(0,0,0,.28)',
+            boxShadow: p.isLegal ? '0 0 0 4px rgba(160,165,170,.35), 0 0 10px rgba(0,0,0,.45)' : '0 2px 4px rgba(0,0,0,.45)',
+            animation: p.isLegal ? 'haloPulse 1.8s ease-in-out infinite' : 'none',
             cursor: p.isLegal ? 'pointer' : 'default',
             zIndex: 10,
             transform: `translate(${offset.x}%, ${offset.y}%)`,
@@ -286,7 +333,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
           style={{
             gridRow: '7 / span 3',
             gridColumn: '7 / span 3',
-            background: `conic-gradient(from 45deg, ${COL.green.base} 0 90deg, ${COL.yellow.base} 90deg 180deg, ${COL.blue.base} 180deg 270deg, ${COL.red.base} 270deg 360deg)`,
+            background: `conic-gradient(from 45deg, ${COL.yellow.base} 0 90deg, ${COL.blue.base} 90deg 180deg, ${COL.red.base} 180deg 270deg, ${COL.green.base} 270deg 360deg)`,
             boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
           }}
         />

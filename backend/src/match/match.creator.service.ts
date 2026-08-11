@@ -1,0 +1,185 @@
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma.service';
+import { secret } from '../secrets';
+import Redis from 'ioredis';
+import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
+
+const BOT_PREFIX = 'bot-';
+const SLOT_COLORS = ['red', 'green', 'yellow', 'blue'];
+const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
+export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
+
+function generateInviteCode(): string {
+	const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+	let code = '';
+	for (let i = 0; i < 6; i++) {
+		code += chars[Math.floor(Math.random() * chars.length)];
+	}
+	return code;
+}
+
+function isBotUserId(userId: string | undefined): boolean {
+	return !!userId && userId.startsWith(BOT_PREFIX);
+}
+
+@Injectable()
+export class MatchCreatorService {
+	private redis: Redis;
+
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly jwt: JwtService,
+		private readonly leaderboardRedis: LeaderboardRedisService,
+	) {
+		const host = process.env.REDIS_HOST || 'redis';
+		const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+		const password = secret('REDIS_PASSWORD');
+		this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
+		this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+	}
+
+	// Create a new match room (PvP, PvE, or hotseat). PvP rooms start in WAITING;
+	// PvE/hotseat start immediately in ACTIVE with bot slots filled.
+	async createMatch(
+		userId: string,
+		mode: 'pvp' | 'pve' | 'hotseat',
+		playerCount: number,
+		botCount: number,
+		clashEnabled: boolean = true,
+	) {
+		if (playerCount < 2 || playerCount > 4) {
+			throw new BadRequestException('Player count must be between 2 and 4');
+		}
+		if (botCount < 0 || botCount >= playerCount) {
+			throw new BadRequestException('Bot count must be between 0 and playerCount - 1');
+		}
+		if (mode === 'pvp' && botCount > 0) {
+			throw new BadRequestException('PvP mode cannot have bots');
+		}
+		if (mode === 'pve' && botCount === 0) {
+			throw new BadRequestException('PvE mode must have at least 1 bot');
+		}
+		if (mode === 'hotseat' && botCount > 0) {
+			throw new BadRequestException('Hot seat mode cannot have bots');
+		}
+
+		const gameId = crypto.randomUUID();
+		const totalBots = botCount;
+		const isPvP = mode === 'pvp';
+		const player1Color = SLOT_COLORS[0];
+
+		const updates: Record<string, string> = {
+			id: gameId,
+			status: isPvP ? 'WAITING' : 'ACTIVE',
+			gameType: mode.toUpperCase(),
+			playerCount: playerCount.toString(),
+			player1_id: userId,
+			player1_color: player1Color,
+			clashEnabled: clashEnabled.toString(),
+			createdAt: Date.now().toString(),
+		};
+
+		if (isPvP) {
+			updates.inviteCode = generateInviteCode();
+		} else {
+			updates.startedAt = Date.now().toString();
+			if (totalBots >= 1) updates.player2_id = BOT_PREFIX + SLOT_COLORS[1];
+			if (totalBots >= 2) updates.player3_id = BOT_PREFIX + SLOT_COLORS[2];
+			if (totalBots >= 3) updates.player4_id = BOT_PREFIX + SLOT_COLORS[3];
+		}
+
+		await this.redis.hset(`match:${gameId}`, updates);
+		await this.redis.expire(`match:${gameId}`, 86400);
+
+		const username = await this.resolveUsername(userId);
+		const token = this.jwt.sign(
+			{
+				gameId,
+				playerId: userId,
+				username: username || undefined,
+				role: 'player1',
+				mode,
+				clashEnabled,
+				color: player1Color,
+			},
+			{ expiresIn: '24h' },
+		);
+
+		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color };
+		if (isPvP) {
+			result.inviteCode = updates.inviteCode;
+		}
+		return result;
+	}
+
+	// Find an open PvP room to join, or create a new one if none available.
+	// If the caller already has a WAITING/ACTIVE room, rejoin it instead.
+	async findRandomMatch(userId: string, clashEnabled: boolean = true, joiner: any, lister: any) {
+		// Prevent duplicate rooms: if caller already has a WAITING or ACTIVE room, reuse it
+		const myRooms = await lister(userId);
+		const existing = myRooms.find((r: any) => r.status === 'WAITING' || r.status === 'ACTIVE');
+		if (existing) {
+			return joiner(existing.id, userId);
+		}
+
+		// Scan Redis for a WAITING PvP game with an open slot
+		let cursor = '0';
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				if (
+					data.status === 'WAITING' &&
+					data.gameType === 'PVP' &&
+					data.player1_id !== userId &&
+					!data.player2_id
+				) {
+					return joiner(data.id, userId);
+				}
+			}
+		} while (cursor !== '0');
+		return this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
+	}
+
+	// Create a PvP room and return its invite code (alias for createMatch).
+	async createInvite(userId: string, clashEnabled: boolean = true) {
+		const result = await this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
+		return result;
+	}
+
+	// Create a PvE match with the specified number of bot opponents.
+	async playBot(userId: string, playerCount: number = 2, clashEnabled: boolean = true) {
+		if (playerCount !== 2 && playerCount !== 4) {
+			throw new BadRequestException('Player count must be 2 or 4');
+		}
+		const botCount = playerCount - 1;
+		return this.createMatch(userId, 'pve', playerCount, botCount, clashEnabled);
+	}
+
+	// Join a PvP room by its 6-character invite code.
+	async joinByInvite(inviteCode: string, userId: string, joiner: any) {
+		let cursor = '0';
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				if (data.inviteCode === inviteCode && data.status === 'WAITING') {
+					if (data.player1_id === userId) {
+						throw new BadRequestException('You cannot join your own invite');
+					}
+					return joiner(data.id, userId);
+				}
+			}
+		} while (cursor !== '0');
+		throw new NotFoundException('Invite code not found or expired');
+	}
+
+	private async resolveUsername(userId: string): Promise<string | null> {
+		if (isBotUserId(userId)) return null;
+		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+		return user?.username ?? null;
+	}
+}
