@@ -162,8 +162,11 @@ export async function handlePlayerReady(
 
   await store.saveGameState(gameId, state);
 
-  // Check if game should start (delegate to lobby manager if available)
-  const allReady = state.players.filter(p => p.status === 'active').length > 0 &&
+  // Check if game should start (delegate to lobby manager if available).
+  // Requires >= 2 active seats — a lone host marking themselves ready must
+  // not be able to flip a pvp match to 'active' with nobody else in the room.
+  const activeCount = state.players.filter(p => p.status === 'active').length;
+  const allReady = activeCount >= 2 &&
     state.players.filter(p => p.status === 'active').every(p => state.readyPlayers.includes(p.color));
 
   if (allReady) {

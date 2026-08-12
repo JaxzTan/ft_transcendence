@@ -82,6 +82,11 @@ export class SocketHandlers {
 
           if (state.status === 'waiting') {
             await this.store.saveGameState(effectiveGameId, state);
+            // Already-connected clients (e.g. the room host) otherwise never
+            // learn a new seat joined — nothing else broadcasts on join, so
+            // their local view stays stuck at solo-room state forever and
+            // their Ready button never enables. See emitLobbyUpdate in engine.ts.
+            await this.engine.emitLobbyUpdate(effectiveGameId);
           }
         }
 
