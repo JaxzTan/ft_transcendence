@@ -261,9 +261,11 @@ export class LudoEngine {
 
   /**
    * Broadcast the current waiting-room roster (seat, username, ready flag) so every
-   * connected client's lobby screen stays in sync after a ready-toggle or color swap.
+   * connected client's lobby screen stays in sync after a ready-toggle, color swap,
+   * or a new player joining. Public: socket-handlers.ts calls this after join_game
+   * so already-connected clients learn about the new seat (see handleJoinGame).
    */
-  private async emitLobbyUpdate(gameId: string): Promise<void> {
+  async emitLobbyUpdate(gameId: string): Promise<void> {
     const state = await this.store.loadGameState(gameId);
     if (!state) return;
     const players = state.players
