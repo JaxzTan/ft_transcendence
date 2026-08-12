@@ -6,7 +6,7 @@ import { navigate } from '../router'
 import { useApp } from '../store'
 import { btnGold, btnOutline, card, COL, goldText } from '../theme'
 
-const PLACE_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a', '#7a6c56']
+const PLACE_COLORS = ['#ffcb6b', '#add7ff', '#d0679d', '#506477']
 
 export function Results() {
   const { t } = useTranslation()
@@ -16,10 +16,10 @@ export function Results() {
 
   if (!lastResult) {
     return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#12100a', color: '#f0e2c4' }}>
-        <div style={{ ...card, padding: 32, textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>No recent match result</div>
-          <div style={{ color: '#a99a83', marginBottom: 20 }}>Play a game first to see results here.</div>
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#13151f', color: '#f0f4fc' }}>
+        <div style={{ ...card, padding: 36, textAlign: 'center' }}>
+          <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 12, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>No recent match result</div>
+          <div style={{ color: '#a6accd', marginBottom: 20 }}>Play a game first to see results here.</div>
           <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '12px 24px' }}>
             Go to Lobby
           </button>
@@ -35,9 +35,6 @@ export function Results() {
   const winnerName = winnerPlayer ? (winnerPlayer.color === myColor ? t('common.you') : winnerPlayer.username) : lastResult.winner
   const winnerInitials = (winnerPlayer?.username ?? lastResult.winner).slice(0, 2).toUpperCase()
 
-  // "Rematch" votes (client → 'rematch' → server 'game_created') only work while still
-  // connected to the finished game's socket room; Game.tsx disconnects on navigating here.
-  // Until that's redesigned, "Play Again" creates a fresh match the same way Lobby does.
   const onRematch = async () => {
     setRematchError(null)
     setRematching(true)
@@ -60,76 +57,79 @@ export function Results() {
     <div
       style={{
         minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 40,
-        background: 'radial-gradient(90% 80% at 50% 0%,#22432f,#12100a 70%)',
+        background: 'radial-gradient(100% 100% at 50% 10%, rgba(93,228,199,0.18) 0%, rgba(137,221,255,0.22) 45%, #13151f 100%)',
       }}
     >
       <div
         style={{
-          width: '100%', maxWidth: 560, borderRadius: 22, padding: 38, textAlign: 'center',
-          background: 'linear-gradient(180deg,#241b13,#171009)', border: '1px solid #4a3826',
-          boxShadow: '0 40px 80px -30px #000',
+          width: '100%', maxWidth: 580, borderRadius: 28, padding: '42px 38px', textAlign: 'center',
+          background: 'linear-gradient(145deg, rgba(27,30,46,0.94), rgba(20,23,35,0.98))',
+          border: '1px solid rgba(93,228,199,0.3)',
+          boxShadow: '0 40px 90px -25px rgba(0,0,0,.85), 0 0 40px rgba(93,228,199,.2)',
+          backdropFilter: 'blur(20px)',
         }}
       >
-        <div style={{ fontFamily: "'Cinzel',serif", fontSize: 14, letterSpacing: '.34em', color: '#c99b45' }}>
+        <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 13, letterSpacing: '.34em', color: '#5de4c7', fontWeight: 800, textTransform: 'uppercase' }}>
           {t('results.matchComplete')}
         </div>
-        <div style={{ fontFamily: "'Cinzel',serif", fontSize: 48, lineHeight: 1, margin: '14px 0 6px', ...goldText }}>
+        <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 52, lineHeight: 1, fontWeight: 900, margin: '14px 0 8px', ...goldText }}>
           {won ? t('results.victory') : t('results.defeat')}
         </div>
-        <div style={{ color: '#c9bda3', fontSize: 15 }}>
+        <div style={{ color: '#cbd5e1', fontSize: 16, fontWeight: 500 }}>
           {won ? t('results.victoryDesc') : lastResult.resultDetail}
         </div>
         <div
           style={{
-            width: 96, height: 96, margin: '26px auto 10px', borderRadius: '50%',
-            background: `linear-gradient(180deg,${COL[lastResult.winner].base},${COL[lastResult.winner].dark})`,
-            display: 'grid', placeItems: 'center', fontSize: 34, fontWeight: 800, color: '#0d1b28',
-            boxShadow: '0 0 0 4px #f0d18a,0 0 40px rgba(240,209,138,.4)',
+            width: 104, height: 104, margin: '28px auto 12px', borderRadius: '50%',
+            background: `linear-gradient(135deg, ${COL[lastResult.winner].base}, ${COL[lastResult.winner].dark})`,
+            display: 'grid', placeItems: 'center', fontSize: 38, fontWeight: 900, color: '#13151f',
+            boxShadow: `0 0 0 5px rgba(255,255,255,0.8), 0 0 40px ${COL[lastResult.winner].base}`,
+            fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
           }}
         >
           {winnerInitials}
         </div>
-        <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 16 }}>
+        <div style={{ fontWeight: 800, fontSize: 18, color: '#f0f4fc', marginBottom: 20, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
           {winnerName}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '0 auto 22px', maxWidth: 340 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '0 auto 26px', maxWidth: 360 }}>
           {ranked.map((p, i) => (
             <div
               key={p.color}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12,
-                background: i === 0 ? 'linear-gradient(90deg,rgba(240,209,138,.16),#1a130d)' : '#1a130d',
-                border: '1px solid ' + (i === 0 ? '#c99b45' : '#2e2115'),
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14,
+                background: i === 0 ? 'linear-gradient(135deg, rgba(93,228,199,0.18), rgba(137,221,255,0.22))' : 'rgba(255,255,255,0.04)',
+                border: '1px solid ' + (i === 0 ? 'rgba(93,228,199,0.6)' : 'rgba(255,255,255,0.08)'),
+                boxShadow: i === 0 ? '0 0 20px rgba(93,228,199,0.3)' : 'none',
               }}
             >
               <div
                 style={{
-                  width: 26, height: 26, borderRadius: 8, display: 'grid', placeItems: 'center',
-                  fontWeight: 800, fontSize: 13, color: '#241a0c', background: PLACE_COLORS[i],
+                  width: 28, height: 28, borderRadius: 8, display: 'grid', placeItems: 'center',
+                  fontWeight: 900, fontSize: 13, color: '#13151f', background: PLACE_COLORS[i],
+                  fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                 }}
               >
                 {i + 1}
               </div>
-              <div style={{ width: 14, height: 14, borderRadius: '50%', background: COL[p.color].base }} />
-              <div style={{ flex: 1, textAlign: 'left', fontWeight: 700, fontSize: 14, color: '#f0e2c4' }}>
+              <div style={{ width: 14, height: 14, borderRadius: '50%', background: COL[p.color].base, boxShadow: `0 0 8px ${COL[p.color].base}` }} />
+              <div style={{ flex: 1, textAlign: 'left', fontWeight: 700, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                 {p.color === myColor ? t('common.you') : p.username}
               </div>
-              <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 600 }}>
+              <div style={{ color: '#a6accd', fontSize: 13, fontWeight: 600 }}>
                 {t('results.piecesHome', { count: p.piecesInGoal })}
               </div>
             </div>
           ))}
         </div>
         {rematchError && (
-          <div style={{ color: '#e05050', fontSize: 13, marginBottom: 12 }}>{rematchError}</div>
+          <div style={{ color: '#d0679d', fontSize: 13, marginBottom: 12, background: 'rgba(208,103,157,0.15)', padding: '8px 12px', borderRadius: 8 }}>{rematchError}</div>
         )}
         <div style={{ display: 'flex', gap: 12 }}>
           <button
             onClick={onRematch}
             disabled={rematching}
-            style={{ flex: 1, border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
-              color: '#2a1c07', cursor: rematching ? 'default' : 'pointer', opacity: rematching ? 0.6 : 1,
-              background: 'linear-gradient(180deg,#f0d18a,#c99b45)' }}
+            style={{ ...btnGold, flex: 1, padding: 14 }}
           >
             {rematching ? '…' : t('results.rematchBtn')}
           </button>

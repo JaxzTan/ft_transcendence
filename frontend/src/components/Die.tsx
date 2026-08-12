@@ -13,19 +13,22 @@ export function Die({ value, rolling }: { value: number; rolling: boolean }) {
   return (
     <div
       style={{
-        width: 80,
-        height: 80,
-        borderRadius: 17,
-        background: 'linear-gradient(150deg,#fbf5e6,#e4d8bf)',
+        width: 82,
+        height: 82,
+        borderRadius: 20,
+        background: 'linear-gradient(145deg, #ffffff 0%, #f0f4fc 60%, #cbd5e1 100%)',
         boxShadow:
-          'inset 0 2px 4px rgba(255,255,255,.8),inset 0 -6px 10px rgba(140,120,80,.35),0 14px 24px -10px rgba(0,0,0,.7)',
+          '0 18px 36px -8px rgba(0,0,0,.65), 0 0 24px rgba(93,228,199,.35), inset 0 2px 4px #ffffff, inset 0 -4px 8px rgba(137,221,255,.25)',
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr',
         gridTemplateRows: '1fr 1fr 1fr',
         padding: 13,
         gap: 3,
         animation: rolling ? 'shake .3s ease-in-out infinite' : 'none',
-        border: '1px solid #cbb99a',
+        border: '1.5px solid rgba(255,255,255,.9)',
+        cursor: 'pointer',
+        transform: rolling ? 'scale(1.05)' : 'scale(1)',
+        transition: 'transform .15s ease',
       }}
     >
       {Array.from({ length: 9 }, (_, i) => (
@@ -33,11 +36,11 @@ export function Die({ value, rolling }: { value: number; rolling: boolean }) {
           {on.includes(i) ? (
             <div
               style={{
-                width: 13,
-                height: 13,
+                width: 14,
+                height: 14,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle at 35% 30%,#5a4a2e,#241a0c)',
-                boxShadow: 'inset 0 1px 1px rgba(0,0,0,.5)',
+                background: 'radial-gradient(circle at 35% 30%, #5de4c7, #0a5446)',
+                boxShadow: '0 0 8px rgba(93,228,199,.9), inset 0 1px 1px rgba(255,255,255,.8)',
               }}
             />
           ) : null}

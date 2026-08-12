@@ -93,92 +93,124 @@ export function Dashboard() {
     : []
 
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, borderRadius: 18, padding: '24px 26px', background: 'linear-gradient(180deg,#241b13,#1a130d)', border: '1px solid #3a2c1d' }}>
-        <div style={{ ...avatarBlue(74, 26, 18), boxShadow: '0 0 0 3px #f0d18a55' }}>{initials || 'YO'}</div>
+    <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 22, borderRadius: 24, padding: '26px 30px',
+          background: 'linear-gradient(145deg, rgba(27,30,46,0.85), rgba(20,23,35,0.95))',
+          border: '1px solid rgba(93,228,199,0.25)',
+          boxShadow: '0 20px 40px -15px rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(16px)',
+        }}
+      >
+        <div style={{ ...avatarBlue(76, 28, 20), boxShadow: '0 0 0 4px rgba(93,228,199,0.35), 0 0 24px rgba(137,221,255,0.4)' }}>
+          {initials || 'YO'}
+        </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 26, color: '#f4e9cf' }}>
+          <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 28, fontWeight: 900, color: '#f0f4fc', letterSpacing: -0.5 }}>
             {profile?.username ?? user?.username ?? t('common.you')}
+          </div>
+          <div style={{ color: '#a6accd', fontSize: 14, fontWeight: 600, marginTop: 2 }}>
+            Level {(profile ? Math.floor(profile.wins / 3) + 1 : 1)} Player
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 30, fontWeight: 800, color: '#f0c24e' }}>♛ {profile?.rating ?? '—'}</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#ffcb6b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", textShadow: '0 0 16px rgba(255,203,107,0.3)' }}>
+            ♛ {profile?.rating ?? '—'}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 16 }}>
         {(profile ? statTiles : Array.from<{ label: string; value: string } | undefined>({ length: 5 })).map((s, i) => (
-          <div key={i} style={{ borderRadius: 14, padding: 18, background: 'linear-gradient(180deg,#221a12,#18120c)', border: '1px solid #33261a' }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#f0e2c4' }}>{s ? s.value : t('common.loading')}</div>
-            <div style={{ color: '#a99a83', fontSize: '12.5px', marginTop: 4, fontWeight: 600 }}>
+          <div
+            key={i}
+            className="interactive-card"
+            style={{
+              borderRadius: 18, padding: '20px 18px',
+              background: 'linear-gradient(145deg, rgba(27,30,46,0.8), rgba(20,23,35,0.9))',
+              border: '1px solid rgba(93,228,199,0.2)',
+              boxShadow: '0 10px 24px -8px rgba(0,0,0,0.5)',
+            }}
+          >
+            <div style={{ fontSize: 26, fontWeight: 900, color: i === 0 ? '#ffcb6b' : i === 2 ? '#5de4c7' : '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+              {s ? s.value : t('common.loading')}
+            </div>
+            <div style={{ color: '#a6accd', fontSize: '13px', marginTop: 4, fontWeight: 700, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
               {s ? s.label : ''}
             </div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
-        <div style={{ ...card, padding: 22 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 14 }}>{t('dashboard.recentMatches')}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.45fr 1.05fr', gap: 20 }}>
+        <div style={{ ...card, padding: 26 }}>
+          <div style={{ fontWeight: 900, fontSize: 18, color: '#f0f4fc', marginBottom: 16, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('dashboard.recentMatches')}</div>
           {!games ? (
-            <div style={{ color: '#a99a83', fontSize: 13.5, padding: '8px 0' }}>{t('common.loading')}</div>
+            <div style={{ color: '#a6accd', fontSize: 14, padding: '12px 0' }}>{t('common.loading')}</div>
           ) : games.games.length === 0 ? (
-            <div style={{ color: '#a99a83', fontSize: 13.5, padding: '8px 0' }}>{t('dashboard.noMatchesYet')}</div>
+            <div style={{ color: '#a6accd', fontSize: 14, padding: '12px 0' }}>{t('dashboard.noMatchesYet')}</div>
           ) : (
             games.games.map((m) => {
               const win = m.rank === 1
               const opponents = m.participants.filter((p) => p.username !== (profile?.username ?? user?.username))
               return (
-                <div key={m.gameId} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0', borderBottom: '1px solid #2a2015' }}>
+                <div key={m.gameId} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                   <div
                     style={{
-                      width: 34, height: 34, flex: 'none', borderRadius: 9, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 14,
-                      color: win ? '#0d1b12' : '#2a0f0c',
-                      background: win ? 'linear-gradient(180deg,#5fd08a,#2c8a53)' : 'linear-gradient(180deg,#e4574d,#a8362e)',
+                      width: 36, height: 36, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                      fontWeight: 900, fontSize: 14,
+                      color: '#13151f',
+                      background: win ? 'linear-gradient(135deg, #5de4c7, #89ddff)' : 'linear-gradient(135deg, #d0679d, #a34275)',
+                      boxShadow: win ? '0 0 14px rgba(93,228,199,0.4)' : '0 0 14px rgba(208,103,157,0.4)',
+                      fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                     }}
                   >
                     {win ? t('dashboard.win') : t('dashboard.loss')}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                       {t('dashboard.vs')} {opponents.length > 0 ? opponents.map((o) => o.username).join(', ') : '—'}
                     </div>
-                    <div style={{ color: '#a99a83', fontSize: 12 }}>{relativeTime(m.startedAt, t)}</div>
+                    <div style={{ color: '#a6accd', fontSize: 12.5 }}>{relativeTime(m.startedAt, t)}</div>
                   </div>
                 </div>
               )
             })
           )}
         </div>
-        <div style={{ ...card, padding: 22 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 14 }}>{t('dashboard.achievements')}</div>
+        <div style={{ ...card, padding: 26 }}>
+          <div style={{ fontWeight: 900, fontSize: 18, color: '#f0f4fc', marginBottom: 16, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('dashboard.achievements')}</div>
           {!achievements ? (
-            <div style={{ color: '#a99a83', fontSize: 13.5 }}>{t('common.loading')}</div>
+            <div style={{ color: '#a6accd', fontSize: 14 }}>{t('common.loading')}</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxHeight: 420, overflowY: 'auto', paddingRight: 4 }}>
               {ACHIEVEMENT_LIST.map((a) => {
                 const unlocked = !!achievements[a.key]
                 return (
                   <div
                     key={a.key}
                     style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 10px',
-                      borderRadius: 12, textAlign: 'center',
-                      background: unlocked ? 'rgba(240,209,138,.08)' : '#18120c',
-                      border: '1px solid ' + (unlocked ? '#4a3826' : '#241a10'),
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 12px',
+                      borderRadius: 16, textAlign: 'center',
+                      background: unlocked ? 'linear-gradient(145deg, rgba(93,228,199,0.15), rgba(137,221,255,0.2))' : 'rgba(255,255,255,0.03)',
+                      border: '1px solid ' + (unlocked ? 'rgba(93,228,199,0.45)' : 'rgba(255,255,255,0.06)'),
+                      boxShadow: unlocked ? '0 0 16px rgba(93,228,199,0.25)' : 'none',
+                      opacity: unlocked ? 1 : 0.45,
+                      transition: 'all .15s ease',
                     }}
                   >
                     <div
                       style={{
-                        width: 42, height: 42, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 20,
-                        color: unlocked ? '#2a1c07' : '#4a3826',
-                        background: unlocked ? 'linear-gradient(180deg,#f0d18a,#c99b45)' : '#241a10',
+                        width: 44, height: 44, borderRadius: 14, display: 'grid', placeItems: 'center', fontSize: 22,
+                        color: '#13151f',
+                        background: unlocked ? 'linear-gradient(135deg, #5de4c7, #89ddff)' : 'rgba(255,255,255,0.06)',
+                        boxShadow: unlocked ? '0 0 14px rgba(93,228,199,0.5)' : 'none',
                       }}
                     >
                       {a.glyph}
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: unlocked ? '#f0e2c4' : '#6b5d49' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: unlocked ? '#f0f4fc' : '#506477', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                       {t(`dashboard.${a.key}`)}
                     </div>
                   </div>

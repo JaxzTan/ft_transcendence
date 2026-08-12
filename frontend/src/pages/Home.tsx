@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { navigate } from '../router'
 import { useApp } from '../store'
-import { avatarDim, btnGold, card } from '../theme'
+import { avatarDim, btnGold, btnOutline, card } from '../theme'
 
 type LadderEntry = { username: string; rating: number }
 
@@ -28,49 +28,48 @@ export function Home() {
   }, [])
 
   return (
-    <div className="home-page" style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
+    <div className="home-page" style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div
         className="home-hero"
         style={{
           position: 'relative',
           overflow: 'hidden',
-          borderRadius: 20,
-          border: '1px solid #2e4a38',
-          background: 'radial-gradient(120% 140% at 12% 0%,#22432f,#12261a 70%)',
+          borderRadius: 24,
+          padding: '36px 40px',
+          border: '1px solid rgba(93,228,199,0.3)',
+          background: 'radial-gradient(120% 140% at 10% 0%, rgba(93,228,199,0.2) 0%, rgba(137,221,255,0.22) 45%, rgba(19,21,31,0.95) 100%)',
+          boxShadow: '0 24px 60px -15px rgba(93,228,199,0.18), 0 0 30px rgba(137,221,255,0.12)',
+          backdropFilter: 'blur(20px)',
         }}
       >
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'repeating-linear-gradient(45deg,rgba(0,0,0,.10) 0 3px,transparent 3px 11px)',
-            opacity: 0.5,
+            backgroundImage: 'radial-gradient(rgba(93, 228, 199, 0.15) 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+            opacity: 0.6,
           }}
         />
-        <div style={{ position: 'relative', maxWidth: 560 }}>
-          <div style={{ fontSize: 13, letterSpacing: '.2em', textTransform: 'uppercase', color: '#7fae91', fontWeight: 700 }}>
+        <div style={{ position: 'relative', maxWidth: 580, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ fontSize: 13, letterSpacing: '.2em', textTransform: 'uppercase', color: '#5de4c7', fontWeight: 800, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
             {t('home.greeting', { name: user?.username ?? t('common.you') })}
           </div>
-          <div className="home-hero-title" style={{ fontFamily: "'Cinzel',serif", fontSize: 34, lineHeight: 1.05, color: '#f4e9cf' }}>
+          <div className="home-hero-title" style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontWeight: 900, fontSize: 40, lineHeight: 1.08, color: '#f0f4fc', letterSpacing: -0.5 }}>
             {t('home.readyToRoll')}
           </div>
-          <div style={{ color: '#c9bda3', fontSize: '15.5px', lineHeight: 1.5, maxWidth: 460 }}>
+          <div style={{ color: '#cbd5e1', fontSize: '15.5px', lineHeight: 1.5, maxWidth: 480 }}>
             {t('home.heroDesc')}
           </div>
-          <div className="home-hero-actions" style={{ display: 'flex', gap: 12 }}>
-            <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '13px 22px' }}>
+          <div className="home-hero-actions" style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+            <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '13px 26px' }}>
               {t('home.createTable')}
             </button>
             <button
               onClick={() => navigate('/game')}
               style={{
-                border: '1px solid #4a5f4a',
-                borderRadius: 12,
-                padding: '13px 22px',
-                font: "700 15px 'Hanken Grotesk'",
-                color: '#e8f0e0',
-                cursor: 'pointer',
-                background: 'rgba(255,255,255,.04)',
+                ...btnOutline,
+                padding: '13px 26px',
               }}
             >
               {t('home.resumeGame')}
@@ -79,19 +78,19 @@ export function Home() {
         </div>
       </div>
 
-      <div className="home-ladder" style={{ ...card }}>
+      <div className="home-ladder" style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div className="home-ladder-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>{t('home.topLadder')}</div>
-          <a onClick={() => navigate('/leaderboard')} style={{ cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-            {t('home.viewAll')}
+          <div style={{ fontWeight: 800, fontSize: 17, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('home.topLadder')}</div>
+          <a onClick={() => navigate('/leaderboard')} style={{ cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: '#5de4c7' }}>
+            {t('home.viewAll')} →
           </a>
         </div>
         {ladder === null ? (
-          <div style={{ padding: '16px 0', textAlign: 'center', color: '#a99a83', fontSize: '13.5px' }}>
+          <div style={{ padding: '20px 0', textAlign: 'center', color: '#a6accd', fontSize: '14px' }}>
             {t('common.loading')}
           </div>
         ) : ladder.length === 0 ? (
-          <div style={{ padding: '16px 0', textAlign: 'center', color: '#a99a83', fontSize: '13.5px' }}>
+          <div style={{ padding: '20px 0', textAlign: 'center', color: '#a6accd', fontSize: '14px' }}>
             {t('leaderboard.noRankedPlayers')}
           </div>
         ) : (
@@ -99,12 +98,14 @@ export function Home() {
             <div
               key={l.username}
               className="home-ladder-row"
-              style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #2a2015' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '11px 8px' }}
             >
-              <div style={{ width: 22, textAlign: 'center', fontWeight: 800, color: '#a99a83', fontSize: 14 }}>{i + 1}</div>
-              <div style={avatarDim(32)}>{l.username.slice(0, 2).toUpperCase()}</div>
-              <div style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{l.username}</div>
-              <div style={{ color: '#f0c24e', fontWeight: 800, fontSize: 14 }}>♛ {l.rating}</div>
+              <div style={{ width: 26, textAlign: 'center', fontWeight: 900, color: i === 0 ? '#ffcb6b' : i === 1 ? '#add7ff' : i === 2 ? '#d0679d' : '#a6accd', fontSize: 14, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+                {i + 1}
+              </div>
+              <div style={avatarDim(34)}>{l.username.slice(0, 2).toUpperCase()}</div>
+              <div style={{ flex: 1, fontWeight: 700, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{l.username}</div>
+              <div style={{ color: '#ffcb6b', fontWeight: 800, fontSize: 14.5, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>♛ {l.rating}</div>
             </div>
           ))
         )}

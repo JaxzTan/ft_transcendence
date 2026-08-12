@@ -1,8 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { COL, type ColorKey } from '../theme'
 
-const CELL_BG = '#efe6d6'
-const LINE = '#c9b995'
+const CELL_BG = '#ffffff'
+const LINE = 'rgba(93, 228, 199, 0.22)'
 
 // ─── Track geometry ─────────────────────────────────────────────────────────
 // The engine works purely in logical steps (0-57, see board-mapper.ts) and has
@@ -62,12 +62,12 @@ function Sphere({ ck }: { ck: ColorKey }) {
   return (
     <div
       style={{
-        width: '72%',
+        width: '74%',
         aspectRatio: '1',
         borderRadius: '50%',
-        background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${c.base} 52%, ${c.dark})`,
-        boxShadow: '0 3px 5px rgba(0,0,0,.45)',
-        border: '2px solid rgba(0,0,0,.28)',
+        background: `radial-gradient(circle at 32% 28%, #ffffff, ${c.base} 55%, ${c.dark})`,
+        boxShadow: `0 4px 8px rgba(0,0,0,.5), 0 0 12px ${c.base}88`,
+        border: '1.5px solid rgba(255,255,255,.4)',
       }}
     />
   )
@@ -77,10 +77,10 @@ function Ring({ ck }: { ck: ColorKey }) {
   return (
     <div
       style={{
-        width: '62%',
+        width: '64%',
         aspectRatio: '1',
         borderRadius: '50%',
-        border: `2px dashed ${COL[ck].base}88`,
+        border: `2px dashed ${COL[ck].base}99`,
         boxSizing: 'border-box',
       }}
     />
@@ -106,7 +106,8 @@ function Yard({
         padding: '11%',
         background: col.yard,
         border: `3px solid ${col.base}`,
-        borderRadius: 12,
+        borderRadius: 16,
+        boxShadow: `inset 0 0 14px rgba(0,0,0,.6), 0 0 16px ${col.base}44`,
       }}
     >
       <div
@@ -114,13 +115,13 @@ function Yard({
           width: '100%',
           height: '100%',
           background: CELL_BG,
-          borderRadius: 10,
+          borderRadius: 12,
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gridTemplateRows: '1fr 1fr',
           gap: '10%',
           padding: '13%',
-          boxShadow: 'inset 0 2px 6px rgba(0,0,0,.2)',
+          boxShadow: 'inset 0 3px 8px rgba(0,0,0,.15)',
         }}
       >
         {[0, 1, 2, 3].map((s) => {
@@ -134,7 +135,9 @@ function Yard({
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: isLegal ? 'pointer' : 'default',
-                filter: isLegal ? 'drop-shadow(0 0 6px #f0d18a)' : 'none',
+                filter: isLegal ? 'drop-shadow(0 0 8px #5de4c7) drop-shadow(0 0 14px #89ddff)' : 'none',
+                transform: isLegal ? 'scale(1.1)' : 'scale(1)',
+                transition: 'transform .15s ease',
               }}
             >
               <Sphere ck={ck} />
@@ -190,17 +193,19 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
         alignItems: 'center',
         justifyContent: 'center',
         boxSizing: 'border-box',
+        boxShadow: startCol ? `inset 0 0 6px rgba(0,0,0,.2)` : undefined,
       }
       let inner: ReactNode = null
       if (startCol)
         inner = (
           <div
             style={{
-              width: '44%',
-              height: '44%',
+              width: '48%',
+              height: '48%',
               clipPath:
                 'polygon(50% 0,61% 35%,100% 35%,68% 57%,79% 100%,50% 72%,21% 100%,32% 57%,0 35%,39% 35%)',
-              background: 'rgba(255,255,255,.85)',
+              background: 'rgba(255,255,255,.95)',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,.3))',
             }}
           />
         )
@@ -245,17 +250,18 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
           style={{
             gridRow: r + 1,
             gridColumn: c + 1,
-            width: 20,
-            height: 20,
+            width: 22,
+            height: 22,
             alignSelf: 'center',
             justifySelf: 'center',
             borderRadius: '50%',
-            background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${col.base} 52%, ${col.dark})`,
-            border: p.isLegal ? '2.5px solid #f0d18a' : '2px solid rgba(0,0,0,.28)',
-            boxShadow: p.isLegal ? '0 0 8px #f0d18a88' : '0 2px 4px rgba(0,0,0,.45)',
+            background: `radial-gradient(circle at 32% 28%, #ffffff, ${col.base} 55%, ${col.dark})`,
+            border: p.isLegal ? '2.5px solid #ffffff' : '1.5px solid rgba(255,255,255,.4)',
+            boxShadow: p.isLegal ? `0 0 14px #5de4c7, 0 0 22px ${col.base}` : `0 3px 6px rgba(0,0,0,.5)`,
             cursor: p.isLegal ? 'pointer' : 'default',
             zIndex: 10,
-            transform: `translate(${offset.x}%, ${offset.y}%)`,
+            transform: `translate(${offset.x}%, ${offset.y}%) ${p.isLegal ? 'scale(1.15)' : 'scale(1)'}`,
+            transition: 'transform .15s ease',
           }}
         />,
       )
@@ -271,11 +277,12 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
           display: 'grid',
           gridTemplateColumns: 'repeat(15,1fr)',
           gridTemplateRows: 'repeat(15,1fr)',
-          gap: 1,
+          gap: 1.5,
           padding: '2.5%',
-          borderRadius: 12,
-          background: 'linear-gradient(160deg,#25150f,#1a0f0a)',
-          boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5)',
+          borderRadius: 20,
+          background: 'linear-gradient(145deg, #1b1e2e, #13151f)',
+          border: '2px solid rgba(93, 228, 199, 0.3)',
+          boxShadow: '0 24px 60px -15px rgba(0,0,0,0.85), 0 0 30px rgba(93,228,199,0.15), inset 0 0 20px rgba(0,0,0,0.6)',
         }}
       >
         <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
@@ -287,7 +294,8 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
             gridRow: '7 / span 3',
             gridColumn: '7 / span 3',
             background: `conic-gradient(from 45deg, ${COL.green.base} 0 90deg, ${COL.yellow.base} 90deg 180deg, ${COL.blue.base} 180deg 270deg, ${COL.red.base} 270deg 360deg)`,
-            boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
+            boxShadow: 'inset 0 0 10px rgba(0,0,0,.4)',
+            borderRadius: 4,
           }}
         />
         {cells}

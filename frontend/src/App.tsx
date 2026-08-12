@@ -4,7 +4,7 @@ import { Shell } from './components/Shell'
 import { Dashboard } from './pages/Dashboard'
 import { Friends } from './pages/Friends'
 import { Game } from './pages/Game'
-import { Home } from './pages/Home'
+// import { Home } from './pages/Home'
 import { Leaderboard } from './pages/Leaderboard'
 import { Lobby } from './pages/Lobby'
 import { LudoLobby } from './pages/LudoLobby'
@@ -21,7 +21,8 @@ import { AppProvider, useApp } from './store'
 
 /** Screens that render inside the app shell (rail + header). */
 const SHELL_ROUTES: Record<string, () => ReactNode> = {
-  '/home': () => <Home />,
+  // '/home': () => <Home />,
+  '/home': () => <LudoLobby />,
   '/dashboard': () => <Dashboard />,
   '/leaderboard': () => <Leaderboard />,
   '/friends': () => <Friends />,
@@ -36,7 +37,7 @@ const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/2fa': () => <TwoFactor />,
   '/forgot-password': () => <ForgotPassword />,
   '/reset-password': () => <ResetPassword />,
-  '/lobby': () => <LudoLobby />,
+  // '/lobby': () => <LudoLobby />,
   '/lobby/table': () => <Lobby />,
   '/game': () => <Game />,
   '/results': () => <Results />,

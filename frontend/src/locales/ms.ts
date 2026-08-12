@@ -5,7 +5,7 @@ export const ms = {
     loading: 'Memuatkan...',
   },
   nav: {
-    title: 'LUDO ROYALE',
+    title: 'LUDO 42',
     home: 'Laman Utama',
     dashboard: 'Papan Pemuka',
     friends: 'Rakan-rakan',
@@ -251,9 +251,9 @@ export const ms = {
   },
   auth: {
     loginTitle: 'Selamat Kembali',
-    loginSubtitle: 'Log masuk ke akaun Ludo Royale anda',
+    loginSubtitle: 'Log masuk ke akaun 42 Ludo anda',
     signupTitle: 'Cipta Akaun',
-    signupSubtitle: 'Sertai Ludo Royale hari ini',
+    signupSubtitle: 'Sertai 42 Ludo hari ini',
     forgotTitle: 'Lupa Kata Laluan',
     forgotSubtitle: 'Masukkan e-mel anda untuk menerima pautan tetapan semula kata laluan',
     resetTitle: 'Tetap Semula Kata Laluan',

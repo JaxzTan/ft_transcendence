@@ -8,7 +8,7 @@ import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { connectSocket } from '../socket'
 import { useApp } from '../store'
-import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
+import { btnGold, btnOutline, card, COL, SEAT_COLORS, sectionLabel } from '../theme'
 
 function Pips({ count, color }: { count: number; color: string }) {
   return (
@@ -196,51 +196,60 @@ export function Game() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 30px', borderBottom: '1px solid #2e2115' }}>
+      <header
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 36px',
+          borderBottom: '1px solid rgba(93, 228, 199, 0.15)', background: 'rgba(20, 23, 34, 0.7)',
+          backdropFilter: 'blur(16px)',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div
             onClick={leaveGame}
             style={{
-              cursor: 'pointer', padding: '9px 16px', borderRadius: 10, border: '1px solid #3a2c1d',
-              background: '#1a130d', fontSize: 13, fontWeight: 700, color: '#c9bda3',
+              cursor: 'pointer', padding: '9px 16px', borderRadius: 12, border: '1px solid rgba(93,228,199,0.25)',
+              background: 'rgba(255,255,255,0.06)', fontSize: 13.5, fontWeight: 700, color: '#f0f4fc',
+              fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
             }}
           >
             ← {t('game.leaveShort')}
           </div>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>
+          <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 20, fontWeight: 800, color: '#f0f4fc' }}>
             {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
           </div>
-          <div style={{ fontSize: 12, color: '#a99a83' }}>
+          <div style={{ fontSize: 12, color: '#a6accd' }}>
             {activeMatch.inviteCode && (
-              <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#c9bda3' }}>
+              <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                 {t('game.roomCode')} {activeMatch.inviteCode}
               </span>
             )}
-            <span style={{ marginLeft: activeMatch.inviteCode ? 8 : 0, fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
+            <span style={{ marginLeft: activeMatch.inviteCode ? 8 : 0, fontSize: 11, color: connected ? '#5de4c7' : '#d0679d', fontWeight: 700 }}>
               {connected ? '● Live' : '● Connecting…'}
             </span>
           </div>
         </div>
         <div
           style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderRadius: 999,
-            background: '#22432f', border: '1px solid #2e4a38', fontWeight: 700, fontSize: '13.5px', color: '#dff0e0',
+            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 18px', borderRadius: 999,
+            background: 'linear-gradient(135deg, rgba(93,228,199,0.2), rgba(137,221,255,0.25))',
+            border: '1px solid rgba(93,228,199,0.5)', fontWeight: 800, fontSize: '14px', color: '#f0f4fc',
+            boxShadow: '0 0 20px rgba(93,228,199,0.35)', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
           }}
         >
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#5fd08a' }} />
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#5de4c7', boxShadow: '0 0 8px #5de4c7' }} />
           {turnLabel}
         </div>
       </header>
 
       <div
         style={{
-          flex: 1, display: 'grid', gridTemplateColumns: '250px 1fr 280px', gap: 24, padding: '26px 30px',
-          alignItems: 'start', maxWidth: 1300, margin: '0 auto', width: '100%',
+          flex: 1, display: 'grid', gridTemplateColumns: '260px 1fr 290px', gap: 28, padding: '28px 36px',
+          alignItems: 'start', maxWidth: 1320, margin: '0 auto', width: '100%',
         }}
       >
         {/* Players sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ ...sectionLabel, color: '#a99a83' }}>{t('lobby.players')}</div>
+          <div style={{ ...sectionLabel, color: '#5de4c7' }}>{t('lobby.players')}</div>
           {SEAT_COLORS.map((ck) => {
             const col = COL[ck]
             const playerMeta = view.players.find((p) => p.color === ck)
@@ -254,30 +263,33 @@ export function Game() {
                 <div
                   key={ck}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 13,
-                    border: '1px solid ' + (isYou ? col.base : '#3a2c1d'),
-                    background: occupied ? 'linear-gradient(180deg,#241b13,#1a130d)' : 'rgba(255,255,255,.02)',
+                    display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16,
+                    border: '1px solid ' + (isYou ? col.base : 'rgba(93,228,199,0.2)'),
+                    background: occupied ? 'linear-gradient(145deg, rgba(27,30,46,0.85), rgba(20,23,35,0.92))' : 'rgba(255,255,255,.02)',
                     opacity: occupied ? 1 : 0.55,
+                    boxShadow: isYou ? `0 0 16px ${col.base}44` : 'none',
                   }}
                 >
                   <div
                     style={{
-                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 13, color: '#12100a',
-                      background: occupied ? `linear-gradient(180deg,${col.base},${col.dark})` : 'transparent',
+                      width: 40, height: 40, flex: 'none', borderRadius: 12, display: 'grid', placeItems: 'center',
+                      fontWeight: 900, fontSize: 14, color: '#13151f',
+                      background: occupied ? `linear-gradient(135deg, ${col.base}, ${col.dark})` : 'transparent',
                       border: occupied ? 'none' : `1.5px dashed ${col.base}88`,
+                      boxShadow: occupied ? `0 0 12px ${col.base}66` : 'none',
+                      fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                     }}
                   >
                     {occupied ? playerMeta!.username.slice(0, 2).toUpperCase() : ''}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: occupied ? '#f0e2c4' : '#8a7c66' }}>
+                    <div style={{ fontWeight: 800, fontSize: 14.5, color: occupied ? '#f0f4fc' : '#506477', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                       {occupied ? playerMeta!.username : t('game.emptySeat')}
                     </div>
-                    <div style={{ color: '#a99a83', fontSize: 12 }}>{isYou ? t('common.you') : ck}</div>
+                    <div style={{ color: '#a6accd', fontSize: 12 }}>{isYou ? t('common.you') : ck}</div>
                   </div>
                   {occupied && (
-                    <span style={{ fontSize: 11, fontWeight: 800, color: isReady ? '#5fd08a' : '#a99a83' }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: isReady ? '#5de4c7' : '#a6accd', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                       {isReady ? `✓ ${t('game.readyBadge')}` : t('game.notReadyBadge')}
                     </span>
                   )}
@@ -295,23 +307,25 @@ export function Game() {
               <div
                 key={ck}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 13,
-                  border: '1px solid ' + (isActive ? col.base : '#3a2c1d'),
-                  background: isActive ? `linear-gradient(180deg,${col.base}22,#1a130d)` : 'linear-gradient(180deg,#241b13,#1a130d)',
-                  boxShadow: isActive ? `0 0 0 1px ${col.base}55` : 'none',
+                  display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16,
+                  border: '1px solid ' + (isActive ? col.base : 'rgba(93,228,199,0.2)'),
+                  background: isActive ? `linear-gradient(145deg, ${col.base}25, rgba(20,23,35,0.9))` : 'linear-gradient(145deg, rgba(27,30,46,0.85), rgba(20,23,35,0.92))',
+                  boxShadow: isActive ? `0 0 20px ${col.base}55` : 'none',
                 }}
               >
                 <div
                   style={{
-                    width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                    fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                    width: 40, height: 40, flex: 'none', borderRadius: 12, display: 'grid', placeItems: 'center',
+                    fontWeight: 900, fontSize: 14, color: '#13151f', background: `linear-gradient(135deg, ${col.base}, ${col.dark})`,
+                    boxShadow: `0 0 12px ${col.base}66`,
+                    fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                   }}
                 >
                   {name.slice(0, 2).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4' }}>{name}</div>
-                  <div style={{ color: '#a99a83', fontSize: 12 }}>{sub}</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{name}</div>
+                  <div style={{ color: '#a6accd', fontSize: 12 }}>{sub}</div>
                 </div>
                 <Pips count={goalCount} color={col.base} />
               </div>
@@ -323,10 +337,10 @@ export function Game() {
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <div
             style={{
-              width: '100%', maxWidth: 540, padding: 16, borderRadius: 20,
-              background: 'linear-gradient(145deg,#3a2a1a,#241811)',
-              boxShadow: '0 34px 66px -26px #000,inset 0 2px 0 rgba(255,255,255,.06)',
-              border: '1px solid #4a3826',
+              width: '100%', maxWidth: 540, padding: 18, borderRadius: 24,
+              background: 'linear-gradient(145deg, rgba(27,30,46,0.85), rgba(20,23,35,0.95))',
+              boxShadow: '0 36px 70px -20px rgba(0,0,0,0.85), 0 0 30px rgba(93,228,199,0.15)',
+              border: '1px solid rgba(93,228,199,0.25)',
             }}
           >
             <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} />
@@ -340,7 +354,7 @@ export function Game() {
               <div style={sectionLabel}>{t('game.waitingRoomTitle')}</div>
 
               <div>
-                <div style={{ fontSize: 12.5, color: '#a99a83', marginBottom: 8 }}>{t('game.chooseColor')}</div>
+                <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>{t('game.chooseColor')}</div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   {SEAT_COLORS.map((ck) => {
                     const col = COL[ck]
@@ -351,11 +365,13 @@ export function Game() {
                         onClick={() => selectColor(ck)}
                         title={ck}
                         style={{
-                          width: 34, height: 34, borderRadius: 10, cursor: 'pointer',
-                          background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                          border: ck === view.myColor ? '2px solid #f0e2c4' : '2px solid transparent',
-                          boxShadow: ck === view.myColor ? `0 0 0 2px ${col.base}` : 'none',
-                          opacity: takenByOther ? 0.55 : 1,
+                          width: 38, height: 38, borderRadius: 12, cursor: 'pointer',
+                          background: `linear-gradient(135deg, ${col.base}, ${col.dark})`,
+                          border: ck === view.myColor ? '2.5px solid #ffffff' : '2px solid transparent',
+                          boxShadow: ck === view.myColor ? `0 0 16px ${col.base}` : 'none',
+                          opacity: takenByOther ? 0.4 : 1,
+                          transform: ck === view.myColor ? 'scale(1.1)' : 'scale(1)',
+                          transition: 'all .15s ease',
                         }}
                       />
                     )
@@ -375,7 +391,7 @@ export function Game() {
                 {view.readyPlayers.includes(view.myColor) ? t('game.readyWaitingBtn') : t('game.readyBtn')}
               </button>
 
-              <div style={{ fontSize: 13, color: '#5fd08a', textAlign: 'center' }}>
+              <div style={{ fontSize: 13, color: '#00e676', textAlign: 'center', fontWeight: 700 }}>
                 {t('game.readyCount', {
                   ready: view.readyPlayers.length,
                   total: view.players.filter((p) => p.status === 'active').length,
@@ -387,7 +403,7 @@ export function Game() {
               <div style={sectionLabel}>
                 {isRolling ? t('game.rolling') : canRoll ? t('game.yourRoll') : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
               </div>
-              <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
+              <div style={{ height: 100, display: 'grid', placeItems: 'center' }}>
                 <Die value={view.diceValue ?? 0} rolling={isRolling} />
               </div>
               <button
@@ -401,12 +417,12 @@ export function Game() {
                 {isRolling ? t('game.rolling') : t('game.rollDice')}
               </button>
               {view.turnPhase === 'WAITING_FOR_MOVE' && isMyTurn && (
-                <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
-                  Click a highlighted piece to move
+                <div style={{ fontSize: 13.5, color: '#89ddff', textAlign: 'center', fontWeight: 700 }}>
+                  Click a glowing piece to move
                 </div>
               )}
               {!isMyTurn && (
-                <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
+                <div style={{ fontSize: 13, color: '#a6accd', textAlign: 'center' }}>
                   Waiting for {view.currentTurn}…
                 </div>
               )}
@@ -414,13 +430,13 @@ export function Game() {
           )}
 
           <div style={{ ...card, padding: '18px 20px' }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>{t('game.moveLog')}</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0f4fc', marginBottom: 10, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('game.moveLog')}</div>
             {moveLogs.length === 0 ? (
-              <div style={{ fontSize: 13, color: '#a99a83' }}>Game events will appear here…</div>
+              <div style={{ fontSize: 13, color: '#506477' }}>Game events will appear here…</div>
             ) : (
               moveLogs.map((ml, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#c9bda3' }}>
-                  <span style={{ color: COL[ml.ck]?.base ?? '#f0d18a', fontWeight: 800 }}>●</span>
+                <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#cbd5e1' }}>
+                  <span style={{ color: COL[ml.ck]?.base ?? '#ffcb6b', fontWeight: 800 }}>●</span>
                   <span>{ml.text}</span>
                 </div>
               ))
@@ -430,8 +446,7 @@ export function Game() {
           <button
             onClick={() => navigate('/results')}
             style={{
-              border: '1px solid #2e4a38', borderRadius: 12, padding: 12, font: "700 13.5px 'Hanken Grotesk'",
-              color: '#8fbf9f', cursor: 'pointer', background: 'rgba(34,67,47,.3)',
+              ...btnOutline, width: '100%', padding: 12, fontSize: 13.5, fontWeight: 700,
             }}
           >
             {t('game.endGameDemo')}

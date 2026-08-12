@@ -31,28 +31,32 @@ function railItemStyle(active: boolean): CSSProperties {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    padding: '11px 12px',
-    borderRadius: 11,
+    padding: '12px 14px',
+    borderRadius: 14,
     cursor: 'pointer',
-    color: active ? '#f4e9cf' : '#b6a88f',
-    background: active ? 'linear-gradient(180deg,#2e2317,#241a0f)' : 'transparent',
-    border: '1px solid ' + (active ? '#4a3826' : 'transparent'),
-    boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,.06)' : 'none',
+    fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+    color: active ? '#f0f4fc' : '#a6accd',
+    background: active ? 'linear-gradient(135deg, rgba(93,228,199,0.16), rgba(137,221,255,0.14))' : 'transparent',
+    border: '1px solid ' + (active ? 'rgba(93,228,199,0.45)' : 'transparent'),
+    boxShadow: active ? '0 8px 24px -6px rgba(93,228,199,0.3), inset 0 1px 0 rgba(255,255,255,0.15)' : 'none',
+    transition: 'all 0.18s ease',
   }
 }
 
 function railGlyphStyle(active: boolean): CSSProperties {
   return {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     flex: 'none',
     display: 'grid',
     placeItems: 'center',
-    borderRadius: 8,
-    fontSize: 15,
-    color: active ? '#3a2a10' : '#d8b25e',
-    background: active ? 'linear-gradient(180deg,#f0d18a,#c99b45)' : '#2a2016',
-    border: '1px solid ' + (active ? '#b8873a' : '#3e2f1f'),
+    borderRadius: 10,
+    fontSize: 16,
+    color: active ? '#13151f' : '#5de4c7',
+    background: active ? 'linear-gradient(135deg, #5de4c7 0%, #89ddff 100%)' : 'rgba(255,255,255,0.06)',
+    border: '1px solid ' + (active ? 'rgba(255,255,255,0.4)' : 'rgba(93,228,199,0.2)'),
+    boxShadow: active ? '0 0 16px rgba(93,228,199,0.5)' : 'none',
+    transition: 'all 0.18s ease',
   }
 }
 
@@ -92,7 +96,7 @@ export function Shell({ children }: { children: ReactNode }) {
     const poll = () => {
       getApi<PendingInvite | null>('/api/friends/invites/pending')
         .then((data) => { if (!cancelled) setInvite(data) })
-        .catch(() => {})
+        .catch(() => { })
     }
     poll()
     const iv = setInterval(poll, 8000)
@@ -122,48 +126,49 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const dismissInvite = () => {
     setInvite(null)
-    postApi('/api/friends/invites/dismiss').catch(() => {})
+    postApi('/api/friends/invites/dismiss').catch(() => { })
   }
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       <aside
         style={{
-          width: 246,
+          width: 256,
           flex: 'none',
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
-          padding: '22px 16px',
-          background: 'linear-gradient(180deg,#1e160f,#150f0a)',
-          borderRight: '1px solid #2e2115',
+          padding: '24px 16px',
+          background: 'linear-gradient(180deg, rgba(23, 26, 38, 0.95), rgba(17, 19, 28, 0.98))',
+          borderRight: '1px solid rgba(93, 228, 199, 0.15)',
+          backdropFilter: 'blur(20px)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '6px 8px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 8px 24px' }}>
           <div
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
+              width: 42,
+              height: 42,
+              borderRadius: 12,
               flex: 'none',
               background:
-                'conic-gradient(from 45deg,#4bbf7b 0 90deg,#f0c24e 90deg 180deg,#4a92e0 180deg 270deg,#e4574d 270deg 360deg)',
-              boxShadow: 'inset 0 0 0 3px #17110b,0 4px 10px -3px #000',
+                'conic-gradient(from 45deg, #5de4c7 0 90deg, #ffcb6b 90deg 180deg, #89ddff 180deg 270deg, #d0679d 270deg 360deg)',
+              boxShadow: '0 0 20px rgba(93,228,199,0.45), inset 0 0 0 2px rgba(255,255,255,0.3)',
             }}
           />
           <div
             style={{
-              fontFamily: "'Cinzel',serif",
-              fontWeight: 700,
-              letterSpacing: 1,
-              fontSize: 19,
-              lineHeight: 1,
+              fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+              fontWeight: 900,
+              letterSpacing: 1.5,
+              fontSize: 22,
+              lineHeight: 1.05,
               ...goldText,
             }}
           >
-            LUDO
+            42
             <br />
-            ROYALE
+            LUDO
           </div>
         </div>
         {NAV.map((it) => {
@@ -171,7 +176,7 @@ export function Shell({ children }: { children: ReactNode }) {
           return (
             <div key={it.path} style={railItemStyle(active)} onClick={() => navigate(it.path)}>
               <div style={railGlyphStyle(active)}>{it.glyph}</div>
-              <div style={{ fontWeight: 600, fontSize: '14.5px' }}>{t(it.titleKey)}</div>
+              <div style={{ fontWeight: active ? 700 : 600, fontSize: '15px' }}>{t(it.titleKey)}</div>
             </div>
           )
         })}
@@ -184,22 +189,26 @@ export function Shell({ children }: { children: ReactNode }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '20px 32px',
-            borderBottom: '1px solid #2e2115',
-            background: 'rgba(20,14,9,.55)',
+            padding: '20px 36px',
+            borderBottom: '1px solid rgba(93, 228, 199, 0.15)',
+            background: 'rgba(20, 23, 34, 0.7)',
+            backdropFilter: 'blur(16px)',
           }}
         >
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, fontWeight: 600, color: '#f0e2c4' }}>
+          <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 24, fontWeight: 800, color: '#f0f4fc', letterSpacing: '-0.02em' }}>
             {SCREEN_TITLE_KEYS[path] ? t(SCREEN_TITLE_KEYS[path]) : ''}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div
               style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999,
-                border: '1px solid #3a2c1d', background: '#1a130d', fontWeight: 700, fontSize: 14, color: '#e8dcc6',
+                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 999,
+                border: '1px solid rgba(255, 203, 107, 0.4)', background: 'rgba(255, 203, 107, 0.12)',
+                fontWeight: 800, fontSize: 14, color: '#ffcb6b',
+                boxShadow: '0 0 16px rgba(255, 203, 107, 0.25)',
+                fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
               }}
             >
-              <span style={{ color: '#f0c24e' }}>♛</span>{rating !== null ? rating.toLocaleString() : '—'}
+              <span style={{ color: '#ffcb6b', fontSize: 16 }}>♛</span>{rating !== null ? rating.toLocaleString() : '—'}
             </div>
             <AccountMenu />
           </div>
@@ -211,23 +220,26 @@ export function Shell({ children }: { children: ReactNode }) {
       {invite && (
         <div
           style={{
-            position: 'fixed', right: 24, bottom: 24, zIndex: 50, width: 320, padding: 18, borderRadius: 16,
-            background: 'linear-gradient(180deg,#241b13,#1a130d)', border: '1px solid #c99b45',
-            boxShadow: '0 20px 44px -20px rgba(0,0,0,.85)', display: 'flex', flexDirection: 'column', gap: 12,
+            position: 'fixed', right: 24, bottom: 24, zIndex: 50, width: 340, padding: 20, borderRadius: 20,
+            background: 'linear-gradient(145deg, rgba(27, 30, 46, 0.95), rgba(20, 23, 35, 0.98))',
+            border: '1px solid rgba(93, 228, 199, 0.6)',
+            boxShadow: '0 20px 44px -10px rgba(93, 228, 199, 0.4), 0 0 20px rgba(137, 221, 255, 0.3)',
+            display: 'flex', flexDirection: 'column', gap: 14,
+            backdropFilter: 'blur(20px)',
           }}
         >
-          <div style={{ fontWeight: 800, fontSize: 14.5, color: '#f0e2c4' }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
             {t('nav.gameInviteFrom', { name: invite.fromUsername })}
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
               onClick={acceptInvite}
               disabled={inviteBusy}
-              style={{ ...btnGold, flex: 1, padding: '10px 14px', fontSize: 13, opacity: inviteBusy ? 0.6 : 1 }}
+              style={{ ...btnGold, flex: 1, padding: '10px 14px', fontSize: 13.5, opacity: inviteBusy ? 0.6 : 1 }}
             >
               {inviteBusy ? '…' : t('nav.acceptInvite')}
             </button>
-            <button onClick={dismissInvite} disabled={inviteBusy} style={{ ...btnOutline, flex: 1, padding: '10px 14px', fontSize: 13 }}>
+            <button onClick={dismissInvite} disabled={inviteBusy} style={{ ...btnOutline, flex: 1, padding: '10px 14px', fontSize: 13.5 }}>
               {t('nav.declineInvite')}
             </button>
           </div>

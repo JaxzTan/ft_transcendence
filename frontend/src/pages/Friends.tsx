@@ -184,25 +184,28 @@ export function Friends() {
       </div>
 
       {/* Requests */}
-      <div style={{ ...card, padding: '20px 22px' }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', marginBottom: 12 }}>{t('friends.pendingRequests')} · {requests.length}</div>
+      <div style={{ ...card, padding: '22px 26px' }}>
+        <div style={{ fontWeight: 900, fontSize: 16, color: '#f0f4fc', marginBottom: 14, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+          {t('friends.pendingRequests')} · <span style={{ color: '#5de4c7' }}>{requests.length}</span>
+        </div>
 
         {requests.length === 0 ? (
-          <div style={{ color: '#a99a83', fontStyle: 'italic', fontSize: 14 }}>{t('friends.noPendingRequests')}</div>
+          <div style={{ color: '#a6accd', fontStyle: 'italic', fontSize: 14 }}>{t('friends.noPendingRequests')}</div>
         ) : (
           requests.map((r) => (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid #2a2015' }}>
+            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <UserAvatar 
                 username={r.username}
-                size={38}
-                fallbackStyle={{ ...avatarDim(38), fontSize: 13 }}
+                size={40}
+                fallbackStyle={{ ...avatarDim(40), fontSize: 14 }}
               />
-              <div style={{ flex: 1, fontWeight: 700, fontSize: '14.5px' }}>{r.username}</div>
+              <div style={{ flex: 1, fontWeight: 700, fontSize: '15px', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{r.username}</div>
               <button
                 onClick={() => handleAccept(r.id)}
                 style={{
-                  border: 'none', borderRadius: 9, padding: '8px 16px', font: "800 13px 'Hanken Grotesk'",
-                  color: '#0d1b12', cursor: 'pointer', background: 'linear-gradient(180deg,#5fd08a,#2c8a53)',
+                  border: 'none', borderRadius: 10, padding: '9px 18px', font: "800 13px 'Space Grotesk', 'Outfit', sans-serif",
+                  color: '#13151f', cursor: 'pointer', background: 'linear-gradient(135deg, #5de4c7, #89ddff)',
+                  boxShadow: '0 0 14px rgba(93,228,199,0.4)',
                 }}
               >
                 {t('friends.accept')}
@@ -210,8 +213,8 @@ export function Friends() {
               <button
                 onClick={() => handleDecline(r.id)}
                 style={{
-                  border: '1px solid #4a3826', borderRadius: 9, padding: '8px 14px', font: "700 13px 'Hanken Grotesk'",
-                  color: '#c9bda3', cursor: 'pointer', background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '9px 16px', font: "700 13px 'Space Grotesk', 'Outfit', sans-serif",
+                  color: '#a6accd', cursor: 'pointer', background: 'rgba(255,255,255,0.04)',
                 }}
               >
                 {t('friends.ignoreBtn')}
@@ -222,52 +225,56 @@ export function Friends() {
       </div>
 
       {/* Friends */}
-      <div style={{ ...card, padding: '20px 22px' }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', marginBottom: 12 }}>{t('friends.yourFriendsLabel')} · {friends.length}</div>
+      <div style={{ ...card, padding: '22px 26px' }}>
+        <div style={{ fontWeight: 900, fontSize: 16, color: '#f0f4fc', marginBottom: 14, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+          {t('friends.yourFriendsLabel')} · <span style={{ color: '#89ddff' }}>{friends.length}</span>
+        </div>
 
         {friends.length === 0 ? (
-          <div style={{ color: '#a99a83', fontStyle: 'italic', fontSize: 14 }}>{t('friends.noFriendsYet')}</div>
+          <div style={{ color: '#a6accd', fontStyle: 'italic', fontSize: 14 }}>{t('friends.noFriendsYet')}</div>
         ) : (
           friends.map((f) => {
             const status = STATUS_STYLE[f.status] ?? STATUS_STYLE.offline
             return (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 0', borderBottom: '1px solid #2a2015' }}>
+              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ position: 'relative', flex: 'none', cursor: 'pointer' }} onClick={() => navigate(`/profile?u=${f.username}`)}>
                   <UserAvatar 
                     username={f.username}
-                    size={40}
-                    fallbackStyle={{ ...avatarDim(40), fontSize: 13 }}
+                    size={42}
+                    fallbackStyle={{ ...avatarDim(42), fontSize: 14 }}
                   />
                   <span
                     style={{
-                      position: 'absolute', right: -1, bottom: -1, width: 12, height: 12, borderRadius: '50%',
-                      background: status.color, border: '2px solid #1a130d',
+                      position: 'absolute', right: -1, bottom: -1, width: 13, height: 13, borderRadius: '50%',
+                      background: status.color, border: '2.5px solid #13151f', boxShadow: `0 0 8px ${status.color}`,
                     }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: '14.5px', cursor: 'pointer' }} onClick={() => navigate(`/profile?u=${f.username}`)}>
+                  <div style={{ fontWeight: 700, fontSize: '15px', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", cursor: 'pointer' }} onClick={() => navigate(`/profile?u=${f.username}`)}>
                     {f.username}
                   </div>
-                  <div style={{ fontSize: '12.5px', color: status.color, fontWeight: 600 }}>
+                  <div style={{ fontSize: '12.5px', color: status.color, fontWeight: 700, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                     {t(STATUS_KEYS[f.status] ?? STATUS_KEYS.offline)}
                   </div>
                 </div>
-                <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 700 }}>♛ {f.rating}</div>
+                <div style={{ color: '#ffcb6b', fontSize: 14, fontWeight: 800, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>♛ {f.rating}</div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <button
                     onClick={() => handleInvite(f.id)}
                     disabled={invitingId === f.id}
                     style={{
                       cursor: invitingId === f.id ? 'default' : 'pointer',
-                      border: '1px solid #b8873a',
-                      borderRadius: 9,
-                      padding: '7px 15px',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '8px 18px',
                       fontWeight: 800,
-                      fontSize: '12.5px',
-                      color: '#2a1c07',
-                      background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
+                      fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                      fontSize: '13px',
+                      color: '#13151f',
+                      background: 'linear-gradient(135deg, #5de4c7, #89ddff)',
+                      boxShadow: '0 0 14px rgba(93,228,199,0.4)',
                       opacity: invitingId === f.id ? 0.6 : 1,
                     }}
                   >
@@ -277,13 +284,14 @@ export function Friends() {
                     onClick={() => handleRemove(f.id)}
                     style={{
                       cursor: 'pointer',
-                      border: '1px solid #4a2626',
-                      borderRadius: 9,
-                      padding: '7px 12px',
+                      border: '1px solid rgba(208,103,157,0.3)',
+                      borderRadius: 10,
+                      padding: '8px 14px',
                       fontWeight: 700,
-                      fontSize: '12.5px',
-                      color: '#c9a3a3',
-                      background: 'transparent',
+                      fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                      fontSize: '13px',
+                      color: '#d0679d',
+                      background: 'rgba(208,103,157,0.1)',
                     }}
                   >
                     {t('friends.unfriendBtn')}

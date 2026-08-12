@@ -40,17 +40,17 @@ export function TwoFactor() {
         <div>
           <div
             style={{
-              fontFamily: "'Cinzel',serif",
-              fontWeight: 700,
-              letterSpacing: 1.5,
-              fontSize: 30,
-              lineHeight: 1,
+              fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+              fontWeight: 900,
+              letterSpacing: -0.5,
+              fontSize: 34,
+              lineHeight: 1.05,
               ...goldText,
             }}
           >
             {t('auth.checkEmailTitle')}
           </div>
-          <div style={{ color: '#a99a83', fontSize: '14.5px', marginTop: 8 }}>
+          <div style={{ color: '#a6accd', fontSize: '14.5px', marginTop: 8 }}>
             {t('auth.codeSentDesc')}
           </div>
         </div>
@@ -63,11 +63,11 @@ export function TwoFactor() {
             inputMode="numeric"
             autoComplete="one-time-code"
             autoFocus
-            style={{ ...input, letterSpacing: 8, fontSize: 22, textAlign: 'center' }}
+            style={{ ...input, letterSpacing: 8, fontSize: 24, fontWeight: 800, textAlign: 'center', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}
           />
         </div>
         {error && (
-          <div style={{ color: '#e4574d', fontSize: '13.5px', lineHeight: 1.4 }}>{error}</div>
+          <div style={{ color: '#d0679d', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(208,103,157,0.3)' }}>{error}</div>
         )}
         <button
           type="submit"
@@ -76,9 +76,9 @@ export function TwoFactor() {
         >
           {submitting ? t('auth.checkingBtn') : t('auth.enterParlorBtn')}
         </button>
-        <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', color: '#a6accd', fontSize: 14 }}>
           {t('auth.codeExpired')}{' '}
-          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
+          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#5de4c7' }}>
             {t('auth.logInAgainLink')}
           </a>{' '}
           {t('auth.toGetNewOne')}

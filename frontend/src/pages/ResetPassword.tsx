@@ -29,21 +29,21 @@ export function ResetPassword() {
         <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div
             style={{
-              fontFamily: "'Cinzel',serif",
-              fontWeight: 700,
-              letterSpacing: 1.5,
-              fontSize: 30,
-              lineHeight: 1,
+              fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+              fontWeight: 900,
+              letterSpacing: -0.5,
+              fontSize: 34,
+              lineHeight: 1.05,
               ...goldText,
             }}
           >
             {t('auth.invalidLinkTitle')}
           </div>
-          <div style={{ color: '#a99a83', fontSize: '14.5px', lineHeight: 1.5 }}>
+          <div style={{ color: '#a6accd', fontSize: '14.5px', lineHeight: 1.5 }}>
             {t('auth.invalidLinkDesc')}
           </div>
-          <div style={{ color: '#a99a83', fontSize: 14 }}>
-            <a onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer', fontWeight: 700 }}>
+          <div style={{ color: '#a6accd', fontSize: 14 }}>
+            <a onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer', fontWeight: 700, color: '#5de4c7' }}>
               {t('auth.requestNewLinkBtn')}
             </a>
           </div>
@@ -81,17 +81,17 @@ export function ResetPassword() {
         <div>
           <div
             style={{
-              fontFamily: "'Cinzel',serif",
-              fontWeight: 700,
-              letterSpacing: 1.5,
-              fontSize: 30,
-              lineHeight: 1,
+              fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+              fontWeight: 900,
+              letterSpacing: -0.5,
+              fontSize: 34,
+              lineHeight: 1.05,
               ...goldText,
             }}
           >
             {t('auth.newPasswordTitle')}
           </div>
-          <div style={{ color: '#a99a83', fontSize: '14.5px', marginTop: 8 }}>
+          <div style={{ color: '#a6accd', fontSize: '14.5px', marginTop: 8 }}>
             {t('auth.newPasswordDesc')}
           </div>
         </div>
@@ -119,7 +119,7 @@ export function ResetPassword() {
           />
         </div>
         {error && (
-          <div style={{ color: '#e4574d', fontSize: '13.5px', lineHeight: 1.4 }}>{error}</div>
+          <div style={{ color: '#d0679d', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(208,103,157,0.3)' }}>{error}</div>
         )}
         <button type="submit" disabled={submitting} style={{ ...btnGold, opacity: submitting ? 0.6 : 1 }}>
           {submitting ? t('auth.savingBtn') : t('auth.updatePasswordBtn')}

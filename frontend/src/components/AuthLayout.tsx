@@ -13,8 +13,8 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
           justifyContent: 'center',
           alignItems: 'center',
           padding: 48,
-          background: 'radial-gradient(90% 80% at 50% 42%,#22432f,#12261a 68%,#0d1b12)',
-          borderRight: '1px solid #0a0f0c',
+          background: 'radial-gradient(100% 100% at 50% 40%, rgba(93,228,199,0.16) 0%, rgba(137,221,255,0.18) 45%, #13151f 100%)',
+          borderRight: '1px solid rgba(93, 228, 199, 0.2)',
           overflow: 'hidden',
         }}
       >
@@ -22,17 +22,18 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'repeating-linear-gradient(45deg,rgba(0,0,0,.11) 0 3px,transparent 3px 11px)',
-            opacity: 0.55,
+            backgroundImage: 'radial-gradient(rgba(93, 228, 199, 0.15) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+            opacity: 0.7,
           }}
         />
         <div
           style={{
             position: 'relative',
-            width: 380,
-            maxWidth: '66vw',
-            filter: 'drop-shadow(0 34px 54px rgba(0,0,0,.6))',
-            animation: 'floaty 6.5s ease-in-out infinite',
+            width: 400,
+            maxWidth: '68vw',
+            filter: 'drop-shadow(0 30px 60px rgba(93,228,199,0.3)) drop-shadow(0 10px 20px rgba(0,0,0,0.8))',
+            animation: 'floaty 6s ease-in-out infinite',
           }}
         >
           <Board />
@@ -40,11 +41,14 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
         <div
           style={{
             position: 'relative',
-            marginTop: 30,
-            fontFamily: "'Cinzel',serif",
-            fontSize: 12,
-            letterSpacing: '.34em',
-            color: '#7fae91',
+            marginTop: 32,
+            fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+            fontWeight: 800,
+            fontSize: 13,
+            letterSpacing: '.28em',
+            textTransform: 'uppercase',
+            color: '#5de4c7',
+            textShadow: '0 0 16px rgba(93,228,199,0.6)',
           }}
         >
           {tag}
@@ -57,22 +61,23 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
   )
 }
 
-/** Gold gradient checkbox glyph used by both auth forms. */
+/** Radiant gradient checkbox glyph used by both auth forms. */
 export function GoldCheck({ offsetTop }: { offsetTop?: boolean }) {
   return (
     <span
       style={{
-        width: 16,
-        height: 16,
+        width: 18,
+        height: 18,
         marginTop: offsetTop ? 1 : undefined,
         flex: 'none',
-        borderRadius: 5,
-        background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
+        borderRadius: 6,
+        background: 'linear-gradient(135deg, #5de4c7, #89ddff)',
+        boxShadow: '0 0 10px rgba(93,228,199,.5)',
         display: 'inline-grid',
         placeItems: 'center',
-        color: '#2a1c07',
-        fontSize: 11,
-        fontWeight: 800,
+        color: '#13151f',
+        fontSize: 12,
+        fontWeight: 900,
       }}
     >
       ✓

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEDAL_COLORS } from '../data'
 import { avatarDim, card } from '../theme'
 import { useApp } from '../store'
 
@@ -29,31 +28,29 @@ const ROW_BASE: CSSProperties = {
   display: 'grid',
   gridTemplateColumns: '64px 1fr 120px 120px 90px',
   gap: 8,
-  padding: '12px 20px',
-  borderBottom: '1px solid #241a10',
+  padding: '14px 22px',
+  borderBottom: '1px solid rgba(255,255,255,0.06)',
   alignItems: 'center',
 }
 
 const MEDAL_BASE: CSSProperties = {
-  width: 28,
-  height: 28,
-  borderRadius: 8,
+  width: 30,
+  height: 30,
+  borderRadius: 10,
   display: 'grid',
   placeItems: 'center',
-  fontWeight: 800,
-  fontSize: 13,
+  fontWeight: 900,
+  fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+  fontSize: 14,
 }
 
 const EMPTY_STATE: CSSProperties = {
-  padding: '32px 20px',
+  padding: '40px 20px',
   textAlign: 'center',
-  color: '#a99a83',
-  fontSize: '13.5px',
+  color: '#a6accd',
+  fontSize: '14px',
 }
 
-// Only 'global' is backed by the API today (LeaderboardService only tracks
-// rating per game mode, not per-social-graph or time window) — the other
-// tabs are left as a visible "coming soon" rather than faked client-side.
 const TABS = [
   { k: 'global', labelKey: 'leaderboard.tabGlobal' },
   { k: 'friends', labelKey: 'leaderboard.tabFriends' },
@@ -61,14 +58,29 @@ const TABS = [
 ]
 
 function Medal({ rank }: { rank: number }) {
+  if (rank === 1) {
+    return (
+      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #ffcb6b, #e5a93c)', color: '#13151f', boxShadow: '0 0 14px rgba(255,203,107,0.5)' }}>
+        1
+      </span>
+    )
+  }
+  if (rank === 2) {
+    return (
+      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #add7ff, #70a8db)', color: '#13151f', boxShadow: '0 0 12px rgba(173,215,255,0.4)' }}>
+        2
+      </span>
+    )
+  }
+  if (rank === 3) {
+    return (
+      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #d0679d, #a34275)', color: '#13151f', boxShadow: '0 0 12px rgba(208,103,157,0.4)' }}>
+        3
+      </span>
+    )
+  }
   return (
-    <span
-      style={
-        rank <= 3
-          ? { ...MEDAL_BASE, background: MEDAL_COLORS[rank - 1], color: '#241a0c' }
-          : { ...MEDAL_BASE, background: 'transparent', color: '#a99a83' }
-      }
-    >
+    <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#a6accd' }}>
       {rank}
     </span>
   )
@@ -104,13 +116,11 @@ export function Leaderboard() {
 
   const entries = data?.entries ?? []
   const myRank = data?.myRank
-  // If the logged-in user is already on this page, highlight that row
-  // instead of appending a second "you" row for the same rank.
   const mineOnPage = myRank ? entries.some((e) => e.username === myRank.username) : false
 
   return (
-    <div style={{ maxWidth: 920, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
+    <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
         {TABS.map((tabItem) => {
           const active = tab === tabItem.k
           return (
@@ -119,13 +129,16 @@ export function Leaderboard() {
               onClick={() => setTab(tabItem.k)}
               style={{
                 cursor: 'pointer',
-                padding: '9px 18px',
-                borderRadius: 10,
-                fontWeight: 700,
-                fontSize: '13.5px',
-                color: active ? '#2a1c07' : '#c9bda3',
-                background: active ? 'linear-gradient(180deg,#f0d18a,#c99b45)' : '#1a130d',
-                border: '1px solid ' + (active ? '#b8873a' : '#3a2c1d'),
+                padding: '10px 20px',
+                borderRadius: 14,
+                fontWeight: 800,
+                fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                fontSize: '14px',
+                color: active ? '#13151f' : '#a6accd',
+                background: active ? 'linear-gradient(135deg, #5de4c7, #89ddff)' : 'rgba(255,255,255,0.05)',
+                border: '1px solid ' + (active ? 'rgba(93,228,199,0.8)' : 'rgba(255,255,255,0.08)'),
+                boxShadow: active ? '0 4px 16px rgba(93,228,199,0.35)' : 'none',
+                transition: 'all .16s ease',
               }}
             >
               {t(tabItem.labelKey)}
@@ -139,12 +152,12 @@ export function Leaderboard() {
             display: 'grid',
             gridTemplateColumns: '64px 1fr 120px 120px 90px',
             gap: 8,
-            padding: '14px 20px',
-            borderBottom: '1px solid #2e2115',
-            font: "700 12px 'Hanken Grotesk'",
-            letterSpacing: '.06em',
+            padding: '16px 22px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            font: "800 12px 'Space Grotesk', 'Outfit', sans-serif",
+            letterSpacing: '.08em',
             textTransform: 'uppercase',
-            color: '#a99a83',
+            color: '#a6accd',
           }}
         >
           <div>{t('leaderboard.rank')}</div>
@@ -168,7 +181,7 @@ export function Leaderboard() {
                 key={e.username}
                 style={
                   isMe
-                    ? { ...ROW_BASE, background: 'linear-gradient(90deg,rgba(74,146,224,.14),transparent)' }
+                    ? { ...ROW_BASE, background: 'linear-gradient(90deg, rgba(93,228,199,0.18), rgba(137,221,255,0.15))', borderLeft: '3px solid #5de4c7' }
                     : ROW_BASE
                 }
               >
@@ -176,12 +189,16 @@ export function Leaderboard() {
                   <Medal rank={e.rank} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ ...avatarDim(34) }}>{e.username.slice(0, 2).toUpperCase()}</div>
-                  <span style={{ fontWeight: 700, fontSize: '14.5px' }}>{isMe ? t('common.you') : e.username}</span>
+                  <div style={{ ...avatarDim(36) }}>{e.username.slice(0, 2).toUpperCase()}</div>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+                    {isMe ? t('common.you') : e.username}
+                  </span>
                 </div>
-                <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>♛ {e.rating}</div>
-                <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>{e.wins}</div>
-                <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>{e.winRate}%</div>
+                <div style={{ textAlign: 'right', fontWeight: 800, color: '#ffcb6b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 15 }}>
+                  ♛ {e.rating.toLocaleString()}
+                </div>
+                <div style={{ textAlign: 'right', fontWeight: 700, color: '#cbd5e1' }}>{e.wins}</div>
+                <div style={{ textAlign: 'right', fontWeight: 700, color: '#5de4c7' }}>{e.winRate}%</div>
               </div>
             )
           })
@@ -191,28 +208,31 @@ export function Leaderboard() {
           <div
             style={{
               ...ROW_BASE,
-              background: 'linear-gradient(90deg,rgba(74,146,224,.14),transparent)',
-              borderTop: '1px solid #4a92e055',
+              background: 'linear-gradient(90deg, rgba(93,228,199,0.2), rgba(137,221,255,0.18))',
+              borderTop: '2px solid rgba(93,228,199,0.4)',
               borderBottom: 'none',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#4a92e0' }}>{myRank.rank}</span>
+              <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#5de4c7' }}>{myRank.rank}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div
                 style={{
-                  width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                  fontWeight: 800, fontSize: 12, background: 'linear-gradient(180deg,#4a92e0,#2c66ad)', color: '#0d1b28',
+                  width: 36, height: 36, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                  fontWeight: 900, fontSize: 13, background: 'linear-gradient(135deg, #5de4c7, #89ddff)', color: '#13151f',
+                  boxShadow: '0 0 12px rgba(93,228,199,0.5)', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                 }}
               >
                 YO
               </div>
-              <span style={{ fontWeight: 800, fontSize: '14.5px' }}>{t('common.you')}</span>
+              <span style={{ fontWeight: 800, fontSize: '15px', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('common.you')}</span>
             </div>
-            <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>♛ {myRank.rating.toLocaleString()}</div>
-            <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>
-            <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>
+            <div style={{ textAlign: 'right', fontWeight: 800, color: '#ffcb6b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 15 }}>
+              ♛ {myRank.rating.toLocaleString()}
+            </div>
+            <div style={{ textAlign: 'right', fontWeight: 600, color: '#a6accd' }}>—</div>
+            <div style={{ textAlign: 'right', fontWeight: 600, color: '#a6accd' }}>—</div>
           </div>
         )}
       </div>

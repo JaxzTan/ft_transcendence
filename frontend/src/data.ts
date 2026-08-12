@@ -1,6 +1,10 @@
 /** Mock data mirroring the design prototype. Replace with real API data later. */
 
-export const MEDAL_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a']
+export const MEDAL_COLORS = [
+  'linear-gradient(135deg, #ffcb6b, #e5a93c)',
+  'linear-gradient(135deg, #add7ff, #70a8db)',
+  'linear-gradient(135deg, #d0679d, #a34275)',
+]
 
 export const MY_ROW = { rank: 12, rating: 1540, wins: 198, wr: '58%' }
 
@@ -16,9 +20,9 @@ export const FRIENDS: Array<{ name: string; status: FriendStatus; rating: number
 ]
 
 export const STATUS_COLORS: Record<FriendStatus, string> = {
-  online: '#5fd08a',
-  ingame: '#f0c24e',
-  offline: '#6b5d49',
+  online: '#5de4c7',
+  ingame: '#ffcb6b',
+  offline: '#506477',
 }
 
 export const STATUS_LABELS: Record<FriendStatus, string> = {
@@ -58,10 +62,10 @@ export const SETTING_GROUPS = [
 ]
 
 export const MODE_CARDS = [
-  { title: 'Vs Bots', desc: 'Play against the house AI', glyph: '♟', playerCount: 4, allowAddPlayers: true, hue: '#4bbf7b' },
-  { title: 'Multiplayer', desc: 'Multiplayer vs Humans', glyph: '✦', playerCount: 4, allowAddPlayers: false, hue: '#f0c24e' },
-  { title: 'Hotseat', desc: 'Hotseat Game vs Humans', glyph: '⚔', playerCount: 4, allowAddPlayers: false, hue: '#e4574d' },
-  { title: 'Private Table', desc: 'Invite friends to a room', glyph: '⌘', playerCount: 4, allowAddPlayers: false, hue: '#4a92e0' },
+  { title: 'Vs Bots', desc: 'Play against the house AI', glyph: '♟', playerCount: 4, allowAddPlayers: true, hue: '#00e676' },
+  { title: 'Multiplayer', desc: 'Multiplayer vs Humans', glyph: '✦', playerCount: 4, allowAddPlayers: false, hue: '#ffb703' },
+  { title: 'Hotseat', desc: 'Hotseat Game vs Humans', glyph: '⚔', playerCount: 4, allowAddPlayers: false, hue: '#ff3366' },
+  { title: 'Private Table', desc: 'Invite friends to a room', glyph: '⌘', playerCount: 4, allowAddPlayers: false, hue: '#00d2ff' },
 ]
 
 export const MOVE_LOG_COLORS = ['red', 'green', 'yellow', 'blue'] as const

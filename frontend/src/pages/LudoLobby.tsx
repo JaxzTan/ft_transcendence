@@ -4,7 +4,7 @@ import { getApi, postApi } from '../api'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
-import { COL, btnGold, btnOutline, card, feltPanel, pill, sectionLabel } from '../theme'
+import { COL, btnGold, btnGoldSmall, btnOutline, card, feltPanel, pill, sectionLabel } from '../theme'
 
 type Room = {
   id: string
@@ -75,7 +75,7 @@ export function LudoLobby() {
   const fetchMyRooms = () => {
     getApi<MyRoom[]>('/api/games/mine')
       .then((data) => setMyRooms(data))
-      .catch(() => {})
+      .catch(() => { })
   }
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export function LudoLobby() {
     try {
       const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: true })
       setHostTable(res)
-      if (previous) postApi(`/api/game/${previous.gameId}/abort`).catch(() => {})
+      if (previous) postApi(`/api/game/${previous.gameId}/abort`).catch(() => { })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to host a table')
     } finally {
@@ -208,10 +208,11 @@ export function LudoLobby() {
   ]
 
   const badgeStyle = (badge: ModeCard['badge']): React.CSSProperties => {
-    const hue = badge === 'ranked' ? '#f0c24e' : badge === 'casual' ? '#4bbf7b' : '#4a92e0'
+    const hue = badge === 'ranked' ? '#ffcb6b' : badge === 'casual' ? '#5de4c7' : '#89ddff'
     return {
-      fontSize: 10.5, fontWeight: 800, letterSpacing: '.04em', color: hue,
-      background: `${hue}22`, border: `1px solid ${hue}55`, borderRadius: 999, padding: '3px 8px',
+      fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: hue,
+      background: `${hue}20`, border: `1px solid ${hue}55`, borderRadius: 999, padding: '4px 10px',
+      fontFamily: "'Space Grotesk', 'Outfit', sans-serif", textTransform: 'uppercase',
     }
   }
   const badgeLabel = (badge: ModeCard['badge']) =>
@@ -221,37 +222,38 @@ export function LudoLobby() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 32px', borderBottom: '1px solid #2e2115' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 36px', borderBottom: '1px solid rgba(93,228,199,0.15)', background: 'rgba(20,23,35,0.65)', backdropFilter: 'blur(16px)' }}>
+        {/* <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div
             onClick={() => navigate('/home')}
             style={{
-              cursor: 'pointer', width: 38, height: 38, borderRadius: 10, display: 'grid', placeItems: 'center',
-              border: '1px solid #3a2c1d', background: '#1a130d', fontSize: 16, color: '#c9bda3',
+              cursor: 'pointer', width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center',
+              border: '1px solid rgba(93,228,199,0.25)', background: 'rgba(255,255,255,0.06)', fontSize: 16, color: '#f0f4fc',
             }}
           >
             ←
           </div>
           <div>
-            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>{t('lobby.title')}</div>
-            <div style={{ color: '#a99a83', fontSize: 13 }}>{t('lobbyBrowser.subtitle')}</div>
+            <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 24, fontWeight: 900, color: '#f0f4fc' }}>{t('lobby.title')}</div>
+            <div style={{ color: '#a6accd', fontSize: 13.5, fontWeight: 500 }}>{t('lobbyBrowser.subtitle')}</div>
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        </div> */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <input
             value={roomCodeInput}
             onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
             onKeyDown={(e) => { if (e.key === 'Enter') joinByCode(roomCodeInput) }}
             placeholder={t('lobbyBrowser.roomCodePlaceholder')}
             style={{
-              background: '#1a130d', border: '1px solid #3a2c1d', borderRadius: 10,
-              color: '#f0e2c4', padding: '10px 14px', fontSize: 13, fontWeight: 700, letterSpacing: '.12em', width: 140,
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(93,228,199,0.3)', borderRadius: 12,
+              color: '#f0f4fc', padding: '11px 16px', fontSize: 13.5, fontWeight: 800, letterSpacing: '.14em', width: 150,
+              fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
             }}
           />
           <button
             onClick={() => joinByCode(roomCodeInput)}
             disabled={!roomCodeInput.trim() || joiningByCode}
-            style={{ ...btnOutline, padding: '10px 18px', fontSize: 13, opacity: !roomCodeInput.trim() || joiningByCode ? 0.5 : 1 }}
+            style={{ ...btnGold, padding: '11px 20px', fontSize: 13.5, opacity: !roomCodeInput.trim() || joiningByCode ? 0.5 : 1 }}
           >
             {joiningByCode ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.joinRoomBtn')}
           </button>
@@ -260,36 +262,40 @@ export function LudoLobby() {
 
       <div
         style={{
-          flex: 1, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 26, padding: '30px 34px',
-          alignItems: 'start', maxWidth: 1300, margin: '0 auto', width: '100%',
+          flex: 1, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 28, padding: '32px 36px',
+          alignItems: 'start', maxWidth: 1320, margin: '0 auto', width: '100%',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={sectionLabel}>{t('lobbyBrowser.gameModes')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ ...sectionLabel, color: '#5de4c7' }}>{t('lobbyBrowser.gameModes')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
               {modeCards.map((m) => (
                 <div
                   key={m.key}
                   onClick={m.onClick}
+                  className="interactive-card"
                   style={{
-                    cursor: 'pointer', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 10,
-                    ...card,
+                    cursor: 'pointer', borderRadius: 20, padding: 22, display: 'flex', flexDirection: 'column', gap: 12,
+                    background: 'linear-gradient(145deg, rgba(27,30,46,0.85), rgba(20,23,35,0.95))',
+                    border: '1px solid rgba(93,228,199,0.25)',
+                    boxShadow: '0 12px 28px -8px rgba(0,0,0,0.5)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <div
                       style={{
-                        width: 46, height: 46, borderRadius: 12, display: 'grid', placeItems: 'center', fontSize: 22,
-                        color: m.hue, background: 'rgba(255,255,255,.04)', border: `1px solid ${m.hue}44`,
+                        width: 50, height: 50, borderRadius: 14, display: 'grid', placeItems: 'center', fontSize: 24,
+                        color: '#13151f', background: `linear-gradient(135deg, ${m.hue}, ${m.hue}aa)`,
+                        boxShadow: `0 0 16px ${m.hue}66`,
                       }}
                     >
                       {m.glyph}
                     </div>
                     <span style={badgeStyle(m.badge)}>{badgeLabel(m.badge)}</span>
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4' }}>{m.title}</div>
-                  <div style={{ color: '#a99a83', fontSize: 13, lineHeight: 1.4 }}>{m.desc}</div>
+                  <div style={{ fontWeight: 900, fontSize: 17, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{m.title}</div>
+                  <div style={{ color: '#a6accd', fontSize: 13.5, lineHeight: 1.45 }}>{m.desc}</div>
                 </div>
               ))}
             </div>
@@ -297,28 +303,28 @@ export function LudoLobby() {
 
           {myRooms.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={sectionLabel}>{t('lobbyBrowser.yourTables')} · {myRooms.length}</div>
+              <div style={{ ...sectionLabel, color: '#89ddff' }}>{t('lobbyBrowser.yourTables')} · {myRooms.length}</div>
               <div style={{ ...card, overflow: 'hidden' }}>
                 {myRooms.map((room, i) => (
                   <div
                     key={room.id}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
-                      borderBottom: i < myRooms.length - 1 ? '1px solid #2a2015' : 'none',
+                      display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px',
+                      borderBottom: i < myRooms.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                     }}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#f0e2c4' }}>
-                        {room.roomCode ?? room.gameType} <span style={{ color: '#a99a83', fontWeight: 600 }}>· {room.seats}/{room.maxSeats}</span>
+                      <div style={{ fontWeight: 800, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+                        {room.roomCode ?? room.gameType} <span style={{ color: '#a6accd', fontWeight: 600 }}>· {room.seats}/{room.maxSeats}</span>
                       </div>
-                      <div style={{ color: '#a99a83', fontSize: 12 }}>
+                      <div style={{ color: '#a6accd', fontSize: 12.5 }}>
                         {room.status === 'WAITING' ? t('lobbyBrowser.statusWaiting') : t('lobbyBrowser.statusActive')}
                       </div>
                     </div>
                     <button
                       onClick={() => rejoinRoom(room)}
                       disabled={rejoiningId === room.id}
-                      style={{ ...btnOutline, padding: '8px 16px', fontSize: 12.5, opacity: rejoiningId === room.id ? 0.6 : 1 }}
+                      style={{ ...btnGoldSmall, padding: '8px 18px', fontSize: 13, opacity: rejoiningId === room.id ? 0.6 : 1 }}
                     >
                       {rejoiningId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.rejoinBtn')}
                     </button>
@@ -330,7 +336,7 @@ export function LudoLobby() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={sectionLabel}>{t('lobbyBrowser.openRooms')} · {filteredRooms.length}</div>
+              <div style={{ ...sectionLabel, color: '#5de4c7' }}>{t('lobbyBrowser.openRooms')} · {filteredRooms.length}</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <span onClick={() => setRoomFilter('all')} style={pill(roomFilter === 'all')}>{t('lobbyBrowser.filterAll')}</span>
                 <span onClick={() => setRoomFilter('classic')} style={pill(roomFilter === 'classic')}>{t('lobbyBrowser.filter4Player')}</span>
@@ -341,9 +347,9 @@ export function LudoLobby() {
             <div style={{ ...card, overflow: 'hidden' }}>
               <div
                 style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr 1fr auto', gap: 12, padding: '10px 18px',
-                  borderBottom: '1px solid #2a2015', fontSize: 11, fontWeight: 700, letterSpacing: '.06em',
-                  textTransform: 'uppercase', color: '#a99a83',
+                  display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr 1fr auto', gap: 12, padding: '14px 20px',
+                  borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 11.5, fontWeight: 800, letterSpacing: '.08em',
+                  textTransform: 'uppercase', color: '#a6accd', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                 }}
               >
                 <div>{t('lobbyBrowser.colRoomId')}</div>
@@ -354,9 +360,9 @@ export function LudoLobby() {
               </div>
 
               {rooms === null ? (
-                <div style={{ padding: '20px 0', textAlign: 'center', color: '#a99a83', fontSize: 13.5 }}>{t('lobbyBrowser.loadingRooms')}</div>
+                <div style={{ padding: '24px 0', textAlign: 'center', color: '#a6accd', fontSize: 14 }}>{t('lobbyBrowser.loadingRooms')}</div>
               ) : filteredRooms.length === 0 ? (
-                <div style={{ padding: '20px 0', textAlign: 'center', color: '#a99a83', fontSize: 13.5 }}>{t('lobbyBrowser.noOpenRooms')}</div>
+                <div style={{ padding: '24px 0', textAlign: 'center', color: '#a6accd', fontSize: 14 }}>{t('lobbyBrowser.noOpenRooms')}</div>
               ) : (
                 filteredRooms.map((room) => {
                   const full = room.seats >= room.maxSeats
@@ -365,28 +371,29 @@ export function LudoLobby() {
                     <div
                       key={room.id}
                       style={{
-                        display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr 1fr auto', gap: 12, padding: '14px 18px',
-                        borderBottom: '1px solid #2a2015', alignItems: 'center',
+                        display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr 1fr auto', gap: 12, padding: '16px 20px',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)', alignItems: 'center',
                       }}
                     >
-                      <div style={{ fontWeight: 800, fontSize: 13, letterSpacing: '.06em', color: '#e8dcc6' }}>{room.roomCode}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ fontWeight: 900, fontSize: 14, letterSpacing: '.08em', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{room.roomCode}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div
                           style={{
-                            width: 30, height: 30, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center',
-                            fontWeight: 800, fontSize: 11, color: '#12100a', background: hue,
+                            width: 32, height: 32, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center',
+                            fontWeight: 900, fontSize: 12, color: '#13151f', background: hue,
+                            boxShadow: `0 0 10px ${hue}66`, fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                           }}
                         >
                           {room.host.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 13.5, color: '#f0e2c4' }}>{room.host}</div>
-                          <div style={{ color: '#a99a83', fontSize: 12 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{room.host}</div>
+                          <div style={{ color: '#a6accd', fontSize: 12 }}>
                             {room.maxSeats}-player · {room.mode === 'duel' ? 'duel' : 'classic'}
                           </div>
                         </div>
                       </div>
-                      <div style={{ fontWeight: 700, fontSize: 13.5, color: full ? '#e05050' : '#4bbf7b' }}>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: full ? '#d0679d' : '#5de4c7', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                         {room.seats}/{room.maxSeats}
                       </div>
                       <div>
@@ -396,7 +403,7 @@ export function LudoLobby() {
                         onClick={() => joinRoom(room)}
                         disabled={full || joiningRoomId === room.id}
                         style={{
-                          ...btnGold, padding: '8px 16px', fontSize: 12.5,
+                          ...btnGold, padding: '8px 18px', fontSize: 13,
                           opacity: full ? 0.4 : joiningRoomId === room.id ? 0.7 : 1,
                           cursor: full ? 'not-allowed' : 'pointer',
                         }}
@@ -411,15 +418,16 @@ export function LudoLobby() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 20 }}>
-          <div ref={hostPanelRef} style={{ ...feltPanel, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 17, color: '#dff0e0' }}>{t('lobbyBrowser.hostTableTitle')}</div>
-            <div style={{ color: '#c9d9c9', fontSize: 13, lineHeight: 1.5 }}>{t('lobbyBrowser.hostTableDesc')}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, position: 'sticky', top: 20 }}>
+          <div ref={hostPanelRef} style={{ ...feltPanel, padding: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 20, fontWeight: 900, color: '#f0f4fc' }}>{t('lobbyBrowser.hostTableTitle')}</div>
+            <div style={{ color: '#cbd5e1', fontSize: 13.5, lineHeight: 1.5 }}>{t('lobbyBrowser.hostTableDesc')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
-                  flex: 1, background: 'rgba(0,0,0,.25)', border: '1px solid #2e4a38', borderRadius: 10,
-                  padding: '12px 14px', fontWeight: 800, fontSize: 18, letterSpacing: '.18em', color: '#f0e2c4',
+                  flex: 1, background: 'rgba(0,0,0,.35)', border: '1px solid rgba(93,228,199,0.4)', borderRadius: 14,
+                  padding: '14px 16px', fontWeight: 900, fontSize: 20, letterSpacing: '.2em', color: '#f0f4fc',
+                  fontFamily: "'Space Grotesk', 'Outfit', sans-serif", textAlign: 'center', textShadow: '0 0 12px rgba(93,228,199,0.5)',
                 }}
               >
                 {hostTable?.inviteCode ?? '······'}
@@ -427,7 +435,7 @@ export function LudoLobby() {
               <button
                 onClick={() => spinNewTable(hostTable)}
                 disabled={hostBusy}
-                style={{ ...btnOutline, padding: '10px 14px', fontSize: 12.5, opacity: hostBusy ? 0.6 : 1 }}
+                style={{ ...btnOutline, padding: '12px 16px', fontSize: 13, opacity: hostBusy ? 0.6 : 1 }}
               >
                 ↻ {t('lobbyBrowser.newCodeBtn')}
               </button>
@@ -435,26 +443,26 @@ export function LudoLobby() {
             <button
               onClick={createTable}
               disabled={!hostTable || hostBusy}
-              style={{ ...btnGold, opacity: !hostTable || hostBusy ? 0.6 : 1 }}
+              style={{ ...btnGold, opacity: !hostTable || hostBusy ? 0.6 : 1, padding: 14 }}
             >
               {hostBusy ? t('lobbyBrowser.creatingTableBtn') : t('lobbyBrowser.createTableBtn')}
             </button>
           </div>
 
-          <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>{t('lobbyBrowser.quickMatchTitle')}</div>
-            <div style={{ color: '#a99a83', fontSize: 13, lineHeight: 1.5 }}>{t('lobbyBrowser.quickMatchDesc')}</div>
+          <div style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontWeight: 900, fontSize: 17, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('lobbyBrowser.quickMatchTitle')}</div>
+            <div style={{ color: '#a6accd', fontSize: 13.5, lineHeight: 1.5 }}>{t('lobbyBrowser.quickMatchDesc')}</div>
             <button
               onClick={findMeATable}
               disabled={quickMatchBusy}
-              style={{ ...btnOutline, textAlign: 'center', opacity: quickMatchBusy ? 0.6 : 1 }}
+              style={{ ...btnOutline, textAlign: 'center', opacity: quickMatchBusy ? 0.6 : 1, padding: 14 }}
             >
               {quickMatchBusy ? t('lobbyBrowser.findingTableBtn') : t('lobbyBrowser.findMeATableBtn')}
             </button>
           </div>
 
           {error && (
-            <div style={{ textAlign: 'center', color: '#e05050', fontSize: 12.5 }}>{error}</div>
+            <div style={{ textAlign: 'center', color: '#d0679d', fontSize: 13, fontWeight: 600, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10 }}>{error}</div>
           )}
         </div>
       </div>

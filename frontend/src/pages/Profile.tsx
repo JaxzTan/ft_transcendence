@@ -193,12 +193,12 @@ export function Profile() {
     <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, paddingBottom: 60, alignItems: 'start' }}>
       
       {/* Left Column: Stats & Matches */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
         {/* Header Card */}
         <div style={{ ...card, padding: 36, display: 'flex', alignItems: 'center', gap: 32, position: 'relative', overflow: 'hidden' }}>
           <div style={{
-            position: 'absolute', top: -50, right: -50, width: 300, height: 300,
-            background: 'radial-gradient(circle, rgba(201, 155, 69, 0.15) 0%, transparent 65%)',
+            position: 'absolute', top: -50, right: -50, width: 320, height: 320,
+            background: 'radial-gradient(circle, rgba(93, 228, 199, 0.18) 0%, transparent 65%)',
             pointerEvents: 'none'
           }} />
 
@@ -207,14 +207,14 @@ export function Profile() {
               username={profile.username}
               size={100}
               fallbackStyle={avatarBlue(100, 36, 30)}
-              style={{ boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d' }}
+              style={{ boxShadow: '0 0 0 4px rgba(93,228,199,0.35), 0 0 24px rgba(137,221,255,0.4)' }}
               cacheBuster={avatarBuster}
             />
             <span
               title={statusStyle.label}
               style={{
                 position: 'absolute', right: 4, bottom: 4, width: 18, height: 18, borderRadius: '50%',
-                background: statusStyle.color, border: '3px solid #1a130d',
+                background: statusStyle.color, border: '3px solid #13151f', boxShadow: `0 0 8px ${statusStyle.color}`,
               }}
             />
             {isOwnProfile && (
@@ -222,10 +222,10 @@ export function Profile() {
                 onClick={() => !uploading && fileInputRef.current?.click()}
                 style={{
                   position: 'absolute', inset: 0, borderRadius: '50%',
-                  background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer',
-                  opacity: 0, transition: 'opacity 0.2s',
-                  boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d'
+                  background: 'rgba(19,21,31,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: 13, fontWeight: 800, cursor: uploading ? 'not-allowed' : 'pointer',
+                  opacity: 0, transition: 'opacity 0.2s', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                  boxShadow: '0 0 0 4px rgba(93,228,199,0.35), 0 0 24px rgba(137,221,255,0.4)',
                 }}
                 onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
                 onMouseOut={(e) => e.currentTarget.style.opacity = '0'}
@@ -243,88 +243,89 @@ export function Profile() {
           </div>
 
           <div style={{ flex: 1 }}>
-            <div style={{ ...goldText, fontFamily: "'Cinzel',serif", fontWeight: 800, fontSize: 40, lineHeight: 1.1 }}>
+            <div style={{ ...goldText, fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontWeight: 900, fontSize: 38, lineHeight: 1.1, letterSpacing: -0.5 }}>
               {profile.username}
             </div>
-            <div style={{ color: statusStyle.color, fontSize: 13, marginTop: 6, fontWeight: 700 }}>
+            <div style={{ color: statusStyle.color, fontSize: 13.5, marginTop: 6, fontWeight: 700, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
               {t(STATUS_KEYS[profile.status] ?? STATUS_KEYS.offline)}
             </div>
-            <div style={{ color: '#a99a83', fontSize: 14, marginTop: 2, fontWeight: 500 }}>
+            <div style={{ color: '#a6accd', fontSize: 14, marginTop: 4, fontWeight: 500 }}>
               {t('profile.memberSince')} {new Date(profile.createdAt).toLocaleDateString()}
             </div>
             {isOwnProfile && (
               <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center' }}>
-                <span onClick={handleRemoveAvatar} style={{ color: '#e4574d', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: 0.8 }} onMouseOver={(e) => e.currentTarget.style.opacity = '1'} onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}>
+                <span onClick={handleRemoveAvatar} style={{ color: '#d0679d', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', opacity: 0.85 }} onMouseOver={(e) => e.currentTarget.style.opacity = '1'} onMouseOut={(e) => e.currentTarget.style.opacity = '0.85'}>
                   Remove Avatar
                 </span>
-                {uploadError && <span style={{ color: '#e4574d', fontSize: 12, fontWeight: 700 }}>· {uploadError}</span>}
+                {uploadError && <span style={{ color: '#d0679d', fontSize: 12.5, fontWeight: 700 }}>· {uploadError}</span>}
               </div>
             )}
           </div>
 
-          <div style={{ textAlign: 'center', background: 'linear-gradient(180deg,#241b13,#17110b)', padding: '16px 28px', borderRadius: 20, border: '1px solid #3a2c1d', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.05)' }}>
-            <div style={{ fontSize: 12, color: '#a99a83', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700 }}>{t('dashboard.rating')}</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: '#f0e2c4', marginTop: 4 }}>{profile.rating}</div>
+          <div style={{ textAlign: 'center', background: 'linear-gradient(145deg, rgba(27,30,46,0.8), rgba(20,23,35,0.9))', padding: '18px 30px', borderRadius: 20, border: '1px solid rgba(93,228,199,0.2)', boxShadow: '0 8px 20px -6px rgba(0,0,0,0.5)' }}>
+            <div style={{ fontSize: 12, color: '#5de4c7', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 800, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('dashboard.rating')}</div>
+            <div style={{ fontSize: 34, fontWeight: 900, color: '#ffcb6b', marginTop: 4, fontFamily: "'Space Grotesk', 'Outfit', sans-serif", textShadow: '0 0 14px rgba(255,203,107,0.3)' }}>♛ {profile.rating}</div>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-          <StatBox label={t('profile.wins')} value={profile.wins} color="#4bbf7b" />
-          <StatBox label={t('profile.losses')} value={profile.losses} color="#e4574d" />
-          <StatBox label={t('profile.winRate')} value={`${winRate}%`} color="#4a92e0" />
-          <StatBox label={t('profile.bestStreak')} value={profile.bestWinStreak} color="#f0c24e" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+          <StatBox label={t('profile.wins')} value={profile.wins} color="#5de4c7" />
+          <StatBox label={t('profile.losses')} value={profile.losses} color="#d0679d" />
+          <StatBox label={t('profile.winRate')} value={`${winRate}%`} color="#89ddff" />
+          <StatBox label={t('profile.bestStreak')} value={profile.bestWinStreak} color="#ffcb6b" />
         </div>
 
-        <div style={{ ...card, padding: 28 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h3 style={{ margin: 0, fontSize: 20, color: '#f0e2c4', fontWeight: 700, fontFamily: "'Cinzel',serif" }}>{t('profile.recentMatches')}</h3>
+        <div style={{ ...card, padding: 30 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
+            <h3 style={{ margin: 0, fontSize: 20, color: '#f0f4fc', fontWeight: 900, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('profile.recentMatches')}</h3>
             {gamesData && gamesData.total > 0 && (
-              <div style={{ color: '#a99a83', fontSize: 14, fontWeight: 600 }}>{t('profile.gamesPlayedCount', { count: gamesData.total })}</div>
+              <div style={{ color: '#a6accd', fontSize: 14, fontWeight: 600 }}>{t('profile.gamesPlayedCount', { count: gamesData.total })}</div>
             )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {!gamesData || gamesData.games.length === 0 ? (
-              <div style={{ color: '#a99a83', fontStyle: 'italic', padding: '20px 0', textAlign: 'center', background: '#17110b', borderRadius: 12, border: '1px solid #2e2115' }}>
+              <div style={{ color: '#a6accd', fontStyle: 'italic', padding: '24px 0', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
                 {t('profile.noMatchesPlayed')}
               </div>
             ) : (
               gamesData.games.map((game) => {
                 const isWinner = game.rank === 1
-                const isDraw = game.status === 'COMPLETED' && !game.participants.some(p => p.rank === 1) // Edge case if no winners
+                const isDraw = game.status === 'COMPLETED' && !game.participants.some(p => p.rank === 1)
                 const resultText = isWinner ? t('profile.resultVictory') : (isDraw ? t('profile.resultDraw') : t('profile.resultDefeat'))
-                const resultColor = isWinner ? '#4bbf7b' : (isDraw ? '#a99a83' : '#e4574d')
+                const resultColor = isWinner ? '#5de4c7' : (isDraw ? '#a6accd' : '#d0679d')
 
                 const opponents = game.participants.filter(p => p.username !== profile.username)
 
                 return (
                   <div key={game.gameId} style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '16px 20px', background: '#17110b', borderRadius: 16, border: '1px solid #2e2115',
-                    transition: 'background 0.2s, transform 0.2s', cursor: 'default'
+                    padding: '16px 22px', background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)',
+                    transition: 'all 0.2s', cursor: 'default'
                   }}
-                    onMouseOver={(e) => { e.currentTarget.style.background = '#1e1610'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                    onMouseOut={(e) => { e.currentTarget.style.background = '#17110b'; e.currentTarget.style.transform = 'translateY(0)' }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.transform = 'translateY(0)' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                       <div style={{
-                        fontWeight: 800, fontSize: 13, padding: '6px 12px', borderRadius: 8, letterSpacing: 1,
-                        background: resultColor + '22', color: resultColor, border: `1px solid ${resultColor}44`,
-                        width: 85, textAlign: 'center'
+                        fontWeight: 900, fontSize: 13, padding: '7px 14px', borderRadius: 10, letterSpacing: 1,
+                        background: resultColor + '20', color: resultColor, border: `1px solid ${resultColor}55`,
+                        width: 90, textAlign: 'center', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                        boxShadow: `0 0 10px ${resultColor}33`,
                       }}>
                         {resultText}
                       </div>
 
-                      <div style={{ color: '#f0e2c4', fontWeight: 600, fontSize: 15 }}>
+                      <div style={{ color: '#f0f4fc', fontWeight: 700, fontSize: 15, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                         {t('profile.vsLabel')} {opponents.length > 0 ? opponents.map(o => o.username).join(', ') : t('profile.botsUnknown')}
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                      <div style={{ color: '#c99b45', fontSize: 13, fontWeight: 700 }}>
+                      <div style={{ color: '#ffcb6b', fontSize: 13.5, fontWeight: 700, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                         {t('profile.goalsCount', { count: game.piecesInGoal })}
                       </div>
-                      <div style={{ color: '#a99a83', fontSize: 13, minWidth: 80, textAlign: 'right' }}>
+                      <div style={{ color: '#a6accd', fontSize: 13, minWidth: 80, textAlign: 'right' }}>
                         {new Date(game.startedAt).toLocaleDateString()}
                       </div>
                     </div>
@@ -346,11 +347,11 @@ export function Profile() {
 function StatBox({ label, value, color }: { label: string; value: React.ReactNode; color: string }) {
   return (
     <div style={{ ...card, padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 6, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color, opacity: 0.8 }} />
-      <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color, boxShadow: `0 0 8px ${color}` }} />
+      <div style={{ color: '#a6accd', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
         {label}
       </div>
-      <div style={{ fontSize: 32, fontWeight: 800, color, fontFamily: "'Hanken Grotesk', sans-serif" }}>
+      <div style={{ fontSize: 32, fontWeight: 900, color, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
         {value}
       </div>
     </div>
@@ -362,66 +363,66 @@ function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null, navig
   return (
     <div style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 32 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <h3 style={{ margin: 0, fontSize: 18, color: '#f0e2c4', fontWeight: 700, fontFamily: "'Cinzel',serif" }}>
+        <h3 style={{ margin: 0, fontSize: 19, color: '#f0f4fc', fontWeight: 900, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
           {t('nav.friends')}
         </h3>
-        <div style={{ background: '#241b13', color: '#c99b45', padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
+        <div style={{ background: 'linear-gradient(135deg, #5de4c7, #89ddff)', color: '#13151f', padding: '2px 9px', borderRadius: 12, fontSize: 12, fontWeight: 800, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
           {friends ? friends.length : 0}
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {!friends ? (
-          <div style={{ color: '#a99a83', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>{t('common.loading')}</div>
+          <div style={{ color: '#a6accd', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>{t('common.loading')}</div>
         ) : friends.length === 0 ? (
-          <div style={{ color: '#a99a83', fontSize: 13, textAlign: 'center', padding: '20px 0', background: '#17110b', borderRadius: 12, border: '1px solid #2e2115' }}>
+          <div style={{ color: '#a6accd', fontSize: 13, textAlign: 'center', padding: '20px 0', background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)' }}>
             {t('profile.noFriendsShort')}<br/><br/>
-            <span style={{ color: '#c99b45', cursor: 'pointer', fontWeight: 600 }}>{t('profile.findPlayers')}</span>
+            <span style={{ color: '#5de4c7', cursor: 'pointer', fontWeight: 700 }}>{t('profile.findPlayers')}</span>
           </div>
         ) : (
           friends.map((friend) => {
             const status = STATUS_STYLE[friend.status] ?? STATUS_STYLE.offline
             return (
               <div key={friend.id} style={{
-                display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#1a140e',
-                borderRadius: 12, border: '1px solid #2e2115', cursor: 'pointer', transition: 'background 0.2s'
+                display: 'flex', alignItems: 'center', padding: '10px 14px', background: 'rgba(255,255,255,0.03)',
+                borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', transition: 'all 0.15s'
               }}
                 onClick={() => navigate(`/profile?u=${friend.username}`)}
-                onMouseOver={(e) => { e.currentTarget.style.background = '#241b13' }}
-                onMouseOut={(e) => { e.currentTarget.style.background = '#1a140e' }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
               >
                 <div style={{ position: 'relative', marginRight: 12, flexShrink: 0 }}>
                   <UserAvatar 
                     username={friend.username}
-                    size={36}
-                    fallbackStyle={avatarBlue(36, 12, 10)}
-                    style={{ boxShadow: '0 0 0 2px #1a130d, 0 0 0 1px #3a2c1d' }}
+                    size={38}
+                    fallbackStyle={avatarBlue(38, 13, 10)}
+                    style={{ boxShadow: '0 0 0 2px rgba(93,228,199,0.3)' }}
                   />
                   <span
                     style={{
-                      position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%',
-                      background: status.color, border: '2px solid #1a140e',
+                      position: 'absolute', right: -1, bottom: -1, width: 11, height: 11, borderRadius: '50%',
+                      background: status.color, border: '2px solid #13151f', boxShadow: `0 0 6px ${status.color}`,
                     }}
                   />
                 </div>
 
                 <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#f0e2c4', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5, color: '#f0f4fc', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                     {friend.username}
                   </div>
-                  <div style={{ color: status.color, fontSize: 11, fontWeight: 600 }}>
+                  <div style={{ color: status.color, fontSize: 11.5, fontWeight: 700, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                     {t(STATUS_KEYS[friend.status] ?? STATUS_KEYS.offline)}
                   </div>
                 </div>
 
-                {/* Rating Badge (Steam Level style) */}
+                {/* Rating Badge */}
                 <div style={{
-                  width: 32, height: 32, borderRadius: '50%', border: '2px solid #c99b45',
+                  padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(255,203,107,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'radial-gradient(circle, rgba(201,155,69,0.2) 0%, rgba(201,155,69,0) 70%)',
-                  color: '#f0e2c4', fontSize: 11, fontWeight: 800, flexShrink: 0
+                  background: 'rgba(255,203,107,0.12)',
+                  color: '#ffcb6b', fontSize: 12, fontWeight: 800, flexShrink: 0, fontFamily: "'Space Grotesk', 'Outfit', sans-serif"
                 }}>
-                  {friend.rating}
+                  ♛ {friend.rating}
                 </div>
               </div>
             )

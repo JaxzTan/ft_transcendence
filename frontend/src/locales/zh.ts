@@ -5,7 +5,7 @@ export const zh = {
     loading: '加载中...',
   },
   nav: {
-    title: 'LUDO ROYALE',
+    title: 'LUDO 42',
     home: '首页',
     dashboard: '仪表板',
     friends: '好友',
@@ -251,9 +251,9 @@ export const zh = {
   },
   auth: {
     loginTitle: '欢迎回来',
-    loginSubtitle: '登录您的 Ludo Royale 账号',
+    loginSubtitle: '登录您的 42 Ludo 账号',
     signupTitle: '创建账号',
-    signupSubtitle: '立即加入 Ludo Royale',
+    signupSubtitle: '立即加入 42 Ludo',
     forgotTitle: '忘记密码',
     forgotSubtitle: '输入您的电子邮箱以获取密码重置链接',
     resetTitle: '重置密码',

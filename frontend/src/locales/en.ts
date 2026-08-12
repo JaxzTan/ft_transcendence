@@ -5,7 +5,7 @@ export const en = {
     loading: 'Loading...',
   },
   nav: {
-    title: 'LUDO ROYALE',
+    title: 'LUDO 42',
     home: 'Home',
     dashboard: 'Dashboard',
     friends: 'Friends',
@@ -304,9 +304,9 @@ export const en = {
   },
   auth: {
     loginTitle: 'Welcome Back',
-    loginSubtitle: 'Sign in to your Ludo Royale account',
+    loginSubtitle: 'Sign in to your 42 Ludo account',
     signupTitle: 'Create Account',
-    signupSubtitle: 'Join Ludo Royale today',
+    signupSubtitle: 'Join 42 Ludo today',
     forgotTitle: 'Forgot Password',
     forgotSubtitle: "Enter your email to receive a password reset link",
     resetTitle: 'Reset Password',
