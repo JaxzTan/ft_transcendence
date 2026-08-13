@@ -8,7 +8,15 @@ import { apiFetch, getApi, postApi } from '../api'
 import type { PlayerColor } from '../game/types'
 import { useApp } from '../store'
 
-type PendingInvite = { gameId: string; inviteCode: string; fromUsername: string; createdAt: number }
+type PendingInvite = {
+  gameId: string
+  token: string
+  engineUrl: string
+  color: PlayerColor
+  inviteCode: string
+  fromUsername: string
+  createdAt: number
+}
 
 const NAV: Array<{ path: string; glyph: string; titleKey: string }> = [
   { path: '/home', glyph: '⌂', titleKey: 'nav.home' },
@@ -106,13 +114,13 @@ export function Shell({ children }: { children: ReactNode }) {
     if (!invite) return
     setInviteBusy(true)
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(
-        `/api/match/join/${encodeURIComponent(invite.inviteCode)}`,
-        {},
-      )
-      setActiveMatch(res)
+      // The friend is already seated in the room (friends.service.ts seats
+      // them at invite time, same as online mode's synchronous join) — accept
+      // just confirms entry into the room already reserved for them.
+      const { gameId, token, color, inviteCode } = invite
+      setActiveMatch({ gameId, token, color, inviteCode })
       setInvite(null)
-      navigate(`/game?gameId=${res.gameId}`)
+      navigate(`/game?gameId=${gameId}`)
     } catch {
       setInvite(null)
     } finally {
