@@ -66,7 +66,7 @@ seed-secrets: check-secrets
 	@docker volume create $(SECRETS_VOLUME) >/dev/null
 	@docker rm -f secrets-seed >/dev/null 2>&1 || true
 	@docker run -d --rm --name secrets-seed -v $(SECRETS_VOLUME):/secrets alpine sleep 60 >/dev/null
-	@docker cp $(SECRET_DIR)/. secrets-seed:/secrets/
+	@tar -C $(SECRET_DIR) --owner=0 --group=0 -cf - . | docker exec -i secrets-seed tar -xf - -C /secrets
 	@docker exec secrets-seed sh -c 'chmod 600 /secrets/*.txt'
 	@docker stop secrets-seed >/dev/null
 	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
