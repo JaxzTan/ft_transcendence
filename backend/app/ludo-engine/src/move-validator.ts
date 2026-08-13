@@ -17,13 +17,27 @@ export class MoveValidator {
       // Skip if already finished (step === 57)
       if (from === 57) continue;
       
-      // Prison exit rule: can only leave prison on a roll of 6
-      if (from === 0 && diceValue !== 6) continue;
-
-      // Leaving prison only places the piece on its entry square — the 6
-      // isn't also spent moving it further down the track.
-      const to = from === 0 ? 1 : from + diceValue;
+      // Prison exit rule: can only leave prison on a roll of 6.
+      // Exiting places the piece on the starting track square (step 1) — the 6
+      // is consumed to exit; the remaining 5 steps are NOT applied. The next
+      // roll then moves the piece 1-6 steps.
+      if (from === 0) {
+        if (diceValue !== 6) continue;
+        const to = 1;
+        const isHomeEntry = false;
+        const isCapture = this.wouldCaptureStatic(state, color, piece.id, to);
+        moves.push({ pieceId: piece.id, from, to, isCapture, isHomeEntry });
+        continue;
+      }
+      
+      const to = from + diceValue;
       if (to > 57) continue; // overshoot
+      
+      // Blockade rule: cannot pass THROUGH a two-or-more same-color opponent stack.
+      // Any intermediate track step the piece would cross is blocked.
+      if (this.blockadeBlocksPath(state, color, from, to, piece.id)) {
+        continue;
+      }
       
       const isHomeEntry = to >= 52 && to <= 56;
       const isCapture = this.wouldCaptureStatic(state, color, piece.id, to);
@@ -40,16 +54,61 @@ export class MoveValidator {
     return moves;
   }
 
+  /**
+   * True if an opponent blockade (2+ same-color pieces on one non-safe track square)
+   * lies on the path a piece would cross between `from` (exclusive) and `to` (inclusive).
+   * Safe zones never form a blockade, and a blockade only blocks landing/passing on
+   * the 52-loop — home stretch (52-56) and goal (57) are immune.
+   */
+  static blockadeBlocksPath(
+    state: GameState,
+    moverColor: PlayerColor,
+    from: number,
+    to: number,
+    pieceId: PieceId,
+  ): boolean {
+    // Moves that never touch the main track can't be blocked.
+    if (from < 1 || to < 1) return false;
+
+    // Opponents' blockades only matter; own pieces never physically block the mover.
+    const opponentColors: PlayerColor[] = ['red', 'green', 'yellow', 'blue'].filter(c => c !== moverColor) as PlayerColor[];
+
+    // Walk the mover's own-step path, but only main-track steps (1-51) participate.
+    // When the move ends in the home stretch/goal (to > 51), still check the
+    // intermediate track cells (e.g. step 51) the piece crosses before entering home.
+    const lastTrackStep = Math.min(to, 51);
+    for (let step = from + 1; step <= lastTrackStep; step++) {
+      const moverPos = BoardMapper.toTrackPosition(pieceId, step);
+      if (moverPos === -1) continue;
+      // Safe zones never form a blockade — skip them so a stack there doesn't block.
+      if (BoardMapper.isSafeZoneStep(pieceId, step)) continue;
+      for (const blockerColor of opponentColors) {
+        if (BoardMapper.isBlockadeAtTrackPos(state.pieces, blockerColor, moverPos)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   static wouldCaptureStatic(state: GameState, excludeColor: PlayerColor, pieceId: PieceId, targetStep: number): boolean {
     if (targetStep <= 0 || targetStep >= 57) return false;
 
     // Check safe zones using BoardMapper (safe zones are track positions 8, 13, 21, 26, 34, 39, 47)
     if (BoardMapper.isSafeZoneStep(pieceId, targetStep)) return false;
 
+    // Blockade rule: a 2+ same-color opponent stack on the landing square is
+    // uncapturable — sharing is fine, capturing is not. The blocker pieces are
+    // compared on the shared track loop via the mover's target track position.
     const targetPos = BoardMapper.toTrackPosition(pieceId, targetStep);
-    // Home stretch (52-56) isn't on the shared 52-square track — toTrackPosition
-    // returns -1 there, which must never be treated as a collision candidate.
-    if (targetPos === -1) return false;
+    if (targetPos !== -1) {
+      const opponentColors: PlayerColor[] = ['red', 'green', 'yellow', 'blue'].filter(c => c !== excludeColor) as PlayerColor[];
+      for (const blockerColor of opponentColors) {
+        if (BoardMapper.isBlockadeAtTrackPos(state.pieces, blockerColor, targetPos)) {
+          return false;
+        }
+      }
+    }
 
     for (const piece of state.pieces) {
       // step <= 0 covers pieces still in prison, not just exited (-1) ones —

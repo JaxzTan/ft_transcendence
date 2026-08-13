@@ -14,6 +14,7 @@ import type { PlayerColor } from '../types';
 
 const LOBBY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
 const POST_GAME_TIMEOUT_MS = 60 * 1000; // 60 seconds
+const BOT_TURN_DELAY_MS = 1000; // Pace out bot rolls/moves so the frontend can render each step
 
 // Mirrors the frontend's STEP_ANIM_MS (Game.tsx) — how long the box-by-box
 // piece-move animation takes per step. Bot turns are paced against this so a
@@ -128,17 +129,15 @@ export class SocketServer {
 	 * before the bot's next action is broadcast. Runs inside the queue so
 	 * it's serialized with human moves and cannot overlap.
 	 */
-	private triggerBotTurn(gameId: string, delayMs: number): void {
-		setTimeout(() => {
-			this.store.loadGameState(gameId).then(state => {
-				if (!state || state.status !== 'active') return;
-				if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
+	private triggerBotTurn(gameId: string): void {
+		this.store.loadGameState(gameId).then(state => {
+			if (!state || state.status !== 'active') return;
+			if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
 
-				const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
-				bot.takeTurn();
-				// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
-			});
-		}, delayMs);
+			const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
+			setTimeout(() => bot.takeTurn(), BOT_TURN_DELAY_MS);
+			// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
+		});
 	}
 
   private cleanupGame(gameId: string): void {
