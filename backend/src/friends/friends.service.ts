@@ -42,10 +42,19 @@ export class FriendsService {
     const match = await this.matchService.createInvite(userId);
     const inviter = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
 
+    // Seat the friend into the room now, the same way online mode's joinMatch
+    // seats a player synchronously the moment they join — the friend doesn't
+    // have to "accept" before they're actually placed in the room, they just
+    // have to confirm before entering it.
+    const friendSeat = await this.matchService.joinMatch(match.gameId, friendId);
+
     await this.redis.set(
       `invite:${friendId}`,
       JSON.stringify({
-        gameId: match.gameId,
+        gameId: friendSeat.gameId,
+        token: friendSeat.token,
+        engineUrl: friendSeat.engineUrl,
+        color: friendSeat.color,
         inviteCode: match.inviteCode,
         fromUsername: inviter?.username || 'A friend',
         createdAt: Date.now(),

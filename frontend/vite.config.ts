@@ -11,6 +11,18 @@ const inContainer = process.env.VITE_IN_CONTAINER === 'true'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // publish.sh points these outside the bind-mounted /app (see its comments)
+  // to dodge a Docker Desktop for Mac VirtioFS bug: reading a bind-mounted
+  // file via a zero-copy syscall (used by both Node's fs.copyFileSync and
+  // plain `cp`/`tar` — confirmed by testing directly, plain read()/write()
+  // via `cat`/`dd` is unaffected) intermittently fails with "Unknown system
+  // error -35". Both default to the normal in-project paths for local/host
+  // builds, which aren't affected.
+  publicDir: process.env.BUILD_PUBLIC_DIR || 'public',
+  build: {
+    outDir: process.env.BUILD_OUT_DIR || 'dist',
+    emptyOutDir: true,
+  },
   server: {
     host: true,
     port: 8080,

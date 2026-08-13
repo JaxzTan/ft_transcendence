@@ -65,6 +65,15 @@ export function LudoLobby() {
   const [joiningByCode, setJoiningByCode] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
+  const [codeCopied, setCodeCopied] = useState(false)
+
+  const copyHostCode = () => {
+    if (!hostTable?.inviteCode) return
+    navigator.clipboard.writeText(hostTable.inviteCode).then(() => {
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 1500)
+    })
+  }
 
   const fetchRooms = () => {
     getApi<Room[]>('/api/games/rooms')
@@ -194,7 +203,7 @@ export function LudoLobby() {
       glyph: '✕',
       hue: COL.red.base,
       badge: 'ranked',
-      onClick: () => navigate('/lobby/table?mode=2&bots=0'),
+      onClick: () => navigate('/lobby/table?mode=4&bots=0&local=1'),
     },
     {
       key: 'privateTable',
@@ -417,13 +426,27 @@ export function LudoLobby() {
             <div style={{ color: '#c9d9c9', fontSize: 13, lineHeight: 1.5 }}>{t('lobbyBrowser.hostTableDesc')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
+                onClick={copyHostCode}
+                title={hostTable?.inviteCode ? t('game.copyRoomCode') : undefined}
                 style={{
                   flex: 1, background: 'rgba(0,0,0,.25)', border: '1px solid #2e4a38', borderRadius: 10,
                   padding: '12px 14px', fontWeight: 800, fontSize: 18, letterSpacing: '.18em', color: '#f0e2c4',
+                  cursor: hostTable?.inviteCode ? 'pointer' : 'default',
                 }}
               >
                 {hostTable?.inviteCode ?? '······'}
               </div>
+              <button
+                onClick={copyHostCode}
+                disabled={!hostTable?.inviteCode}
+                style={{
+                  ...btnOutline, padding: '10px 14px', fontSize: 12.5,
+                  opacity: !hostTable?.inviteCode ? 0.5 : 1,
+                  color: codeCopied ? '#5fd08a' : '#fff',
+                }}
+              >
+                {codeCopied ? t('game.copiedBtn') : t('game.copyBtn')}
+              </button>
               <button
                 onClick={() => spinNewTable(hostTable)}
                 disabled={hostBusy}

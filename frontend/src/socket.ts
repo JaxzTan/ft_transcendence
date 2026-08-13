@@ -21,7 +21,7 @@ export type ServerEvents = {
 }
 
 export type ClientEvents = {
-  join_game: (gameId: string, color: PlayerColor, userId?: string) => void
+  join_game: (gameId: string, color: PlayerColor, userId?: string, displayName?: string) => void
   roll_dice: () => void
   move_piece: (pieceId: string) => void
   clash_input: (key: string) => void

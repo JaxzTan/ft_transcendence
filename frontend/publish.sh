@@ -5,10 +5,49 @@
 # normal long-running service instead of a one-shot job.
 set -e
 
+# Build outside the bind-mounted /app entirely (see vite.config.ts) — a
+# Docker Desktop for Mac VirtioFS bug intermittently fails "Unknown system
+# error -35" (ENOLCK) reading files under the bind mount. Confirmed by direct
+# testing: it's not tied to any one method (fs.copyFileSync, `cp`, `tar`, even
+# plain `cat` all hit it some of the time) — it's genuinely non-deterministic,
+# so the real fix is retrying, not avoiding a specific syscall. /tmp is the
+# container's own filesystem, not bind-mounted, so it's unaffected; only the
+# final copy into /export (a real Docker volume, also not bind-mounted) needs
+# to happen at all.
+export BUILD_OUT_DIR=/tmp/dist-out
+export BUILD_PUBLIC_DIR=/tmp/public-safe
+
+# Retry a flaky command a few times with a short pause before giving up.
+with_retry() {
+  attempt=1
+  max=5
+  while [ "$attempt" -le "$max" ]; do
+    if "$@"; then return 0; fi
+    echo "   retry $attempt/$max failed: $*"
+    attempt=$((attempt + 1))
+    sleep 1
+  done
+  return 1
+}
+
+# Stage public/ into /tmp first (see comment above) — copying straight from
+# the bind mount happens here instead of inside Vite's own build, so a
+# transient failure can be retried per-file instead of aborting the build.
+stage_public() {
+  rm -rf "$BUILD_PUBLIC_DIR"
+  mkdir -p "$BUILD_PUBLIC_DIR"
+  [ -d /app/public ] || return 0
+  (cd /app/public && find . -type f) | while read -r f; do
+    mkdir -p "$BUILD_PUBLIC_DIR/$(dirname "$f")"
+    with_retry cat "/app/public/$f" > "$BUILD_PUBLIC_DIR/$f"
+  done
+}
+
 publish() {
+  with_retry stage_public
   npm run build
   rm -rf /export/*
-  cp -a /app/dist/. /export/
+  cp -a "$BUILD_OUT_DIR/." /export/
   echo "📦 [$(date '+%H:%M:%S')] SPA published to spa_dist"
 }
 
@@ -16,15 +55,24 @@ publish() {
 # mount doesn't shadow it, but that means it only reflects package.json as of
 # whenever the volume was last populated. Installing on every start keeps it
 # in sync with the current lockfile instead of silently going stale.
-npm install
-publish
+#
+# Retried here too (not just in the watch loop below) — a transient VirtioFS
+# failure on the very first boot would otherwise crash the container
+# immediately under `set -e`, and Docker's restart policy would just hit the
+# same class of failure again on every restart.
+with_retry npm install
+with_retry publish
 
 echo "👀 Watching /app/src and package.json for changes..."
+# Deliberately NOT watching package-lock.json: npm install can rewrite it
+# (e.g. to sync with package.json), which would re-trigger this same watch,
+# re-running npm install before the first one finished — two installs racing
+# against the same node_modules volume, which is exactly what corrupts it.
 while inotifywait -qr -e modify,create,delete,move \
-  /app/src /app/package.json /app/package-lock.json; do
+  /app/src /app/package.json; do
   echo "🔄 [$(date '+%H:%M:%S')] Change detected, rebuilding..."
   # `set -e` would otherwise kill this whole script (and the container) on a
   # single broken save, silently ending the watch loop until someone notices
   # and restarts it. Catch the failure so the next save gets a fresh attempt.
-  (npm install && publish) || echo "❌ [$(date '+%H:%M:%S')] Build failed — fix the error and save again."
+  (with_retry npm install && with_retry publish) || echo "❌ [$(date '+%H:%M:%S')] Build failed — fix the error and save again."
 done

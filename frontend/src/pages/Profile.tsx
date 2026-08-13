@@ -1,15 +1,8 @@
-import { useTranslation } from 'react-i18next'
 import { useEffect, useState, useRef } from 'react'
 import { useRoute, navigate } from '../router'
 import { useApp } from '../store'
 import { card, goldText, avatarBlue, STATUS_STYLE, type PresenceStatus } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
-
-const STATUS_KEYS: Record<PresenceStatus, string> = {
-  online: 'friends.online',
-  playing: 'friends.inGame',
-  offline: 'friends.offline',
-}
 
 type UserProfile = {
   id: string
@@ -60,7 +53,6 @@ type Friend = {
 }
 
 export function Profile() {
-  const { t } = useTranslation()
   const { query } = useRoute()
   const { user } = useApp()
   const username = query.get('u') || user?.username
@@ -173,13 +165,13 @@ export function Profile() {
   }, [username, isOwnProfile])
 
   if (loading) {
-    return <div style={{ color: '#a99a83', textAlign: 'center', marginTop: 80, fontSize: 18 }}>{t('profile.loadingProfile')}</div>
+    return <div style={{ color: '#a99a83', textAlign: 'center', marginTop: 80, fontSize: 18 }}>Loading profile...</div>
   }
 
   if (!profile) {
     return (
       <div style={{ color: '#e4574d', textAlign: 'center', marginTop: 80, fontSize: 18, fontWeight: 600 }}>
-        {t('profile.userNotFoundQuoted', { username })}
+        User "{username}" not found.
       </div>
     )
   }
@@ -247,10 +239,10 @@ export function Profile() {
               {profile.username}
             </div>
             <div style={{ color: statusStyle.color, fontSize: 13, marginTop: 6, fontWeight: 700 }}>
-              {t(STATUS_KEYS[profile.status] ?? STATUS_KEYS.offline)}
+              {statusStyle.label}
             </div>
             <div style={{ color: '#a99a83', fontSize: 14, marginTop: 2, fontWeight: 500 }}>
-              {t('profile.memberSince')} {new Date(profile.createdAt).toLocaleDateString()}
+              Member since {new Date(profile.createdAt).toLocaleDateString()}
             </div>
             {isOwnProfile && (
               <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center' }}>
@@ -263,36 +255,36 @@ export function Profile() {
           </div>
 
           <div style={{ textAlign: 'center', background: 'linear-gradient(180deg,#241b13,#17110b)', padding: '16px 28px', borderRadius: 20, border: '1px solid #3a2c1d', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.05)' }}>
-            <div style={{ fontSize: 12, color: '#a99a83', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700 }}>{t('dashboard.rating')}</div>
+            <div style={{ fontSize: 12, color: '#a99a83', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700 }}>Rating</div>
             <div style={{ fontSize: 32, fontWeight: 800, color: '#f0e2c4', marginTop: 4 }}>{profile.rating}</div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-          <StatBox label={t('profile.wins')} value={profile.wins} color="#4bbf7b" />
-          <StatBox label={t('profile.losses')} value={profile.losses} color="#e4574d" />
-          <StatBox label={t('profile.winRate')} value={`${winRate}%`} color="#4a92e0" />
-          <StatBox label={t('profile.bestStreak')} value={profile.bestWinStreak} color="#f0c24e" />
+          <StatBox label="Wins" value={profile.wins} color="#4bbf7b" />
+          <StatBox label="Losses" value={profile.losses} color="#e4574d" />
+          <StatBox label="Win Rate" value={`${winRate}%`} color="#4a92e0" />
+          <StatBox label="Best Streak" value={profile.bestWinStreak} color="#f0c24e" />
         </div>
 
         <div style={{ ...card, padding: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h3 style={{ margin: 0, fontSize: 20, color: '#f0e2c4', fontWeight: 700, fontFamily: "'Cinzel',serif" }}>{t('profile.recentMatches')}</h3>
+            <h3 style={{ margin: 0, fontSize: 20, color: '#f0e2c4', fontWeight: 700, fontFamily: "'Cinzel',serif" }}>Recent Matches</h3>
             {gamesData && gamesData.total > 0 && (
-              <div style={{ color: '#a99a83', fontSize: 14, fontWeight: 600 }}>{t('profile.gamesPlayedCount', { count: gamesData.total })}</div>
+              <div style={{ color: '#a99a83', fontSize: 14, fontWeight: 600 }}>{gamesData.total} Games Played</div>
             )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {!gamesData || gamesData.games.length === 0 ? (
               <div style={{ color: '#a99a83', fontStyle: 'italic', padding: '20px 0', textAlign: 'center', background: '#17110b', borderRadius: 12, border: '1px solid #2e2115' }}>
-                {t('profile.noMatchesPlayed')}
+                No matches played yet.
               </div>
             ) : (
               gamesData.games.map((game) => {
                 const isWinner = game.rank === 1
-                const isDraw = game.status === 'COMPLETED' && !game.participants.some(p => p.rank === 1) // Edge case if no winners
-                const resultText = isWinner ? t('profile.resultVictory') : (isDraw ? t('profile.resultDraw') : t('profile.resultDefeat'))
+                const isDraw = game.status === 'COMPLETED' && !game.participants.some(p => p.rank === 1)
+                const resultText = isWinner ? 'VICTORY' : (isDraw ? 'DRAW' : 'DEFEAT')
                 const resultColor = isWinner ? '#4bbf7b' : (isDraw ? '#a99a83' : '#e4574d')
 
                 const opponents = game.participants.filter(p => p.username !== profile.username)
@@ -316,13 +308,13 @@ export function Profile() {
                       </div>
 
                       <div style={{ color: '#f0e2c4', fontWeight: 600, fontSize: 15 }}>
-                        {t('profile.vsLabel')} {opponents.length > 0 ? opponents.map(o => o.username).join(', ') : t('profile.botsUnknown')}
+                        vs {opponents.length > 0 ? opponents.map(o => o.username).join(', ') : 'Bots / Unknown'}
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                       <div style={{ color: '#c99b45', fontSize: 13, fontWeight: 700 }}>
-                        {t('profile.goalsCount', { count: game.piecesInGoal })}
+                        {game.piecesInGoal} / 4 Goals
                       </div>
                       <div style={{ color: '#a99a83', fontSize: 13, minWidth: 80, textAlign: 'right' }}>
                         {new Date(game.startedAt).toLocaleDateString()}
@@ -358,12 +350,11 @@ function StatBox({ label, value, color }: { label: string; value: React.ReactNod
 }
 
 function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null, navigate: (url: string) => void }) {
-  const { t } = useTranslation()
   return (
     <div style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 32 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <h3 style={{ margin: 0, fontSize: 18, color: '#f0e2c4', fontWeight: 700, fontFamily: "'Cinzel',serif" }}>
-          {t('nav.friends')}
+          Friends
         </h3>
         <div style={{ background: '#241b13', color: '#c99b45', padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
           {friends ? friends.length : 0}
@@ -372,11 +363,11 @@ function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null, navig
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {!friends ? (
-          <div style={{ color: '#a99a83', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>{t('common.loading')}</div>
+          <div style={{ color: '#a99a83', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Loading...</div>
         ) : friends.length === 0 ? (
           <div style={{ color: '#a99a83', fontSize: 13, textAlign: 'center', padding: '20px 0', background: '#17110b', borderRadius: 12, border: '1px solid #2e2115' }}>
-            {t('profile.noFriendsShort')}<br/><br/>
-            <span style={{ color: '#c99b45', cursor: 'pointer', fontWeight: 600 }}>{t('profile.findPlayers')}</span>
+            No friends yet.<br/><br/>
+            <span style={{ color: '#c99b45', cursor: 'pointer', fontWeight: 600 }}>Find players</span>
           </div>
         ) : (
           friends.map((friend) => {
@@ -410,7 +401,7 @@ function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null, navig
                     {friend.username}
                   </div>
                   <div style={{ color: status.color, fontSize: 11, fontWeight: 600 }}>
-                    {t(STATUS_KEYS[friend.status] ?? STATUS_KEYS.offline)}
+                    {status.label}
                   </div>
                 </div>
 
