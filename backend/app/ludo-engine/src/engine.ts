@@ -170,11 +170,13 @@ export class LudoEngine {
       movedPiece.isInGoal = result.to === 57;
       movedPiece.isInBase = result.to <= 0;
     }
-    if (result.captured && result.capturedPieceId) {
-      const capturedPiece = state.pieces.find(p => p.id === result.capturedPieceId);
-      if (capturedPiece) {
-        capturedPiece.isInGoal = false;
-        capturedPiece.isInBase = true;
+    if (result.captured && result.capturedPieceIds) {
+      for (const id of result.capturedPieceIds) {
+        const capturedPiece = state.pieces.find(p => p.id === id);
+        if (capturedPiece) {
+          capturedPiece.isInGoal = false;
+          capturedPiece.isInBase = true;
+        }
       }
     }
 

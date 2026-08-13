@@ -19,8 +19,10 @@ export class MoveValidator {
       
       // Prison exit rule: can only leave prison on a roll of 6
       if (from === 0 && diceValue !== 6) continue;
-      
-      const to = from + diceValue;
+
+      // Leaving prison only places the piece on its entry square — the 6
+      // isn't also spent moving it further down the track.
+      const to = from === 0 ? 1 : from + diceValue;
       if (to > 57) continue; // overshoot
       
       const isHomeEntry = to >= 52 && to <= 56;
@@ -59,21 +61,23 @@ export class MoveValidator {
     return false;
   }
 
-  static findPieceAtPosition(state: GameState, excludeColor: PlayerColor, targetStep: number): PieceId | undefined {
-    if (targetStep <= 0 || targetStep >= 52) return undefined;
-    
+  /** Every opponent piece occupying the landing square — a stacked block is captured as a whole. */
+  static findPiecesAtPosition(state: GameState, excludeColor: PlayerColor, targetStep: number): PieceId[] {
+    if (targetStep <= 0 || targetStep >= 52) return [];
+
+    const targetPos = BoardMapper.toTrackPosition(`${excludeColor}-0`, targetStep);
+    const found: PieceId[] = [];
     for (const piece of state.pieces) {
       if (piece.color === excludeColor || piece.step < 0) continue;
-      
+
       const boardPos = BoardMapper.toTrackPosition(piece.id, piece.step);
-      const targetPos = BoardMapper.toTrackPosition(`${excludeColor}-0`, targetStep);
-      if (boardPos === targetPos) return piece.id;
+      if (boardPos === targetPos) found.push(piece.id);
     }
-    return undefined;
+    return found;
   }
 
-  static resolveCapture(state: GameState, capturerColor: PlayerColor, targetStep: number): PieceId | undefined {
-    return this.findPieceAtPosition(state, capturerColor, targetStep);
+  static resolveCapture(state: GameState, capturerColor: PlayerColor, targetStep: number): PieceId[] {
+    return this.findPiecesAtPosition(state, capturerColor, targetStep);
   }
 
   static checkWinner(state: GameState): PlayerColor | null {
@@ -97,15 +101,17 @@ export class MoveValidator {
     // Move piece
     piece.step = pendingMove.to;
     
-    // Resolve capture
-    let capturedPieceId: PieceId | undefined;
+    // Resolve capture — every opponent piece stacked on the landing square goes home
+    let capturedPieceIds: PieceId[] = [];
     if (pendingMove.isCapture) {
-      capturedPieceId = this.resolveCapture(state, capturerColor, pendingMove.to);
-      if (capturedPieceId) {
-        const captured = state.pieces.find(p => p.id === capturedPieceId)!;
+      capturedPieceIds = this.resolveCapture(state, capturerColor, pendingMove.to);
+      for (const id of capturedPieceIds) {
+        const captured = state.pieces.find(p => p.id === id)!;
         captured.step = 0;
+      }
+      if (capturedPieceIds.length > 0) {
         const capturer = state.players.find(p => p.color === capturerColor)!;
-        capturer.stats.captures++;
+        capturer.stats.captures += capturedPieceIds.length;
       }
     }
     
@@ -113,17 +119,22 @@ export class MoveValidator {
     const player = state.players.find(p => p.color === capturerColor)!;
     player.stats.turns++;
     
-    // Build result
-    const captured = capturedPieceId !== undefined;
+    // Build result. path is every intermediate square the piece actually
+    // crosses (from+1 .. to) — server-authoritative so the frontend animates
+    // the real route instead of re-deriving it (and can't skip captures).
+    const captured = capturedPieceIds.length > 0;
+    const path: number[] = [];
+    for (let s = pendingMove.from + 1; s <= pendingMove.to; s++) path.push(s);
     return {
       ply: state.moveCounter + 1,
       color: capturerColor,
       diceValue,
       pieceId: pendingMove.pieceId,
       from: pendingMove.from,
+      path,
       to: pendingMove.to,
       captured,
-      capturedPieceId,
+      capturedPieceIds,
       enteredHome: pendingMove.isHomeEntry,
       bonusRoll: (diceValue === 6 && state.pendingIsFirstRoll === true) || captured
     };

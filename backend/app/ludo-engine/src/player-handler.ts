@@ -6,6 +6,17 @@ const COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
 const DISCONNECT_GRACE_MS = 30000; // 30 seconds to reconnect before forfeit
 
 /**
+ * First active seat in color order. Game creation always seeds
+ * currentTurn as 'red', but colors can be swapped pre-game (see
+ * LobbyManager.handleSelectColor) so red isn't guaranteed to be occupied
+ * by the time the match starts — currentTurn must be corrected to an
+ * actually-seated color or the game soft-locks on an inactive seat.
+ */
+export function firstActiveColor(state: GameState): PlayerColor | undefined {
+  return COLORS.find(c => state.players.find(p => p.color === c)?.status === 'active');
+}
+
+/**
  * Advance turn to the next seated (active) player.
  * Mutates state in-place.
  */
@@ -171,6 +182,7 @@ export async function handlePlayerReady(
     state.players.filter(p => p.status === 'active').every(p => state.readyPlayers.includes(p.color));
 
   if (allReady) {
+    state.currentTurn = firstActiveColor(state) ?? state.currentTurn;
     state.status = 'active';
     await store.saveGameState(gameId, state);
     emit({ type: 'game_started', gameId });

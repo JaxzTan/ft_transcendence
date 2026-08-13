@@ -2,6 +2,7 @@ import { LudoEngine } from '../engine';
 import { RedisGameStore } from '../redis';
 import { ClashManager } from '../clash';
 import { LudoBot } from '../bot';
+import { firstActiveColor } from '../player-handler';
 import { GameSocket, isBotUserId, BOT_PREFIX } from './auth';
 import type { PlayerColor, PieceId } from '../types';
 
@@ -173,6 +174,7 @@ export class SocketHandlers {
       activePlayers.every(p => state.readyPlayers.includes(p.color));
 
     if (allJoined && allReady && state.status === 'waiting') {
+      state.currentTurn = firstActiveColor(state) ?? state.currentTurn;
       state.status = 'active';
       await this.store.saveGameState(gameId, state);
       this.engine.emitEvent({ type: 'game_started', gameId });

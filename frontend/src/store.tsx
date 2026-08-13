@@ -20,7 +20,7 @@ export type Seat =
   | { type: 'player'; name: string }
   | { type: 'empty' }
 
-export type PlayerCount = 2 | 3 | 4
+export type PlayerCount = 1 | 2 | 3 | 4
 
 export type Lang = 'en' | 'fr' | 'ms' | 'zh'
 

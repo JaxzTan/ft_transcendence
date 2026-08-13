@@ -59,8 +59,13 @@ export class MatchService {
 		botCount: number,
 		clashEnabled: boolean = true,
 	) {
-		if (playerCount < 2 || playerCount > 4) {
-			throw new BadRequestException('Player count must be between 2 and 4');
+		// playerCount === 1 is the solo "Test Your Luck" run — hotseat with
+		// nobody else seated, just the host racing their own dice.
+		if (playerCount < 1 || playerCount > 4) {
+			throw new BadRequestException('Player count must be between 1 and 4');
+		}
+		if (playerCount === 1 && mode !== 'hotseat') {
+			throw new BadRequestException('Solo play requires hotseat mode');
 		}
 		if (botCount < 0 || botCount >= playerCount) {
 			throw new BadRequestException('Bot count must be between 0 and playerCount - 1');
@@ -73,6 +78,9 @@ export class MatchService {
 		}
 		if (mode === 'hotseat' && botCount > 0) {
 			throw new BadRequestException('Hot seat mode cannot have bots');
+		}
+		if (mode === 'pvp' && playerCount < 2) {
+			throw new BadRequestException('PvP mode requires at least 2 players');
 		}
 
 		const gameId = crypto.randomUUID();
@@ -127,29 +135,6 @@ export class MatchService {
 		}
 		return result;
 	}
-
-	// ─── Legacy Endpoints (kept for backward compatibility) ───────────────────
-	async findRandomMatch(userId: string, clashEnabled: boolean = true) {
-		// Scan Redis for a WAITING PvP game with an open slot
-		let cursor = '0';
-		do {
-			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
-			cursor = nextCursor;
-			for (const key of keys) {
-				const data = await this.redis.hgetall(key);
-				if (
-					data.status === 'WAITING' &&
-					data.gameType === 'PVP' &&
-					data.player1_id !== userId &&
-					!data.player2_id
-				) {
-					return this.joinMatch(data.id, userId);
-				}
-			}
-		} while (cursor !== '0');
-		return this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
-	}
-
 
 	async createInvite(userId: string, clashEnabled: boolean = true) {
 		const result = await this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
@@ -220,6 +205,19 @@ export class MatchService {
 		if (isBotUserId(userId)) return null;
 		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
 		return user?.username ?? null;
+	}
+
+	// ─── Mark Started (called by ludo-engine once a PvP game actually starts) ─
+	// listOpenRooms only ever shows WAITING rooms — without this, a match stays
+	// WAITING in Redis forever after the ready-check flips it active in the
+	// engine, so it keeps showing up as "open" even mid-game.
+	async markStarted(gameId: string) {
+		const exists = await this.redis.exists(`match:${gameId}`);
+		if (!exists) return { message: 'Game not found', gameId };
+
+		await this.redis.hset(`match:${gameId}`, 'status', 'ACTIVE');
+		await this.redis.hsetnx(`match:${gameId}`, 'startedAt', Date.now().toString());
+		return { message: 'Game marked active', gameId };
 	}
 
 	// ─── Cancel / Abort ──────────────────────────────────────────────────────
@@ -398,12 +396,16 @@ export class MatchService {
 				const data = await this.redis.hgetall(key);
 				if (data.status === 'WAITING' && data.gameType === 'PVP' && data.player1_id) {
 					const seats = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].filter(Boolean).length;
+					const maxSeats = parseInt(data.playerCount || '4', 10);
+					// Full rooms aren't "open" — hide them instead of listing an
+					// unjoinable row (join would just 403 with "Room is full").
+					if (seats >= maxSeats) continue;
 					rooms.push({
 						id: data.id,
 						roomCode: data.inviteCode,
 						hostId: data.player1_id,
 						seats,
-						maxSeats: parseInt(data.playerCount || '4', 10),
+						maxSeats,
 					});
 				}
 			}

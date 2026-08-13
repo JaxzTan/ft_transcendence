@@ -117,7 +117,7 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
 function applyMove(state: GameViewState, move: MoveResult): GameViewState {
   const pieces = state.pieces.map((p) => {
     if (p.id === move.pieceId) return { ...p, step: move.to, isInGoal: move.to === 57, isInBase: false }
-    if (move.captured && p.id === move.capturedPieceId) return { ...p, step: 0, isInGoal: false, isInBase: true }
+    if (move.captured && move.capturedPieceIds?.includes(p.id)) return { ...p, step: 0, isInGoal: false, isInBase: true }
     return p
   })
 

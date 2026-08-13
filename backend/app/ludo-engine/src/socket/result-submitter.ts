@@ -70,4 +70,21 @@ export class ResultSubmitter {
       console.error('Failed to submit game result:', err);
     }
   }
+
+  /**
+   * Tell the backend a game just left the lobby (ready-check passed / auto-start
+   * fired) so it flips the Redis match record from WAITING to ACTIVE — otherwise
+   * it keeps showing up in the public "open rooms" list mid-game.
+   */
+  async notifyGameStarted(gameId: string): Promise<void> {
+    try {
+      const engineApiKey = getEngineApiKey();
+      await fetch(`${BACKEND_URL}/api/game/${gameId}/started`, {
+        method: 'POST',
+        headers: { 'X-Engine-Key': engineApiKey },
+      });
+    } catch (err) {
+      console.error('Failed to notify game started:', err);
+    }
+  }
 }

@@ -81,9 +81,10 @@ export interface MoveResult {
 	diceValue: number;
 	pieceId: PieceId;
 	from: number;
+	path: number[]; // Every intermediate step from `from`+1 through `to`, for step-by-step movement on the frontend
 	to: number;
 	captured: boolean;
-	capturedPieceId?: PieceId; // The piece that was captured
+	capturedPieceIds?: PieceId[]; // Every opponent piece sent home from the landing square (a stacked block sends all of them back)
 	enteredHome: boolean;
 	bonusRoll: boolean;
 }

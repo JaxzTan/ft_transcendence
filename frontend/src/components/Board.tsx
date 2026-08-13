@@ -163,10 +163,12 @@ type BoardProps = {
   players?: Array<{ color: string; status: string }>
   legalMoves?: Array<{ pieceId: string; from: number; to: number; isCapture: boolean; isHomeEntry: boolean }>
   onPieceClick?: (pieceId: string) => void
+  /** While set, this piece renders at `step` (box by box) instead of its real logical step — see Game.tsx's move animation. */
+  animating?: { pieceId: string; step: number } | null
 }
 
 /** The classic 15×15 cross board, rendered procedurally — no images. */
-export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: BoardProps = {}) {
+export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating }: BoardProps = {}) {
   const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
   const activeColors = new Set(players.filter((p) => p.status === 'active').map((p) => p.color))
   const basePieces = (ck: ColorKey) =>
@@ -217,9 +219,14 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
   // fan out into sub-positions instead of fully overlapping.
   const byCell = new Map<string, Array<{ id: string; ck: ColorKey; isLegal: boolean }>>()
   for (const piece of pieces) {
-    if (!activeColors.has(piece.color) || piece.isInBase || piece.isInGoal || piece.step <= 0) continue
+    if (!activeColors.has(piece.color)) continue
+    const isAnimating = animating?.pieceId === piece.id
+    // Mid-animation the piece may already be logically captured/home/goal in
+    // state (server applies the full move atomically) — render it at its
+    // in-transit step regardless so the box-by-box travel stays visible.
+    if (!isAnimating && (piece.isInBase || piece.isInGoal || piece.step <= 0)) continue
     const ck = piece.color as ColorKey
-    const cell = stepToCell(ck, piece.step)
+    const cell = stepToCell(ck, isAnimating ? animating!.step : piece.step)
     if (!cell) continue
     const key = `${cell.r},${cell.c}`
     const list = byCell.get(key) ?? []
@@ -288,6 +295,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick }: B
             gridColumn: '7 / span 3',
             background: `conic-gradient(from 45deg, ${COL.green.base} 0 90deg, ${COL.yellow.base} 90deg 180deg, ${COL.blue.base} 180deg 270deg, ${COL.red.base} 270deg 360deg)`,
             boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
+            transform: 'rotate(-90deg)',
           }}
         />
         {cells}

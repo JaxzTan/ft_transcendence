@@ -15,6 +15,14 @@ import type { PlayerColor } from '../types';
 const LOBBY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
 const POST_GAME_TIMEOUT_MS = 60 * 1000; // 60 seconds
 
+// Mirrors the frontend's STEP_ANIM_MS (Game.tsx) — how long the box-by-box
+// piece-move animation takes per step. Bot turns are paced against this so a
+// bot's move finishes animating on screen before the bot's next action (roll,
+// bonus move, capture chain) fires and cuts it off.
+const BOT_STEP_ANIM_MS = 220;
+// Flat "thinking" pause before a bot rolls, so bot turns don't feel instant.
+const BOT_THINK_MS = 500;
+
 /**
  * SocketServer orchestrates the ludo engine, socket connections,
  * Redis pub/sub, bot management, and game lifecycle.
@@ -61,13 +69,17 @@ export class SocketServer {
 				this.handleGameEnd(event.gameId);
 				this.resultSubmitter.submitGameResult(event.gameId);
 			} else if (event.type === 'game_started') {
-				this.triggerBotTurn(event.gameId);
+				this.triggerBotTurn(event.gameId, BOT_THINK_MS);
+				this.resultSubmitter.notifyGameStarted(event.gameId);
 			} else if (event.type === 'piece_moved') {
-				this.triggerBotTurn(event.gameId);
+				// Wait for the move's box-by-box animation to finish on screen
+				// (path.length steps) plus a short thinking pause before acting again.
+				const animMs = event.result.path.length * BOT_STEP_ANIM_MS;
+				this.triggerBotTurn(event.gameId, animMs + BOT_THINK_MS);
 			} else if (event.type === 'dice_rolled') {
 				// Only trigger bot turn if no legal moves (turn auto-advanced)
 				if (event.legalMoves.length === 0) {
-					this.triggerBotTurn(event.gameId);
+					this.triggerBotTurn(event.gameId, BOT_THINK_MS);
 				}
 			}
 		});
@@ -111,18 +123,22 @@ export class SocketServer {
 	}
 
 	/**
-	 * If the current turn belongs to a bot, execute its turn immediately.
-	 * Runs inside the queue so it's serialized with human moves and cannot overlap.
+	 * If the current turn belongs to a bot, execute its turn after `delayMs`.
+	 * The delay lets any in-flight move-animation on the frontend finish
+	 * before the bot's next action is broadcast. Runs inside the queue so
+	 * it's serialized with human moves and cannot overlap.
 	 */
-	private triggerBotTurn(gameId: string): void {
-		this.store.loadGameState(gameId).then(state => {
-			if (!state || state.status !== 'active') return;
-			if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
+	private triggerBotTurn(gameId: string, delayMs: number): void {
+		setTimeout(() => {
+			this.store.loadGameState(gameId).then(state => {
+				if (!state || state.status !== 'active') return;
+				if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
 
-			const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
-			bot.takeTurn();
-			// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
-		});
+				const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
+				bot.takeTurn();
+				// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
+			});
+		}, delayMs);
 	}
 
   private cleanupGame(gameId: string): void {
