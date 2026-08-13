@@ -60,8 +60,10 @@ export interface GameState {
 	consecutiveSixes: number;
 	moveCounter: number; // Total moves made in the game
 	turnPhase: TurnPhase;
+	firstRollOfTurn: boolean; // True until the six-bonus has been used once during the current player's turn-holding streak
 	pendingLegalMoves: LegalMove[]; // Server-authoritative legal moves after roll
 	pendingDiceValue?: number; // The dice value from the most recent roll (server-authoritative)
+	pendingIsFirstRoll?: boolean; // Whether pendingDiceValue came from the first roll of the turn (server-authoritative)
 	disconnectedPlayers: DisconnectState[]; // Players temporarily disconnected (grace period)
 	status: 'waiting' | 'active' | 'finished';
 	winner?: PlayerColor;

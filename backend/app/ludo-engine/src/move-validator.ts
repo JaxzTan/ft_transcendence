@@ -40,14 +40,20 @@ export class MoveValidator {
 
   static wouldCaptureStatic(state: GameState, excludeColor: PlayerColor, pieceId: PieceId, targetStep: number): boolean {
     if (targetStep <= 0 || targetStep >= 57) return false;
-    
+
     // Check safe zones using BoardMapper (safe zones are track positions 8, 13, 21, 26, 34, 39, 47)
     if (BoardMapper.isSafeZoneStep(pieceId, targetStep)) return false;
 
+    const targetPos = BoardMapper.toTrackPosition(pieceId, targetStep);
+    // Home stretch (52-56) isn't on the shared 52-square track — toTrackPosition
+    // returns -1 there, which must never be treated as a collision candidate.
+    if (targetPos === -1) return false;
+
     for (const piece of state.pieces) {
-      if (piece.color === excludeColor || piece.step < 0) continue;
+      // step <= 0 covers pieces still in prison, not just exited (-1) ones —
+      // prison pieces also map to -1 and must not false-match the home stretch.
+      if (piece.color === excludeColor || piece.step <= 0) continue;
       const boardPos = BoardMapper.toTrackPosition(piece.id, piece.step);
-      const targetPos = BoardMapper.toTrackPosition(pieceId, targetStep);
       if (boardPos === targetPos) return true;
     }
     return false;
@@ -108,6 +114,7 @@ export class MoveValidator {
     player.stats.turns++;
     
     // Build result
+    const captured = capturedPieceId !== undefined;
     return {
       ply: state.moveCounter + 1,
       color: capturerColor,
@@ -115,10 +122,10 @@ export class MoveValidator {
       pieceId: pendingMove.pieceId,
       from: pendingMove.from,
       to: pendingMove.to,
-      captured: pendingMove.isCapture,
+      captured,
       capturedPieceId,
       enteredHome: pendingMove.isHomeEntry,
-      bonusRoll: diceValue === 6 || pendingMove.isCapture
+      bonusRoll: (diceValue === 6 && state.pendingIsFirstRoll === true) || captured
     };
   }
 }

@@ -68,6 +68,7 @@ export class RedisGameStore {
       consecutiveSixes: 0,
       moveCounter: 0,
       turnPhase: 'WAITING_FOR_ROLL',
+      firstRollOfTurn: true,
       pendingLegalMoves: [],
       disconnectedPlayers: [],
       status: 'waiting',

@@ -31,6 +31,7 @@ export function advanceTurnInState(state: GameState): void {
     state.status = 'finished';
   }
   state.currentTurn = COLORS[nextIndex];
+  state.firstRollOfTurn = true;
 }
 
 /**
