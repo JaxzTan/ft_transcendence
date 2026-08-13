@@ -83,4 +83,5 @@ next-env.d.ts
 package-lock.json
 docs
 *.png
+!frontend/public/*.png
 *.md
