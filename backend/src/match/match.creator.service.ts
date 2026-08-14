@@ -48,8 +48,13 @@ export class MatchCreatorService {
 		botCount: number,
 		clashEnabled: boolean = true,
 	) {
-		if (playerCount < 2 || playerCount > 4) {
-			throw new BadRequestException('Player count must be between 2 and 4');
+		// playerCount === 1 is the solo "Test Your Luck" run — hotseat with
+		// nobody else seated, just the host racing their own dice.
+		if (playerCount < 1 || playerCount > 4) {
+			throw new BadRequestException('Player count must be between 1 and 4');
+		}
+		if (playerCount === 1 && mode !== 'hotseat') {
+			throw new BadRequestException('Solo play requires hotseat mode');
 		}
 		if (botCount < 0 || botCount >= playerCount) {
 			throw new BadRequestException('Bot count must be between 0 and playerCount - 1');
@@ -62,6 +67,9 @@ export class MatchCreatorService {
 		}
 		if (mode === 'hotseat' && botCount > 0) {
 			throw new BadRequestException('Hot seat mode cannot have bots');
+		}
+		if (mode === 'pvp' && playerCount < 2) {
+			throw new BadRequestException('PvP mode requires at least 2 players');
 		}
 
 		const gameId = crypto.randomUUID();
