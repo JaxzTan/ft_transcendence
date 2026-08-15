@@ -169,6 +169,18 @@ export class MatchPlayerService {
 		return this.cancelGame(gameId, userId);
 	}
 
+	// listOpenRooms only ever shows WAITING rooms — without this, a match stays
+	// WAITING in Redis forever after the ready-check flips it active in the
+	// engine, so it keeps showing up as "open" even mid-game.
+	async markStarted(gameId: string) {
+		const exists = await this.redis.exists(`match:${gameId}`);
+		if (!exists) return { message: 'Game not found', gameId };
+
+		await this.redis.hset(`match:${gameId}`, 'status', 'ACTIVE');
+		await this.redis.hsetnx(`match:${gameId}`, 'startedAt', Date.now().toString());
+		return { message: 'Game marked active', gameId };
+	}
+
 	// Mark a match as ENDED (called when the game is finished).
 	async gameEnd(gameId: string, userId: string) {
 		const data = await this.redis.hgetall(`match:${gameId}`);
