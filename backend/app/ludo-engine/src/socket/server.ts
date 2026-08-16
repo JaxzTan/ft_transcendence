@@ -12,7 +12,9 @@ import { verifyToken, GameSocket } from './auth';
 import { LobbyManager } from '../lobby';
 import type { PlayerColor } from '../types';
 
-const LOBBY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+// A WAITING PvP room with fewer than 2 seated players is idle; once it has
+// been idle this long the room is aborted (friend on the way? give them time).
+const IDLE_LOBBY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const POST_GAME_TIMEOUT_MS = 60 * 1000; // 60 seconds
 
 // Mirrors the frontend's STEP_ANIM_MS (Game.tsx) — how long the box-by-box
@@ -42,7 +44,6 @@ export class SocketServer {
   private userIdMap: Map<string, Map<PlayerColor, string>> = new Map();
   private rematchVotes: Map<string, Set<string>> = new Map();
 	private gameEndedAt: Map<string, number> = new Map();
-	private gameCreatedAt: Map<string, number> = new Map();
 
 	constructor() {
 		this.store = new RedisGameStore();
@@ -145,7 +146,6 @@ export class SocketServer {
     this.userIdMap.delete(gameId);
     this.rematchVotes.delete(gameId);
     this.gameEndedAt.delete(gameId);
-    this.gameCreatedAt.delete(gameId);
   }
 
 	// ─── Post-game lifecycle ───────────────────────────────────────────────────
@@ -216,13 +216,30 @@ export class SocketServer {
 
 	private async checkExpiredLobbies(): Promise<void> {
 		const now = Date.now();
-		for (const [gameId, createdAt] of this.gameCreatedAt) {
-			if (now - createdAt > LOBBY_TIMEOUT_MS) {
-				const state = await this.store.loadGameState(gameId);
-				if (state && state.status === 'waiting') {
-					this.io.to(gameId).emit('game_expired');
-					this.cleanupGame(gameId);
-				}
+		const matchKeys = await this.store.scanMatchKeys();
+		for (const key of matchKeys) {
+			const match = await this.store.getMatchData(key.slice('match:'.length));
+			if (!match || match.status !== 'WAITING') continue;
+
+			const seatedCount = [match.player1_id, match.player2_id, match.player3_id, match.player4_id]
+				.filter(Boolean).length;
+
+			if (seatedCount >= 2) {
+				// Two or more seated players — the idle timer is inactive.
+				await this.store.clearIdleSince(match.id);
+				continue;
+			}
+
+			// Idle room (< 2 seated). Stamp the idle start on first encounter
+			// (hsetnx — a pre-existing stamp is kept), then abort once the
+			// room has been idle for the full timeout.
+			await this.store.setIdleSince(match.id, now);
+			const idleSinceMs = match.idleSince ? parseInt(match.idleSince, 10) : now;
+			if (now - idleSinceMs > IDLE_LOBBY_TIMEOUT_MS) {
+				this.io.to(match.id).emit('game_expired');
+				this.cleanupGame(match.id);
+				await this.store.abortMatch(match.id);
+				await this.store.deleteGame(match.id);
 			}
 		}
 	}

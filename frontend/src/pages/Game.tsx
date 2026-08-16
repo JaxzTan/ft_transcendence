@@ -241,7 +241,14 @@ export function Game() {
 
   const leaveGame = () => {
     socketRef.current?.emit('leave_game')
-    // Ensure lastResult is set so Results page renders real data
+    navigate('/lobby')
+  }
+
+  // Forfeit the game entirely: removes the player's pieces, counts them as
+  // having left/aborted, and gives them no score. The engine drops their seat
+  // (pieces → -1, status exited); the game continues for the remaining players.
+  const endGame = () => {
+    socketRef.current?.emit('resign')
     setLastResult({
       winner: viewRef.current.currentTurn,
       resultDetail: 'exit',
@@ -286,7 +293,7 @@ export function Game() {
               background: '#1a130d', fontSize: 13, fontWeight: 700, color: '#c9bda3',
             }}
           >
-            ← {t('game.leaveShort')}
+            ← {t('game.goToLobby')}
           </div>
           <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>
             {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
@@ -536,7 +543,7 @@ export function Game() {
           </div>
 
           <button
-            onClick={() => navigate('/results')}
+            onClick={endGame}
             style={{
               border: '1px solid #2e4a38', borderRadius: 12, padding: 12, font: "700 13.5px 'Hanken Grotesk'",
               color: '#8fbf9f', cursor: 'pointer', background: 'rgba(34,67,47,.3)',

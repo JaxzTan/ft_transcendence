@@ -139,17 +139,72 @@ export class RedisGameStore {
     await this.client.publish(`game:${gameId}`, message);
   }
 
-  /** Get the match metadata hash (for lobby/color selection) */
-  async getMatchData(gameId: string): Promise<Record<string, string> | null> {
-    const data = await this.client.hgetall(`match:${gameId}`);
-    return Object.keys(data).length > 0 ? data : null;
-  }
+   /** Get the match metadata hash (for lobby/color selection) */
+   async getMatchData(gameId: string): Promise<Record<string, string> | null> {
+     const data = await this.client.hgetall(this.matchKey(gameId));
+     return Object.keys(data).length > 0 ? data : null;
+   }
 
-  /** Update specific fields in the match metadata hash */
-  async updateMatchData(gameId: string, fields: Record<string, string>): Promise<void> {
-    await this.client.hmset(`match:${gameId}`, fields);
-  }
+   /** Update specific fields in the match metadata hash */
+   async updateMatchData(gameId: string, fields: Record<string, string>): Promise<void> {
+     await this.client.hmset(this.matchKey(gameId), fields);
+   }
 
-  private gameKey(gameId: string): string { return `game:${gameId}`; }
-  private movesKey(gameId: string): string { return `game:${gameId}:moves`; }
-}
+   /** SCAN all match metadata hashes. */
+   async scanMatchKeys(): Promise<string[]> {
+     const keys: string[] = [];
+     let cursor = '0';
+     do {
+       const [nextCursor, batch] = await this.client.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+       cursor = nextCursor;
+       keys.push(...batch);
+     } while (cursor !== '0');
+     return keys;
+   }
+
+   /** Stamp the moment a room became idle (< 2 seated), without overwriting an existing stamp. */
+   async setIdleSince(gameId: string, now: number): Promise<void> {
+     await this.client.hsetnx(this.matchKey(gameId), 'idleSince', now.toString());
+   }
+
+   /** Clear the idle stamp (room has ≥ 2 seated players again). */
+   async clearIdleSince(gameId: string): Promise<void> {
+     await this.client.hdel(this.matchKey(gameId), 'idleSince');
+   }
+
+   /**
+    * Remove a non-host player's seat from a waiting room's match hash.
+    * The host (player1) seat is never cleared — the room stays rejoinable.
+    * After clearing, the idle stamp is (re)written so the 5-minute idle
+    * countdown restarts from the moment the room dropped back below 2 seats.
+    */
+   async clearMatchSeat(gameId: string, color: PlayerColor): Promise<void> {
+     const data = await this.getMatchData(gameId);
+     if (!data) return;
+     if (data.player1_color === color) return; // never clear the host's seat
+
+     const slotIndex = COLORS.indexOf(color);
+     if (slotIndex <= 0) return; // unknown color or host slot
+     await this.client.hdel(
+       this.matchKey(gameId),
+       `player${slotIndex + 1}_id`,
+       `player${slotIndex + 1}_color`,
+     );
+     await this.setIdleSince(gameId, Date.now());
+   }
+
+   /** Mark a match ABORTED with a short TTL so it drops out of open-room listings. */
+   async abortMatch(gameId: string): Promise<void> {
+     await this.client.hset(this.matchKey(gameId), 'status', 'ABORTED');
+     await this.client.expire(this.matchKey(gameId), 3600);
+   }
+
+   /** Delete the engine-side game state/moves for a match. */
+   async deleteGame(gameId: string): Promise<void> {
+     await this.client.del(this.gameKey(gameId), this.movesKey(gameId));
+   }
+
+   private matchKey(gameId: string): string { return `match:${gameId}`; }
+   private gameKey(gameId: string): string { return `game:${gameId}`; }
+   private movesKey(gameId: string): string { return `game:${gameId}:moves`; }
+ }

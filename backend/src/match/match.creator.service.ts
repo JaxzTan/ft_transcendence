@@ -72,7 +72,29 @@ export class MatchCreatorService {
 			throw new BadRequestException('PvP mode requires at least 2 players');
 		}
 
-		const gameId = crypto.randomUUID();
+		// SCAN guard: idempotent room creation — reuse existing WAITING/ACTIVE match if user already seated
+		let cursor = '0';
+		let foundExisting = false;
+		let existingGameId = '';
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				if (
+					(data.player1_id === userId ||
+			 		data.player2_id === userId ||
+			 		data.player3_id === userId ||
+			 		data.player4_id === userId) &&
+					(data.status === 'WAITING' || data.status === 'ACTIVE')
+				) {
+					foundExisting = true;
+					existingGameId = data.id;
+					break;
+				}
+			}
+		} while (!foundExisting && cursor !== '0');
+		const gameId = foundExisting ? existingGameId : crypto.randomUUID();
 		const totalBots = botCount;
 		const isPvP = mode === 'pvp';
 		const player1Color = SLOT_COLORS[0];

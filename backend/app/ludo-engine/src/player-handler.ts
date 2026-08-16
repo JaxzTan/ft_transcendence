@@ -220,11 +220,20 @@ export async function handlePlayerExit(
     advanceTurnInState(state);
   }
   
-  // Clear any pending clash state on exit
-  if (state.clash) {
-    delete state.clash;
-  }
-  
-  await store.saveGameState(gameId, state);
-  emit({ type: 'player_exited', gameId, color });
+	// Clear any pending clash state on exit
+	if (state.clash) {
+		delete state.clash;
+	}
+
+	await store.saveGameState(gameId, state);
+	emit({ type: 'player_exited', gameId, color });
+
+	// Waiting-room cleanup: a guest leaving a PvP lobby must leave their
+	// Redis match-hash seat, otherwise the room counts 2 seated forever and
+	// the 5-minute idle-abort (server.ts checkExpiredLobbies) never restarts
+	// its countdown for the host. The host's own seat is never cleared —
+	// that keeps their room rejoinable from the open-rooms list.
+	if (state.status === 'waiting') {
+		await store.clearMatchSeat(gameId, color);
+	}
 }
