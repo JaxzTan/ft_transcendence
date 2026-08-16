@@ -94,6 +94,7 @@ model User {
   gamesWithZeroPieces  Int  @default(0)
 
   accounts Account[]
+  notifications       Notification[]
 
   gameParticipants GameParticipant[]
   sentFriendships     Friendship[] @relation("SentFriendships")
@@ -176,4 +177,22 @@ model LeaderboardSnapshot {
 
   @@unique([mode, userId])
   @@index([mode, rank])
+}
+
+// ─── Notification ────────────────────────────────────────────────────────────
+// Persisted so the bell icon can show missed notifications from when the user
+// was offline. The SSE stream pushes new ones in real time; this table is the
+// source of truth for the unread list on page load.
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // 'friend_request' | 'friend_accepted' | 'game_invite' | 'achievement'
+  payload   Json     // flexible per-type data (e.g. { fromUsername, gameId, ... })
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
 }
