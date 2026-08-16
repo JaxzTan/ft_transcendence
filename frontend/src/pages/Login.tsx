@@ -58,22 +58,22 @@ export function Login() {
           >
             {t('nav.title')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: 15, marginTop: 8 }}>
+          <div style={{ color: '#b8a9d4', fontSize: 15, marginTop: 8 }}>
             {t('auth.loginTagline')}
           </div>
         </div>
         {justVerified && (
-          <div style={{ color: '#5de4c7', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(93,228,199,0.1)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(93,228,199,0.3)' }}>
+          <div style={{ color: '#4adeab', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(74,222,171,0.1)', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(74,222,171,0.3)' }}>
             {t('auth.emailVerifiedNotice')}
           </div>
         )}
         {justReset && (
-          <div style={{ color: '#5de4c7', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(93,228,199,0.1)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(93,228,199,0.3)' }}>
+          <div style={{ color: '#4adeab', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(74,222,171,0.1)', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(74,222,171,0.3)' }}>
             {t('auth.passwordUpdatedNotice')}
           </div>
         )}
         {queryError && (
-          <div style={{ color: '#d0679d', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(208,103,157,0.3)' }}>{queryError}</div>
+          <div style={{ color: '#ff6b8a', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(255,107,138,0.12)', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(255,107,138,0.3)' }}>{queryError}</div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <div style={label}>{t('auth.identifierLabel')}</div>
@@ -97,7 +97,7 @@ export function Login() {
           />
         </div>
         {error && (
-          <div style={{ color: '#d0679d', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(208,103,157,0.3)' }}>{error}</div>
+          <div style={{ color: '#ff6b8a', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(255,107,138,0.12)', padding: '10px 14px', borderRadius: 12, border: '1px solid rgba(255,107,138,0.3)' }}>{error}</div>
         )}
         <div
           style={{
@@ -105,14 +105,14 @@ export function Login() {
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: '13.5px',
-            color: '#a6accd',
+            color: '#b8a9d4',
           }}
         >
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <GoldCheck />
             {t('auth.rememberMe')}
           </label>
-          <a onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer', fontWeight: 600, color: '#89ddff' }}>
+          <a onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer', fontWeight: 600, color: '#6bb8ff' }}>
             {t('auth.forgotPasswordLink')}
           </a>
         </div>
@@ -121,9 +121,9 @@ export function Login() {
         </button>
         <OrDivider text={t('auth.orContinueWith')} />
         <OAuthButtons />
-        <div style={{ textAlign: 'center', color: '#a6accd', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', color: '#b8a9d4', fontSize: 14 }}>
           {t('auth.newToTable')}{' '}
-          <a onClick={() => navigate('/signup')} style={{ cursor: 'pointer', fontWeight: 700, color: '#5de4c7' }}>
+          <a onClick={() => navigate('/signup')} style={{ cursor: 'pointer', fontWeight: 700, color: '#a78bfa' }}>
             {t('auth.createAccountLink')}
           </a>
         </div>

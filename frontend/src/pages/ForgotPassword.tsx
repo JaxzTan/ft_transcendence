@@ -46,13 +46,13 @@ export function ForgotPassword() {
           >
             {t('auth.checkInboxTitle')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: '14.5px', lineHeight: 1.5 }}>
-            {t('auth.resetSentPrefix')} <b style={{ color: '#f0f4fc' }}>{email}</b>{' '}
+          <div style={{ color: '#b8a9d4', fontSize: '14.5px', lineHeight: 1.5 }}>
+            {t('auth.resetSentPrefix')} <b style={{ color: '#f8f0ff' }}>{email}</b>{' '}
             {t('auth.resetSentSuffix')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: 14 }}>
+          <div style={{ color: '#b8a9d4', fontSize: 14 }}>
             {t('auth.rememberedIt')}{' '}
-            <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#5de4c7' }}>
+            <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#a78bfa' }}>
               {t('auth.backToSignIn')}
             </a>
           </div>
@@ -80,7 +80,7 @@ export function ForgotPassword() {
           >
             {t('auth.resetYourPasswordTitle')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: '14.5px', marginTop: 8 }}>
+          <div style={{ color: '#b8a9d4', fontSize: '14.5px', marginTop: 8 }}>
             {t('auth.forgotDesc')}
           </div>
         </div>
@@ -98,14 +98,14 @@ export function ForgotPassword() {
           />
         </div>
         {error && (
-          <div style={{ color: '#d0679d', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(208,103,157,0.3)' }}>{error}</div>
+          <div style={{ color: '#ff6b8a', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(255,107,138,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,107,138,0.3)' }}>{error}</div>
         )}
         <button type="submit" disabled={submitting} style={{ ...btnGold, opacity: submitting ? 0.6 : 1 }}>
           {submitting ? t('auth.sendingBtn') : t('auth.sendResetLink')}
         </button>
-        <div style={{ textAlign: 'center', color: '#a6accd', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', color: '#b8a9d4', fontSize: 14 }}>
           {t('auth.rememberedIt')}{' '}
-          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#5de4c7' }}>
+          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#a78bfa' }}>
             {t('auth.backToSignIn')}
           </a>
         </div>

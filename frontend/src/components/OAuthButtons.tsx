@@ -26,8 +26,8 @@ export function OAuthButtons() {
             fontSize: 14,
             fontWeight: 700,
             borderRadius: 12,
-            background: 'rgba(27,30,46,0.75)',
-            border: '1px solid rgba(93,228,199,0.25)',
+            background: 'rgba(40,28,65,0.75)',
+            border: '1px solid rgba(167,139,250,0.25)',
           }}
         >
           <img src={p.icon} alt={p.name} style={{ width: 18, height: 18, objectFit: 'contain' }} />
@@ -46,16 +46,16 @@ export function OrDivider({ text = 'OR' }: { text?: string }) {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        color: '#a6accd',
+        color: '#b8a9d4',
         fontSize: 12,
         fontWeight: 700,
         letterSpacing: '.15em',
         fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
       }}
     >
-      <span style={{ flex: 1, height: 1, background: 'rgba(93, 228, 199, 0.2)' }} />
+      <span style={{ flex: 1, height: 1, background: 'rgba(167, 139, 250, 0.2)' }} />
       {text}
-      <span style={{ flex: 1, height: 1, background: 'rgba(93, 228, 199, 0.2)' }} />
+      <span style={{ flex: 1, height: 1, background: 'rgba(167, 139, 250, 0.2)' }} />
     </div>
   )
 }

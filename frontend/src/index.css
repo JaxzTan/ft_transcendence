@@ -5,14 +5,16 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--pm-bg-darkest);
+  background-color: #0f0a1a;
   background-image: 
-    radial-gradient(circle at 15% 15%, rgba(93, 228, 199, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 85% 10%, rgba(137, 221, 255, 0.14) 0%, transparent 45%),
-    radial-gradient(circle at 50% 80%, rgba(208, 103, 157, 0.10) 0%, transparent 50%),
-    linear-gradient(180deg, #171922 0%, #13151f 100%);
+    radial-gradient(ellipse 80% 60% at 10% 20%, rgba(167, 139, 250, 0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 15%, rgba(244, 114, 182, 0.14) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 55% at 50% 85%, rgba(74, 222, 171, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 40% at 75% 65%, rgba(255, 214, 107, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 40% 30% at 25% 55%, rgba(107, 184, 255, 0.08) 0%, transparent 50%),
+    linear-gradient(170deg, #1a1025 0%, #0f0a1a 50%, #150d22 100%);
   background-attachment: fixed;
-  color: var(--pm-text-bright);
+  color: #f8f0ff;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -24,43 +26,47 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   letter-spacing: -0.02em;
 }
 
-/* Custom Poimandres Cyber-Mint Scrollbars */
+/* Custom Vibrant Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(19, 21, 31, 0.6);
+  background: rgba(15, 10, 26, 0.6);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(93, 228, 199, 0.25);
-  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.3);
+  border-radius: 10px;
   border: 2px solid transparent;
-  background-clip: padding-box;
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(93, 228, 199, 0.5);
+  background: rgba(244, 114, 182, 0.5);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 /* Animations */
 @keyframes portalPulse {
   0%, 100% {
-    box-shadow: 0 0 16px rgba(93, 228, 199, 0.35), 0 0 32px rgba(137, 221, 255, 0.2);
+    box-shadow: 0 0 16px rgba(167, 139, 250, 0.35), 0 0 32px rgba(244, 114, 182, 0.2);
   }
   50% {
-    box-shadow: 0 0 28px rgba(93, 228, 199, 0.6), 0 0 48px rgba(137, 221, 255, 0.35);
+    box-shadow: 0 0 28px rgba(167, 139, 250, 0.6), 0 0 48px rgba(244, 114, 182, 0.35);
   }
 }
 
 @keyframes glowMint {
   0%, 100% {
-    filter: drop-shadow(0 0 6px rgba(93, 228, 199, 0.5));
+    filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.5));
   }
   50% {
-    filter: drop-shadow(0 0 14px rgba(93, 228, 199, 0.9));
+    filter: drop-shadow(0 0 14px rgba(244, 114, 182, 0.8));
   }
 }
 
@@ -88,11 +94,21 @@ h1, h2, h3, h4, h5, h6, .font-heading {
   100% { background-position: 200% 0; }
 }
 
+@keyframes softPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes colorShift {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(20deg); }
+}
+
 /* Form focus glows */
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: #5de4c7 !important;
-  box-shadow: 0 0 0 3px rgba(93, 228, 199, 0.25), 0 0 14px rgba(93, 228, 199, 0.3) !important;
+  border-color: #a78bfa !important;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25), 0 0 14px rgba(167, 139, 250, 0.3) !important;
 }
 
 /* Interactive Card Hover States */
@@ -102,8 +118,8 @@ input:focus, select:focus, textarea:focus {
 
 .interactive-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(93, 228, 199, 0.45) !important;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 24px rgba(93, 228, 199, 0.2) !important;
+  border-color: rgba(167, 139, 250, 0.5) !important;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 0 0 24px rgba(167, 139, 250, 0.2) !important;
 }
 
 .mode-card {
@@ -114,8 +130,8 @@ input:focus, select:focus, textarea:focus {
 
 .mode-card:hover {
   transform: translateY(-5px);
-  border-color: rgba(236, 72, 153, 0.7) !important;
-  box-shadow: 0 16px 32px -8px rgba(236, 72, 153, 0.35) !important;
+  border-color: rgba(244, 114, 182, 0.6) !important;
+  box-shadow: 0 16px 32px -8px rgba(244, 114, 182, 0.3) !important;
 }
 
 /* Home page layout */
@@ -142,7 +158,7 @@ input:focus, select:focus, textarea:focus {
   transition: background 0.15s ease, transform 0.15s ease;
 }
 .home-ladder-row:hover {
-  background: rgba(139, 92, 246, 0.08);
+  background: rgba(167, 139, 250, 0.08);
   border-radius: 10px;
   transform: translateX(4px);
 }
@@ -201,29 +217,4 @@ input:focus, select:focus, textarea:focus {
   .home-ladder-row {
     padding: 4px 0;
   }
-}
-
-/* Custom Sleek Glass Scrollbars */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.35);
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(236, 72, 153, 0.6);
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 10px;
 }

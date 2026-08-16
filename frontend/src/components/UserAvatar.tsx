@@ -29,7 +29,7 @@ export function UserAvatar({ username, size, fallbackStyle, style, cacheBuster }
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ color: fallbackStyle.color || '#a6accd', opacity: 0.85 }}
+          style={{ color: fallbackStyle.color || '#b8a9d4', opacity: 0.85 }}
         >
           <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />

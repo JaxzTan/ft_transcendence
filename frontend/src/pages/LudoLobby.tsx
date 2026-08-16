@@ -47,7 +47,8 @@ function hueForHost(host: string): string {
 export function LudoLobby() {
   const { t } = useTranslation()
   const { setActiveMatch } = useApp()
-  const hostPanelRef = useRef<HTMLDivElement>(null)
+  const joinPanelRef = useRef<HTMLDivElement>(null)
+  const roomInputRef = useRef<HTMLInputElement>(null)
 
   const [rooms, setRooms] = useState<Room[] | null>(null)
   const [roomFilter, setRoomFilter] = useState<'all' | 'classic' | 'duel'>('all')
@@ -56,13 +57,13 @@ export function LudoLobby() {
   const [myRooms, setMyRooms] = useState<MyRoom[]>([])
   const [rejoiningId, setRejoiningId] = useState<string | null>(null)
 
-  const [hostTable, setHostTable] = useState<MatchResult | null>(null)
-  const [hostBusy, setHostBusy] = useState(false)
-
   const [quickMatchBusy, setQuickMatchBusy] = useState(false)
 
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [joiningByCode, setJoiningByCode] = useState(false)
+
+  const [yourTablesExpanded, setYourTablesExpanded] = useState(true)
+  const [openRoomsExpanded, setOpenRoomsExpanded] = useState(true)
 
   const [error, setError] = useState<string | null>(null)
 
@@ -97,34 +98,6 @@ export function LudoLobby() {
       setRejoiningId(null)
       fetchMyRooms()
     }
-  }
-
-  const spinNewTable = async (previous?: MatchResult | null) => {
-    setHostBusy(true)
-    setError(null)
-    try {
-      const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: true })
-      setHostTable(res)
-      if (previous) postApi(`/api/game/${previous.gameId}/abort`).catch(() => { })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to host a table')
-    } finally {
-      setHostBusy(false)
-    }
-  }
-
-  const spunRef = useRef(false)
-  useEffect(() => {
-    if (spunRef.current) return
-    spunRef.current = true
-    spinNewTable()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const createTable = () => {
-    if (!hostTable) return
-    setActiveMatch(hostTable)
-    navigate(`/game?gameId=${hostTable.gameId}`)
   }
 
   const findMeATable = async () => {
@@ -203,12 +176,15 @@ export function LudoLobby() {
       glyph: '⌘',
       hue: COL.blue.base,
       badge: 'invite',
-      onClick: () => hostPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+      onClick: () => {
+        joinPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        roomInputRef.current?.focus()
+      },
     },
   ]
 
   const badgeStyle = (badge: ModeCard['badge']): React.CSSProperties => {
-    const hue = badge === 'ranked' ? '#ffcb6b' : badge === 'casual' ? '#5de4c7' : '#89ddff'
+    const hue = badge === 'ranked' ? '#ffd66b' : badge === 'casual' ? '#a78bfa' : '#6bb8ff'
     return {
       fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: hue,
       background: `${hue}20`, border: `1px solid ${hue}55`, borderRadius: 999, padding: '4px 10px',
@@ -221,54 +197,16 @@ export function LudoLobby() {
   const filteredRooms = (rooms ?? []).filter((r) => roomFilter === 'all' || r.mode === roomFilter)
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 36px', borderBottom: '1px solid rgba(93,228,199,0.15)', background: 'rgba(20,23,35,0.65)', backdropFilter: 'blur(16px)' }}>
-        {/* <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div
-            onClick={() => navigate('/home')}
-            style={{
-              cursor: 'pointer', width: 40, height: 40, borderRadius: 12, display: 'grid', placeItems: 'center',
-              border: '1px solid rgba(93,228,199,0.25)', background: 'rgba(255,255,255,0.06)', fontSize: 16, color: '#f0f4fc',
-            }}
-          >
-            ←
-          </div>
-          <div>
-            <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 24, fontWeight: 900, color: '#f0f4fc' }}>{t('lobby.title')}</div>
-            <div style={{ color: '#a6accd', fontSize: 13.5, fontWeight: 500 }}>{t('lobbyBrowser.subtitle')}</div>
-          </div>
-        </div> */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <input
-            value={roomCodeInput}
-            onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-            onKeyDown={(e) => { if (e.key === 'Enter') joinByCode(roomCodeInput) }}
-            placeholder={t('lobbyBrowser.roomCodePlaceholder')}
-            style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(93,228,199,0.3)', borderRadius: 12,
-              color: '#f0f4fc', padding: '11px 16px', fontSize: 13.5, fontWeight: 800, letterSpacing: '.14em', width: 150,
-              fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
-            }}
-          />
-          <button
-            onClick={() => joinByCode(roomCodeInput)}
-            disabled={!roomCodeInput.trim() || joiningByCode}
-            style={{ ...btnGold, padding: '11px 20px', fontSize: 13.5, opacity: !roomCodeInput.trim() || joiningByCode ? 0.5 : 1 }}
-          >
-            {joiningByCode ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.joinRoomBtn')}
-          </button>
-        </div>
-      </header>
-
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <div
         style={{
-          flex: 1, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 28, padding: '32px 36px',
+          flex: 1, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 28,
           alignItems: 'start', maxWidth: 1320, margin: '0 auto', width: '100%',
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ ...sectionLabel, color: '#5de4c7' }}>{t('lobbyBrowser.gameModes')}</div>
+            <div style={{ ...sectionLabel, color: '#a78bfa' }}>{t('lobbyBrowser.gameModes')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
               {modeCards.map((m) => (
                 <div
@@ -277,8 +215,8 @@ export function LudoLobby() {
                   className="interactive-card"
                   style={{
                     cursor: 'pointer', borderRadius: 20, padding: 22, display: 'flex', flexDirection: 'column', gap: 12,
-                    background: 'linear-gradient(145deg, rgba(27,30,46,0.85), rgba(20,23,35,0.95))',
-                    border: '1px solid rgba(93,228,199,0.25)',
+                    background: 'linear-gradient(145deg, rgba(40,28,65,0.85), rgba(25,18,42,0.95))',
+                    border: '1px solid rgba(167,139,250,0.25)',
                     boxShadow: '0 12px 28px -8px rgba(0,0,0,0.5)',
                   }}
                 >
@@ -286,7 +224,7 @@ export function LudoLobby() {
                     <div
                       style={{
                         width: 50, height: 50, borderRadius: 14, display: 'grid', placeItems: 'center', fontSize: 24,
-                        color: '#13151f', background: `linear-gradient(135deg, ${m.hue}, ${m.hue}aa)`,
+                        color: '#0f0a1a', background: `linear-gradient(135deg, ${m.hue}, ${m.hue}aa)`,
                         boxShadow: `0 0 16px ${m.hue}66`,
                       }}
                     >
@@ -294,8 +232,8 @@ export function LudoLobby() {
                     </div>
                     <span style={badgeStyle(m.badge)}>{badgeLabel(m.badge)}</span>
                   </div>
-                  <div style={{ fontWeight: 900, fontSize: 17, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{m.title}</div>
-                  <div style={{ color: '#a6accd', fontSize: 13.5, lineHeight: 1.45 }}>{m.desc}</div>
+                  <div style={{ fontWeight: 900, fontSize: 17, color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{m.title}</div>
+                  <div style={{ color: '#b8a9d4', fontSize: 13.5, lineHeight: 1.45 }}>{m.desc}</div>
                 </div>
               ))}
             </div>
@@ -303,40 +241,100 @@ export function LudoLobby() {
 
           {myRooms.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ ...sectionLabel, color: '#89ddff' }}>{t('lobbyBrowser.yourTables')} · {myRooms.length}</div>
-              <div style={{ ...card, overflow: 'hidden' }}>
-                {myRooms.map((room, i) => (
-                  <div
-                    key={room.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px',
-                      borderBottom: i < myRooms.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
-                        {room.roomCode ?? room.gameType} <span style={{ color: '#a6accd', fontWeight: 600 }}>· {room.seats}/{room.maxSeats}</span>
-                      </div>
-                      <div style={{ color: '#a6accd', fontSize: 12.5 }}>
-                        {room.status === 'WAITING' ? t('lobbyBrowser.statusWaiting') : t('lobbyBrowser.statusActive')}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => rejoinRoom(room)}
-                      disabled={rejoiningId === room.id}
-                      style={{ ...btnGoldSmall, padding: '8px 18px', fontSize: 13, opacity: rejoiningId === room.id ? 0.6 : 1 }}
+              <div
+                onClick={() => setYourTablesExpanded((prev) => !prev)}
+                style={{
+                  ...sectionLabel,
+                  color: '#6bb8ff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  userSelect: 'none',
+                  padding: '4px 0',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>{t('lobbyBrowser.yourTables')} · {myRooms.length}</span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    transition: 'transform 0.2s ease',
+                    transform: yourTablesExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                    color: '#6bb8ff',
+                  }}
+                >
+                  ▼
+                </div>
+              </div>
+              <div
+                style={{
+                  maxHeight: yourTablesExpanded ? 1000 : 0,
+                  opacity: yourTablesExpanded ? 1 : 0,
+                  overflow: 'hidden',
+                  transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease',
+                }}
+              >
+                <div style={{ ...card, overflow: 'hidden' }}>
+                  {myRooms.map((room, i) => (
+                    <div
+                      key={room.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px',
+                        borderBottom: i < myRooms.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                      }}
                     >
-                      {rejoiningId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.rejoinBtn')}
-                    </button>
-                  </div>
-                ))}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: 14.5, color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+                          {room.roomCode ?? room.gameType} <span style={{ color: '#b8a9d4', fontWeight: 600 }}>· {room.seats}/{room.maxSeats}</span>
+                        </div>
+                        <div style={{ color: '#b8a9d4', fontSize: 12.5 }}>
+                          {room.status === 'WAITING' ? t('lobbyBrowser.statusWaiting') : t('lobbyBrowser.statusActive')}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => rejoinRoom(room)}
+                        disabled={rejoiningId === room.id}
+                        style={{ ...btnGoldSmall, padding: '8px 18px', fontSize: 13, opacity: rejoiningId === room.id ? 0.6 : 1 }}
+                      >
+                        {rejoiningId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.rejoinBtn')}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ ...sectionLabel, color: '#5de4c7' }}>{t('lobbyBrowser.openRooms')} · {filteredRooms.length}</div>
+              <div
+                onClick={() => setOpenRoomsExpanded((prev) => !prev)}
+                style={{
+                  ...sectionLabel,
+                  color: '#a78bfa',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  userSelect: 'none',
+                  padding: '4px 0',
+                }}
+              >
+                <span>{t('lobbyBrowser.openRooms')} · {filteredRooms.length}</span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    display: 'inline-block',
+                    transition: 'transform 0.2s ease',
+                    transform: openRoomsExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                    color: '#a78bfa',
+                  }}
+                >
+                  ▼
+                </span>
+              </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <span onClick={() => setRoomFilter('all')} style={pill(roomFilter === 'all')}>{t('lobbyBrowser.filterAll')}</span>
                 <span onClick={() => setRoomFilter('classic')} style={pill(roomFilter === 'classic')}>{t('lobbyBrowser.filter4Player')}</span>
@@ -344,114 +342,140 @@ export function LudoLobby() {
               </div>
             </div>
 
-            <div style={{ ...card, overflow: 'hidden' }}>
-              <div
-                style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr 1fr auto', gap: 12, padding: '14px 20px',
-                  borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 11.5, fontWeight: 800, letterSpacing: '.08em',
-                  textTransform: 'uppercase', color: '#a6accd', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
-                }}
-              >
-                <div>{t('lobbyBrowser.colRoomId')}</div>
-                <div>{t('lobbyBrowser.colHost')}</div>
-                <div>{t('lobbyBrowser.colSeats')}</div>
-                <div>{t('lobbyBrowser.colStakes')}</div>
-                <div />
-              </div>
+            <div
+              style={{
+                maxHeight: openRoomsExpanded ? 2000 : 0,
+                opacity: openRoomsExpanded ? 1 : 0,
+                overflow: 'hidden',
+                transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease',
+              }}
+            >
+              <div style={{ ...card, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr 1fr auto', gap: 12, padding: '14px 20px',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 11.5, fontWeight: 800, letterSpacing: '.08em',
+                    textTransform: 'uppercase', color: '#b8a9d4', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                  }}
+                >
+                  <div>{t('lobbyBrowser.colRoomId')}</div>
+                  <div>{t('lobbyBrowser.colHost')}</div>
+                  <div>{t('lobbyBrowser.colSeats')}</div>
+                  <div>{t('lobbyBrowser.colStakes')}</div>
+                  <div />
+                </div>
 
-              {rooms === null ? (
-                <div style={{ padding: '24px 0', textAlign: 'center', color: '#a6accd', fontSize: 14 }}>{t('lobbyBrowser.loadingRooms')}</div>
-              ) : filteredRooms.length === 0 ? (
-                <div style={{ padding: '24px 0', textAlign: 'center', color: '#a6accd', fontSize: 14 }}>{t('lobbyBrowser.noOpenRooms')}</div>
-              ) : (
-                filteredRooms.map((room) => {
-                  const full = room.seats >= room.maxSeats
-                  const hue = hueForHost(room.host)
-                  return (
-                    <div
-                      key={room.id}
-                      style={{
-                        display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr 1fr auto', gap: 12, padding: '16px 20px',
-                        borderBottom: '1px solid rgba(255,255,255,0.06)', alignItems: 'center',
-                      }}
-                    >
-                      <div style={{ fontWeight: 900, fontSize: 14, letterSpacing: '.08em', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{room.roomCode}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div
-                          style={{
-                            width: 32, height: 32, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center',
-                            fontWeight: 900, fontSize: 12, color: '#13151f', background: hue,
-                            boxShadow: `0 0 10px ${hue}66`, fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
-                          }}
-                        >
-                          {room.host.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{room.host}</div>
-                          <div style={{ color: '#a6accd', fontSize: 12 }}>
-                            {room.maxSeats}-player · {room.mode === 'duel' ? 'duel' : 'classic'}
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: full ? '#d0679d' : '#5de4c7', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
-                        {room.seats}/{room.maxSeats}
-                      </div>
-                      <div>
-                        <span style={badgeStyle('ranked')}>{t('lobbyBrowser.ranked')}</span>
-                      </div>
-                      <button
-                        onClick={() => joinRoom(room)}
-                        disabled={full || joiningRoomId === room.id}
+                {rooms === null ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: '#b8a9d4', fontSize: 14 }}>{t('lobbyBrowser.loadingRooms')}</div>
+                ) : filteredRooms.length === 0 ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: '#b8a9d4', fontSize: 14 }}>{t('lobbyBrowser.noOpenRooms')}</div>
+                ) : (
+                  filteredRooms.map((room) => {
+                    const full = room.seats >= room.maxSeats
+                    const hue = hueForHost(room.host)
+                    return (
+                      <div
+                        key={room.id}
                         style={{
-                          ...btnGold, padding: '8px 18px', fontSize: 13,
-                          opacity: full ? 0.4 : joiningRoomId === room.id ? 0.7 : 1,
-                          cursor: full ? 'not-allowed' : 'pointer',
+                          display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1fr 1fr auto', gap: 12, padding: '16px 20px',
+                          borderBottom: '1px solid rgba(255,255,255,0.06)', alignItems: 'center',
                         }}
                       >
-                        {full ? t('lobbyBrowser.fullBtn') : joiningRoomId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.joinBtn')}
-                      </button>
-                    </div>
-                  )
-                })
-              )}
+                        <div style={{ fontWeight: 900, fontSize: 14, letterSpacing: '.08em', color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{room.roomCode}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div
+                            style={{
+                              width: 32, height: 32, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center',
+                              fontWeight: 900, fontSize: 12, color: '#0f0a1a', background: hue,
+                              boxShadow: `0 0 10px ${hue}66`, fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                            }}
+                          >
+                            {room.host.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 14.5, color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{room.host}</div>
+                            <div style={{ color: '#b8a9d4', fontSize: 12 }}>
+                              {room.maxSeats}-player · {room.mode === 'duel' ? 'duel' : 'classic'}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 800, fontSize: 14, color: full ? '#ff6b8a' : '#a78bfa', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+                          {room.seats}/{room.maxSeats}
+                        </div>
+                        <div>
+                          <span style={badgeStyle('ranked')}>{t('lobbyBrowser.ranked')}</span>
+                        </div>
+                        <button
+                          onClick={() => joinRoom(room)}
+                          disabled={full || joiningRoomId === room.id}
+                          style={{
+                            ...btnGold, padding: '8px 18px', fontSize: 13,
+                            opacity: full ? 0.4 : joiningRoomId === room.id ? 0.7 : 1,
+                            cursor: full ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {full ? t('lobbyBrowser.fullBtn') : joiningRoomId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.joinBtn')}
+                        </button>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, position: 'sticky', top: 20 }}>
-          <div ref={hostPanelRef} style={{ ...feltPanel, padding: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 20, fontWeight: 900, color: '#f0f4fc' }}>{t('lobbyBrowser.hostTableTitle')}</div>
-            <div style={{ color: '#cbd5e1', fontSize: 13.5, lineHeight: 1.5 }}>{t('lobbyBrowser.hostTableDesc')}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
+          {/* Join with Room Code Panel */}
+          <div ref={joinPanelRef} style={{ ...feltPanel, padding: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 20, fontWeight: 900, color: '#f8f0ff' }}>
+              {t('lobbyBrowser.joinRoomBtn')}
+            </div>
+            <div style={{ color: '#d4c8e8', fontSize: 13.5, lineHeight: 1.5 }}>
+              {t('lobbyBrowser.privateTableDesc')}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <input
+                ref={roomInputRef}
+                value={roomCodeInput}
+                onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
+                onKeyDown={(e) => { if (e.key === 'Enter') joinByCode(roomCodeInput) }}
+                placeholder={t('lobbyBrowser.roomCodePlaceholder')}
                 style={{
-                  flex: 1, background: 'rgba(0,0,0,.35)', border: '1px solid rgba(93,228,199,0.4)', borderRadius: 14,
-                  padding: '14px 16px', fontWeight: 900, fontSize: 20, letterSpacing: '.2em', color: '#f0f4fc',
-                  fontFamily: "'Space Grotesk', 'Outfit', sans-serif", textAlign: 'center', textShadow: '0 0 12px rgba(93,228,199,0.5)',
+                  width: '100%',
+                  background: 'rgba(0,0,0,0.35)',
+                  border: '1px solid rgba(167,139,250,0.35)',
+                  borderRadius: 14,
+                  color: '#f8f0ff',
+                  padding: '14px 16px',
+                  fontSize: 18,
+                  fontWeight: 900,
+                  letterSpacing: '.2em',
+                  textAlign: 'center',
+                  fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                }}
+              />
+              <button
+                onClick={() => joinByCode(roomCodeInput)}
+                disabled={!roomCodeInput.trim() || joiningByCode}
+                style={{
+                  ...btnGold,
+                  width: '100%',
+                  padding: 14,
+                  fontSize: 14,
+                  opacity: !roomCodeInput.trim() || joiningByCode ? 0.5 : 1,
+                  cursor: !roomCodeInput.trim() || joiningByCode ? 'not-allowed' : 'pointer',
                 }}
               >
-                {hostTable?.inviteCode ?? '······'}
-              </div>
-              <button
-                onClick={() => spinNewTable(hostTable)}
-                disabled={hostBusy}
-                style={{ ...btnOutline, padding: '12px 16px', fontSize: 13, opacity: hostBusy ? 0.6 : 1 }}
-              >
-                ↻ {t('lobbyBrowser.newCodeBtn')}
+                {joiningByCode ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.joinRoomBtn')}
               </button>
             </div>
-            <button
-              onClick={createTable}
-              disabled={!hostTable || hostBusy}
-              style={{ ...btnGold, opacity: !hostTable || hostBusy ? 0.6 : 1, padding: 14 }}
-            >
-              {hostBusy ? t('lobbyBrowser.creatingTableBtn') : t('lobbyBrowser.createTableBtn')}
-            </button>
           </div>
 
+          {/* Quick Match Panel */}
           <div style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontWeight: 900, fontSize: 17, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('lobbyBrowser.quickMatchTitle')}</div>
-            <div style={{ color: '#a6accd', fontSize: 13.5, lineHeight: 1.5 }}>{t('lobbyBrowser.quickMatchDesc')}</div>
+            <div style={{ fontWeight: 900, fontSize: 17, color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('lobbyBrowser.quickMatchTitle')}</div>
+            <div style={{ color: '#b8a9d4', fontSize: 13.5, lineHeight: 1.5 }}>{t('lobbyBrowser.quickMatchDesc')}</div>
             <button
               onClick={findMeATable}
               disabled={quickMatchBusy}
@@ -462,7 +486,7 @@ export function LudoLobby() {
           </div>
 
           {error && (
-            <div style={{ textAlign: 'center', color: '#d0679d', fontSize: 13, fontWeight: 600, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10 }}>{error}</div>
+            <div style={{ textAlign: 'center', color: '#ff6b8a', fontSize: 13, fontWeight: 600, background: 'rgba(255,107,138,0.15)', padding: '10px 14px', borderRadius: 10 }}>{error}</div>
           )}
         </div>
       </div>

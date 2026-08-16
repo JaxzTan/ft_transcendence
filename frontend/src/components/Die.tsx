@@ -16,9 +16,9 @@ export function Die({ value, rolling }: { value: number; rolling: boolean }) {
         width: 82,
         height: 82,
         borderRadius: 20,
-        background: 'linear-gradient(145deg, #ffffff 0%, #f0f4fc 60%, #cbd5e1 100%)',
+        background: 'linear-gradient(145deg, #ffffff 0%, #f8f0ff 60%, #d4c8e8 100%)',
         boxShadow:
-          '0 18px 36px -8px rgba(0,0,0,.65), 0 0 24px rgba(93,228,199,.35), inset 0 2px 4px #ffffff, inset 0 -4px 8px rgba(137,221,255,.25)',
+          '0 18px 36px -8px rgba(0,0,0,.55), 0 0 24px rgba(167,139,250,.35), inset 0 2px 4px #ffffff, inset 0 -4px 8px rgba(244,114,182,.2)',
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr',
         gridTemplateRows: '1fr 1fr 1fr',
@@ -39,8 +39,8 @@ export function Die({ value, rolling }: { value: number; rolling: boolean }) {
                 width: 14,
                 height: 14,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle at 35% 30%, #5de4c7, #0a5446)',
-                boxShadow: '0 0 8px rgba(93,228,199,.9), inset 0 1px 1px rgba(255,255,255,.8)',
+                background: 'radial-gradient(circle at 35% 30%, #a78bfa, #3b1e7a)',
+                boxShadow: '0 0 8px rgba(167,139,250,.9), inset 0 1px 1px rgba(255,255,255,.8)',
               }}
             />
           ) : null}

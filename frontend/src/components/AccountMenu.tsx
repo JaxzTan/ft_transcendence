@@ -8,7 +8,7 @@ import { avatarBlue, sectionLabel } from '../theme'
  * CJK glyphs fill the em box while Latin sits at roughly half of it, so the same
  * px value renders the Latin labels optically larger. Size Latin down to match 中文.
  */
-const CJK = /[　-鿿豈-﫿]/
+const CJK = /[　-鿿豈-﫿]/
 const labelSize = (label: string) => (CJK.test(label) ? '13.5px' : '12.5px')
 
 
@@ -50,7 +50,7 @@ export function AccountMenu() {
   }
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative' }}>
+    <div ref={wrapRef} style={{ position: 'relative', zIndex: open ? 1001 : 1 }}>
       <div
         role="button"
         tabIndex={0}
@@ -67,7 +67,7 @@ export function AccountMenu() {
         style={{
           ...avatarBlue(42, 15),
           cursor: 'pointer',
-          boxShadow: open ? '0 0 0 3px #5de4c7, 0 0 16px rgba(93,228,199,.6)' : '0 0 0 2px rgba(137,221,255,.5), 0 4px 12px rgba(0,0,0,.3)',
+          boxShadow: open ? '0 0 0 3px #a78bfa, 0 0 16px rgba(167,139,250,.6)' : '0 0 0 2px rgba(167,139,250,.5), 0 4px 12px rgba(0,0,0,.3)',
           transition: 'all .18s ease',
         }}
       >
@@ -81,21 +81,21 @@ export function AccountMenu() {
             position: 'absolute',
             top: 'calc(100% + 12px)',
             right: 0,
-            zIndex: 50,
+            zIndex: 1002,
             width: 256,
             padding: 10,
-            borderRadius: 18,
-            background: 'linear-gradient(145deg, rgba(27, 30, 46, 0.96), rgba(20, 23, 35, 0.98))',
-            border: '1px solid rgba(93, 228, 199, 0.35)',
-            boxShadow: '0 24px 48px -12px rgba(0,0,0,.8), 0 0 24px rgba(93,228,199,.2)',
+            borderRadius: 20,
+            background: 'linear-gradient(145deg, rgba(40, 28, 65, 0.97), rgba(25, 18, 42, 0.98))',
+            border: '1px solid rgba(167, 139, 250, 0.35)',
+            boxShadow: '0 24px 48px -12px rgba(0,0,0,.7), 0 0 24px rgba(167,139,250,.2)',
             backdropFilter: 'blur(20px)',
           }}
         >
           <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: '#f0f4fc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: '#f8f0ff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
               {name}
             </div>
-            <div style={{ color: '#a6accd', fontSize: 12 }}>{t('accountMenu.signedIn')}</div>
+            <div style={{ color: '#b8a9d4', fontSize: 12 }}>{t('accountMenu.signedIn')}</div>
           </div>
 
           <div style={{ ...sectionLabel, padding: '12px 10px 6px' }}>{t('accountMenu.language')}</div>
@@ -112,18 +112,18 @@ export function AccountMenu() {
                   alignItems: 'center',
                   gap: 10,
                   padding: '9px 12px',
-                  borderRadius: 10,
+                  borderRadius: 12,
                   cursor: 'pointer',
                   fontWeight: active ? 700 : 600,
-                  color: active ? '#f0f4fc' : '#a6accd',
-                  background: active ? 'linear-gradient(135deg, rgba(93,228,199,.22), rgba(137,221,255,.22))' : 'transparent',
-                  border: '1px solid ' + (active ? 'rgba(93,228,199,.5)' : 'transparent'),
+                  color: active ? '#f8f0ff' : '#b8a9d4',
+                  background: active ? 'linear-gradient(135deg, rgba(167,139,250,.22), rgba(244,114,182,.18))' : 'transparent',
+                  border: '1px solid ' + (active ? 'rgba(167,139,250,.5)' : 'transparent'),
                   transition: 'all .14s ease',
                 }}
               >
                 <span style={{ fontSize: 16 }}>{l.flag}</span>
                 <span style={{ flex: 1, fontSize: labelSize(l.label) }}>{l.label}</span>
-                {active && <span style={{ color: '#5de4c7', fontSize: '14px', fontWeight: 800 }}>✓</span>}
+                {active && <span style={{ color: '#a78bfa', fontSize: '14px', fontWeight: 800 }}>✓</span>}
               </div>
             )
           })}
@@ -140,13 +140,13 @@ export function AccountMenu() {
               alignItems: 'center',
               gap: 10,
               padding: '9px 12px',
-              borderRadius: 10,
+              borderRadius: 12,
               cursor: 'pointer',
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#f0f4fc' }}>{t('accountMenu.twoFactorAuth')}</div>
-              <div style={{ color: '#a6accd', fontSize: '11.5px' }}>
+              <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#f8f0ff' }}>{t('accountMenu.twoFactorAuth')}</div>
+              <div style={{ color: '#b8a9d4', fontSize: '11.5px' }}>
                 {twoFactor ? t('accountMenu.codeRequired') : t('accountMenu.passwordOnly')}
               </div>
             </div>
@@ -161,9 +161,9 @@ export function AccountMenu() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: twoFactor ? 'flex-end' : 'flex-start',
-                background: twoFactor ? 'linear-gradient(135deg, #5de4c7, #89ddff)' : 'rgba(255,255,255,0.1)',
-                border: '1px solid ' + (twoFactor ? '#5de4c7' : 'rgba(255,255,255,0.2)'),
-                boxShadow: twoFactor ? '0 0 10px rgba(93,228,199,0.5)' : 'none',
+                background: twoFactor ? 'linear-gradient(135deg, #a78bfa, #f472b6)' : 'rgba(255,255,255,0.1)',
+                border: '1px solid ' + (twoFactor ? '#a78bfa' : 'rgba(255,255,255,0.2)'),
+                boxShadow: twoFactor ? '0 0 10px rgba(167,139,250,0.5)' : 'none',
                 transition: 'all .16s ease',
               }}
             >
@@ -172,7 +172,7 @@ export function AccountMenu() {
                   width: 18,
                   height: 18,
                   borderRadius: '50%',
-                  background: twoFactor ? '#13151f' : '#ffffff',
+                  background: twoFactor ? '#fff' : '#ffffff',
                   boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
                 }}
               />
@@ -183,7 +183,7 @@ export function AccountMenu() {
             <div
               role="menuitem"
               onClick={onSignOut}
-              style={{ padding: '9px 12px', borderRadius: 10, cursor: 'pointer', fontSize: '13.5px', fontWeight: 700, color: '#d0679d', transition: 'all .14s ease' }}
+              style={{ padding: '9px 12px', borderRadius: 12, cursor: 'pointer', fontSize: '13.5px', fontWeight: 700, color: '#ff6b8a', transition: 'all .14s ease' }}
             >
               {t('accountMenu.signOut')}
             </div>

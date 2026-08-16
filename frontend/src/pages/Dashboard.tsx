@@ -97,25 +97,25 @@ export function Dashboard() {
       <div
         style={{
           display: 'flex', alignItems: 'center', gap: 22, borderRadius: 24, padding: '26px 30px',
-          background: 'linear-gradient(145deg, rgba(27,30,46,0.85), rgba(20,23,35,0.95))',
-          border: '1px solid rgba(93,228,199,0.25)',
+          background: 'linear-gradient(145deg, rgba(40,28,65,0.85), rgba(25,18,42,0.95))',
+          border: '1px solid rgba(167,139,250,0.25)',
           boxShadow: '0 20px 40px -15px rgba(0,0,0,0.6)',
           backdropFilter: 'blur(16px)',
         }}
       >
-        <div style={{ ...avatarBlue(76, 28, 20), boxShadow: '0 0 0 4px rgba(93,228,199,0.35), 0 0 24px rgba(137,221,255,0.4)' }}>
+        <div style={{ ...avatarBlue(76, 28, 20), boxShadow: '0 0 0 4px rgba(167,139,250,0.35), 0 0 24px rgba(244,114,182,0.4)' }}>
           {initials || 'YO'}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 28, fontWeight: 900, color: '#f0f4fc', letterSpacing: -0.5 }}>
+          <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 28, fontWeight: 900, color: '#f8f0ff', letterSpacing: -0.5 }}>
             {profile?.username ?? user?.username ?? t('common.you')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: 14, fontWeight: 600, marginTop: 2 }}>
+          <div style={{ color: '#b8a9d4', fontSize: 14, fontWeight: 600, marginTop: 2 }}>
             Level {(profile ? Math.floor(profile.wins / 3) + 1 : 1)} Player
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 32, fontWeight: 900, color: '#ffcb6b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", textShadow: '0 0 16px rgba(255,203,107,0.3)' }}>
+          <div style={{ fontSize: 32, fontWeight: 900, color: '#ffd66b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", textShadow: '0 0 16px rgba(255,214,107,0.3)' }}>
             ♛ {profile?.rating ?? '—'}
           </div>
         </div>
@@ -128,15 +128,15 @@ export function Dashboard() {
             className="interactive-card"
             style={{
               borderRadius: 18, padding: '20px 18px',
-              background: 'linear-gradient(145deg, rgba(27,30,46,0.8), rgba(20,23,35,0.9))',
-              border: '1px solid rgba(93,228,199,0.2)',
+              background: 'linear-gradient(145deg, rgba(40,28,65,0.8), rgba(25,18,42,0.9))',
+              border: '1px solid rgba(167,139,250,0.2)',
               boxShadow: '0 10px 24px -8px rgba(0,0,0,0.5)',
             }}
           >
-            <div style={{ fontSize: 26, fontWeight: 900, color: i === 0 ? '#ffcb6b' : i === 2 ? '#5de4c7' : '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: i === 0 ? '#ffd66b' : i === 2 ? '#a78bfa' : '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
               {s ? s.value : t('common.loading')}
             </div>
-            <div style={{ color: '#a6accd', fontSize: '13px', marginTop: 4, fontWeight: 700, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+            <div style={{ color: '#b8a9d4', fontSize: '13px', marginTop: 4, fontWeight: 700, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
               {s ? s.label : ''}
             </div>
           </div>
@@ -145,11 +145,11 @@ export function Dashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.45fr 1.05fr', gap: 20 }}>
         <div style={{ ...card, padding: 26 }}>
-          <div style={{ fontWeight: 900, fontSize: 18, color: '#f0f4fc', marginBottom: 16, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('dashboard.recentMatches')}</div>
+          <div style={{ fontWeight: 900, fontSize: 18, color: '#f8f0ff', marginBottom: 16, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('dashboard.recentMatches')}</div>
           {!games ? (
-            <div style={{ color: '#a6accd', fontSize: 14, padding: '12px 0' }}>{t('common.loading')}</div>
+            <div style={{ color: '#b8a9d4', fontSize: 14, padding: '12px 0' }}>{t('common.loading')}</div>
           ) : games.games.length === 0 ? (
-            <div style={{ color: '#a6accd', fontSize: 14, padding: '12px 0' }}>{t('dashboard.noMatchesYet')}</div>
+            <div style={{ color: '#b8a9d4', fontSize: 14, padding: '12px 0' }}>{t('dashboard.noMatchesYet')}</div>
           ) : (
             games.games.map((m) => {
               const win = m.rank === 1
@@ -160,19 +160,19 @@ export function Dashboard() {
                     style={{
                       width: 36, height: 36, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
                       fontWeight: 900, fontSize: 14,
-                      color: '#13151f',
-                      background: win ? 'linear-gradient(135deg, #5de4c7, #89ddff)' : 'linear-gradient(135deg, #d0679d, #a34275)',
-                      boxShadow: win ? '0 0 14px rgba(93,228,199,0.4)' : '0 0 14px rgba(208,103,157,0.4)',
+                      color: '#0f0a1a',
+                      background: win ? 'linear-gradient(135deg, #a78bfa, #6bb8ff)' : 'linear-gradient(135deg, #ff6b8a, #7a1e3a)',
+                      boxShadow: win ? '0 0 14px rgba(167,139,250,0.4)' : '0 0 14px rgba(255,107,138,0.4)',
                       fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                     }}
                   >
                     {win ? t('dashboard.win') : t('dashboard.loss')}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14.5, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14.5, color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                       {t('dashboard.vs')} {opponents.length > 0 ? opponents.map((o) => o.username).join(', ') : '—'}
                     </div>
-                    <div style={{ color: '#a6accd', fontSize: 12.5 }}>{relativeTime(m.startedAt, t)}</div>
+                    <div style={{ color: '#b8a9d4', fontSize: 12.5 }}>{relativeTime(m.startedAt, t)}</div>
                   </div>
                 </div>
               )
@@ -180,9 +180,9 @@ export function Dashboard() {
           )}
         </div>
         <div style={{ ...card, padding: 26 }}>
-          <div style={{ fontWeight: 900, fontSize: 18, color: '#f0f4fc', marginBottom: 16, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('dashboard.achievements')}</div>
+          <div style={{ fontWeight: 900, fontSize: 18, color: '#f8f0ff', marginBottom: 16, fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('dashboard.achievements')}</div>
           {!achievements ? (
-            <div style={{ color: '#a6accd', fontSize: 14 }}>{t('common.loading')}</div>
+            <div style={{ color: '#b8a9d4', fontSize: 14 }}>{t('common.loading')}</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, maxHeight: 420, overflowY: 'auto', paddingRight: 4 }}>
               {ACHIEVEMENT_LIST.map((a) => {
@@ -193,9 +193,9 @@ export function Dashboard() {
                     style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 12px',
                       borderRadius: 16, textAlign: 'center',
-                      background: unlocked ? 'linear-gradient(145deg, rgba(93,228,199,0.15), rgba(137,221,255,0.2))' : 'rgba(255,255,255,0.03)',
-                      border: '1px solid ' + (unlocked ? 'rgba(93,228,199,0.45)' : 'rgba(255,255,255,0.06)'),
-                      boxShadow: unlocked ? '0 0 16px rgba(93,228,199,0.25)' : 'none',
+                      background: unlocked ? 'linear-gradient(145deg, rgba(167,139,250,0.15), rgba(244,114,182,0.2))' : 'rgba(255,255,255,0.03)',
+                      border: '1px solid ' + (unlocked ? 'rgba(167,139,250,0.45)' : 'rgba(255,255,255,0.06)'),
+                      boxShadow: unlocked ? '0 0 16px rgba(167,139,250,0.25)' : 'none',
                       opacity: unlocked ? 1 : 0.45,
                       transition: 'all .15s ease',
                     }}
@@ -203,14 +203,14 @@ export function Dashboard() {
                     <div
                       style={{
                         width: 44, height: 44, borderRadius: 14, display: 'grid', placeItems: 'center', fontSize: 22,
-                        color: '#13151f',
-                        background: unlocked ? 'linear-gradient(135deg, #5de4c7, #89ddff)' : 'rgba(255,255,255,0.06)',
-                        boxShadow: unlocked ? '0 0 14px rgba(93,228,199,0.5)' : 'none',
+                        color: '#0f0a1a',
+                        background: unlocked ? 'linear-gradient(135deg, #a78bfa, #6bb8ff)' : 'rgba(255,255,255,0.06)',
+                        boxShadow: unlocked ? '0 0 14px rgba(167,139,250,0.5)' : 'none',
                       }}
                     >
                       {a.glyph}
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: unlocked ? '#f0f4fc' : '#506477', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: unlocked ? '#f8f0ff' : '#665f80', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                       {t(`dashboard.${a.key}`)}
                     </div>
                   </div>

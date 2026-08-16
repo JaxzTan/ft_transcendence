@@ -13,8 +13,8 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
           justifyContent: 'center',
           alignItems: 'center',
           padding: 48,
-          background: 'radial-gradient(100% 100% at 50% 40%, rgba(93,228,199,0.16) 0%, rgba(137,221,255,0.18) 45%, #13151f 100%)',
-          borderRight: '1px solid rgba(93, 228, 199, 0.2)',
+          background: 'radial-gradient(100% 100% at 50% 40%, rgba(167,139,250,0.18) 0%, rgba(244,114,182,0.15) 45%, #0f0a1a 100%)',
+          borderRight: '1px solid rgba(167, 139, 250, 0.2)',
           overflow: 'hidden',
         }}
       >
@@ -22,9 +22,9 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundImage: 'radial-gradient(rgba(93, 228, 199, 0.15) 1px, transparent 1px)',
+            backgroundImage: 'radial-gradient(rgba(167, 139, 250, 0.12) 1px, transparent 1px)',
             backgroundSize: '24px 24px',
-            opacity: 0.7,
+            opacity: 0.6,
           }}
         />
         <div
@@ -32,7 +32,7 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
             position: 'relative',
             width: 400,
             maxWidth: '68vw',
-            filter: 'drop-shadow(0 30px 60px rgba(93,228,199,0.3)) drop-shadow(0 10px 20px rgba(0,0,0,0.8))',
+            filter: 'drop-shadow(0 30px 60px rgba(167,139,250,0.3)) drop-shadow(0 10px 20px rgba(0,0,0,0.7))',
             animation: 'floaty 6s ease-in-out infinite',
           }}
         >
@@ -47,8 +47,8 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
             fontSize: 13,
             letterSpacing: '.28em',
             textTransform: 'uppercase',
-            color: '#5de4c7',
-            textShadow: '0 0 16px rgba(93,228,199,0.6)',
+            color: '#a78bfa',
+            textShadow: '0 0 16px rgba(167,139,250,0.6)',
           }}
         >
           {tag}
@@ -71,11 +71,11 @@ export function GoldCheck({ offsetTop }: { offsetTop?: boolean }) {
         marginTop: offsetTop ? 1 : undefined,
         flex: 'none',
         borderRadius: 6,
-        background: 'linear-gradient(135deg, #5de4c7, #89ddff)',
-        boxShadow: '0 0 10px rgba(93,228,199,.5)',
+        background: 'linear-gradient(135deg, #a78bfa, #f472b6)',
+        boxShadow: '0 0 10px rgba(167,139,250,.5)',
         display: 'inline-grid',
         placeItems: 'center',
-        color: '#13151f',
+        color: '#fff',
         fontSize: 12,
         fontWeight: 900,
       }}

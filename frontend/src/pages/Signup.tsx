@@ -57,13 +57,13 @@ export function Signup() {
           >
             {t('auth.checkInboxTitle')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: '14.5px', lineHeight: 1.5 }}>
-            {t('auth.verificationSentPrefix')} <b style={{ color: '#f0f4fc' }}>{email}</b>.{' '}
+          <div style={{ color: '#b8a9d4', fontSize: '14.5px', lineHeight: 1.5 }}>
+            {t('auth.verificationSentPrefix')} <b style={{ color: '#f8f0ff' }}>{email}</b>.{' '}
             {t('auth.verificationSentSuffix')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: 14 }}>
+          <div style={{ color: '#b8a9d4', fontSize: 14 }}>
             {t('auth.doneVerifying')}{' '}
-            <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#5de4c7' }}>
+            <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#a78bfa' }}>
               {t('auth.signInLink')}
             </a>
           </div>
@@ -91,7 +91,7 @@ export function Signup() {
           >
             {t('auth.createSeatTitle')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: '14.5px', marginTop: 8 }}>
+          <div style={{ color: '#b8a9d4', fontSize: '14.5px', marginTop: 8 }}>
             {t('auth.claimSeatDesc')}
           </div>
         </div>
@@ -142,7 +142,7 @@ export function Signup() {
           </div>
         </div>
         {error && (
-          <div style={{ color: '#d0679d', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(208,103,157,0.3)' }}>{error}</div>
+          <div style={{ color: '#ff6b8a', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(255,107,138,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,107,138,0.3)' }}>{error}</div>
         )}
         <label
           style={{
@@ -150,7 +150,7 @@ export function Signup() {
             alignItems: 'flex-start',
             gap: 9,
             cursor: 'pointer',
-            color: '#a6accd',
+            color: '#b8a9d4',
             fontSize: 13,
             lineHeight: 1.4,
           }}
@@ -163,9 +163,9 @@ export function Signup() {
         </button>
         <OrDivider text={t('auth.orSignUpWith')} />
         <OAuthButtons />
-        <div style={{ textAlign: 'center', color: '#a6accd', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', color: '#b8a9d4', fontSize: 14 }}>
           {t('auth.alreadyHaveSeat')}{' '}
-          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#5de4c7' }}>
+          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#a78bfa' }}>
             {t('auth.signInLink')}
           </a>
         </div>

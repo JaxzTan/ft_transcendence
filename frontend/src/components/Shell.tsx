@@ -32,13 +32,13 @@ function railItemStyle(active: boolean): CSSProperties {
     alignItems: 'center',
     gap: 12,
     padding: '12px 14px',
-    borderRadius: 14,
+    borderRadius: 16,
     cursor: 'pointer',
     fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
-    color: active ? '#f0f4fc' : '#a6accd',
-    background: active ? 'linear-gradient(135deg, rgba(93,228,199,0.16), rgba(137,221,255,0.14))' : 'transparent',
-    border: '1px solid ' + (active ? 'rgba(93,228,199,0.45)' : 'transparent'),
-    boxShadow: active ? '0 8px 24px -6px rgba(93,228,199,0.3), inset 0 1px 0 rgba(255,255,255,0.15)' : 'none',
+    color: active ? '#f8f0ff' : '#b8a9d4',
+    background: active ? 'linear-gradient(135deg, rgba(167,139,250,0.2), rgba(244,114,182,0.15))' : 'transparent',
+    border: '1px solid ' + (active ? 'rgba(167,139,250,0.45)' : 'transparent'),
+    boxShadow: active ? '0 8px 24px -6px rgba(167,139,250,0.3), inset 0 1px 0 rgba(255,255,255,0.1)' : 'none',
     transition: 'all 0.18s ease',
   }
 }
@@ -52,10 +52,10 @@ function railGlyphStyle(active: boolean): CSSProperties {
     placeItems: 'center',
     borderRadius: 10,
     fontSize: 16,
-    color: active ? '#13151f' : '#5de4c7',
-    background: active ? 'linear-gradient(135deg, #5de4c7 0%, #89ddff 100%)' : 'rgba(255,255,255,0.06)',
-    border: '1px solid ' + (active ? 'rgba(255,255,255,0.4)' : 'rgba(93,228,199,0.2)'),
-    boxShadow: active ? '0 0 16px rgba(93,228,199,0.5)' : 'none',
+    color: active ? '#fff' : '#a78bfa',
+    background: active ? 'linear-gradient(135deg, #a78bfa 0%, #f472b6 100%)' : 'rgba(255,255,255,0.06)',
+    border: '1px solid ' + (active ? 'rgba(255,255,255,0.3)' : 'rgba(167,139,250,0.2)'),
+    boxShadow: active ? '0 0 16px rgba(167,139,250,0.5)' : 'none',
     transition: 'all 0.18s ease',
   }
 }
@@ -139,8 +139,8 @@ export function Shell({ children }: { children: ReactNode }) {
           flexDirection: 'column',
           gap: 6,
           padding: '24px 16px',
-          background: 'linear-gradient(180deg, rgba(23, 26, 38, 0.95), rgba(17, 19, 28, 0.98))',
-          borderRight: '1px solid rgba(93, 228, 199, 0.15)',
+          background: 'linear-gradient(180deg, rgba(30, 22, 48, 0.95), rgba(18, 12, 32, 0.98))',
+          borderRight: '1px solid rgba(167, 139, 250, 0.15)',
           backdropFilter: 'blur(20px)',
         }}
       >
@@ -149,11 +149,11 @@ export function Shell({ children }: { children: ReactNode }) {
             style={{
               width: 42,
               height: 42,
-              borderRadius: 12,
+              borderRadius: 14,
               flex: 'none',
               background:
-                'conic-gradient(from 45deg, #5de4c7 0 90deg, #ffcb6b 90deg 180deg, #89ddff 180deg 270deg, #d0679d 270deg 360deg)',
-              boxShadow: '0 0 20px rgba(93,228,199,0.45), inset 0 0 0 2px rgba(255,255,255,0.3)',
+                'conic-gradient(from 45deg, #4adeab 0 90deg, #ffd66b 90deg 180deg, #6bb8ff 180deg 270deg, #ff6b8a 270deg 360deg)',
+              boxShadow: '0 0 20px rgba(167,139,250,0.4), inset 0 0 0 2px rgba(255,255,255,0.3)',
             }}
           />
           <div
@@ -186,29 +186,31 @@ export function Shell({ children }: { children: ReactNode }) {
       <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <header
           style={{
+            position: 'relative',
+            zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '20px 36px',
-            borderBottom: '1px solid rgba(93, 228, 199, 0.15)',
-            background: 'rgba(20, 23, 34, 0.7)',
+            borderBottom: '1px solid rgba(167, 139, 250, 0.15)',
+            background: 'rgba(20, 14, 35, 0.7)',
             backdropFilter: 'blur(16px)',
           }}
         >
-          <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 24, fontWeight: 800, color: '#f0f4fc', letterSpacing: '-0.02em' }}>
+          <div style={{ fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 24, fontWeight: 800, color: '#f8f0ff', letterSpacing: '-0.02em' }}>
             {SCREEN_TITLE_KEYS[path] ? t(SCREEN_TITLE_KEYS[path]) : ''}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 999,
-                border: '1px solid rgba(255, 203, 107, 0.4)', background: 'rgba(255, 203, 107, 0.12)',
-                fontWeight: 800, fontSize: 14, color: '#ffcb6b',
-                boxShadow: '0 0 16px rgba(255, 203, 107, 0.25)',
+                border: '1px solid rgba(255, 214, 107, 0.4)', background: 'rgba(255, 214, 107, 0.12)',
+                fontWeight: 800, fontSize: 14, color: '#ffd66b',
+                boxShadow: '0 0 16px rgba(255, 214, 107, 0.2)',
                 fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
               }}
             >
-              <span style={{ color: '#ffcb6b', fontSize: 16 }}>♛</span>{rating !== null ? rating.toLocaleString() : '—'}
+              <span style={{ color: '#ffd66b', fontSize: 16 }}>♛</span>{rating !== null ? rating.toLocaleString() : '—'}
             </div>
             <AccountMenu />
           </div>
@@ -220,15 +222,15 @@ export function Shell({ children }: { children: ReactNode }) {
       {invite && (
         <div
           style={{
-            position: 'fixed', right: 24, bottom: 24, zIndex: 50, width: 340, padding: 20, borderRadius: 20,
-            background: 'linear-gradient(145deg, rgba(27, 30, 46, 0.95), rgba(20, 23, 35, 0.98))',
-            border: '1px solid rgba(93, 228, 199, 0.6)',
-            boxShadow: '0 20px 44px -10px rgba(93, 228, 199, 0.4), 0 0 20px rgba(137, 221, 255, 0.3)',
+            position: 'fixed', right: 24, bottom: 24, zIndex: 50, width: 340, padding: 20, borderRadius: 22,
+            background: 'linear-gradient(145deg, rgba(40, 28, 65, 0.96), rgba(25, 18, 42, 0.98))',
+            border: '1px solid rgba(167, 139, 250, 0.5)',
+            boxShadow: '0 20px 44px -10px rgba(167, 139, 250, 0.35), 0 0 20px rgba(244, 114, 182, 0.2)',
             display: 'flex', flexDirection: 'column', gap: 14,
             backdropFilter: 'blur(20px)',
           }}
         >
-          <div style={{ fontWeight: 800, fontSize: 15, color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
             {t('nav.gameInviteFrom', { name: invite.fromUsername })}
           </div>
           <div style={{ display: 'flex', gap: 10 }}>

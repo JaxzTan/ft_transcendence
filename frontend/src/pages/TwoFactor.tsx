@@ -50,7 +50,7 @@ export function TwoFactor() {
           >
             {t('auth.checkEmailTitle')}
           </div>
-          <div style={{ color: '#a6accd', fontSize: '14.5px', marginTop: 8 }}>
+          <div style={{ color: '#b8a9d4', fontSize: '14.5px', marginTop: 8 }}>
             {t('auth.codeSentDesc')}
           </div>
         </div>
@@ -67,7 +67,7 @@ export function TwoFactor() {
           />
         </div>
         {error && (
-          <div style={{ color: '#d0679d', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(208,103,157,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(208,103,157,0.3)' }}>{error}</div>
+          <div style={{ color: '#ff6b8a', fontSize: '13.5px', lineHeight: 1.4, background: 'rgba(255,107,138,0.15)', padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(255,107,138,0.3)' }}>{error}</div>
         )}
         <button
           type="submit"
@@ -76,9 +76,9 @@ export function TwoFactor() {
         >
           {submitting ? t('auth.checkingBtn') : t('auth.enterParlorBtn')}
         </button>
-        <div style={{ textAlign: 'center', color: '#a6accd', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', color: '#b8a9d4', fontSize: 14 }}>
           {t('auth.codeExpired')}{' '}
-          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#5de4c7' }}>
+          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700, color: '#a78bfa' }}>
             {t('auth.logInAgainLink')}
           </a>{' '}
           {t('auth.toGetNewOne')}

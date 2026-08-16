@@ -47,7 +47,7 @@ const MEDAL_BASE: CSSProperties = {
 const EMPTY_STATE: CSSProperties = {
   padding: '40px 20px',
   textAlign: 'center',
-  color: '#a6accd',
+  color: '#b8a9d4',
   fontSize: '14px',
 }
 
@@ -60,27 +60,27 @@ const TABS = [
 function Medal({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
-      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #ffcb6b, #e5a93c)', color: '#13151f', boxShadow: '0 0 14px rgba(255,203,107,0.5)' }}>
+      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #ffd66b, #e5a93c)', color: '#0f0a1a', boxShadow: '0 0 14px rgba(255,214,107,0.5)' }}>
         1
       </span>
     )
   }
   if (rank === 2) {
     return (
-      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #add7ff, #70a8db)', color: '#13151f', boxShadow: '0 0 12px rgba(173,215,255,0.4)' }}>
+      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #b8a9d4, #70a8db)', color: '#0f0a1a', boxShadow: '0 0 12px rgba(167,139,250,0.4)' }}>
         2
       </span>
     )
   }
   if (rank === 3) {
     return (
-      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #d0679d, #a34275)', color: '#13151f', boxShadow: '0 0 12px rgba(208,103,157,0.4)' }}>
+      <span style={{ ...MEDAL_BASE, background: 'linear-gradient(135deg, #ff6b8a, #7a1e3a)', color: '#0f0a1a', boxShadow: '0 0 12px rgba(255,107,138,0.4)' }}>
         3
       </span>
     )
   }
   return (
-    <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#a6accd' }}>
+    <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#b8a9d4' }}>
       {rank}
     </span>
   )
@@ -134,10 +134,10 @@ export function Leaderboard() {
                 fontWeight: 800,
                 fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                 fontSize: '14px',
-                color: active ? '#13151f' : '#a6accd',
-                background: active ? 'linear-gradient(135deg, #5de4c7, #89ddff)' : 'rgba(255,255,255,0.05)',
-                border: '1px solid ' + (active ? 'rgba(93,228,199,0.8)' : 'rgba(255,255,255,0.08)'),
-                boxShadow: active ? '0 4px 16px rgba(93,228,199,0.35)' : 'none',
+                color: active ? '#0f0a1a' : '#b8a9d4',
+                background: active ? 'linear-gradient(135deg, #a78bfa, #6bb8ff)' : 'rgba(255,255,255,0.05)',
+                border: '1px solid ' + (active ? 'rgba(167,139,250,0.8)' : 'rgba(255,255,255,0.08)'),
+                boxShadow: active ? '0 4px 16px rgba(167,139,250,0.35)' : 'none',
                 transition: 'all .16s ease',
               }}
             >
@@ -157,7 +157,7 @@ export function Leaderboard() {
             font: "800 12px 'Space Grotesk', 'Outfit', sans-serif",
             letterSpacing: '.08em',
             textTransform: 'uppercase',
-            color: '#a6accd',
+            color: '#b8a9d4',
           }}
         >
           <div>{t('leaderboard.rank')}</div>
@@ -181,7 +181,7 @@ export function Leaderboard() {
                 key={e.username}
                 style={
                   isMe
-                    ? { ...ROW_BASE, background: 'linear-gradient(90deg, rgba(93,228,199,0.18), rgba(137,221,255,0.15))', borderLeft: '3px solid #5de4c7' }
+                    ? { ...ROW_BASE, background: 'linear-gradient(90deg, rgba(167,139,250,0.18), rgba(244,114,182,0.15))', borderLeft: '3px solid #a78bfa' }
                     : ROW_BASE
                 }
               >
@@ -190,15 +190,15 @@ export function Leaderboard() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ ...avatarDim(36) }}>{e.username.slice(0, 2).toUpperCase()}</div>
-                  <span style={{ fontWeight: 700, fontSize: '15px', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>
                     {isMe ? t('common.you') : e.username}
                   </span>
                 </div>
-                <div style={{ textAlign: 'right', fontWeight: 800, color: '#ffcb6b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 15 }}>
+                <div style={{ textAlign: 'right', fontWeight: 800, color: '#ffd66b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 15 }}>
                   ♛ {e.rating.toLocaleString()}
                 </div>
-                <div style={{ textAlign: 'right', fontWeight: 700, color: '#cbd5e1' }}>{e.wins}</div>
-                <div style={{ textAlign: 'right', fontWeight: 700, color: '#5de4c7' }}>{e.winRate}%</div>
+                <div style={{ textAlign: 'right', fontWeight: 700, color: '#d4c8e8' }}>{e.wins}</div>
+                <div style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{e.winRate}%</div>
               </div>
             )
           })
@@ -208,31 +208,31 @@ export function Leaderboard() {
           <div
             style={{
               ...ROW_BASE,
-              background: 'linear-gradient(90deg, rgba(93,228,199,0.2), rgba(137,221,255,0.18))',
-              borderTop: '2px solid rgba(93,228,199,0.4)',
+              background: 'linear-gradient(90deg, rgba(167,139,250,0.2), rgba(244,114,182,0.18))',
+              borderTop: '2px solid rgba(167,139,250,0.4)',
               borderBottom: 'none',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#5de4c7' }}>{myRank.rank}</span>
+              <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#a78bfa' }}>{myRank.rank}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div
                 style={{
                   width: 36, height: 36, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                  fontWeight: 900, fontSize: 13, background: 'linear-gradient(135deg, #5de4c7, #89ddff)', color: '#13151f',
-                  boxShadow: '0 0 12px rgba(93,228,199,0.5)', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
+                  fontWeight: 900, fontSize: 13, background: 'linear-gradient(135deg, #a78bfa, #6bb8ff)', color: '#0f0a1a',
+                  boxShadow: '0 0 12px rgba(167,139,250,0.5)', fontFamily: "'Space Grotesk', 'Outfit', sans-serif",
                 }}
               >
                 YO
               </div>
-              <span style={{ fontWeight: 800, fontSize: '15px', color: '#f0f4fc', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('common.you')}</span>
+              <span style={{ fontWeight: 800, fontSize: '15px', color: '#f8f0ff', fontFamily: "'Space Grotesk', 'Outfit', sans-serif" }}>{t('common.you')}</span>
             </div>
-            <div style={{ textAlign: 'right', fontWeight: 800, color: '#ffcb6b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 15 }}>
+            <div style={{ textAlign: 'right', fontWeight: 800, color: '#ffd66b', fontFamily: "'Space Grotesk', 'Outfit', sans-serif", fontSize: 15 }}>
               ♛ {myRank.rating.toLocaleString()}
             </div>
-            <div style={{ textAlign: 'right', fontWeight: 600, color: '#a6accd' }}>—</div>
-            <div style={{ textAlign: 'right', fontWeight: 600, color: '#a6accd' }}>—</div>
+            <div style={{ textAlign: 'right', fontWeight: 600, color: '#b8a9d4' }}>—</div>
+            <div style={{ textAlign: 'right', fontWeight: 600, color: '#b8a9d4' }}>—</div>
           </div>
         )}
       </div>
