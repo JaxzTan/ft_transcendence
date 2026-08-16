@@ -13,7 +13,6 @@ type UserProfile = {
   losses: number
   winStreak: number
   bestWinStreak: number
-  daysActive: number
   createdAt: string
   status: PresenceStatus
 }
