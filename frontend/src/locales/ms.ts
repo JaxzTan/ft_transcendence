@@ -124,6 +124,7 @@ export const ms = {
     invitingBtn: 'Menjemput…',
     inviteSent: 'Jemputan dihantar!',
     unfriendBtn: 'Buang rakan',
+    blockBtn: 'Sekat',
   },
   profile: {
     title: 'Profil Pemain',

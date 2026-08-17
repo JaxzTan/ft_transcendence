@@ -152,6 +152,16 @@ export function Friends() {
     fetchData()
   }
 
+  const handleBlock = async (friendId: string) => {
+    await fetch(`/api/friends/block/${friendId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+      credentials: 'include'
+    })
+    fetchData()
+  }
+
   if (loading) {
     return <div style={{ color: '#a99a83', textAlign: 'center', marginTop: 80, fontSize: 18 }}>{t('friends.loadingFriends')}</div>
   }
@@ -287,6 +297,21 @@ export function Friends() {
                     }}
                   >
                     {t('friends.unfriendBtn')}
+                  </button>
+                  <button
+                    onClick={() => handleBlock(f.id)}
+                    style={{
+                      cursor: 'pointer',
+                      border: '1px solid #4a2626',
+                      borderRadius: 9,
+                      padding: '7px 12px',
+                      fontWeight: 700,
+                      fontSize: '12.5px',
+                      color: '#e4574d',
+                      background: 'transparent',
+                    }}
+                  >
+                    {t('friends.blockBtn')}
                   </button>
                 </div>
               </div>

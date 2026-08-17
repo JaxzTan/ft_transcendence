@@ -124,6 +124,7 @@ export const en = {
     invitingBtn: 'Inviting…',
     inviteSent: 'Invite sent!',
     unfriendBtn: 'Unfriend',
+    blockBtn: 'Block',
   },
   profile: {
     title: 'Player Profile',
