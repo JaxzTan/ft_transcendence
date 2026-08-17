@@ -4,8 +4,7 @@ import { dicebearAvatar } from '../dicebear'
 type UserAvatarProps = {
   username: string
   size: number
-  fallbackStyle: any
-  avatarStyle?: string | null
+  fallbackStyle?: any
   style?: any
   cacheBuster?: number
 }

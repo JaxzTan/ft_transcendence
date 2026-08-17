@@ -7,6 +7,7 @@ import type { PlayerColor } from '../game/types'
 import { navigate, useRoute } from '../router'
 import { useApp, type PlayerCount } from '../store'
 import { COL, SEAT_COLORS, card, feltPanel, sectionLabel, type ColorKey } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 const COLOR_KEYS: Record<ColorKey, string> = {
   red: 'lobby.colorRed',
@@ -18,7 +19,7 @@ const COLOR_KEYS: Record<ColorKey, string> = {
 export function Lobby() {
   const { t } = useTranslation()
   const { query } = useRoute()
-  const { seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, setActiveMatch } = useApp()
+  const { user, seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, setActiveMatch } = useApp()
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
   const [editingSeat, setEditingSeat] = useState<number | null>(null)
@@ -138,7 +139,12 @@ export function Lobby() {
                     {seat.type === 'you' && (
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={avStyle}>YO</div>
+                          <UserAvatar
+                            username={user?.username || ''}
+                            size={42}
+                            fallbackStyle={avStyle}
+                            style={{ borderRadius: 11 }}
+                          />
                           <div>
                             <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>
                               {t('common.you')} <span style={{ color: '#c99b45', fontSize: 11, fontWeight: 700 }}>{t('lobby.hostBadge')}</span>

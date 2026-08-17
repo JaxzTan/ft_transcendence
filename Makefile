@@ -72,7 +72,7 @@ seed-secrets: check-secrets
 	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
 
 start: seed-secrets
-	@docker compose -f $(COMPOSE_FILE) up -d
+	@docker compose -f $(COMPOSE_FILE) up -d --build
 
 
 # stop/down/logs carry --profile dev so they still reach frontend-dev; without
