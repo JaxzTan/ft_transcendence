@@ -187,7 +187,7 @@ type BoardProps = {
 /** The classic 15×15 cross board, rendered procedurally — no images. */
 export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating, fx }: BoardProps = {}) {
   const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
-  const activeColors = new Set(players.filter((p) => p.status === 'active').map((p) => p.color))
+  const activeColors = new Set(players.filter((p) => p.status === 'active' || p.status === 'disconnected').map((p) => p.color))
   const basePieces = (ck: ColorKey) =>
     activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase) : []
 

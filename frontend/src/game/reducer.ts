@@ -118,6 +118,21 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
           p.color === (event.color as PlayerColor) ? { ...p, status: 'exited' } : p,
         ),
       }
+    case 'player_disconnected':
+      return {
+        ...state,
+        // Keep all data/pieces — the player is temporarily away, not gone.
+        players: state.players.map((p) =>
+          p.color === (event.color as PlayerColor) ? { ...p, status: 'disconnected' } : p,
+        ),
+      }
+    case 'player_reconnected':
+      return {
+        ...state,
+        players: state.players.map((p) =>
+          p.color === (event.color as PlayerColor) ? { ...p, status: 'active' } : p,
+        ),
+      }
     default:
       return state
   }

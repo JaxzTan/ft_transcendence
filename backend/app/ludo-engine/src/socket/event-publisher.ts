@@ -112,6 +112,20 @@ export class EventPublisher {
           username: event.username,
         }));
         break;
+
+      case 'player_disconnected':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'player_disconnected',
+          color: event.color,
+        }));
+        break;
+
+      case 'player_reconnected':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'player_reconnected',
+          color: event.color,
+        }));
+        break;
     }
   }
 }

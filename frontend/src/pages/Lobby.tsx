@@ -271,7 +271,7 @@ export function Lobby() {
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
               <span style={{ color: '#a99a83' }}>{t('lobby.mode')}</span>
-              <span style={{ fontWeight: 700 }}>{isSolo ? t('lobby.soloModeLabel') : t('lobby.casualUnranked')}</span>
+              <span style={{ fontWeight: 700 }}>{isSolo ? t('lobby.soloModeLabel') : isLocal ? t('lobby.hotseatModeLabel') : t('lobby.casualUnranked')}</span>
             </div>
             <button
               onClick={onStart}

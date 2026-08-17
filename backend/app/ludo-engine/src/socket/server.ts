@@ -62,6 +62,13 @@ export class SocketServer {
 			this.store, this.engine, this.clashManager,
 			this.userIdMap, getOrCreateBot,
 			(gameId) => this.triggerBotTurn(gameId, BOT_THINK_MS),
+			(gameId) => {
+				// A grace timeout dropped the room below the minimum human count
+				// (or a bot-mode disconnect window fully expired): tell any
+				// surviving client the room is gone so they leave cleanly.
+				this.io.to(gameId).emit('game_expired');
+				this.cleanupGame(gameId);
+			},
 		);
 
 		// Wire up engine events — single source of truth for game lifecycle

@@ -24,7 +24,7 @@ type ModeCard = {
   desc: string
   glyph: string
   hue: string
-  badge: 'casual' | 'ranked' | 'invite'
+  badge: 'casual' | 'ranked' | 'invite' | 'semiRanked'
   onClick: () => void
 }
 
@@ -150,7 +150,7 @@ export function LudoLobby() {
       desc: t('lobbyBrowser.vsBotsDesc'),
       glyph: '♟',
       hue: COL.green.base,
-      badge: 'casual',
+      badge: 'semiRanked',
       onClick: () => navigate('/lobby/table?mode=4&bots=1'),
     },
     {
@@ -159,20 +159,23 @@ export function LudoLobby() {
       desc: t('lobbyBrowser.duel2PDesc'),
       glyph: '✕',
       hue: COL.red.base,
-      badge: 'ranked',
+      badge: 'casual',
       onClick: () => navigate('/lobby/table?mode=4&bots=0&local=1'),
     },
   ]
 
   const badgeStyle = (badge: ModeCard['badge']): React.CSSProperties => {
-    const hue = badge === 'ranked' ? '#f0c24e' : badge === 'casual' ? '#4bbf7b' : '#4a92e0'
+    const hue = badge === 'ranked' ? '#f0c24e' : badge === 'semiRanked' ? '#8fc47a' : badge === 'casual' ? '#4bbf7b' : '#4a92e0'
     return {
       fontSize: 10.5, fontWeight: 800, letterSpacing: '.04em', color: hue,
       background: `${hue}22`, border: `1px solid ${hue}55`, borderRadius: 999, padding: '3px 8px',
     }
   }
   const badgeLabel = (badge: ModeCard['badge']) =>
-    badge === 'ranked' ? t('lobbyBrowser.ranked') : badge === 'casual' ? t('lobbyBrowser.casual') : t('lobbyBrowser.invite')
+    badge === 'ranked' ? t('lobbyBrowser.ranked')
+      : badge === 'semiRanked' ? t('lobbyBrowser.semiRanked')
+      : badge === 'casual' ? t('lobbyBrowser.casual')
+      : t('lobbyBrowser.invite')
 
   const filteredRooms = (rooms ?? []).filter((r) => roomFilter === 'all' || r.mode === roomFilter)
 

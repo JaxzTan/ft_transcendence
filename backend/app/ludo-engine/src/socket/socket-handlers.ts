@@ -22,6 +22,7 @@ export class SocketHandlers {
     private userIdMap: Map<string, Map<PlayerColor, string>>,
     private getOrCreateBot: (gameId: string, color: PlayerColor, engine: LudoEngine, store: RedisGameStore) => LudoBot,
     private scheduleBotTurn?: (gameId: string) => void,
+    private notifyAbort?: (gameId: string) => void,
   ) {}
 
   private withGameLock<T>(gameId: string, fn: () => Promise<T>): Promise<T> {
@@ -68,6 +69,11 @@ export class SocketHandlers {
           if (isReconnectingPlayer) {
             await this.engine.handlePlayerReconnect(effectiveGameId, playerColor);
             state = await this.store.loadGameState(effectiveGameId);
+            // The player is back on their old seat — tell the room so everyone
+            // sees them flip from "Reconnecting…" back to active.
+            if (state && !state.disconnectedPlayers.some((d) => d.color === playerColor)) {
+              this.engine.emitEvent({ type: 'player_reconnected', gameId: effectiveGameId, color: playerColor });
+            }
           } else {
             const player = state.players.find(p => p.color === playerColor);
             if (player) player.status = 'active';
@@ -354,7 +360,7 @@ export class SocketHandlers {
 
     (async () => {
       try {
-        await this.engine.handlePlayerDisconnect(gameId, color);
+        await this.engine.handlePlayerDisconnect(gameId, color, this.notifyAbort);
         await this.clashManager.freezeClash(gameId, color);
       } catch (error) {
         console.error('Disconnect handler error:', error);

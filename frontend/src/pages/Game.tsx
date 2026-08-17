@@ -297,6 +297,8 @@ export function Game() {
     socket.on('game_started', handleEngineEvent)
     socket.on('game_ended', handleEngineEvent)
     socket.on('player_exited', handleEngineEvent)
+    socket.on('player_disconnected', handleEngineEvent)
+    socket.on('player_reconnected', handleEngineEvent)
     socket.on('clash_start', handleEngineEvent)
     socket.on('clash_result', handleEngineEvent)
     socket.on('clash_frozen', handleEngineEvent)
@@ -544,7 +546,10 @@ export function Game() {
               )
             }
 
-            if (!playerMeta || playerMeta.status !== 'active') return null
+            // active = full row, disconnected = dimmed "Reconnecting…", exited =
+            // removed from the roster (matches the board, whose pieces are gone).
+            if (!playerMeta || playerMeta.status === 'exited') return null
+            const isDisconnected = playerMeta.status === 'disconnected'
             const isHotseat = activeMatch.mode === 'hotseat'
             // Hotseat: every seat is controlled by the same device, so "isYou"
             // means "whoever's turn this device is currently authorized to
@@ -553,7 +558,7 @@ export function Game() {
             // isn't a separate real account.
             const isYou = isHotseat ? ck === view.myColor : !playerMeta.isBot && playerMeta.username === user?.username
             const name = playerMeta.username
-            const sub = playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : isHotseat ? t('game.localPlayer') : 'Player'
+            const sub = isDisconnected ? t('game.reconnecting') : playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : isHotseat ? t('game.localPlayer') : 'Player'
             const goalCount = playerMeta.piecesInGoal ?? 0
             const lastRoll = view.lastRolls[ck]
 
@@ -565,6 +570,7 @@ export function Game() {
                   border: '1px solid ' + (isActive ? col.base : '#3a2c1d'),
                   background: isActive ? `linear-gradient(180deg,${col.base}22,#1a130d)` : 'linear-gradient(180deg,#241b13,#1a130d)',
                   boxShadow: isActive ? `0 0 0 1px ${col.base}55` : 'none',
+                  opacity: isDisconnected ? 0.55 : 1,
                 }}
               >
                 <div

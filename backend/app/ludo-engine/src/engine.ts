@@ -266,8 +266,8 @@ export class LudoEngine {
 
   // ─── Player lifecycle handlers (delegated to player-handler.ts) ─────────────
 
-  async handlePlayerDisconnect(gameId: string, color: PlayerColor): Promise<void> {
-    return this.withGameLock(gameId, () => handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, this.clashManager));
+  async handlePlayerDisconnect(gameId: string, color: PlayerColor, notifyAbort?: (gameId: string) => void): Promise<void> {
+    return this.withGameLock(gameId, () => handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, this.clashManager, notifyAbort));
   }
 
   async handlePlayerReconnect(gameId: string, color: PlayerColor): Promise<void> {

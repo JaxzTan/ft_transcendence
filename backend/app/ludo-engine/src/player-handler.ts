@@ -3,7 +3,7 @@ import { RedisGameStore } from './redis';
 import { ClashManager } from './clash';
 
 const COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
-const DISCONNECT_GRACE_MS = 30000; // 30 seconds to reconnect before forfeit
+const DISCONNECT_GRACE_MS = 45000; // 45 seconds to reconnect before the player is pruned (PvP window)
 const BOT_DISCONNECT_GRACE_MS = 60 * 60 * 1000; // 1 hour to reconnect before auto-abort (bot-mode games)
 
 /**
@@ -61,6 +61,7 @@ export async function handlePlayerDisconnect(
   gameId: string,
   color: PlayerColor,
   clashManager?: ClashManager,
+  notifyAbort?: (gameId: string) => void,
 ): Promise<void> {
   const state = await store.loadGameState(gameId);
   if (!state) return;
@@ -109,7 +110,11 @@ export async function handlePlayerDisconnect(
   }
 
   await store.saveGameState(gameId, state);
-  emit({ type: 'player_exited', gameId, color });
+  // Announce a TEMPORARY disconnect (not a permanent exit): the room keeps the
+  // player visible as 'disconnected' so the host sees "Reconnecting…" instead
+  // of the player vanishing. player_exited now only fires on genuine permanent
+  // exit (grace expiry, end_game, resign).
+  emit({ type: 'player_disconnected', gameId, color });
 
   // Grace timeout: reconnect window, NOT a forfeit. On expiry:
   //  - bot-mode (PVE/HOTSEAT): auto-abort the whole instance (player counted
@@ -140,13 +145,18 @@ export async function handlePlayerDisconnect(
         // Definitive abort of the whole instance.
         await store.abortMatch(gameId);
         await store.deleteGame(gameId);
+        notifyAbort?.(gameId);
       } else {
+        // Count humans from the FRESH engine state after the prune — the
+        // match hash captured at disconnect time still lists the pruned user,
+        // which made a 2-player room never look like it dropped below 2.
         const after = await store.loadGameState(gameId);
-        const stillHuman = [matchData?.player1_id, matchData?.player2_id, matchData?.player3_id, matchData?.player4_id]
-          .filter(id => id && !id.startsWith('bot-'));
-        if (!after || stillHuman.length < 2) {
+        const humansLeft = (after?.players ?? [])
+          .filter(p => p.status === 'active' && !p.isBot).length;
+        if (!after || humansLeft < 2) {
           await store.abortMatch(gameId);
           await store.deleteGame(gameId);
+          notifyAbort?.(gameId);
         }
       }
     }
