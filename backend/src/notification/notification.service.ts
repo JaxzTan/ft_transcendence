@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Subject, Observable } from 'rxjs';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma.service';
+
 import { secret } from '../secrets';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -134,7 +135,7 @@ export class NotificationService implements OnModuleDestroy {
   ): Promise<void> {
     // 1. Persist to DB so it shows up in the bell dropdown on next page load.
     const row = await this.prisma.db.notification.create({
-      data: { userId, type, payload },
+      data: { userId, type, payload: payload as Record<string, any> },
     });
 
     // 2. Build the SSE payload.
