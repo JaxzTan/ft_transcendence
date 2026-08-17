@@ -14,7 +14,7 @@ OAUTH_SECRETS  = google_client_id google_client_secret google_callback_url \
                  github_client_id github_client_secret github_callback_url \
                  fortytwo_client_id fortytwo_client_secret fortytwo_callback_url
 
-all: seed-secrets build start
+all: build start
 
 l: prepare-secrets build startal
 
