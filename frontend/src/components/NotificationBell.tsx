@@ -7,16 +7,6 @@ import type { PlayerColor } from '../game/types'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function glyph(type: string): string {
-  switch (type) {
-    case 'friend_request': return '👤'
-    case 'friend_accepted': return '🤝'
-    case 'game_invite': return '🎲'
-    case 'achievement': return '🏆'
-    default: return '🔔'
-  }
-}
-
 function label(n: Notification): string {
   switch (n.type) {
     case 'friend_request':
@@ -202,7 +192,7 @@ export function NotificationBell({
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(201,155,69,.1)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(201,155,69,.06)')}
             >
-              <span style={{ fontSize: 20, flex: 'none' }}>{glyph(n.type)}</span>
+
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontSize: 13, fontWeight: n.read ? 500 : 700,

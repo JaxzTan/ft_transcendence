@@ -24,16 +24,7 @@ function title(n: Notification): string {
   }
 }
 
-/** Icon glyph for each type. */
-function glyph(n: Notification): string {
-  switch (n.type) {
-    case 'friend_request': return '👤'
-    case 'friend_accepted': return '🤝'
-    case 'game_invite': return '🎲'
-    case 'achievement': return '🏆'
-    default: return '🔔'
-  }
-}
+
 
 // ─── Single Toast ────────────────────────────────────────────────────────────
 
@@ -105,7 +96,7 @@ function Toast({
   return (
     <div style={toastStyle}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 22 }}>{glyph(notification)}</span>
+
         <div style={{ flex: 1, fontWeight: 700, fontSize: 14, color: '#f0e2c4', lineHeight: 1.4 }}>
           {title(notification)}
         </div>
