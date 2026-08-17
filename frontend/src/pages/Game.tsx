@@ -221,14 +221,14 @@ export function Game() {
             ck: viewRef.current.currentTurn,
             text: e.forfeited
               ? t('game.thirdSixForfeit', { name: roller?.username || viewRef.current.currentTurn })
-              : `Rolled a ${e.value}${e.bonusRoll ? ' (bonus)' : ''}`,
+              : `${t('game.rolledValue', { value: e.value })}${e.bonusRoll ? t('game.bonusSuffix') : ''}`,
           },
           ...prev.slice(0, 7),
         ])
       } else if (type === 'piece_moved') {
         const e = state as unknown as { pieceId: string; color: PlayerColor; captured: boolean; to: number; path: number[] }
         setMoveLogs((prev) => [
-          { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to box ${e.to}` },
+          { ck: e.color, text: e.captured ? t('game.capturedPiece', { to: e.to }) : t('game.movedPiece', { to: e.to }) },
           ...prev.slice(0, 7),
         ])
         // Board state (turn, legal moves, captures) already reflects the final
@@ -313,12 +313,28 @@ export function Game() {
     })
 
     socket.on('game_timeout', () => {
+      setLastResult({
+        winner: viewRef.current.currentTurn,
+        resultDetail: 'abandoned',
+        mode: activeMatch?.mode ?? 'pvp',
+        playerCount: activeMatch?.playerCount ?? 4,
+        players: [],
+        abandoned: true,
+      })
       setActiveMatch(null)
-      navigate('/lobby')
+      navigate('/results')
     })
     socket.on('game_expired', () => {
+      setLastResult({
+        winner: viewRef.current.currentTurn,
+        resultDetail: 'abandoned',
+        mode: activeMatch?.mode ?? 'pvp',
+        playerCount: activeMatch?.playerCount ?? 4,
+        players: [],
+        abandoned: true,
+      })
       setActiveMatch(null)
-      navigate('/lobby')
+      navigate('/results')
     })
 
     socket.on('error', (msg: string) => {
@@ -413,8 +429,18 @@ export function Game() {
   // cleared so Resume Last Game can never resurrect it.
   const endGame = () => {
     socketRef.current?.emit('end_game')
+    // Abandoned outcome: no result is posted for aborts, so the quitter gets
+    // the "Game Abandoned" card (no rating change) instead of a silent kick.
+    setLastResult({
+      winner: viewRef.current.currentTurn,
+      resultDetail: 'abandoned',
+      mode: activeMatch?.mode ?? 'pvp',
+      playerCount: activeMatch?.playerCount ?? 4,
+      players: [],
+      abandoned: true,
+    })
     setActiveMatch(null)
-    navigate('/lobby')
+    navigate('/results')
   }
 
   // If no match credentials exist, redirect back to lobby

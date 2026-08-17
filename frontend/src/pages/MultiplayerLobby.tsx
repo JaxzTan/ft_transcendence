@@ -143,7 +143,7 @@ export function MultiplayerLobby() {
 
         <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 30 }}>
           <div style={{ ...card, padding: 28, maxWidth: 420, width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 18, color: '#f0e2c4' }}>Waiting for players</div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: '#f0e2c4' }}>{t('multiplayer.waitingForPlayers')}</div>
             <div style={{ color: '#a99a83', fontSize: 14 }}>
               {readyCount}/{totalPlayers} players ready
               {allReady && <span style={{ color: '#7ec699', marginLeft: 8 }}>— Starting!</span>}
