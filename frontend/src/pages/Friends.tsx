@@ -228,6 +228,7 @@ export function Friends() {
             <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: '1px solid #2a2015' }}>
               <UserAvatar 
                 username={r.username}
+                avatarStyle={r.avatarStyle}
                 size={38}
                 fallbackStyle={{ ...avatarDim(38), fontSize: 13 }}
               />
@@ -269,6 +270,7 @@ export function Friends() {
                 <div style={{ position: 'relative', flex: 'none', cursor: 'pointer' }} onClick={() => navigate(`/profile?u=${f.username}`)}>
                   <UserAvatar 
                     username={f.username}
+                    avatarStyle={f.avatarStyle}
                     size={40}
                     fallbackStyle={{ ...avatarDim(40), fontSize: 13 }}
                   />
