@@ -41,6 +41,9 @@ export class MatchService {
 	async spectate(gameId: string) {
 		return this.player.spectate(gameId);
 	}
+	async inviteFriendToGame(gameId: string, userId: string, friendId: string) {
+		return this.player.inviteFriendToGame(gameId, userId, friendId);
+	}
 
 	// ─── Mark Started (called by ludo-engine once a PvP game actually starts) ─
 	async markStarted(gameId: string) {

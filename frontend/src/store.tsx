@@ -73,6 +73,8 @@ function storedActiveMatch(): ActiveMatch {
 export type LastResult = {
   winner: PlayerColor
   resultDetail: string
+  mode: 'pvp' | 'pve' | 'hotseat'
+  playerCount: number
   players: Array<{ color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number }>
 } | null
 

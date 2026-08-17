@@ -154,15 +154,6 @@ export function LudoLobby() {
       onClick: () => navigate('/lobby/table?mode=4&bots=1'),
     },
     {
-      key: 'classic4P',
-      title: t('lobby.classic4P'),
-      desc: t('lobbyBrowser.classic4PDesc'),
-      glyph: '✦',
-      hue: COL.yellow.base,
-      badge: 'ranked',
-      onClick: () => navigate('/lobby/table?mode=4&bots=0'),
-    },
-    {
       key: 'duel2P',
       title: t('lobby.duel2P'),
       desc: t('lobbyBrowser.duel2PDesc'),
@@ -170,15 +161,6 @@ export function LudoLobby() {
       hue: COL.red.base,
       badge: 'ranked',
       onClick: () => navigate('/lobby/table?mode=4&bots=0&local=1'),
-    },
-    {
-      key: 'testYourLuck',
-      title: t('lobby.testYourLuck'),
-      desc: t('lobbyBrowser.testYourLuckDesc'),
-      glyph: '⚄',
-      hue: COL.blue.base,
-      badge: 'casual',
-      onClick: () => navigate('/lobby/table?mode=1&bots=0&local=1'),
     },
   ]
 

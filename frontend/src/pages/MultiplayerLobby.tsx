@@ -179,8 +179,8 @@ export function MultiplayerLobby() {
           {/* Quick Match */}
           <div style={{ ...card, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ width: 52, height: 52, borderRadius: 12, display: 'grid', placeItems: 'center', fontSize: 24, color: '#e05050', background: 'rgba(255,255,255,.04)', border: '1px solid #e0505044' }}>⚡</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: '#f0e2c4' }}>Quick Match</div>
-            <div style={{ color: '#a99a83', fontSize: 14, lineHeight: 1.5 }}>Join the first open PvP room, or create a new one instantly.</div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: '#f0e2c4' }}>{t('multiplayer.quickTitle')}</div>
+            <div style={{ color: '#a99a83', fontSize: 14, lineHeight: 1.5 }}>{t('multiplayer.quickDesc')}</div>
             <button onClick={quickMatch} disabled={busy !== null} style={{ ...btnGold, padding: '13px 22px', marginTop: 'auto' }}>
               {busy === 'quick' ? '…' : 'Find Match'}
             </button>

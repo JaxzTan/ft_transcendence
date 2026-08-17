@@ -42,10 +42,15 @@ export function Results() {
     setRematchError(null)
     setRematching(true)
     try {
+      // "Play Again" must replay the mode that just finished. The REST
+      // /api/match/rematch route is unusable here (processGameEnd deletes the
+      // match hash, so the rematch lookup can't find the finished game), so
+      // PvP creates a fresh WAITING room via create — same as Create Room.
+      const finishedMode = lastResult?.mode ?? (seats.some((s) => s.type === 'bot') ? 'pve' : 'pvp')
       const res = await postApi<{ gameId: string; token: string; color: PlayerColor; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>('/api/match/create', {
-        mode: 'pve',
-        playerCount: playerCount,
-        botCount: seats.slice(0, playerCount).filter((s) => s.type === 'bot').length,
+        mode: finishedMode,
+        playerCount: finishedMode === 'hotseat' ? (lastResult?.playerCount ?? playerCount) : (lastResult?.playerCount ?? playerCount),
+        botCount: finishedMode === 'pve' ? seats.slice(0, playerCount).filter((s) => s.type === 'bot').length : 0,
         clashEnabled: true,
       })
       setActiveMatch(res)

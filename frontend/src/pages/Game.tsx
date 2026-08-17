@@ -7,6 +7,7 @@ import { applyEvent, initialView } from '../game/reducer'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { connectSocket } from '../socket'
+import { getApi, postApi } from '../api'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
 
@@ -112,6 +113,10 @@ export function Game() {
   // after the burst plays out — purely visual, no game state involved.
   const [captureFx, setCaptureFx] = useState<{ color: string; to: number } | null>(null)
   const captureFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Friend-invite picker (waiting room, PvP only): lets the host invite an
+  // accepted friend into THIS room (POST /api/game/:id/invite).
+  const [friends, setFriends] = useState<Array<{ id: string; username: string }>>([])
+  const [inviteStates, setInviteStates] = useState<Record<string, 'idle' | 'busy' | 'sent'>>({})
 
   const copyRoomCode = () => {
     if (!activeMatch?.inviteCode) return
@@ -126,6 +131,14 @@ export function Game() {
     setPlaying(true)
     return () => setPlaying(false)
   }, [setPlaying])
+
+  // Load accepted friends when waiting in a PvP room so the host can invite.
+  useEffect(() => {
+    if (view.status !== 'waiting' || activeMatch?.mode !== 'pvp') return
+    getApi<Array<{ id: string; username: string }>>('/api/friends')
+      .then((data) => setFriends(Array.isArray(data) ? data : []))
+      .catch(() => setFriends([]))
+  }, [view.status, activeMatch?.mode, activeMatch?.gameId])
 
   // Connect to engine via Socket.IO
   useEffect(() => {
@@ -266,6 +279,8 @@ export function Game() {
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
+          mode: activeMatch?.mode ?? 'pvp',
+          playerCount: activeMatch?.playerCount ?? 4,
           players: viewRef.current.players
             .filter((p) => p.status === 'active')
             .map((p) => ({
@@ -369,6 +384,17 @@ export function Game() {
   const selectColor = (color: PlayerColor) => socketRef.current?.emit('select_color', color)
   const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
   const clearClash = () => dispatch({ type: 'clash_clear' })
+
+  const inviteFriend = async (friendId: string) => {
+    if (!activeMatch || inviteStates[friendId] === 'busy') return
+    setInviteStates((prev) => ({ ...prev, [friendId]: 'busy' }))
+    try {
+      await postApi(`/api/game/${activeMatch.gameId}/invite`, { friendId })
+      setInviteStates((prev) => ({ ...prev, [friendId]: 'sent' }))
+    } catch {
+      setInviteStates((prev) => ({ ...prev, [friendId]: 'idle' }))
+    }
+  }
 
   // "Go to Lobby" is PURE navigation: it leaves the game screen but does NOT
   // mutate the engine state. The unmount socket.disconnect() puts the human in
@@ -633,6 +659,38 @@ export function Game() {
                   total: view.players.filter((p) => p.status === 'active').length,
                 })}
               </div>
+
+              {activeMatch?.mode === 'pvp' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #3a2c1d', paddingTop: 14 }}>
+                  <div style={{ fontSize: 12.5, color: '#a99a83', fontWeight: 700 }}>{t('game.inviteFriend')}</div>
+                  {friends.length === 0 ? (
+                    <div style={{ fontSize: 12, color: '#8a7c66' }}>{t('game.noFriendsToInvite')}</div>
+                  ) : (
+                    friends.map((f) => {
+                      const st = inviteStates[f.id] ?? 'idle'
+                      return (
+                        <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13.5, color: '#f0e2c4' }}>{f.username}</div>
+                          <button
+                            onClick={() => inviteFriend(f.id)}
+                            disabled={st !== 'idle'}
+                            style={{
+                              border: '1px solid ' + (st === 'sent' ? '#2e4a38' : '#3a2c1d'),
+                              borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                              color: st === 'sent' ? '#5fd08a' : '#c9bda3',
+                              background: st === 'sent' ? 'rgba(34,67,47,.3)' : '#1a130d',
+                              cursor: st === 'idle' ? 'pointer' : 'default',
+                              flex: 'none',
+                            }}
+                          >
+                            {st === 'busy' ? t('game.invitingBtn') : st === 'sent' ? t('game.inviteSent') : t('game.inviteBtn')}
+                          </button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
