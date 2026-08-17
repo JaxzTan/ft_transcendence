@@ -6,6 +6,7 @@ import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { COL, btnGold, btnOutline, card, feltPanel, pill, sectionLabel } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 type Room = {
   id: string
@@ -370,14 +371,14 @@ export function LudoLobby() {
                     >
                       <div style={{ fontWeight: 800, fontSize: 13, letterSpacing: '.06em', color: '#e8dcc6' }}>{room.roomCode}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
-                          style={{
+                        <UserAvatar
+                          username={room.host}
+                          size={30}
+                          fallbackStyle={{
                             width: 30, height: 30, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center',
                             fontWeight: 800, fontSize: 11, color: '#12100a', background: hue,
                           }}
-                        >
-                          {room.host.slice(0, 2).toUpperCase()}
-                        </div>
+                        />
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13.5, color: '#f0e2c4' }}>{room.host}</div>
                           <div style={{ color: '#a99a83', fontSize: 12 }}>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { navigate } from '../router'
 import { LANGUAGES, useApp, type Lang } from '../store'
 import { avatarBlue, sectionLabel } from '../theme'
+import { UserAvatar } from './UserAvatar'
 
 /**
  * CJK glyphs fill the em box while Latin sits at roughly half of it, so the same
@@ -19,7 +20,6 @@ export function AccountMenu() {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const name = user?.username ?? 'You'
-  const initials = name.slice(0, 2).toUpperCase()
 
   // Close on outside click / Escape.
   useEffect(() => {
@@ -65,12 +65,22 @@ export function AccountMenu() {
           }
         }}
         style={{
-          ...avatarBlue(40, 14),
           cursor: 'pointer',
+          borderRadius: '50%',
           boxShadow: open ? '0 0 0 2px #f0d18a' : '0 0 0 2px #f0d18a55',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 40,
+          height: 40,
+          flex: 'none',
         }}
       >
-        {initials}
+        <UserAvatar
+          username={user?.username || ''}
+          size={40}
+          fallbackStyle={avatarBlue(40, 14)}
+        />
       </div>
 
       {open && (

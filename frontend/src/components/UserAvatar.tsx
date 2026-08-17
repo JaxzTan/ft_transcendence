@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react'
 type UserAvatarProps = {
   username: string
   size: number
-  fallbackStyle: any
+  fallbackStyle?: any
   style?: any
   cacheBuster?: number
 }
 
-export function UserAvatar({ username, size, fallbackStyle, style, cacheBuster }: UserAvatarProps) {
+export function UserAvatar({ username, size, fallbackStyle = {}, style, cacheBuster }: UserAvatarProps) {
   const [error, setError] = useState(false)
 
   // Reset error state if username or cache buster changes
