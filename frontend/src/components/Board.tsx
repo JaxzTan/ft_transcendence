@@ -180,10 +180,12 @@ type BoardProps = {
   onPieceClick?: (pieceId: string) => void
   /** While set, this piece renders at `step` (box by box) instead of its real logical step — see Game.tsx's move animation. */
   animating?: { pieceId: string; step: number } | null
+  /** Transient capture burst: expanding ring + sparks on the cell the mover landed on. Pure cosmetic overlay. */
+  fx?: { color: string; to: number } | null
 }
 
 /** The classic 15×15 cross board, rendered procedurally — no images. */
-export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating }: BoardProps = {}) {
+export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating, fx }: BoardProps = {}) {
   const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
   const activeColors = new Set(players.filter((p) => p.status === 'active').map((p) => p.color))
   const basePieces = (ck: ColorKey) =>
@@ -281,11 +283,80 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
         50% { box-shadow: 0 0 0 7px rgba(160,165,170,.55), 0 0 14px rgba(0,0,0,.55); }
         100% { box-shadow: 0 0 0 4px rgba(160,165,170,.35), 0 0 6px rgba(0,0,0,.45); }
       }
+      @keyframes captureRing {
+        from { transform: scale(.2); opacity: .9; }
+        to   { transform: scale(1.9); opacity: 0; }
+      }
+      @keyframes captureSpark {
+        from { transform: translate(0,0) scale(1); opacity: 1; }
+        to   { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; }
+      }
     `
     document.head.appendChild(style)
   }, [])
 
   const enginePieces: ReactNode[] = []
+
+  // Capture burst FX: transient ring + sparks on the landing cell. Positioned
+  // like enginePieces (grid row/col), above them (zIndex 11), non-interactive.
+  if (fx && fx.to >= 1 && fx.to <= 57) {
+    const ck = fx.color as ColorKey
+    const cell = stepToCell(ck, fx.to)
+    if (cell) {
+      const col = COL[ck]
+      let uid = 0
+      const spark = (dx: number, dy: number, size: number, bg: string) => (
+        <div
+          key={`fx-s${uid++}`}
+          style={
+            {
+              gridRow: cell.r + 1,
+              gridColumn: cell.c + 1,
+              width: size,
+              height: size,
+              alignSelf: 'center',
+              justifySelf: 'center',
+              borderRadius: '50%',
+              background: bg,
+              pointerEvents: 'none',
+              zIndex: 11,
+              '--dx': `${dx}px`,
+              '--dy': `${dy}px`,
+              animation: 'captureSpark 600ms ease-out forwards',
+            } as CSSProperties & Record<'--dx' | '--dy', string>
+          }
+        />
+      )
+      enginePieces.push(
+        <div
+          key="fx-ring"
+          style={{
+            gridRow: cell.r + 1,
+            gridColumn: cell.c + 1,
+            width: 34,
+            height: 34,
+            alignSelf: 'center',
+            justifySelf: 'center',
+            borderRadius: '50%',
+            border: `3px solid ${col.base}`,
+            boxShadow: `0 0 12px ${col.base}aa`,
+            pointerEvents: 'none',
+            zIndex: 11,
+            animation: 'captureRing 600ms ease-out forwards',
+          }}
+        />,
+        spark(0, -20, 7, '#ffffff'),
+        spark(0, 20, 7, col.base),
+        spark(-20, 0, 6, '#ffffff'),
+        spark(20, 0, 6, col.base),
+        spark(-14, -14, 5, col.base),
+        spark(14, -14, 5, '#ffffff'),
+        spark(-14, 14, 5, '#ffffff'),
+        spark(14, 14, 5, col.base),
+      )
+    }
+  }
+
   for (const [key, list] of byCell) {
     const [r, c] = key.split(',').map(Number)
     list.forEach((p, i) => {

@@ -32,7 +32,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('create')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>('/api/match/create', {
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>('/api/match/create', {
         mode: 'pvp',
         playerCount: 4,
         botCount: 0,
@@ -51,7 +51,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('join')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(`/api/match/join/${encodeURIComponent(inviteCode.trim())}`, {})
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>(`/api/match/join/${encodeURIComponent(inviteCode.trim())}`, {})
       setActiveMatch(res)
       startWaiting(res.gameId)
     } catch (err) {
@@ -64,7 +64,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('quick')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>('/api/match/pvp/random', {})
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>('/api/match/pvp/random', {})
       setActiveMatch(res)
       startWaiting(res.gameId)
     } catch (err) {

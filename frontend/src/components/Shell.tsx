@@ -118,7 +118,9 @@ export function Shell({ children }: { children: ReactNode }) {
       // them at invite time, same as online mode's synchronous join) — accept
       // just confirms entry into the room already reserved for them.
       const { gameId, token, color, inviteCode } = invite
-      setActiveMatch({ gameId, token, color, inviteCode })
+      // Friend-invite rooms are always 4-player PvP rooms (backend createInvite
+      // -> createMatch(userId, 'pvp', 4, ...)), so mode/playerCount are fixed.
+      setActiveMatch({ gameId, token, color, inviteCode, mode: 'pvp', playerCount: 4 })
       setInvite(null)
       navigate(`/game?gameId=${gameId}`)
     } catch {

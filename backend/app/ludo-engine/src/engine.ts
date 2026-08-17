@@ -16,6 +16,10 @@ export class LudoEngine {
   private eventHandler?: (event: GameEvent) => void;
   private clashManager: ClashManager;
   private lobbyManager?: LobbyManager;
+  // Serializes one game's operations so roll/move/etc. never run on top of
+  // each other (a bot acting at the same time as a human would otherwise
+  // both load the same state and one move gets lost).
+  private gameLocks = new Map<string, Promise<unknown>>();
 
   constructor(store: RedisGameStore, clashManager: ClashManager) {
     this.store = store;
@@ -44,6 +48,18 @@ export class LudoEngine {
     this.emit(event);
   }
 
+  /**
+   * Serialize a mutating operation per game. Follows the same promise-chain
+   * pattern as SocketHandlers.joinLocks; the next operation for a game only
+   * starts after the previous one resolved (or rejected) against Redis.
+   */
+  private withGameLock<T>(gameId: string, fn: () => Promise<T>): Promise<T> {
+    const prev = this.gameLocks.get(gameId) ?? Promise.resolve();
+    const run = prev.then(fn, fn);
+    this.gameLocks.set(gameId, run.then(() => undefined, () => undefined));
+    return run;
+  }
+
   async getGameState(gameId: string): Promise<GameState | null> {
     return await this.store.loadGameState(gameId);
   }
@@ -54,6 +70,7 @@ export class LudoEngine {
    * Handles zero legal moves by advancing turn automatically (with bonus roll on 6).
    */
   async rollDice(gameId: string): Promise<{ value: number; legalMoves: LegalMove[]; bonusRoll: boolean }> {
+    return this.withGameLock(gameId, async () => {
     const state = await this.store.loadGameState(gameId);
     if (!state || state.status !== 'active') {
       throw new Error('Game not active');
@@ -70,20 +87,17 @@ export class LudoEngine {
     }
 
     const diceValue = Math.floor(Math.random() * 6) + 1;
-    // Only the first roll of a turn-holding streak can earn a six-bonus;
-    // any roll after that (including a bonus roll that itself lands a 6)
-    // needs an actual capture to keep the turn going.
-    const isFirstRoll = state.firstRollOfTurn;
-    state.firstRollOfTurn = false;
 
     currentPlayer.hasRolled = true;
-    currentPlayer.consecutiveSixes = diceValue === 6 ? state.consecutiveSixes : 0;
+    // Per-player 6-streak (classic rule): every 6 grants a bonus roll; the
+    // third consecutive 6 within one turn-holding streak forfeits the turn.
+    // The streak lives on PlayerMeta so it resets on turn advance and can
+    // never leak across players.
+    currentPlayer.consecutiveSixes = diceValue === 6 ? currentPlayer.consecutiveSixes + 1 : 0;
 
-    // Handle three consecutive sixes: forfeit turn
     if (diceValue === 6) {
-      state.consecutiveSixes++;
-      if (state.consecutiveSixes >= 3) {
-        state.consecutiveSixes = 0;
+      if (currentPlayer.consecutiveSixes >= 3) {
+        currentPlayer.consecutiveSixes = 0;
         currentPlayer.bonusRoll = false;
         state.turnPhase = 'WAITING_FOR_ROLL';
         state.pendingLegalMoves = [];
@@ -91,21 +105,18 @@ export class LudoEngine {
         state.pendingIsFirstRoll = undefined;
         advanceTurnInState(state);
         await this.store.saveGameState(gameId, state);
-        this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll: false, currentTurn: state.currentTurn });
+        this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll: false, currentTurn: state.currentTurn, forfeited: true });
         return { value: diceValue, legalMoves: [], bonusRoll: false };
       }
-    } else {
-      state.consecutiveSixes = 0;
     }
 
-    const sixBonus = diceValue === 6 && isFirstRoll;
+    const sixBonus = diceValue === 6;
     currentPlayer.bonusRoll = sixBonus;
 
     const legalMoves = MoveValidator.getLegalMoves(state, state.currentTurn, diceValue);
 
-    // Store authoritative dice value + first-roll status so movePiece() doesn't need to recompute it
+    // Store authoritative dice value so movePiece() doesn't need to recompute it
     state.pendingDiceValue = diceValue;
-    state.pendingIsFirstRoll = isFirstRoll;
 
     if (legalMoves.length === 0) {
       // No legal moves: auto-advance turn (with bonus roll only on a first-roll 6)
@@ -129,6 +140,7 @@ export class LudoEngine {
 
     this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves, bonusRoll: sixBonus, currentTurn: state.currentTurn });
     return { value: diceValue, legalMoves, bonusRoll: sixBonus };
+    });
   }
 
   /**
@@ -138,6 +150,7 @@ export class LudoEngine {
    * Emits game lifecycle events as the single source of truth.
    */
   async movePiece(gameId: string, pieceId: PieceId): Promise<MovePieceOutput> {
+    return this.withGameLock(gameId, async () => {
     const state = await this.store.loadGameState(gameId);
     if (!state || state.status !== 'active') {
       throw new Error('Game not active');
@@ -148,7 +161,12 @@ export class LudoEngine {
       throw new Error('Invalid turn phase: expected WAITING_FOR_MOVE');
     }
 
-    // Validate: pieceId must be in pendingLegalMoves (server-authoritative)
+    // Validate: pieceId must be in pendingLegalMoves (server-authoritative).
+    // The legal-move list is a snapshot taken at roll time; a player who was
+    // disconnected (turn advanced, pending moves cleared) or forfeited between
+    // roll and move is rejected here. We intentionally do NOT re-derive the
+    // capture at execution time — the snapshot is the contract, and any
+    // post-move capture gating (clash QTE) is a future layer on top of this.
     const pendingMove = state.pendingLegalMoves.find(m => m.pieceId === pieceId);
     if (!pendingMove) {
       throw new Error('Invalid move: piece not in legal moves');
@@ -159,7 +177,6 @@ export class LudoEngine {
     if (diceValue === undefined) {
       throw new Error('No pending dice value — roll first');
     }
-    const rollWasFirst = state.pendingIsFirstRoll === true;
 
     // Execute move via MoveValidator (pure game logic)
     const result = MoveValidator.executeMove(state, pendingMove, diceValue);
@@ -214,7 +231,7 @@ export class LudoEngine {
     } else {
       // Sync piecesInGoal for the moving player
       const mover = state.players.find(p => p.color === result.color);
-      const sixBonus = diceValue === 6 && rollWasFirst;
+      const sixBonus = diceValue === 6;
       if (mover) {
         mover.piecesInGoal = MoveValidator.countPiecesInGoal(state, result.color);
         mover.hasRolled = false;
@@ -243,33 +260,34 @@ export class LudoEngine {
     }
 
     return { result, state };
+    });
   }
 
 
   // ─── Player lifecycle handlers (delegated to player-handler.ts) ─────────────
 
   async handlePlayerDisconnect(gameId: string, color: PlayerColor): Promise<void> {
-    return handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, this.clashManager);
+    return this.withGameLock(gameId, () => handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, this.clashManager));
   }
 
   async handlePlayerReconnect(gameId: string, color: PlayerColor): Promise<void> {
-    return handlePlayerReconnect(this.store, gameId, color);
+    return this.withGameLock(gameId, () => handlePlayerReconnect(this.store, gameId, color));
   }
 
   async handlePlayerReady(gameId: string, color: PlayerColor): Promise<void> {
-    await handlePlayerReady(this.store, (e) => this.emit(e), gameId, color);
+    await this.withGameLock(gameId, () => handlePlayerReady(this.store, (e) => this.emit(e), gameId, color));
     await this.emitLobbyUpdate(gameId);
   }
 
   async handlePlayerExit(gameId: string, color: PlayerColor): Promise<void> {
-    return handlePlayerExit(this.store, (e) => this.emit(e), gameId, color);
+    return this.withGameLock(gameId, () => handlePlayerExit(this.store, (e) => this.emit(e), gameId, color));
   }
 
   async handlePlayerSelectColor(gameId: string, userId: string, color: PlayerColor): Promise<void> {
     if (!this.lobbyManager) {
       throw new Error('Lobby manager not initialized');
     }
-    await this.lobbyManager.handleSelectColor(gameId, userId, color);
+    await this.withGameLock(gameId, () => this.lobbyManager!.handleSelectColor(gameId, userId, color));
     await this.emitLobbyUpdate(gameId);
   }
 

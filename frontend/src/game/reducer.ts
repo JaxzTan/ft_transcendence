@@ -24,13 +24,15 @@ export type GameViewState = {
   clashResult: ClashResult | null
   myColor: PlayerColor
   readyPlayers: PlayerColor[]
+  /** Last dice value rolled by each color (populated from dice_rolled events). */
+  lastRolls: Partial<Record<PlayerColor, number>>
 }
 
 export function initialView(myColor: PlayerColor): GameViewState {
   return {
     pieces: [],
     players: [],
-    currentTurn: 'red',
+    currentTurn: 'blue',
     turnPhase: 'WAITING_FOR_ROLL',
     diceValue: null,
     legalMoves: [],
@@ -40,6 +42,7 @@ export function initialView(myColor: PlayerColor): GameViewState {
     clashResult: null,
     myColor,
     readyPlayers: [],
+    lastRolls: {},
   }
 }
 
@@ -81,15 +84,21 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
     case 'my_color_changed':
       return { ...state, myColor: event.color as PlayerColor }
     case 'game_started':
-      return { ...state, status: 'active' }
+      return { ...state, status: 'active', lastRolls: {} }
     case 'dice_rolled': {
       const legalMoves = (event.legalMoves as LegalMove[]) ?? []
+      // Key the roll to the PRE-event turn (state.currentTurn): the engine
+      // advances currentTurn before emitting on no-move/3×6 forfeit paths, so
+      // the event's own currentTurn may already be the NEXT player while the
+      // value belongs to the player who actually rolled.
+      const roller = state.currentTurn
       return {
         ...state,
         diceValue: event.value as number,
         legalMoves,
         turnPhase: legalMoves.length > 0 ? 'WAITING_FOR_MOVE' : 'WAITING_FOR_ROLL',
         currentTurn: (event.currentTurn as PlayerColor) ?? state.currentTurn,
+        lastRolls: { ...state.lastRolls, [roller]: event.value as number },
       }
     }
     case 'piece_moved':
@@ -141,7 +150,7 @@ function applyMove(state: GameViewState, move: MoveResult): GameViewState {
 }
 
 function nextTurn(players: GameState['players'], from: PlayerColor): PlayerColor {
-  const order: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+  const order: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
   const idx = order.indexOf(from)
   for (let i = 1; i <= 4; i++) {
     const c = order[(idx + i) % 4]

@@ -2,7 +2,7 @@ import { RedisGameStore } from './redis';
 import { EventPublisher } from './socket/event-publisher';
 import type { PlayerColor } from './types';
 
-const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
+const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
 export class LobbyManager {
   constructor(private store: RedisGameStore, private publisher: EventPublisher) {}

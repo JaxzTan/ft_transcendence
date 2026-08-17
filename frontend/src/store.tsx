@@ -33,6 +33,7 @@ export const LANGUAGES: Array<{ code: Lang; label: string; flag: string }> = [
 
 const LANG_KEY = 'lr.lang'
 const ACTIVE_MATCH_KEY = 'lr.activeMatch'
+const SEATS_KEY = 'lr.seats'
 
 function storedLang(): Lang {
   const raw = localStorage.getItem(LANG_KEY)
@@ -57,8 +58,8 @@ export type ActiveMatch = {
   token: string
   color: PlayerColor
   inviteCode?: string
-  mode?: 'pvp' | 'pve' | 'hotseat'
-  playerCount?: number
+  mode: 'pvp' | 'pve' | 'hotseat'
+  playerCount: number
 } | null
 
 function storedActiveMatch(): ActiveMatch {
@@ -257,12 +258,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [user, sendHeartbeat])
 
   const [playerCount, setPlayerCount] = useState<PlayerCount>(4)
-  const [seats, setSeats] = useState<Seat[]>([
-    { type: 'you' },
-    { type: 'empty' },
-    { type: 'empty' },
-    { type: 'empty' },
-  ])
+  const [seats, setSeats] = useState<Seat[]>(() => {
+    try {
+      const raw = sessionStorage.getItem(SEATS_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as Seat[]
+        if (Array.isArray(parsed) && parsed.length === 4 && parsed.some((x) => x.type === 'you')) return parsed
+      }
+    } catch { /* ignore corrupt value */ }
+    return [{ type: 'you' }, { type: 'empty' }, { type: 'empty' }, { type: 'empty' }]
+  })
   const [dice, setDice] = useState(4)
   const [rolling, setRolling] = useState(false)
   const [turn, setTurn] = useState(0)
@@ -404,11 +409,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [activeMatch, setActiveMatch] = useState<ActiveMatch>(storedActiveMatch)
   const [lastResult, setLastResult] = useState<LastResult>(null)
 
-  // Persist activeMatch in sessionStorage so a page refresh can reconnect
+  // Persist activeMatch + seats in sessionStorage so a page refresh can
+  // reconnect (hotseat needs the local seat names to rejoin every seat).
   useEffect(() => {
     if (activeMatch) sessionStorage.setItem(ACTIVE_MATCH_KEY, JSON.stringify(activeMatch))
     else sessionStorage.removeItem(ACTIVE_MATCH_KEY)
   }, [activeMatch])
+
+  useEffect(() => {
+    sessionStorage.setItem(SEATS_KEY, JSON.stringify(seats))
+  }, [seats])
 
   const value = useMemo(
     () => ({

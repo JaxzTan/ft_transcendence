@@ -6,7 +6,7 @@ import Redis from 'ioredis';
 import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
 
 const BOT_PREFIX = 'bot-';
-const SLOT_COLORS = ['red', 'green', 'yellow', 'blue'];
+const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
 
@@ -136,7 +136,11 @@ export class MatchCreatorService {
 			{ expiresIn: '24h' },
 		);
 
-		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color };
+		// mode + playerCount must be returned: the frontend persists activeMatch
+		// to sessionStorage for refresh/reconnect and branches on activeMatch.mode
+		// (hotseat eager multi-join, rejoin auth). Without them, a browser refresh
+		// silently loses the mode and hotseat/PvE rejoin as a generic PvP seat.
+		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color, mode, playerCount };
 		if (isPvP) {
 			result.inviteCode = updates.inviteCode;
 		}

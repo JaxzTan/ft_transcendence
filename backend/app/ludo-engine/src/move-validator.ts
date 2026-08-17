@@ -25,7 +25,7 @@ export class MoveValidator {
         if (diceValue !== 6) continue;
         const to = 1;
         const isHomeEntry = false;
-        const isCapture = this.wouldCaptureStatic(state, color, piece.id, to);
+        const isCapture = this.isCapturableTarget(state, color, piece.id, to);
         moves.push({ pieceId: piece.id, from, to, isCapture, isHomeEntry });
         continue;
       }
@@ -40,7 +40,7 @@ export class MoveValidator {
       }
       
       const isHomeEntry = to >= 52 && to <= 56;
-      const isCapture = this.wouldCaptureStatic(state, color, piece.id, to);
+      const isCapture = this.isCapturableTarget(state, color, piece.id, to);
       
       moves.push({
         pieceId: piece.id,
@@ -71,7 +71,7 @@ export class MoveValidator {
     if (from < 1 || to < 1) return false;
 
     // Opponents' blockades only matter; own pieces never physically block the mover.
-    const opponentColors: PlayerColor[] = ['red', 'green', 'yellow', 'blue'].filter(c => c !== moverColor) as PlayerColor[];
+    const opponentColors: PlayerColor[] = ['blue', 'red', 'green', 'yellow'].filter(c => c !== moverColor) as PlayerColor[];
 
     // Walk the mover's own-step path, but only main-track steps (1-51) participate.
     // When the move ends in the home stretch/goal (to > 51), still check the
@@ -91,43 +91,60 @@ export class MoveValidator {
     return false;
   }
 
-  static wouldCaptureStatic(state: GameState, excludeColor: PlayerColor, pieceId: PieceId, targetStep: number): boolean {
-    if (targetStep <= 0 || targetStep >= 57) return false;
+  /**
+   * Single source of truth for "can the mover capture on targetStep?".
+   * Detection (getLegalMoves → isCapture) and execution (executeMove) both
+   * derive from this one predicate so the two paths can never drift apart.
+   * Rules:
+   *  - main track only (steps 1-51): home stretch (52-56) and goal (57) are immune
+   *  - safe zones are never capturable
+   *  - a 2+ same-color opponent blockade is uncapturable (sharing is fine)
+   *  - otherwise true iff any opponent piece currently occupies the landing square
+   */
+  static isCapturableTarget(state: GameState, moverColor: PlayerColor, pieceId: PieceId, targetStep: number): boolean {
+    if (targetStep <= 0 || targetStep >= 52) return false;
 
-    // Check safe zones using BoardMapper (safe zones are track positions 8, 13, 21, 26, 34, 39, 47)
+    // Safe zones (start squares + shared safe loop) never allow captures.
     if (BoardMapper.isSafeZoneStep(pieceId, targetStep)) return false;
+
+    const targetPos = BoardMapper.toTrackPosition(pieceId, targetStep);
+    if (targetPos === -1) return false;
 
     // Blockade rule: a 2+ same-color opponent stack on the landing square is
     // uncapturable — sharing is fine, capturing is not. The blocker pieces are
     // compared on the shared track loop via the mover's target track position.
-    const targetPos = BoardMapper.toTrackPosition(pieceId, targetStep);
-    if (targetPos !== -1) {
-      const opponentColors: PlayerColor[] = ['red', 'green', 'yellow', 'blue'].filter(c => c !== excludeColor) as PlayerColor[];
-      for (const blockerColor of opponentColors) {
-        if (BoardMapper.isBlockadeAtTrackPos(state.pieces, blockerColor, targetPos)) {
-          return false;
-        }
+    const opponentColors: PlayerColor[] = ['blue', 'red', 'green', 'yellow'].filter(c => c !== moverColor) as PlayerColor[];
+    for (const blockerColor of opponentColors) {
+      if (BoardMapper.isBlockadeAtTrackPos(state.pieces, blockerColor, targetPos)) {
+        return false;
       }
     }
 
     for (const piece of state.pieces) {
-      // step <= 0 covers pieces still in prison, not just exited (-1) ones —
-      // prison pieces also map to -1 and must not false-match the home stretch.
-      if (piece.color === excludeColor || piece.step <= 0) continue;
+      // Only pieces actually on the main track can be targets; prison (-1/0)
+      // and home-stretch/goal pieces map to trackPos -1 and can never match.
+      if (piece.color === moverColor || piece.step < 1 || piece.step > 51) continue;
       const boardPos = BoardMapper.toTrackPosition(piece.id, piece.step);
       if (boardPos === targetPos) return true;
     }
     return false;
   }
 
-  /** Every opponent piece occupying the landing square — a stacked block is captured as a whole. */
+  /**
+   * Every opponent piece occupying the landing square — a stacked block is
+   * captured as a whole. Defensive: under legal serialized play, cross-color
+   * sharing is impossible outside safe zones and same-color blockades (a move
+   * onto an occupied non-safe square always captures), so this normally finds
+   * a single color's block at most. Keeping the whole-square rule means even
+   * a future rule change can't silently leave defenders on the square.
+   */
   static findPiecesAtPosition(state: GameState, excludeColor: PlayerColor, targetStep: number): PieceId[] {
     if (targetStep <= 0 || targetStep >= 52) return [];
 
     const targetPos = BoardMapper.toTrackPosition(`${excludeColor}-0`, targetStep);
     const found: PieceId[] = [];
     for (const piece of state.pieces) {
-      if (piece.color === excludeColor || piece.step < 0) continue;
+      if (piece.color === excludeColor || piece.step < 1 || piece.step > 51) continue;
 
       const boardPos = BoardMapper.toTrackPosition(piece.id, piece.step);
       if (boardPos === targetPos) found.push(piece.id);
@@ -195,7 +212,7 @@ export class MoveValidator {
       captured,
       capturedPieceIds,
       enteredHome: pendingMove.isHomeEntry,
-      bonusRoll: (diceValue === 6 && state.pendingIsFirstRoll === true) || captured
+      bonusRoll: diceValue === 6 || captured
     };
   }
 }

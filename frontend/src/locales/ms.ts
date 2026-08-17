@@ -291,6 +291,9 @@ export const ms = {
     localPlayer: 'Setempat',
     readyCount: '{{ready}}/{{total}} pemain sedia',
     emptySeat: 'Menunggu pemain…',
+    lastRolled: 'Balingan Terakhir',
+    playerAborted: '{{name}} membatalkan permainan',
+    thirdSixForfeit: '{{name}} mendapat 6 kali ketiga — giliran dilucutkan',
   },
   results: {
     victory: 'KEMENANGAN!',

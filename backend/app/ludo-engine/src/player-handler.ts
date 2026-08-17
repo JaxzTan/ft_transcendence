@@ -2,13 +2,14 @@ import { GameState, PlayerColor, GameEvent } from './types';
 import { RedisGameStore } from './redis';
 import { ClashManager } from './clash';
 
-const COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
+const COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 const DISCONNECT_GRACE_MS = 30000; // 30 seconds to reconnect before forfeit
+const BOT_DISCONNECT_GRACE_MS = 60 * 60 * 1000; // 1 hour to reconnect before auto-abort (bot-mode games)
 
 /**
  * First active seat in color order. Game creation always seeds
- * currentTurn as 'red', but colors can be swapped pre-game (see
- * LobbyManager.handleSelectColor) so red isn't guaranteed to be occupied
+ * currentTurn as 'blue', but colors can be swapped pre-game (see
+ * LobbyManager.handleSelectColor) so blue isn't guaranteed to be occupied
  * by the time the match starts — currentTurn must be corrected to an
  * actually-seated color or the game soft-locks on an inactive seat.
  */
@@ -43,6 +44,9 @@ export function advanceTurnInState(state: GameState): void {
   }
   state.currentTurn = COLORS[nextIndex];
   state.firstRollOfTurn = true;
+  // Reset the new player's 6-streak so it never leaks across turns.
+  const nextPlayer = state.players.find(p => p.color === COLORS[nextIndex]);
+  if (nextPlayer) nextPlayer.consecutiveSixes = 0;
 }
 
 /**
@@ -65,7 +69,14 @@ export async function handlePlayerDisconnect(
   const existing = state.disconnectedPlayers.find(d => d.color === color);
   if (existing) return; // Already in grace period
 
-  const deadline = Date.now() + DISCONNECT_GRACE_MS;
+  // Determine mode up-front: bot-mode games PAUSE on disconnect (and use a
+  // long reconnect window), PvP games HOLD the disconnected player's turn for
+  // the short window then prune on expiry.
+  const matchData = await store.getMatchData(gameId);
+  const isBotMode = matchData?.gameType === 'PVE' || matchData?.gameType === 'HOTSEAT';
+  const graceMs = isBotMode ? BOT_DISCONNECT_GRACE_MS : DISCONNECT_GRACE_MS + 1000;
+
+  const deadline = Date.now() + (isBotMode ? BOT_DISCONNECT_GRACE_MS : DISCONNECT_GRACE_MS);
   state.disconnectedPlayers.push({
     color,
     disconnectedAt: Date.now(),
@@ -79,12 +90,17 @@ export async function handlePlayerDisconnect(
     player.isConnected = false;
   }
 
-  // If it's this player's turn, advance to next active player
-  if (state.currentTurn === color && state.status === 'active') {
-    advanceTurnInState(state);
-    // Clear any pending moves from the disconnected player
-    state.pendingLegalMoves = [];
-    state.pendingDiceValue = undefined;
+  // HOLD the turn: the disconnected player's turn always waits (up to the
+  // grace window) — it never advances past them, so a mid-turn disconnect
+  // can't be exploited to skip a player. Pending dice/moves are preserved so
+  // a reconnect resumes the exact turn state. Pruning only happens on expiry
+  // of the grace window below, or via the explicit `end_game` event.
+  if (isBotMode && state.status === 'active') {
+    // Pause bot-mode games at a deterministic boundary so bots don't keep
+    // playing while the human is away. If a bot was mid-chain, the pause
+    // lands on the next bot's start (see server.ts triggerBotTurn guard).
+    state.paused = true;
+    state.pauseTurnOwner = state.currentTurn;
   }
 
   // If there's an active clash, freeze it — no separate timeout needed
@@ -95,7 +111,11 @@ export async function handlePlayerDisconnect(
   await store.saveGameState(gameId, state);
   emit({ type: 'player_exited', gameId, color });
 
-  // Unified timeout: handles both clash resolution and player forfeit
+  // Grace timeout: reconnect window, NOT a forfeit. On expiry:
+  //  - bot-mode (PVE/HOTSEAT): auto-abort the whole instance (player counted
+  //    as aborted, no result posted) — Resume becomes unreachable.
+  //  - PvP: prune just this player; if fewer than 2 humans remain the game
+  //    cannot continue and the room is aborted/cleaned up too.
   setTimeout(async () => {
     const currentState = await store.loadGameState(gameId);
     if (!currentState) return;
@@ -115,10 +135,22 @@ export async function handlePlayerDisconnect(
           await clashManager.resolveClash(gameId, other, color);
         }
       }
-      // Forfeit: permanently exit the player
       await handlePlayerExit(store, emit, gameId, color);
+      if (isBotMode) {
+        // Definitive abort of the whole instance.
+        await store.abortMatch(gameId);
+        await store.deleteGame(gameId);
+      } else {
+        const after = await store.loadGameState(gameId);
+        const stillHuman = [matchData?.player1_id, matchData?.player2_id, matchData?.player3_id, matchData?.player4_id]
+          .filter(id => id && !id.startsWith('bot-'));
+        if (!after || stillHuman.length < 2) {
+          await store.abortMatch(gameId);
+          await store.deleteGame(gameId);
+        }
+      }
     }
-  }, DISCONNECT_GRACE_MS + 1000);
+  }, graceMs);
 }
 
 /**

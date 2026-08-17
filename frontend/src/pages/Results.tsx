@@ -42,7 +42,7 @@ export function Results() {
     setRematchError(null)
     setRematching(true)
     try {
-      const res = await postApi<{ gameId: string; token: string; color: PlayerColor }>('/api/match/create', {
+      const res = await postApi<{ gameId: string; token: string; color: PlayerColor; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>('/api/match/create', {
         mode: 'pve',
         playerCount: playerCount,
         botCount: seats.slice(0, playerCount).filter((s) => s.type === 'bot').length,

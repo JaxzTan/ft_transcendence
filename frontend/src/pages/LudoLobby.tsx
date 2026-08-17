@@ -16,7 +16,7 @@ type Room = {
   mode: 'classic' | 'duel'
 }
 
-type MatchResult = { gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }
+type MatchResult = { gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }
 
 type ModeCard = {
   key: string

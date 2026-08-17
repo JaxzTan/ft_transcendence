@@ -44,6 +44,7 @@ export class SocketServer {
   private userIdMap: Map<string, Map<PlayerColor, string>> = new Map();
   private rematchVotes: Map<string, Set<string>> = new Map();
 	private gameEndedAt: Map<string, number> = new Map();
+  private botTurnTimers = new Map<string, NodeJS.Timeout>();
 
 	constructor() {
 		this.store = new RedisGameStore();
@@ -60,6 +61,7 @@ export class SocketServer {
 		this.handlers = new SocketHandlers(
 			this.store, this.engine, this.clashManager,
 			this.userIdMap, getOrCreateBot,
+			(gameId) => this.triggerBotTurn(gameId, BOT_THINK_MS),
 		);
 
 		// Wire up engine events — single source of truth for game lifecycle
@@ -130,9 +132,20 @@ export class SocketServer {
 	 * it's serialized with human moves and cannot overlap.
 	 */
 	private triggerBotTurn(gameId: string, delayMs: number): void {
-		setTimeout(() => {
+		// Cancel an old timer for this game so we never stack overlapping bot
+		// turns (safer than relying on takeTurn's phase guard alone).
+		if (this.botTurnTimers.has(gameId)) {
+			clearTimeout(this.botTurnTimers.get(gameId)!);
+		}
+		const timer = setTimeout(() => {
+			this.botTurnTimers.delete(gameId);
 			this.store.loadGameState(gameId).then(state => {
 				if (!state || state.status !== 'active') return;
+				// Pause-air guard: while a bot-mode game is paused, the IN-FLIGHT
+				// bot (currentTurn === pauseTurnOwner) may finish its action chain,
+				// but as soon as the turn moves to a different color the pause
+				// boundary has been reached and no further triggers run.
+				if (state.paused && state.currentTurn !== state.pauseTurnOwner) return;
 				if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
 
 				const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
@@ -140,6 +153,7 @@ export class SocketServer {
 				// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
 			});
 		}, delayMs);
+		this.botTurnTimers.set(gameId, timer);
 	}
 
   private cleanupGame(gameId: string): void {
@@ -211,6 +225,49 @@ export class SocketServer {
 		if (!votes || votes.size < 2) {
 			this.io.to(gameId).emit('game_timeout');
 			this.cleanupGame(gameId);
+		}
+	}
+
+	/**
+	 * Definitive game termination via the frontend's "End Game" button.
+	 *  - PvP: prune just this player (pieces cleaned, seat exited) and emit
+	 *    player_aborted for the log line; the game continues if >= 2 humans
+	 *    remain, otherwise the whole instance is aborted + cleaned up.
+	 *  - PvE/Hotseat: the whole instance is aborted and its engine state
+	 *    deleted -> "Resume last game" becomes unreachable. No result POSTed
+	 *    (aborted games have no definitive result).
+	 */
+	private async handleEndGame(socket: GameSocket): Promise<void> {
+		const gameId = socket.data.gameId;
+		const color = socket.data.playerColor;
+		if (!gameId || !color) return;
+
+		const state = await this.store.loadGameState(gameId);
+		if (!state) return;
+		const player = state.players.find((p: any) => p.color === color);
+		const username = player?.username || color;
+		const match = await this.store.getMatchData(gameId);
+		const isBotMode = match?.gameType === 'PVE' || match?.gameType === 'HOTSEAT';
+
+		if (isBotMode) {
+			this.io.to(gameId).emit('game_expired');
+			this.cleanupGame(gameId);
+			await this.store.abortMatch(gameId);
+			await this.store.deleteGame(gameId);
+			return;
+		}
+
+		// PvP: prune only this player.
+		await this.engine.handlePlayerExit(gameId, color);
+		this.publisher.publish({ type: 'player_aborted', gameId, color, username });
+
+		// If fewer than 2 humans remain, the game cannot continue -> abort+clean.
+		const remaining = await this.store.loadGameState(gameId);
+		if (!remaining || remaining.players.filter((p: any) => p.status === 'active' && !p.isBot).length < 2) {
+			this.io.to(gameId).emit('game_expired');
+			this.cleanupGame(gameId);
+			await this.store.abortMatch(gameId);
+			await this.store.deleteGame(gameId);
 		}
 	}
 
@@ -290,6 +347,9 @@ export class SocketServer {
 
 			socket.on('resign', () =>
 				this.handlers.handleResign(socket));
+
+			socket.on('end_game', () =>
+				this.handleEndGame(socket));
 
 			socket.on('disconnect', () =>
 				this.handlers.handleDisconnect(socket));

@@ -5,7 +5,7 @@ import { secret } from '../secrets';
 import Redis from 'ioredis';
 
 const BOT_PREFIX = 'bot-';
-const SLOT_COLORS = ['red', 'green', 'yellow', 'blue'];
+const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 function isBotUserId(userId: string | undefined): boolean {
 	return !!userId && userId.startsWith(BOT_PREFIX);
 }
@@ -48,7 +48,7 @@ export class MatchPlayerService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: 'ws://localhost:3001', color: assignedColor, inviteCode: data.inviteCode || undefined };
+		return { gameId, token, engineUrl: 'ws://localhost:3001', color: assignedColor, inviteCode: data.inviteCode || undefined, mode: data.gameType ? data.gameType.toLowerCase() : 'pvp', playerCount: parseInt(data.playerCount || '2', 10) };
 	}
 
 	// Rejoin a match the user is already seated in (fresh token, no new slot).
@@ -74,7 +74,7 @@ export class MatchPlayerService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: 'ws://localhost:3001', color, inviteCode: data.inviteCode || undefined };
+		return { gameId, token, engineUrl: 'ws://localhost:3001', color, inviteCode: data.inviteCode || undefined, mode: data.gameType ? data.gameType.toLowerCase() : 'pvp', playerCount: parseInt(data.playerCount || '2', 10) };
 	}
 
 	// Generate a spectator token for an ACTIVE match.

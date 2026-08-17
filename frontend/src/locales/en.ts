@@ -291,6 +291,9 @@ export const en = {
     localPlayer: 'Local',
     readyCount: '{{ready}}/{{total}} players ready',
     emptySeat: 'Waiting for player…',
+    lastRolled: 'Last Rolled',
+    playerAborted: '{{name}} aborted the game',
+    thirdSixForfeit: '{{name}} rolled a third 6 — turn forfeited',
   },
   results: {
     victory: 'VICTORY!',

@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import Redis from 'ioredis';
 import type { GameState, PlayerColor, PieceId, Piece, PlayerMeta, ClashState } from './types';
 
-const COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
+const COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
 /**
  * RedisGameStore is a PERSISTENCE LAYER.
@@ -49,7 +49,7 @@ export class RedisGameStore {
     const players: PlayerMeta[] = COLORS.map(color => ({
       color,
       status: 'inactive',
-      username: color === 'red' ? 'You' : color.charAt(0).toUpperCase() + color.slice(1),
+      username: color === 'blue' ? 'You' : color.charAt(0).toUpperCase() + color.slice(1),
       isBot: false,
       isConnected: false,
       piecesInGoal: 0,
@@ -64,7 +64,7 @@ export class RedisGameStore {
       id: gameId,
       pieces,
       players,
-      currentTurn: 'red',
+      currentTurn: 'blue',
       consecutiveSixes: 0,
       moveCounter: 0,
       turnPhase: 'WAITING_FOR_ROLL',

@@ -291,6 +291,9 @@ export const zh = {
     localPlayer: '本地',
     readyCount: '{{ready}}/{{total}} 名玩家已就绪',
     emptySeat: '等待玩家加入…',
+    lastRolled: '上次掷出',
+    playerAborted: '{{name}} 退出了游戏',
+    thirdSixForfeit: '{{name}} 连续掷出第 3 个 6 — 回合取消',
   },
   results: {
     victory: '获得胜利！',
