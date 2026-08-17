@@ -5,6 +5,7 @@ type UserAvatarProps = {
   username: string
   size: number
   fallbackStyle?: any
+  avatarStyle?: any
   style?: any
   cacheBuster?: number
 }
