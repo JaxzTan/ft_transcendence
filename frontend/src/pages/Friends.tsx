@@ -24,6 +24,14 @@ type FriendRequest = {
   createdAt: string
 }
 
+type BlockedUser = {
+  id: string
+  username: string
+  avatarStyle: any
+  rating: number
+  blockedSince: string
+}
+
 const STATUS_KEYS: Record<PresenceStatus, string> = {
   online: 'friends.online',
   playing: 'friends.inGame',
@@ -35,21 +43,27 @@ export function Friends() {
   const { setActiveMatch } = useApp()
   const [friends, setFriends] = useState<Friend[]>([])
   const [requests, setRequests] = useState<FriendRequest[]>([])
+  const [blocked, setBlocked] = useState<BlockedUser[]>([])
   const [searchUsername, setSearchUsername] = useState('')
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState<{ text: string, type: 'error' | 'success' } | null>(null)
 
   const fetchData = async () => {
     try {
-      const [fRes, rRes] = await Promise.all([
+      const [fRes, rRes, bRes] = await Promise.all([
         fetch('/api/friends', { credentials: 'include' }),
-        fetch('/api/friends/requests', { credentials: 'include' })
+        fetch('/api/friends/requests', { credentials: 'include' }),
+        fetch('/api/friends/blocked', { credentials: 'include' })
       ])
       if (fRes.ok && rRes.ok) {
         const friendsData = await fRes.json()
         const requestsData = await rRes.json()
         setFriends(friendsData)
         setRequests(requestsData.received)
+      }
+      if (bRes && bRes.ok) {
+        const blockedData = await bRes.json()
+        setBlocked(blockedData)
       }
     } catch (e) {
       console.error(e)
@@ -154,6 +168,16 @@ export function Friends() {
 
   const handleBlock = async (friendId: string) => {
     await fetch(`/api/friends/block/${friendId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+      credentials: 'include'
+    })
+    fetchData()
+  }
+
+  const handleUnblock = async (targetUserId: string) => {
+    await fetch(`/api/friends/unblock/${targetUserId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -317,6 +341,47 @@ export function Friends() {
               </div>
             )
           })
+        )}
+      </div>
+
+      {/* Blocked Users */}
+      <div style={{ ...card, padding: '20px 22px' }}>
+        <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', marginBottom: 12 }}>
+          {t('friends.blockedUsersLabel')} · {blocked.length}
+        </div>
+
+        {blocked.length === 0 ? (
+          <div style={{ color: '#a99a83', fontStyle: 'italic', fontSize: 14 }}>{t('friends.noBlockedUsers')}</div>
+        ) : (
+          blocked.map((b) => (
+            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '11px 0', borderBottom: '1px solid #2a2015' }}>
+              <UserAvatar 
+                username={b.username}
+                size={40}
+                fallbackStyle={{ ...avatarDim(40), fontSize: 13 }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: '14.5px' }}>
+                  {b.username}
+                </div>
+              </div>
+              <button
+                onClick={() => handleUnblock(b.id)}
+                style={{
+                  cursor: 'pointer',
+                  border: '1px solid #4a3826',
+                  borderRadius: 9,
+                  padding: '7px 14px',
+                  fontWeight: 700,
+                  fontSize: '12.5px',
+                  color: '#c9bda3',
+                  background: 'transparent',
+                }}
+              >
+                {t('friends.unblockBtn')}
+              </button>
+            </div>
+          ))
         )}
       </div>
     </div>

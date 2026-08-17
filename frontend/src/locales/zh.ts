@@ -124,7 +124,10 @@ export const zh = {
     invitingBtn: '邀请中…',
     inviteSent: '邀请已发送！',
     unfriendBtn: '取消好友',
-    blockBtn: '拉黑',
+    blockBtn: '屏蔽',
+    blockedUsersLabel: '已屏蔽用户',
+    noBlockedUsers: '没有已屏蔽的用户。',
+    unblockBtn: '解除屏蔽',
   },
   profile: {
     title: '玩家资料',

@@ -302,7 +302,11 @@ export class FriendsService {
     if (existing) {
       const updated = await this.prisma.db.friendship.update({
         where: { id: existing.id },
-        data: { status: 'blocked' },
+        data: {
+          userId,
+          friendId: targetUserId,
+          status: 'blocked',
+        },
         include: {
           user: { select: { id: true, username: true, avatarStyle: true } },
           friend: { select: { id: true, username: true, avatarStyle: true } },
@@ -324,5 +328,45 @@ export class FriendsService {
       });
       return blocked;
     }
+  }
+
+  async unblockUser(userId: string, targetUserId: string) {
+    const blocked = await this.prisma.db.friendship.findFirst({
+      where: {
+        userId,
+        friendId: targetUserId,
+        status: 'blocked',
+      },
+    });
+
+    if (!blocked) {
+      throw new NotFoundException('Blocked user record not found');
+    }
+
+    await this.prisma.db.friendship.delete({
+      where: { id: blocked.id },
+    });
+
+    return { message: 'User unblocked' };
+  }
+
+  async getBlockedUsers(userId: string) {
+    const blocked = await this.prisma.db.friendship.findMany({
+      where: {
+        userId,
+        status: 'blocked',
+      },
+      include: {
+        friend: { select: { id: true, username: true, avatarStyle: true, rating: true } },
+      },
+    });
+
+    return blocked.map((b) => ({
+      id: b.friend.id,
+      username: b.friend.username,
+      avatarStyle: b.friend.avatarStyle,
+      rating: b.friend.rating,
+      blockedSince: b.createdAt,
+    }));
   }
 }

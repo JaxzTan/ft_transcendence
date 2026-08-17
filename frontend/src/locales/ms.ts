@@ -125,6 +125,9 @@ export const ms = {
     inviteSent: 'Jemputan dihantar!',
     unfriendBtn: 'Buang rakan',
     blockBtn: 'Sekat',
+    blockedUsersLabel: 'Pengguna yang disekat',
+    noBlockedUsers: 'Tiada pengguna yang disekat.',
+    unblockBtn: 'Nyahsekat',
   },
   profile: {
     title: 'Profil Pemain',

@@ -43,9 +43,21 @@ export class FriendsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('api/friends/blocked')
+  getBlockedUsers(@Request() req: { user: { id: string } }) {
+    return this.friends.getBlockedUsers(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('api/friends/block/:userId')
   blockUser(@Request() req: { user: { id: string } }, @Param('userId') targetUserId: string) {
     return this.friends.blockUser(req.user.id, targetUserId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('api/friends/unblock/:userId')
+  unblockUser(@Request() req: { user: { id: string } }, @Param('userId') targetUserId: string) {
+    return this.friends.unblockUser(req.user.id, targetUserId);
   }
 
   // ─── Game Invitations ───────────────────────────────────────────────────
