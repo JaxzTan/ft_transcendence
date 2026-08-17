@@ -61,6 +61,8 @@ location /api/ {
     # Long-lived sockets: don't cut idle connections at the default 60s
     proxy_read_timeout 3600s;
     proxy_send_timeout 3600s;
+    # SSE: flush events immediately instead of buffering them.
+    proxy_buffering off;
 }
 
 # ═══════════════════════════════════════════════════════

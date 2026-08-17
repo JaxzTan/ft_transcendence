@@ -9,6 +9,7 @@ import { navigate } from '../router'
 import { connectSocket } from '../socket'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 function Pips({ count, color }: { count: number; color: string }) {
   return (
@@ -34,7 +35,7 @@ const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
 
 export function Game() {
   const { t } = useTranslation()
-  const { user, activeMatch, seats, setPlaying, setLastResult } = useApp()
+  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
@@ -52,6 +53,12 @@ export function Game() {
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const [isRolling, setIsRolling] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
+  // Box-by-box move animation: while set, Board renders this piece at `step`
+  // instead of its real (already-updated) logical position — see the
+  // piece_moved handler below, which steps through the server's `path`.
+  const [animatingPiece, setAnimatingPiece] = useState<{ pieceId: string; step: number } | null>(null)
+  const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const STEP_ANIM_MS = 220
 
   const copyRoomCode = () => {
     if (!activeMatch?.inviteCode) return
@@ -128,11 +135,30 @@ export function Game() {
           ...prev.slice(0, 7),
         ])
       } else if (type === 'piece_moved') {
-        const e = state as unknown as { color: PlayerColor; captured: boolean; to: number }
+        const e = state as unknown as { pieceId: string; color: PlayerColor; captured: boolean; to: number; path: number[] }
         setMoveLogs((prev) => [
           { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to box ${e.to}` },
           ...prev.slice(0, 7),
         ])
+        // Board state (turn, legal moves, captures) already reflects the final
+        // move above — this only walks the *visual* piece through the server's
+        // path box by box instead of snapping straight to the destination.
+        if (animTimerRef.current) clearInterval(animTimerRef.current)
+        const path = e.path ?? []
+        if (path.length > 0) {
+          let i = 0
+          setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
+          animTimerRef.current = setInterval(() => {
+            i++
+            if (i >= path.length) {
+              if (animTimerRef.current) clearInterval(animTimerRef.current)
+              animTimerRef.current = null
+              setAnimatingPiece(null)
+              return
+            }
+            setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
+          }, STEP_ANIM_MS)
+        }
       } else if (type === 'lobby_update') {
         // If a color swap moved *my* seat, resync the socket's own notion of
         // playerColor by re-joining with the new color (server derives move/roll
@@ -142,6 +168,11 @@ export function Game() {
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
           socket.emit('join_game', activeMatch.gameId, mine.color)
+          // Persist the swap so a refresh/rejoin re-joins with the color the
+          // player actually picked, not the one assigned when the match was
+          // created (activeMatch is what seeds initialView() and the
+          // post-reconnect join_game call — see below).
+          setActiveMatch({ ...activeMatch, color: mine.color })
         }
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
@@ -180,6 +211,9 @@ export function Game() {
     return () => {
       socket.disconnect()
       socketRef.current = null
+      if (animTimerRef.current) clearInterval(animTimerRef.current)
+      animTimerRef.current = null
+      setAnimatingPiece(null)
     }
   }, [activeMatch, setLastResult])
 
@@ -237,7 +271,7 @@ export function Game() {
   }
 
   const isMyTurn = view.currentTurn === view.myColor
-  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash
+  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle')
     : isMyTurn ? t('game.yourTurnShort') : `${view.currentTurn.toUpperCase()}'s turn`
@@ -321,16 +355,27 @@ export function Game() {
                     opacity: occupied ? 1 : 0.55,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 13, color: '#12100a',
-                      background: occupied ? `linear-gradient(180deg,${col.base},${col.dark})` : 'transparent',
-                      border: occupied ? 'none' : `1.5px dashed ${col.base}88`,
-                    }}
-                  >
-                    {occupied ? playerMeta!.username.slice(0, 2).toUpperCase() : ''}
-                  </div>
+                  {occupied && playerMeta?.username ? (
+                    <UserAvatar
+                      username={playerMeta.username}
+                      size={38}
+                      fallbackStyle={{
+                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                        fontWeight: 800, fontSize: 13, color: '#12100a',
+                        background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                      }}
+                      style={{ borderRadius: 10 }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                        fontWeight: 800, fontSize: 13, color: '#12100a',
+                        background: 'transparent',
+                        border: `1.5px dashed ${col.base}88`,
+                      }}
+                    />
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 14, color: occupied ? '#f0e2c4' : '#8a7c66' }}>
                       {occupied ? playerMeta!.username : t('game.emptySeat')}
@@ -368,14 +413,26 @@ export function Game() {
                   boxShadow: isActive ? `0 0 0 1px ${col.base}55` : 'none',
                 }}
               >
-                <div
-                  style={{
-                    width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                    fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                  }}
-                >
-                  {name.slice(0, 2).toUpperCase()}
-                </div>
+                {!playerMeta.isBot && !isHotseat ? (
+                  <UserAvatar
+                    username={name}
+                    size={38}
+                    fallbackStyle={{
+                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                    }}
+                    style={{ borderRadius: 10 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                    }}
+                  >
+                    {name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4' }}>{name}</div>
                   <div style={{ color: '#a99a83', fontSize: 12 }}>{sub}</div>
@@ -396,7 +453,7 @@ export function Game() {
               border: '1px solid #4a3826',
             }}
           >
-            <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} />
+            <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} animating={animatingPiece} />
           </div>
         </div>
 

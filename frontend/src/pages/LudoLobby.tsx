@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getApi, postApi } from '../api'
+import { JoinByCode } from '../components/JoinByCode'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { COL, btnGold, btnOutline, card, feltPanel, pill, sectionLabel } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 type Room = {
   id: string
@@ -47,7 +49,6 @@ function hueForHost(host: string): string {
 export function LudoLobby() {
   const { t } = useTranslation()
   const { setActiveMatch } = useApp()
-  const hostPanelRef = useRef<HTMLDivElement>(null)
 
   const [rooms, setRooms] = useState<Room[] | null>(null)
   const [roomFilter, setRoomFilter] = useState<'all' | 'classic' | 'duel'>('all')
@@ -58,8 +59,8 @@ export function LudoLobby() {
 
   const [hostTable, setHostTable] = useState<MatchResult | null>(null)
   const [hostBusy, setHostBusy] = useState(false)
-
-  const [quickMatchBusy, setQuickMatchBusy] = useState(false)
+  const hostTableRef = useRef<MatchResult | null>(null)
+  const hostTableUsedRef = useRef(false)
 
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [joiningByCode, setJoiningByCode] = useState(false)
@@ -90,7 +91,7 @@ export function LudoLobby() {
   useEffect(() => {
     fetchRooms()
     fetchMyRooms()
-    const iv = setInterval(() => { fetchRooms(); fetchMyRooms() }, 5000)
+    const iv = setInterval(() => { fetchRooms(); fetchMyRooms() }, 1000)
     return () => clearInterval(iv)
   }, [])
 
@@ -111,6 +112,7 @@ export function LudoLobby() {
   const spinNewTable = async (previous?: MatchResult | null) => {
     setHostBusy(true)
     setError(null)
+    hostTableUsedRef.current = false
     try {
       const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: true })
       setHostTable(res)
@@ -130,31 +132,40 @@ export function LudoLobby() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Track the live invite room so it can be aborted on unmount — without
+  // this, every visit to the lobby that isn't followed by "Create Room"
+  // leaves a ghost WAITING room sitting in Redis, cluttering everyone's
+  // open-rooms list with tables nobody is actually hosting anymore.
+  useEffect(() => {
+    hostTableRef.current = hostTable
+  }, [hostTable])
+
+  useEffect(() => {
+    return () => {
+      if (hostTableRef.current && !hostTableUsedRef.current) {
+        postApi(`/api/game/${hostTableRef.current.gameId}/abort`).catch(() => {})
+      }
+    }
+  }, [])
+
   const createTable = () => {
     if (!hostTable) return
+    hostTableUsedRef.current = true
     setActiveMatch(hostTable)
     navigate(`/game?gameId=${hostTable.gameId}`)
   }
 
-  const findMeATable = async () => {
-    setQuickMatchBusy(true)
-    setError(null)
-    try {
-      const res = await postApi<MatchResult>('/api/match/pvp/random', { clashEnabled: true })
-      setActiveMatch(res)
-      navigate(`/game?gameId=${res.gameId}`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to find a table')
-      setQuickMatchBusy(false)
-    }
-  }
-
   const joinByCode = async (code: string) => {
-    if (!code.trim()) return
+    const trimmed = code.trim().toUpperCase()
+    if (!trimmed) return
+    if (hostTable?.inviteCode && trimmed === hostTable.inviteCode) {
+      createTable()
+      return
+    }
     setJoiningByCode(true)
     setError(null)
     try {
-      const res = await postApi<MatchResult>(`/api/match/join/${encodeURIComponent(code.trim().toUpperCase())}`, {})
+      const res = await postApi<MatchResult>(`/api/match/join/${encodeURIComponent(trimmed)}`, {})
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {
@@ -206,13 +217,13 @@ export function LudoLobby() {
       onClick: () => navigate('/lobby/table?mode=4&bots=0&local=1'),
     },
     {
-      key: 'privateTable',
-      title: t('lobby.privateTable'),
-      desc: t('lobbyBrowser.privateTableDesc'),
-      glyph: '⌘',
+      key: 'testYourLuck',
+      title: t('lobby.testYourLuck'),
+      desc: t('lobbyBrowser.testYourLuckDesc'),
+      glyph: '⚄',
       hue: COL.blue.base,
-      badge: 'invite',
-      onClick: () => hostPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+      badge: 'casual',
+      onClick: () => navigate('/lobby/table?mode=1&bots=0&local=1'),
     },
   ]
 
@@ -245,25 +256,6 @@ export function LudoLobby() {
             <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>{t('lobby.title')}</div>
             <div style={{ color: '#a99a83', fontSize: 13 }}>{t('lobbyBrowser.subtitle')}</div>
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <input
-            value={roomCodeInput}
-            onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-            onKeyDown={(e) => { if (e.key === 'Enter') joinByCode(roomCodeInput) }}
-            placeholder={t('lobbyBrowser.roomCodePlaceholder')}
-            style={{
-              background: '#1a130d', border: '1px solid #3a2c1d', borderRadius: 10,
-              color: '#f0e2c4', padding: '10px 14px', fontSize: 13, fontWeight: 700, letterSpacing: '.12em', width: 140,
-            }}
-          />
-          <button
-            onClick={() => joinByCode(roomCodeInput)}
-            disabled={!roomCodeInput.trim() || joiningByCode}
-            style={{ ...btnOutline, padding: '10px 18px', fontSize: 13, opacity: !roomCodeInput.trim() || joiningByCode ? 0.5 : 1 }}
-          >
-            {joiningByCode ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.joinRoomBtn')}
-          </button>
         </div>
       </header>
 
@@ -343,7 +335,6 @@ export function LudoLobby() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <span onClick={() => setRoomFilter('all')} style={pill(roomFilter === 'all')}>{t('lobbyBrowser.filterAll')}</span>
                 <span onClick={() => setRoomFilter('classic')} style={pill(roomFilter === 'classic')}>{t('lobbyBrowser.filter4Player')}</span>
-                <span onClick={() => setRoomFilter('duel')} style={pill(roomFilter === 'duel')}>{t('lobbyBrowser.filterDuel')}</span>
               </div>
             </div>
 
@@ -380,14 +371,14 @@ export function LudoLobby() {
                     >
                       <div style={{ fontWeight: 800, fontSize: 13, letterSpacing: '.06em', color: '#e8dcc6' }}>{room.roomCode}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
-                          style={{
+                        <UserAvatar
+                          username={room.host}
+                          size={30}
+                          fallbackStyle={{
                             width: 30, height: 30, flex: 'none', borderRadius: '50%', display: 'grid', placeItems: 'center',
                             fontWeight: 800, fontSize: 11, color: '#12100a', background: hue,
                           }}
-                        >
-                          {room.host.slice(0, 2).toUpperCase()}
-                        </div>
+                        />
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 13.5, color: '#f0e2c4' }}>{room.host}</div>
                           <div style={{ color: '#a99a83', fontSize: 12 }}>
@@ -421,7 +412,7 @@ export function LudoLobby() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 20 }}>
-          <div ref={hostPanelRef} style={{ ...feltPanel, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ ...feltPanel, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontFamily: "'Cinzel',serif", fontSize: 17, color: '#dff0e0' }}>{t('lobbyBrowser.hostTableTitle')}</div>
             <div style={{ color: '#c9d9c9', fontSize: 13, lineHeight: 1.5 }}>{t('lobbyBrowser.hostTableDesc')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -464,17 +455,12 @@ export function LudoLobby() {
             </button>
           </div>
 
-          <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>{t('lobbyBrowser.quickMatchTitle')}</div>
-            <div style={{ color: '#a99a83', fontSize: 13, lineHeight: 1.5 }}>{t('lobbyBrowser.quickMatchDesc')}</div>
-            <button
-              onClick={findMeATable}
-              disabled={quickMatchBusy}
-              style={{ ...btnOutline, textAlign: 'center', opacity: quickMatchBusy ? 0.6 : 1 }}
-            >
-              {quickMatchBusy ? t('lobbyBrowser.findingTableBtn') : t('lobbyBrowser.findMeATableBtn')}
-            </button>
-          </div>
+          <JoinByCode
+            value={roomCodeInput}
+            onChange={setRoomCodeInput}
+            onSubmit={() => joinByCode(roomCodeInput)}
+            busy={joiningByCode}
+          />
 
           {error && (
             <div style={{ textAlign: 'center', color: '#e05050', fontSize: 12.5 }}>{error}</div>

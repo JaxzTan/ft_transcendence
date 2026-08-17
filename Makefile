@@ -14,7 +14,7 @@ OAUTH_SECRETS  = google_client_id google_client_secret google_callback_url \
                  github_client_id github_client_secret github_callback_url \
                  fortytwo_client_id fortytwo_client_secret fortytwo_callback_url
 
-all: seed-secrets build start
+all: build start
 
 l: prepare-secrets build startal
 
@@ -72,7 +72,7 @@ seed-secrets: check-secrets
 	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
 
 start: seed-secrets
-	@docker compose -f $(COMPOSE_FILE) up -d
+	@docker compose -f $(COMPOSE_FILE) up -d --build
 
 
 # stop/down/logs carry --profile dev so they still reach frontend-dev; without

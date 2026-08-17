@@ -70,8 +70,13 @@ export class LudoEngine {
     }
 
     const diceValue = Math.floor(Math.random() * 6) + 1;
+    // Only the first roll of a turn-holding streak can earn a six-bonus;
+    // any roll after that (including a bonus roll that itself lands a 6)
+    // needs an actual capture to keep the turn going.
+    const isFirstRoll = state.firstRollOfTurn;
+    state.firstRollOfTurn = false;
+
     currentPlayer.hasRolled = true;
-    currentPlayer.bonusRoll = diceValue === 6;
     currentPlayer.consecutiveSixes = diceValue === 6 ? state.consecutiveSixes : 0;
 
     // Handle three consecutive sixes: forfeit turn
@@ -79,9 +84,11 @@ export class LudoEngine {
       state.consecutiveSixes++;
       if (state.consecutiveSixes >= 3) {
         state.consecutiveSixes = 0;
+        currentPlayer.bonusRoll = false;
         state.turnPhase = 'WAITING_FOR_ROLL';
         state.pendingLegalMoves = [];
         state.pendingDiceValue = undefined;
+        state.pendingIsFirstRoll = undefined;
         advanceTurnInState(state);
         await this.store.saveGameState(gameId, state);
         this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll: false, currentTurn: state.currentTurn });
@@ -91,35 +98,37 @@ export class LudoEngine {
       state.consecutiveSixes = 0;
     }
 
+    const sixBonus = diceValue === 6 && isFirstRoll;
+    currentPlayer.bonusRoll = sixBonus;
+
     const legalMoves = MoveValidator.getLegalMoves(state, state.currentTurn, diceValue);
 
-    // Store authoritative dice value so movePiece() doesn't need it recomputed
+    // Store authoritative dice value + first-roll status so movePiece() doesn't need to recompute it
     state.pendingDiceValue = diceValue;
-    
+    state.pendingIsFirstRoll = isFirstRoll;
+
     if (legalMoves.length === 0) {
-      // No legal moves: auto-advance turn (with bonus roll on 6)
+      // No legal moves: auto-advance turn (with bonus roll only on a first-roll 6)
       state.pendingLegalMoves = [];
-      const bonusRoll = diceValue === 6;
-      if (bonusRoll) {
+      if (sixBonus) {
         state.turnPhase = 'WAITING_FOR_ROLL';
       } else {
         state.turnPhase = 'WAITING_FOR_ROLL';
         advanceTurnInState(state);
       }
       await this.store.saveGameState(gameId, state);
-      this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll, currentTurn: state.currentTurn });
-      return { value: diceValue, legalMoves: [], bonusRoll };
+      this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves: [], bonusRoll: sixBonus, currentTurn: state.currentTurn });
+      return { value: diceValue, legalMoves: [], bonusRoll: sixBonus };
     }
 
     // Set turn phase and store pending legal moves (server-authoritative)
     state.turnPhase = 'WAITING_FOR_MOVE';
     state.pendingLegalMoves = legalMoves;
-    
+
     await this.store.saveGameState(gameId, state);
-    
-    const bonusRoll = diceValue === 6;
-    this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves, bonusRoll, currentTurn: state.currentTurn });
-    return { value: diceValue, legalMoves, bonusRoll };
+
+    this.emit({ type: 'dice_rolled', gameId, value: diceValue, legalMoves, bonusRoll: sixBonus, currentTurn: state.currentTurn });
+    return { value: diceValue, legalMoves, bonusRoll: sixBonus };
   }
 
   /**
@@ -150,6 +159,7 @@ export class LudoEngine {
     if (diceValue === undefined) {
       throw new Error('No pending dice value — roll first');
     }
+    const rollWasFirst = state.pendingIsFirstRoll === true;
 
     // Execute move via MoveValidator (pure game logic)
     const result = MoveValidator.executeMove(state, pendingMove, diceValue);
@@ -160,11 +170,13 @@ export class LudoEngine {
       movedPiece.isInGoal = result.to === 57;
       movedPiece.isInBase = result.to <= 0;
     }
-    if (result.captured && result.capturedPieceId) {
-      const capturedPiece = state.pieces.find(p => p.id === result.capturedPieceId);
-      if (capturedPiece) {
-        capturedPiece.isInGoal = false;
-        capturedPiece.isInBase = true;
+    if (result.captured && result.capturedPieceIds) {
+      for (const id of result.capturedPieceIds) {
+        const capturedPiece = state.pieces.find(p => p.id === id);
+        if (capturedPiece) {
+          capturedPiece.isInGoal = false;
+          capturedPiece.isInBase = true;
+        }
       }
     }
 
@@ -202,14 +214,15 @@ export class LudoEngine {
     } else {
       // Sync piecesInGoal for the moving player
       const mover = state.players.find(p => p.color === result.color);
+      const sixBonus = diceValue === 6 && rollWasFirst;
       if (mover) {
         mover.piecesInGoal = MoveValidator.countPiecesInGoal(state, result.color);
         mover.hasRolled = false;
-        mover.bonusRoll = diceValue === 6 || result.captured;
+        mover.bonusRoll = sixBonus || result.captured;
       }
-      // Bonus roll on 6 or capture: same player rolls again
+      // Bonus roll on a first-roll 6 or an actual capture: same player rolls again
       // Otherwise, advance turn to next player
-      if (diceValue === 6 || result.captured) {
+      if (sixBonus || result.captured) {
         state.turnPhase = 'WAITING_FOR_ROLL';
       } else {
         state.turnPhase = 'WAITING_FOR_ROLL';
@@ -220,6 +233,7 @@ export class LudoEngine {
     // Clear pending moves and dice value after move is processed
     state.pendingLegalMoves = [];
     state.pendingDiceValue = undefined;
+    state.pendingIsFirstRoll = undefined;
 
     await this.store.saveGameState(gameId, state);
 
