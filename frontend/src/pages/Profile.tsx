@@ -7,6 +7,7 @@ import { UserAvatar } from '../components/UserAvatar'
 type UserProfile = {
   id: string
   username: string
+  avatarStyle: string | null
   rating: number
   highestRating: number
   wins: number
@@ -196,6 +197,7 @@ export function Profile() {
           <div style={{ position: 'relative' }}>
             <UserAvatar 
               username={profile.username}
+              avatarStyle={profile.avatarStyle}
               size={100}
               fallbackStyle={avatarBlue(100, 36, 30)}
               style={{ boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d' }}
@@ -383,6 +385,7 @@ function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null, navig
                 <div style={{ position: 'relative', marginRight: 12, flexShrink: 0 }}>
                   <UserAvatar 
                     username={friend.username}
+                    avatarStyle={friend.avatarStyle}
                     size={36}
                     fallbackStyle={avatarBlue(36, 12, 10)}
                     style={{ boxShadow: '0 0 0 2px #1a130d, 0 0 0 1px #3a2c1d' }}
