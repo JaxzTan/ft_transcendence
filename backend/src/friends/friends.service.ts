@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
 import { MatchService } from '../match/match.service';
+import { NotificationService } from '../notification/notification.service';
 import { secret } from '../secrets';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class FriendsService {
     private readonly prisma: PrismaService,
     private readonly presence: PresenceService,
     private readonly matchService: MatchService,
+    private readonly notificationService: NotificationService,
   ) {
     const host = process.env.REDIS_HOST || 'redis';
     const port = parseInt(process.env.REDIS_PORT || '6379', 10);
@@ -42,16 +44,21 @@ export class FriendsService {
     const match = await this.matchService.createInvite(userId);
     const inviter = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
 
-    await this.redis.set(
-      `invite:${friendId}`,
-      JSON.stringify({
-        gameId: match.gameId,
-        inviteCode: match.inviteCode,
-        fromUsername: inviter?.username || 'A friend',
-        createdAt: Date.now(),
-      }),
-      'EX', 300,
-    );
+    // Seat the friend into the room now, the same way online mode's joinMatch
+    // seats a player synchronously the moment they join — the friend doesn't
+    // have to "accept" before they're actually placed in the room, they just
+    // have to confirm before entering it.
+    const friendSeat = await this.matchService.joinMatch(match.gameId, friendId);
+
+    // Push a real-time notification to the friend instead of a polled Redis key.
+    await this.notificationService.notify(friendId, 'game_invite', {
+      gameId: friendSeat.gameId,
+      token: friendSeat.token,
+      engineUrl: friendSeat.engineUrl,
+      color: friendSeat.color,
+      inviteCode: match.inviteCode,
+      fromUsername: inviter?.username || 'A friend',
+    });
 
     // Return the host's own match credentials so the caller can join its own
     // room immediately — the host must be seated before the friend can accept,
@@ -120,6 +127,15 @@ export class FriendsService {
       },
     });
 
+    // Notify the target user that they have a new friend request.
+    const sender = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true, avatarStyle: true } });
+    await this.notificationService.notify(targetUserId, 'friend_request', {
+      requestId: friendship.id,
+      fromUserId: userId,
+      fromUsername: sender?.username || 'Someone',
+      fromAvatarStyle: sender?.avatarStyle || 'bottts',
+    });
+
     return friendship;
   }
 
@@ -146,6 +162,13 @@ export class FriendsService {
         user: { select: { id: true, username: true, avatarStyle: true } },
         friend: { select: { id: true, username: true, avatarStyle: true } },
       },
+    });
+
+    // Notify the original sender that their request was accepted.
+    await this.notificationService.notify(request.userId, 'friend_accepted', {
+      fromUserId: userId,
+      fromUsername: updated.friend.username,
+      fromAvatarStyle: updated.friend.avatarStyle,
     });
 
     return updated;
@@ -279,7 +302,11 @@ export class FriendsService {
     if (existing) {
       const updated = await this.prisma.db.friendship.update({
         where: { id: existing.id },
-        data: { status: 'blocked' },
+        data: {
+          userId,
+          friendId: targetUserId,
+          status: 'blocked',
+        },
         include: {
           user: { select: { id: true, username: true, avatarStyle: true } },
           friend: { select: { id: true, username: true, avatarStyle: true } },
@@ -301,5 +328,45 @@ export class FriendsService {
       });
       return blocked;
     }
+  }
+
+  async unblockUser(userId: string, targetUserId: string) {
+    const blocked = await this.prisma.db.friendship.findFirst({
+      where: {
+        userId,
+        friendId: targetUserId,
+        status: 'blocked',
+      },
+    });
+
+    if (!blocked) {
+      throw new NotFoundException('Blocked user record not found');
+    }
+
+    await this.prisma.db.friendship.delete({
+      where: { id: blocked.id },
+    });
+
+    return { message: 'User unblocked' };
+  }
+
+  async getBlockedUsers(userId: string) {
+    const blocked = await this.prisma.db.friendship.findMany({
+      where: {
+        userId,
+        status: 'blocked',
+      },
+      include: {
+        friend: { select: { id: true, username: true, avatarStyle: true, rating: true } },
+      },
+    });
+
+    return blocked.map((b) => ({
+      id: b.friend.id,
+      username: b.friend.username,
+      avatarStyle: b.friend.avatarStyle,
+      rating: b.friend.rating,
+      blockedSince: b.createdAt,
+    }));
   }
 }

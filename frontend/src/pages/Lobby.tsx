@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
@@ -7,6 +7,7 @@ import type { PlayerColor } from '../game/types'
 import { navigate, useRoute } from '../router'
 import { useApp, type PlayerCount } from '../store'
 import { COL, SEAT_COLORS, card, feltPanel, sectionLabel, type ColorKey } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 const COLOR_KEYS: Record<ColorKey, string> = {
   red: 'lobby.colorRed',
@@ -18,24 +19,40 @@ const COLOR_KEYS: Record<ColorKey, string> = {
 export function Lobby() {
   const { t } = useTranslation()
   const { query } = useRoute()
-  const { seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, setActiveMatch } = useApp()
+  const { user, seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, setActiveMatch } = useApp()
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
   const [editingSeat, setEditingSeat] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
 
+  // A fresh room must never inherit bots/players seated during a previous
+  // visit — seats live in the app-wide store, not scoped to this page.
+  useEffect(() => {
+    resetSeats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Route-derived lobby configuration (single source of truth)
   const playerCount = (Number(query.get('mode')) as PlayerCount) || 4
   const allowAddPlayers = query.get('bots') !== '0'
+  // Local (hotseat) pass-and-play — same seat-setup UI as PvP/PvE, but a
+  // single device joins every filled seat itself (see Game.tsx), so the
+  // backend must be told exactly how many seats were actually filled, not
+  // the route's max (mode=4 gives up to 4 slots; fewer is fine).
+  const isLocal = query.get('local') === '1'
 
+  const isSolo = playerCount === 1
   const visible = seats.slice(0, playerCount)
   const botCount = visible.filter((s) => s.type === 'bot').length
   const emptyCount = visible.filter((s) => s.type === 'empty').length
+  // Solo (Test Your Luck) needs nobody else — it's just you and the dice.
   // Hotseat/Multiplayer can start when at least the host + 1 other is seated.
   // Vs Bots can start once at least 1 bot is seated.
-  const canStart = allowAddPlayers
-    ? botCount >= 1
-    : visible.filter((s) => s.type === 'you' || s.type === 'player').length >= 2
+  const canStart = isSolo
+    ? true
+    : allowAddPlayers
+      ? botCount >= 1
+      : visible.filter((s) => s.type === 'you' || s.type === 'player').length >= 2
 
   const startBtnStyle: CSSProperties = canStart
     ? {
@@ -53,12 +70,15 @@ export function Lobby() {
     setStartError(null)
     setStarting(true)
     try {
-      const gameMode = allowAddPlayers ? 'pve' : (playerCount === 2 ? 'hotseat' : 'pvp')
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(
+      const gameMode = allowAddPlayers ? 'pve' : (isLocal || isSolo || playerCount === 2) ? 'hotseat' : 'pvp'
+      // Hotseat has no separate accounts to fill unfilled seats with — send
+      // the actual number of occupied seats, not the route's max slot count.
+      const filledCount = visible.filter((s) => s.type === 'you' || s.type === 'player').length
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>(
         '/api/match/create',
         {
           mode: gameMode,
-          playerCount: playerCount,
+          playerCount: gameMode === 'hotseat' ? filledCount : playerCount,
           botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
           clashEnabled: true,
         },
@@ -85,8 +105,12 @@ export function Lobby() {
             ←
           </div>
           <div>
-            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>{t('lobby.roomSetup')}</div>
-            <div style={{ color: '#a99a83', fontSize: 13 }}>{t('lobby.privateMatchDesc')}</div>
+            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>
+              {isSolo ? t('lobby.soloRoomTitle') : t('lobby.roomSetup')}
+            </div>
+            <div style={{ color: '#a99a83', fontSize: 13 }}>
+              {isSolo ? t('lobby.soloRoomDesc') : t('lobby.privateMatchDesc')}
+            </div>
           </div>
         </div>
       </header>
@@ -115,7 +139,12 @@ export function Lobby() {
                     {seat.type === 'you' && (
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={avStyle}>YO</div>
+                          <UserAvatar
+                            username={user?.username || ''}
+                            size={42}
+                            fallbackStyle={avStyle}
+                            style={{ borderRadius: 11 }}
+                          />
                           <div>
                             <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>
                               {t('common.you')} <span style={{ color: '#c99b45', fontSize: 11, fontWeight: 700 }}>{t('lobby.hostBadge')}</span>
@@ -238,30 +267,38 @@ export function Lobby() {
               <span style={{ color: '#a99a83' }}>{t('lobby.players')}</span>
               <span style={{ fontWeight: 700 }}>{playerCount - emptyCount} / {playerCount}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-              <span style={{ color: '#a99a83' }}>{t('lobby.botsLabel')}</span>
-              <span style={{ fontWeight: 700 }}>
-                {botCount === 1 ? t('lobby.botSingular', { count: botCount }) : t('lobby.botPlural', { count: botCount })}
-              </span>
-            </div>
+            {!isSolo && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                <span style={{ color: '#a99a83' }}>{t('lobby.botsLabel')}</span>
+                <span style={{ fontWeight: 700 }}>
+                  {botCount === 1 ? t('lobby.botSingular', { count: botCount }) : t('lobby.botPlural', { count: botCount })}
+                </span>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
               <span style={{ color: '#a99a83' }}>{t('lobby.mode')}</span>
-              <span style={{ fontWeight: 700 }}>{t('lobby.casualUnranked')}</span>
+              <span style={{ fontWeight: 700 }}>{isSolo ? t('lobby.soloModeLabel') : t('lobby.casualUnranked')}</span>
             </div>
             <button
               onClick={onStart}
               disabled={!canStart || starting}
               style={{ ...startBtnStyle, opacity: starting ? 0.7 : 1 }}
             >
-              {starting ? 'Creating match…' : canStart ? 'Start game' : 'Add a bot to start'}
+              {starting
+                ? t('lobby.creatingMatchBtn')
+                : canStart
+                  ? (isSolo ? t('lobby.startSoloBtn') : t('lobby.startGameBtn'))
+                  : t('lobby.addBotToStartBtn')}
             </button>
             {startError && (
               <div style={{ textAlign: 'center', color: '#e05050', fontSize: 12 }}>{startError}</div>
             )}
             <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 12 }}>
-              {canStart
-                ? (botCount > 1 ? t('lobby.youPlusBots', { count: botCount }) : t('lobby.youPlusBot', { count: botCount }))
-                : t('lobby.atLeastOneOpponent')}
+              {isSolo
+                ? t('lobby.soloHint')
+                : canStart
+                  ? (botCount > 1 ? t('lobby.youPlusBots', { count: botCount }) : t('lobby.youPlusBot', { count: botCount }))
+                  : t('lobby.atLeastOneOpponent')}
             </div>
           </div>
         </div>

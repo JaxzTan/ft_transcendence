@@ -14,7 +14,7 @@ OAUTH_SECRETS  = google_client_id google_client_secret google_callback_url \
                  github_client_id github_client_secret github_callback_url \
                  fortytwo_client_id fortytwo_client_secret fortytwo_callback_url
 
-all: check-secrets build start
+all: build start
 
 l: prepare-secrets build startal
 
@@ -55,8 +55,24 @@ check-secrets: prepare-secrets
 build: check-secrets
 	@docker compose -f $(COMPOSE_FILE) build
 
-start:
-	@docker compose -f $(COMPOSE_FILE) up -d
+# secrets_data (compose.yaml) is `external: true` — Make owns it, not compose.
+# Seeded via `docker cp` rather than a bind mount because Docker Desktop's
+# macOS virtiofs share can deadlock (EDEADLK) reading ./secrets live from
+# inside a container; docker cp reads the host file directly and doesn't hit
+# that path. Re-run (idempotent, <1s) whenever secrets/ changes on disk.
+SECRETS_VOLUME = secrets_data
+
+seed-secrets: check-secrets
+	@docker volume create $(SECRETS_VOLUME) >/dev/null
+	@docker rm -f secrets-seed >/dev/null 2>&1 || true
+	@docker run -d --rm --name secrets-seed -v $(SECRETS_VOLUME):/secrets alpine sleep 60 >/dev/null
+	@docker cp $(SECRET_DIR)/. secrets-seed:/secrets/
+	@docker exec secrets-seed sh -c 'chmod 600 /secrets/*.txt'
+	@docker stop secrets-seed >/dev/null
+	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
+
+start: seed-secrets
+	@docker compose -f $(COMPOSE_FILE) up -d --build
 
 
 # stop/down/logs carry --profile dev so they still reach frontend-dev; without
@@ -77,7 +93,7 @@ down:
 # tearing anything down. The dev profile is off by default, hence --profile
 # here but not in all. Ctrl-C stops watching; the containers keep running
 # (use `make stop`/`make down`).
-dev: down check-secrets
+dev: down seed-secrets
 	@echo "🔥 HMR dev server:    http://localhost:8080"
 	@echo "🔒 nginx (built SPA): https://localhost:8443"
 	@docker compose -f $(COMPOSE_FILE) --profile dev watch
@@ -152,4 +168,5 @@ stop-tunnel:
 re: stop down all
 
 .PHONY: all build start dev stop down logs clean fclean prune re \
-        lan ngrok-auth tunnel tunnel-url up-tunnel dev-tunnel stop-tunnel
+        lan ngrok-auth tunnel tunnel-url up-tunnel dev-tunnel stop-tunnel \
+        seed-secrets check-secrets prepare-secrets

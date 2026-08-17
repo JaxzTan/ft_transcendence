@@ -17,11 +17,27 @@ export class MoveValidator {
       // Skip if already finished (step === 57)
       if (from === 57) continue;
       
-      // Prison exit rule: can only leave prison on a roll of 6
-      if (from === 0 && diceValue !== 6) continue;
+      // Prison exit rule: can only leave prison on a roll of 6.
+      // Exiting places the piece on the starting track square (step 1) — the 6
+      // is consumed to exit; the remaining 5 steps are NOT applied. The next
+      // roll then moves the piece 1-6 steps.
+      if (from === 0) {
+        if (diceValue !== 6) continue;
+        const to = 1;
+        const isHomeEntry = false;
+        const isCapture = this.wouldCaptureStatic(state, color, piece.id, to);
+        moves.push({ pieceId: piece.id, from, to, isCapture, isHomeEntry });
+        continue;
+      }
       
       const to = from + diceValue;
       if (to > 57) continue; // overshoot
+      
+      // Blockade rule: cannot pass THROUGH a two-or-more same-color opponent stack.
+      // Any intermediate track step the piece would cross is blocked.
+      if (this.blockadeBlocksPath(state, color, from, to, piece.id)) {
+        continue;
+      }
       
       const isHomeEntry = to >= 52 && to <= 56;
       const isCapture = this.wouldCaptureStatic(state, color, piece.id, to);
@@ -38,36 +54,89 @@ export class MoveValidator {
     return moves;
   }
 
+  /**
+   * True if an opponent blockade (2+ same-color pieces on one non-safe track square)
+   * lies on the path a piece would cross between `from` (exclusive) and `to` (inclusive).
+   * Safe zones never form a blockade, and a blockade only blocks landing/passing on
+   * the 52-loop — home stretch (52-56) and goal (57) are immune.
+   */
+  static blockadeBlocksPath(
+    state: GameState,
+    moverColor: PlayerColor,
+    from: number,
+    to: number,
+    pieceId: PieceId,
+  ): boolean {
+    // Moves that never touch the main track can't be blocked.
+    if (from < 1 || to < 1) return false;
+
+    // Opponents' blockades only matter; own pieces never physically block the mover.
+    const opponentColors: PlayerColor[] = ['red', 'green', 'yellow', 'blue'].filter(c => c !== moverColor) as PlayerColor[];
+
+    // Walk the mover's own-step path, but only main-track steps (1-51) participate.
+    // When the move ends in the home stretch/goal (to > 51), still check the
+    // intermediate track cells (e.g. step 51) the piece crosses before entering home.
+    const lastTrackStep = Math.min(to, 51);
+    for (let step = from + 1; step <= lastTrackStep; step++) {
+      const moverPos = BoardMapper.toTrackPosition(pieceId, step);
+      if (moverPos === -1) continue;
+      // Safe zones never form a blockade — skip them so a stack there doesn't block.
+      if (BoardMapper.isSafeZoneStep(pieceId, step)) continue;
+      for (const blockerColor of opponentColors) {
+        if (BoardMapper.isBlockadeAtTrackPos(state.pieces, blockerColor, moverPos)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   static wouldCaptureStatic(state: GameState, excludeColor: PlayerColor, pieceId: PieceId, targetStep: number): boolean {
     if (targetStep <= 0 || targetStep >= 57) return false;
-    
+
     // Check safe zones using BoardMapper (safe zones are track positions 8, 13, 21, 26, 34, 39, 47)
     if (BoardMapper.isSafeZoneStep(pieceId, targetStep)) return false;
 
+    // Blockade rule: a 2+ same-color opponent stack on the landing square is
+    // uncapturable — sharing is fine, capturing is not. The blocker pieces are
+    // compared on the shared track loop via the mover's target track position.
+    const targetPos = BoardMapper.toTrackPosition(pieceId, targetStep);
+    if (targetPos !== -1) {
+      const opponentColors: PlayerColor[] = ['red', 'green', 'yellow', 'blue'].filter(c => c !== excludeColor) as PlayerColor[];
+      for (const blockerColor of opponentColors) {
+        if (BoardMapper.isBlockadeAtTrackPos(state.pieces, blockerColor, targetPos)) {
+          return false;
+        }
+      }
+    }
+
     for (const piece of state.pieces) {
-      if (piece.color === excludeColor || piece.step < 0) continue;
+      // step <= 0 covers pieces still in prison, not just exited (-1) ones —
+      // prison pieces also map to -1 and must not false-match the home stretch.
+      if (piece.color === excludeColor || piece.step <= 0) continue;
       const boardPos = BoardMapper.toTrackPosition(piece.id, piece.step);
-      const targetPos = BoardMapper.toTrackPosition(pieceId, targetStep);
       if (boardPos === targetPos) return true;
     }
     return false;
   }
 
-  static findPieceAtPosition(state: GameState, excludeColor: PlayerColor, targetStep: number): PieceId | undefined {
-    if (targetStep <= 0 || targetStep >= 52) return undefined;
-    
+  /** Every opponent piece occupying the landing square — a stacked block is captured as a whole. */
+  static findPiecesAtPosition(state: GameState, excludeColor: PlayerColor, targetStep: number): PieceId[] {
+    if (targetStep <= 0 || targetStep >= 52) return [];
+
+    const targetPos = BoardMapper.toTrackPosition(`${excludeColor}-0`, targetStep);
+    const found: PieceId[] = [];
     for (const piece of state.pieces) {
       if (piece.color === excludeColor || piece.step < 0) continue;
-      
+
       const boardPos = BoardMapper.toTrackPosition(piece.id, piece.step);
-      const targetPos = BoardMapper.toTrackPosition(`${excludeColor}-0`, targetStep);
-      if (boardPos === targetPos) return piece.id;
+      if (boardPos === targetPos) found.push(piece.id);
     }
-    return undefined;
+    return found;
   }
 
-  static resolveCapture(state: GameState, capturerColor: PlayerColor, targetStep: number): PieceId | undefined {
-    return this.findPieceAtPosition(state, capturerColor, targetStep);
+  static resolveCapture(state: GameState, capturerColor: PlayerColor, targetStep: number): PieceId[] {
+    return this.findPiecesAtPosition(state, capturerColor, targetStep);
   }
 
   static checkWinner(state: GameState): PlayerColor | null {
@@ -91,15 +160,17 @@ export class MoveValidator {
     // Move piece
     piece.step = pendingMove.to;
     
-    // Resolve capture
-    let capturedPieceId: PieceId | undefined;
+    // Resolve capture — every opponent piece stacked on the landing square goes home
+    let capturedPieceIds: PieceId[] = [];
     if (pendingMove.isCapture) {
-      capturedPieceId = this.resolveCapture(state, capturerColor, pendingMove.to);
-      if (capturedPieceId) {
-        const captured = state.pieces.find(p => p.id === capturedPieceId)!;
+      capturedPieceIds = this.resolveCapture(state, capturerColor, pendingMove.to);
+      for (const id of capturedPieceIds) {
+        const captured = state.pieces.find(p => p.id === id)!;
         captured.step = 0;
+      }
+      if (capturedPieceIds.length > 0) {
         const capturer = state.players.find(p => p.color === capturerColor)!;
-        capturer.stats.captures++;
+        capturer.stats.captures += capturedPieceIds.length;
       }
     }
     
@@ -107,18 +178,24 @@ export class MoveValidator {
     const player = state.players.find(p => p.color === capturerColor)!;
     player.stats.turns++;
     
-    // Build result
+    // Build result. path is every intermediate square the piece actually
+    // crosses (from+1 .. to) — server-authoritative so the frontend animates
+    // the real route instead of re-deriving it (and can't skip captures).
+    const captured = capturedPieceIds.length > 0;
+    const path: number[] = [];
+    for (let s = pendingMove.from + 1; s <= pendingMove.to; s++) path.push(s);
     return {
       ply: state.moveCounter + 1,
       color: capturerColor,
       diceValue,
       pieceId: pendingMove.pieceId,
       from: pendingMove.from,
+      path,
       to: pendingMove.to,
-      captured: pendingMove.isCapture,
-      capturedPieceId,
+      captured,
+      capturedPieceIds,
       enteredHome: pendingMove.isHomeEntry,
-      bonusRoll: diceValue === 6 || pendingMove.isCapture
+      bonusRoll: (diceValue === 6 && state.pendingIsFirstRoll === true) || captured
     };
   }
 }

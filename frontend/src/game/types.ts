@@ -42,9 +42,10 @@ export interface MoveResult {
   diceValue: number
   pieceId: PieceId
   from: number
+  path: number[]
   to: number
   captured: boolean
-  capturedPieceId?: PieceId
+  capturedPieceIds?: PieceId[]
   enteredHome: boolean
   bonusRoll: boolean
 }

@@ -63,9 +63,14 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
     }
     case 'lobby_update': {
       const payload = (event.players as Array<{ username: string; color: PlayerColor; ready: boolean }>) ?? []
+      // The engine only includes non-inactive seats in this payload (see
+      // emitLobbyUpdate in engine.ts), so presence here means the seat has
+      // joined. Without marking it active, a player who joined before
+      // another one never sees that seat's status flip, so their local
+      // activeCount stays stuck below 2 and their Ready button never enables.
       const players = state.players.map((p) => {
         const seat = payload.find((e) => e.color === p.color)
-        return seat ? { ...p, username: seat.username } : p
+        return seat ? { ...p, username: seat.username, status: 'active' as const } : p
       })
       return {
         ...state,
@@ -112,7 +117,7 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
 function applyMove(state: GameViewState, move: MoveResult): GameViewState {
   const pieces = state.pieces.map((p) => {
     if (p.id === move.pieceId) return { ...p, step: move.to, isInGoal: move.to === 57, isInBase: false }
-    if (move.captured && p.id === move.capturedPieceId) return { ...p, step: 0, isInGoal: false, isInBase: true }
+    if (move.captured && move.capturedPieceIds?.includes(p.id)) return { ...p, step: 0, isInGoal: false, isInBase: true }
     return p
   })
 

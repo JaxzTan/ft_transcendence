@@ -8,16 +8,6 @@ import { requireSecret } from '../secrets';
 export class MatchController {
 	constructor(private readonly match: MatchService, private readonly jwt: JwtService) { }
 
-	// ─── PvP: Random auto-matchmaking ─────────────────────────────────────────
-	@UseGuards(JwtAuthGuard)
-	@Post('api/match/pvp/random')
-	pvpRandom(
-		@Request() req: { user: { id: string } },
-		@Body('clashEnabled') clashEnabled?: boolean,
-	) {
-		return this.match.findRandomMatch(req.user.id, clashEnabled);
-	}
-
 	// ─── PvP: Create invite game (share code via chat) ────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/pvp/invite')
@@ -131,6 +121,15 @@ export class MatchController {
 			throw new UnauthorizedException('Invalid engine key');
 		}
 		return this.match.processGameEnd(body);
+	}
+
+	// ─── Game Started (called by ludo-engine once the ready-check passes) ───
+	@Post('api/game/:id/started')
+	gameStarted(@Headers('x-engine-key') key: string, @Param('id') gameId: string) {
+		if (key !== requireSecret('ENGINE_API_KEY')) {
+			throw new UnauthorizedException('Invalid engine key');
+		}
+		return this.match.markStarted(gameId);
 	}
 
 	// ─── Exit Game (player acknowledges leaving) ────────────────────────────

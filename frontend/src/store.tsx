@@ -20,7 +20,7 @@ export type Seat =
   | { type: 'player'; name: string }
   | { type: 'empty' }
 
-export type PlayerCount = 2 | 3 | 4
+export type PlayerCount = 1 | 2 | 3 | 4
 
 export type Lang = 'en' | 'fr' | 'ms' | 'zh'
 
@@ -52,7 +52,14 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 }
 
 /** Credentials returned by POST /api/match/create — stored in context so Game page can connect to the engine. */
-export type ActiveMatch = { gameId: string; token: string; color: PlayerColor; inviteCode?: string } | null
+export type ActiveMatch = {
+  gameId: string
+  token: string
+  color: PlayerColor
+  inviteCode?: string
+  mode?: 'pvp' | 'pve' | 'hotseat'
+  playerCount?: number
+} | null
 
 function storedActiveMatch(): ActiveMatch {
   try {
@@ -94,6 +101,8 @@ type AppState = {
   addPlayer: (i: number) => void
   removePlayer: (i: number) => void
   renamePlayer: (i: number, name: string) => void
+  /** Clears every seat but the host — call when entering the sub-lobby so a fresh room never inherits bots/players from a previous session. */
+  resetSeats: () => void
   /** Fills remaining empty seats with Easy bots. Returns false when no bot is seated yet. */
   startGame: () => boolean
   roll: () => void
@@ -348,6 +357,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const resetSeats = useCallback(() => {
+    setSeats([{ type: 'you' }, { type: 'empty' }, { type: 'empty' }, { type: 'empty' }])
+  }, [])
+
   const startGame = useCallback((): boolean => {
     const bots = seats.slice(0, playerCount).filter((s) => s.type === 'bot').length
     if (bots < 1) return false
@@ -401,10 +414,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
     playerCount, seats, dice, rolling, turn, settings,
-    setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, startGame, roll, endTurn, settingOn, toggleSetting,
+    setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting,
       lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch, lastResult, setLastResult,
     }),
-    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
+    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

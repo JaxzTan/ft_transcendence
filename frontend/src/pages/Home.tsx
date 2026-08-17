@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { avatarDim, btnGold, card } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 type LadderEntry = { username: string; rating: number }
 
@@ -102,7 +103,11 @@ export function Home() {
               style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #2a2015' }}
             >
               <div style={{ width: 22, textAlign: 'center', fontWeight: 800, color: '#a99a83', fontSize: 14 }}>{i + 1}</div>
-              <div style={avatarDim(32)}>{l.username.slice(0, 2).toUpperCase()}</div>
+              <UserAvatar
+                username={l.username}
+                size={32}
+                fallbackStyle={avatarDim(32)}
+              />
               <div style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{l.username}</div>
               <div style={{ color: '#f0c24e', fontWeight: 800, fontSize: 14 }}>♛ {l.rating}</div>
             </div>

@@ -9,6 +9,7 @@ import { navigate } from '../router'
 import { connectSocket } from '../socket'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 function Pips({ count, color }: { count: number; color: string }) {
   return (
@@ -28,9 +29,22 @@ function Pips({ count, color }: { count: number; color: string }) {
   )
 }
 
+// Matches the backend's SLOT_COLORS — hotseat seat index i always maps to
+// this color, regardless of the Lobby seat-picker's own (unrelated) display order.
+const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+
 export function Game() {
   const { t } = useTranslation()
-  const { user, activeMatch, setPlaying, setLastResult } = useApp()
+  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
+
+  // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
+  // seat 0 is always the logged-in host (uses their real username instead),
+  // so only look at seats[1..].
+  const localNames: Partial<Record<PlayerColor, string>> = {}
+  seats.forEach((seat, i) => {
+    if (i === 0) return
+    if (seat.type === 'player') localNames[SLOT_COLORS[i]] = seat.name
+  })
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
   const viewRef = useRef(view)
@@ -38,6 +52,21 @@ export function Game() {
   const [connected, setConnected] = useState(false)
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const [isRolling, setIsRolling] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
+  // Box-by-box move animation: while set, Board renders this piece at `step`
+  // instead of its real (already-updated) logical position — see the
+  // piece_moved handler below, which steps through the server's `path`.
+  const [animatingPiece, setAnimatingPiece] = useState<{ pieceId: string; step: number } | null>(null)
+  const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const STEP_ANIM_MS = 220
+
+  const copyRoomCode = () => {
+    if (!activeMatch?.inviteCode) return
+    navigator.clipboard.writeText(activeMatch.inviteCode).then(() => {
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 1500)
+    })
+  }
 
   // Set presence status
   useEffect(() => {
@@ -54,6 +83,19 @@ export function Game() {
 
     socket.on('connect', () => {
       setConnected(true)
+      // Hotseat: one physical device controls every seat — the engine has no
+      // separate accounts to join with, so this single socket must join_game
+      // for every local color up front (else an un-joined seat stays 'inactive'
+      // forever and advanceTurnInState skips it, effectively stranding the
+      // game on whoever joined first). Join the others first, own color last,
+      // so socket.data.playerColor (server-side move/roll authorization,
+      // overwritten by each join_game call) ends up on red — the color that
+      // actually goes first.
+      if (activeMatch.mode === 'hotseat') {
+        for (const ck of Object.keys(localNames) as PlayerColor[]) {
+          socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
+        }
+      }
       socket.emit('join_game', activeMatch.gameId, activeMatch.color)
       // Socket.IO re-fires 'connect' on every reconnect, so this also covers
       // rejoining after a drop; if a clash was frozen mid-QTE, resume it too.
@@ -93,11 +135,30 @@ export function Game() {
           ...prev.slice(0, 7),
         ])
       } else if (type === 'piece_moved') {
-        const e = state as unknown as { color: PlayerColor; captured: boolean; to: number }
+        const e = state as unknown as { pieceId: string; color: PlayerColor; captured: boolean; to: number; path: number[] }
         setMoveLogs((prev) => [
-          { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to step ${e.to}` },
+          { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to box ${e.to}` },
           ...prev.slice(0, 7),
         ])
+        // Board state (turn, legal moves, captures) already reflects the final
+        // move above — this only walks the *visual* piece through the server's
+        // path box by box instead of snapping straight to the destination.
+        if (animTimerRef.current) clearInterval(animTimerRef.current)
+        const path = e.path ?? []
+        if (path.length > 0) {
+          let i = 0
+          setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
+          animTimerRef.current = setInterval(() => {
+            i++
+            if (i >= path.length) {
+              if (animTimerRef.current) clearInterval(animTimerRef.current)
+              animTimerRef.current = null
+              setAnimatingPiece(null)
+              return
+            }
+            setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
+          }, STEP_ANIM_MS)
+        }
       } else if (type === 'lobby_update') {
         // If a color swap moved *my* seat, resync the socket's own notion of
         // playerColor by re-joining with the new color (server derives move/roll
@@ -107,6 +168,11 @@ export function Game() {
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
           socket.emit('join_game', activeMatch.gameId, mine.color)
+          // Persist the swap so a refresh/rejoin re-joins with the color the
+          // player actually picked, not the one assigned when the match was
+          // created (activeMatch is what seeds initialView() and the
+          // post-reconnect join_game call — see below).
+          setActiveMatch({ ...activeMatch, color: mine.color })
         }
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
@@ -145,8 +211,24 @@ export function Game() {
     return () => {
       socket.disconnect()
       socketRef.current = null
+      if (animTimerRef.current) clearInterval(animTimerRef.current)
+      animTimerRef.current = null
+      setAnimatingPiece(null)
     }
   }, [activeMatch, setLastResult])
+
+  // Hotseat: keep the single socket's server-side authorization (playerColor)
+  // pointed at whoever's turn it currently is, so the same device can roll for
+  // every local seat in turn. Re-emitting join_game is the only way to update
+  // that — see the eager multi-join above for why the same mechanism applies.
+  useEffect(() => {
+    if (!activeMatch || activeMatch.mode !== 'hotseat') return
+    if (view.status !== 'active' || view.currentTurn === viewRef.current.myColor) return
+    const seat = viewRef.current.players.find((p) => p.color === view.currentTurn)
+    if (!seat || seat.isBot || seat.status !== 'active') return
+    dispatch({ type: 'my_color_changed', color: view.currentTurn })
+    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
+  }, [view.currentTurn, view.status, activeMatch])
 
   const rollDice = () => {
     setIsRolling(true)
@@ -189,7 +271,7 @@ export function Game() {
   }
 
   const isMyTurn = view.currentTurn === view.myColor
-  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash
+  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle')
     : isMyTurn ? t('game.yourTurnShort') : `${view.currentTurn.toUpperCase()}'s turn`
@@ -210,13 +292,26 @@ export function Game() {
           <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>
             {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
           </div>
-          <div style={{ fontSize: 12, color: '#a99a83' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#a99a83' }}>
             {activeMatch.inviteCode && (
-              <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#c9bda3' }}>
-                {t('game.roomCode')} {activeMatch.inviteCode}
-              </span>
+              <>
+                <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#c9bda3' }}>
+                  {t('game.roomCode')} {activeMatch.inviteCode}
+                </span>
+                <div
+                  onClick={copyRoomCode}
+                  title={t('game.copyRoomCode')}
+                  style={{
+                    cursor: 'pointer', padding: '3px 9px', borderRadius: 7, border: '1px solid #3a2c1d',
+                    background: codeCopied ? '#22432f' : '#140e0b', fontSize: 11, fontWeight: 700,
+                    color: codeCopied ? '#5fd08a' : '#c9bda3',
+                  }}
+                >
+                  {codeCopied ? t('game.copiedBtn') : t('game.copyBtn')}
+                </div>
+              </>
             )}
-            <span style={{ marginLeft: activeMatch.inviteCode ? 8 : 0, fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
+            <span style={{ fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
               {connected ? '● Live' : '● Connecting…'}
             </span>
           </div>
@@ -260,16 +355,27 @@ export function Game() {
                     opacity: occupied ? 1 : 0.55,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 13, color: '#12100a',
-                      background: occupied ? `linear-gradient(180deg,${col.base},${col.dark})` : 'transparent',
-                      border: occupied ? 'none' : `1.5px dashed ${col.base}88`,
-                    }}
-                  >
-                    {occupied ? playerMeta!.username.slice(0, 2).toUpperCase() : ''}
-                  </div>
+                  {occupied && playerMeta?.username ? (
+                    <UserAvatar
+                      username={playerMeta.username}
+                      size={38}
+                      fallbackStyle={{
+                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                        fontWeight: 800, fontSize: 13, color: '#12100a',
+                        background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                      }}
+                      style={{ borderRadius: 10 }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                        fontWeight: 800, fontSize: 13, color: '#12100a',
+                        background: 'transparent',
+                        border: `1.5px dashed ${col.base}88`,
+                      }}
+                    />
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 14, color: occupied ? '#f0e2c4' : '#8a7c66' }}>
                       {occupied ? playerMeta!.username : t('game.emptySeat')}
@@ -286,9 +392,15 @@ export function Game() {
             }
 
             if (!playerMeta || playerMeta.status !== 'active') return null
-            const isYou = !playerMeta.isBot && playerMeta.username === user?.username
+            const isHotseat = activeMatch.mode === 'hotseat'
+            // Hotseat: every seat is controlled by the same device, so "isYou"
+            // means "whoever's turn this device is currently authorized to
+            // play" (view.myColor) rather than a username match — the other
+            // local seat has its own typed-in name (see localNames) but still
+            // isn't a separate real account.
+            const isYou = isHotseat ? ck === view.myColor : !playerMeta.isBot && playerMeta.username === user?.username
             const name = playerMeta.username
-            const sub = playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : 'Player'
+            const sub = playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : isHotseat ? t('game.localPlayer') : 'Player'
             const goalCount = playerMeta.piecesInGoal ?? 0
 
             return (
@@ -301,14 +413,26 @@ export function Game() {
                   boxShadow: isActive ? `0 0 0 1px ${col.base}55` : 'none',
                 }}
               >
-                <div
-                  style={{
-                    width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                    fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                  }}
-                >
-                  {name.slice(0, 2).toUpperCase()}
-                </div>
+                {!playerMeta.isBot && !isHotseat ? (
+                  <UserAvatar
+                    username={name}
+                    size={38}
+                    fallbackStyle={{
+                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                    }}
+                    style={{ borderRadius: 10 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                    }}
+                  >
+                    {name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4' }}>{name}</div>
                   <div style={{ color: '#a99a83', fontSize: 12 }}>{sub}</div>
@@ -329,7 +453,7 @@ export function Game() {
               border: '1px solid #4a3826',
             }}
           >
-            <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} />
+            <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} animating={animatingPiece} />
           </div>
         </div>
 
@@ -363,17 +487,25 @@ export function Game() {
                 </div>
               </div>
 
-              <button
-                onClick={markReady}
-                disabled={view.readyPlayers.includes(view.myColor)}
-                style={{
-                  ...btnGold, width: '100%', padding: 14,
-                  opacity: view.readyPlayers.includes(view.myColor) ? 0.6 : 1,
-                  cursor: view.readyPlayers.includes(view.myColor) ? 'default' : 'pointer',
-                }}
-              >
-                {view.readyPlayers.includes(view.myColor) ? t('game.readyWaitingBtn') : t('game.readyBtn')}
-              </button>
+              {(() => {
+                const activeCount = view.players.filter((p) => p.status === 'active').length
+                const alreadyReady = view.readyPlayers.includes(view.myColor)
+                const soloRoom = activeCount < 2
+                const disabled = alreadyReady || soloRoom
+                return (
+                  <button
+                    onClick={markReady}
+                    disabled={disabled}
+                    style={{
+                      ...btnGold, width: '100%', padding: 14,
+                      opacity: disabled ? 0.6 : 1,
+                      cursor: disabled ? 'default' : 'pointer',
+                    }}
+                  >
+                    {alreadyReady ? t('game.readyWaitingBtn') : soloRoom ? t('game.readyNeedsOpponent') : t('game.readyBtn')}
+                  </button>
+                )
+              })()}
 
               <div style={{ fontSize: 13, color: '#5fd08a', textAlign: 'center' }}>
                 {t('game.readyCount', {

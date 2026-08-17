@@ -6,6 +6,17 @@ const COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
 const DISCONNECT_GRACE_MS = 30000; // 30 seconds to reconnect before forfeit
 
 /**
+ * First active seat in color order. Game creation always seeds
+ * currentTurn as 'red', but colors can be swapped pre-game (see
+ * LobbyManager.handleSelectColor) so red isn't guaranteed to be occupied
+ * by the time the match starts — currentTurn must be corrected to an
+ * actually-seated color or the game soft-locks on an inactive seat.
+ */
+export function firstActiveColor(state: GameState): PlayerColor | undefined {
+  return COLORS.find(c => state.players.find(p => p.color === c)?.status === 'active');
+}
+
+/**
  * Advance turn to the next seated (active) player.
  * Mutates state in-place.
  */
@@ -31,6 +42,7 @@ export function advanceTurnInState(state: GameState): void {
     state.status = 'finished';
   }
   state.currentTurn = COLORS[nextIndex];
+  state.firstRollOfTurn = true;
 }
 
 /**
@@ -162,11 +174,15 @@ export async function handlePlayerReady(
 
   await store.saveGameState(gameId, state);
 
-  // Check if game should start (delegate to lobby manager if available)
-  const allReady = state.players.filter(p => p.status === 'active').length > 0 &&
+  // Check if game should start (delegate to lobby manager if available).
+  // Requires >= 2 active seats — a lone host marking themselves ready must
+  // not be able to flip a pvp match to 'active' with nobody else in the room.
+  const activeCount = state.players.filter(p => p.status === 'active').length;
+  const allReady = activeCount >= 2 &&
     state.players.filter(p => p.status === 'active').every(p => state.readyPlayers.includes(p.color));
 
   if (allReady) {
+    state.currentTurn = firstActiveColor(state) ?? state.currentTurn;
     state.status = 'active';
     await store.saveGameState(gameId, state);
     emit({ type: 'game_started', gameId });
