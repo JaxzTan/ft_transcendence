@@ -124,7 +124,7 @@ export const zh = {
     invitingBtn: '邀请中…',
     inviteSent: '邀请已发送！',
     unfriendBtn: '取消好友',
-    blockBtn: '屏蔽',
+    blockBtn: '拉黑',
   },
   profile: {
     title: '玩家资料',
