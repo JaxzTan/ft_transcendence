@@ -24,8 +24,6 @@ export class UserService {
         bestWinStreak: true,
         botWins: true,
         humanWins: true,
-        daysActive: true,
-        loginStreak: true,
         createdAt: true,
       },
     });

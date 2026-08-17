@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { dicebearAvatar } from '../dicebear'
 
 type UserAvatarProps = {
   username: string
@@ -8,7 +9,7 @@ type UserAvatarProps = {
   cacheBuster?: number
 }
 
-export function UserAvatar({ username, size, fallbackStyle = {}, style, cacheBuster }: UserAvatarProps) {
+export function UserAvatar({ username, size, fallbackStyle, avatarStyle, style, cacheBuster }: UserAvatarProps) {
   const [error, setError] = useState(false)
 
   // Reset error state if username or cache buster changes
@@ -16,12 +17,12 @@ export function UserAvatar({ username, size, fallbackStyle = {}, style, cacheBus
     setError(false)
   }, [username, cacheBuster])
 
-  if (error || !username) {
+  if (!username) {
     return (
       <div style={{ ...fallbackStyle, width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style, flex: 'none' }}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width={size * 0.55} // Scale icon relative to avatar size
+          width={size * 0.55}
           height={size * 0.55}
           viewBox="0 0 24 24"
           fill="none"
@@ -38,12 +39,14 @@ export function UserAvatar({ username, size, fallbackStyle = {}, style, cacheBus
     )
   }
 
-  const src = `/api/user/${username}/avatar${cacheBuster ? `?t=${cacheBuster}` : ''}`
+  const src = error
+    ? dicebearAvatar(username, avatarStyle)
+    : `/api/user/${username}/avatar${cacheBuster ? `?t=${cacheBuster}` : ''}`
 
   return (
     <img
       src={src}
-      onError={() => setError(true)}
+      onError={error ? undefined : () => setError(true)}
       style={{
         width: size,
         height: size,
@@ -51,7 +54,7 @@ export function UserAvatar({ username, size, fallbackStyle = {}, style, cacheBus
         objectFit: 'cover',
         display: 'block',
         flex: 'none',
-        ...style
+        ...style,
       }}
       alt={`${username}'s avatar`}
     />
