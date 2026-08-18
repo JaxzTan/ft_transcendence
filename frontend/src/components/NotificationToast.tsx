@@ -68,6 +68,8 @@ function Toast({
       token: p.token as string,
       color: p.color as PlayerColor,
       inviteCode: p.inviteCode as string | undefined,
+      mode: 'pvp',
+      playerCount: 4,
     })
     onDismiss(notification.id)
     navigate(`/game?gameId=${p.gameId}`)
