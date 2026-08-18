@@ -73,6 +73,8 @@ export interface GameState {
 	clash?: ClashState;
 	clashMode: boolean; // Whether clash minigame is enabled (false = standard capture)
 	readyPlayers: PlayerColor[]; // Players who have clicked "ready"
+	paused?: boolean;
+	pauseTurnOwner?: PlayerColor;
 }
 
 export interface MoveResult {
@@ -106,11 +108,14 @@ export interface MovePieceOutput {
  * Events emitted by the engine — one source of truth for game lifecycle.
  */
 export type GameEvent =
-	| { type: 'dice_rolled'; gameId: string; value: number; legalMoves: LegalMove[]; bonusRoll: boolean; currentTurn: PlayerColor }
+	| { type: 'dice_rolled'; gameId: string; value: number; legalMoves: LegalMove[]; bonusRoll: boolean; currentTurn: PlayerColor; forfeited?: boolean }
 	| { type: 'piece_moved'; gameId: string; result: MoveResult }
 	| { type: 'game_ended'; gameId: string; winner: PlayerColor; resultDetail: string }
 	| { type: 'game_started'; gameId: string }
 	| { type: 'player_exited'; gameId: string; color: PlayerColor }
+	| { type: 'player_aborted'; gameId: string; color: PlayerColor; username: string }
+	| { type: 'player_disconnected'; gameId: string; color: PlayerColor }
+	| { type: 'player_reconnected'; gameId: string; color: PlayerColor }
 	| { type: 'clash_start'; gameId: string; attackerKey: string; defenderKey: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor }
 	| { type: 'clash_frozen'; gameId: string; reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }
 	| { type: 'clash_result'; gameId: string; winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number }

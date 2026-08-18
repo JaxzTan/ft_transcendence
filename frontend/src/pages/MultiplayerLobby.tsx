@@ -32,7 +32,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('create')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>('/api/match/create', {
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>('/api/match/create', {
         mode: 'pvp',
         playerCount: 4,
         botCount: 0,
@@ -51,7 +51,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('join')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(`/api/match/join/${encodeURIComponent(inviteCode.trim())}`, {})
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>(`/api/match/join/${encodeURIComponent(inviteCode.trim())}`, {})
       setActiveMatch(res)
       startWaiting(res.gameId)
     } catch (err) {
@@ -64,7 +64,7 @@ export function MultiplayerLobby() {
     setError(null)
     setBusy('quick')
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>('/api/match/pvp/random', {})
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>('/api/match/pvp/random', {})
       setActiveMatch(res)
       startWaiting(res.gameId)
     } catch (err) {
@@ -143,7 +143,7 @@ export function MultiplayerLobby() {
 
         <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 30 }}>
           <div style={{ ...card, padding: 28, maxWidth: 420, width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 18, color: '#f0e2c4' }}>Waiting for players</div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: '#f0e2c4' }}>{t('multiplayer.waitingForPlayers')}</div>
             <div style={{ color: '#a99a83', fontSize: 14 }}>
               {readyCount}/{totalPlayers} players ready
               {allReady && <span style={{ color: '#7ec699', marginLeft: 8 }}>— Starting!</span>}
@@ -179,8 +179,8 @@ export function MultiplayerLobby() {
           {/* Quick Match */}
           <div style={{ ...card, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ width: 52, height: 52, borderRadius: 12, display: 'grid', placeItems: 'center', fontSize: 24, color: '#e05050', background: 'rgba(255,255,255,.04)', border: '1px solid #e0505044' }}>⚡</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: '#f0e2c4' }}>Quick Match</div>
-            <div style={{ color: '#a99a83', fontSize: 14, lineHeight: 1.5 }}>Join the first open PvP room, or create a new one instantly.</div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: '#f0e2c4' }}>{t('multiplayer.quickTitle')}</div>
+            <div style={{ color: '#a99a83', fontSize: 14, lineHeight: 1.5 }}>{t('multiplayer.quickDesc')}</div>
             <button onClick={quickMatch} disabled={busy !== null} style={{ ...btnGold, padding: '13px 22px', marginTop: 'auto' }}>
               {busy === 'quick' ? '…' : 'Find Match'}
             </button>

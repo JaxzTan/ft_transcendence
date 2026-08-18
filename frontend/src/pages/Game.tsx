@@ -7,6 +7,7 @@ import { applyEvent, initialView } from '../game/reducer'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { connectSocket } from '../socket'
+import { getApi, postApi } from '../api'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
@@ -29,9 +30,57 @@ function Pips({ count, color }: { count: number; color: string }) {
   )
 }
 
+/** Pip indexes (3x3 grid, row-major) lit per face value - mirrors Die.tsx. */
+const MINI_PIP_MAP: Record<number, number[]> = {
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8],
+}
+
+/** Compact 3x3 mini-die face for the "Last Rolled" box in the player rows. */
+function MiniDie({ value }: { value: number }) {
+  const on = MINI_PIP_MAP[value] || []
+  return (
+    <div
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 11,
+        background: 'linear-gradient(150deg,#fbf5e6,#e4d8bf)',
+        boxShadow: 'inset 0 1px 2px rgba(255,255,255,.8),inset 0 -2px 3px rgba(140,120,80,.35),0 2px 4px rgba(0,0,0,.45)',
+        border: '1px solid #cbb99a',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr 1fr',
+        gridTemplateRows: '1fr 1fr 1fr',
+        padding: 4,
+        gap: 2,
+        flex: 'none',
+      }}
+    >
+      {Array.from({ length: 9 }, (_, i) => (
+        <div key={i} style={{ display: 'grid', placeItems: 'center' }}>
+          {on.includes(i) ? (
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle at 35% 30%,#5a4a2e,#241a0c)',
+              }}
+            />
+          ) : null}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // Matches the backend's SLOT_COLORS — hotseat seat index i always maps to
 // this color, regardless of the Lobby seat-picker's own (unrelated) display order.
-const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 
 export function Game() {
   const { t } = useTranslation()
@@ -52,6 +101,7 @@ export function Game() {
   const [connected, setConnected] = useState(false)
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const [isRolling, setIsRolling] = useState(false)
+  const isRollingRef = useRef(false)
   const [codeCopied, setCodeCopied] = useState(false)
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
@@ -59,6 +109,15 @@ export function Game() {
   const [animatingPiece, setAnimatingPiece] = useState<{ pieceId: string; step: number } | null>(null)
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const STEP_ANIM_MS = 220
+  // Capture burst FX: a short cosmetic ring + sparks on the landing square
+  // when a piece is captured. Set at the end of the mover's walk, cleared
+  // after the burst plays out — purely visual, no game state involved.
+  const [captureFx, setCaptureFx] = useState<{ color: string; to: number } | null>(null)
+  const captureFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Friend-invite picker (waiting room, PvP only): lets the host invite an
+  // accepted friend into THIS room (POST /api/game/:id/invite).
+  const [friends, setFriends] = useState<Array<{ id: string; username: string }>>([])
+  const [inviteStates, setInviteStates] = useState<Record<string, 'idle' | 'busy' | 'sent'>>({})
 
   const copyRoomCode = () => {
     if (!activeMatch?.inviteCode) return
@@ -74,12 +133,37 @@ export function Game() {
     return () => setPlaying(false)
   }, [setPlaying])
 
+  // Load accepted friends when waiting in a PvP room so the host can invite.
+  useEffect(() => {
+    if (view.status !== 'waiting' || activeMatch?.mode !== 'pvp') return
+    getApi<Array<{ id: string; username: string }>>('/api/friends')
+      .then((data) => setFriends(Array.isArray(data) ? data : []))
+      .catch(() => setFriends([]))
+  }, [view.status, activeMatch?.mode, activeMatch?.gameId])
+
   // Connect to engine via Socket.IO
   useEffect(() => {
     if (!activeMatch) return
 
     const socket = connectSocket(activeMatch.token)
     socketRef.current = socket
+
+    // Refresh-safety: very old cached activeMatch objects (pre mode/playerCount
+    // in the create response) may lack mode after a browser refresh. Re-derive
+    // it from the match record so hotseat/PvE boundaries can never collapse
+    // into a generic PvP rejoin.
+    if (activeMatch && !activeMatch.mode) {
+      fetch('/api/games/mine', { credentials: 'include' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((rooms: Array<{ id: string; gameType?: string }> | null) => {
+          const room = rooms?.find((x) => x.id === activeMatch.gameId)
+          if (room?.gameType) {
+            const mode = (room.gameType === 'PVP' ? 'pvp' : room.gameType === 'PVE' ? 'pve' : 'hotseat') as 'pvp' | 'pve' | 'hotseat'
+            setActiveMatch({ ...activeMatch, mode, playerCount: activeMatch.playerCount ?? 4 })
+          }
+        })
+        .catch(() => undefined)
+    }
 
     socket.on('connect', () => {
       setConnected(true)
@@ -89,7 +173,7 @@ export function Game() {
       // forever and advanceTurnInState skips it, effectively stranding the
       // game on whoever joined first). Join the others first, own color last,
       // so socket.data.playerColor (server-side move/roll authorization,
-      // overwritten by each join_game call) ends up on red — the color that
+      // overwritten by each join_game call) ends up on blue — the color that
       // actually goes first.
       if (activeMatch.mode === 'hotseat') {
         for (const ck of Object.keys(localNames) as PlayerColor[]) {
@@ -109,6 +193,7 @@ export function Game() {
     socket.on('disconnect', () => {
       setConnected(false)
       setIsRolling(false)
+      isRollingRef.current = false
     })
 
     socket.on('game_joined', (state) => {
@@ -129,15 +214,22 @@ export function Game() {
 
       if (type === 'dice_rolled') {
         setIsRolling(false)
-        const e = state as unknown as { value: number; bonusRoll: boolean }
+        isRollingRef.current = false
+        const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
+        const roller = viewRef.current.players.find((p) => p.color === viewRef.current.currentTurn)
         setMoveLogs((prev) => [
-          { ck: viewRef.current.currentTurn, text: `Rolled a ${e.value}${e.bonusRoll ? ' (bonus)' : ''}` },
+          {
+            ck: viewRef.current.currentTurn,
+            text: e.forfeited
+              ? t('game.thirdSixForfeit', { name: roller?.username || viewRef.current.currentTurn })
+              : `${t('game.rolledValue', { value: e.value })}${e.bonusRoll ? t('game.bonusSuffix') : ''}`,
+          },
           ...prev.slice(0, 7),
         ])
       } else if (type === 'piece_moved') {
         const e = state as unknown as { pieceId: string; color: PlayerColor; captured: boolean; to: number; path: number[] }
         setMoveLogs((prev) => [
-          { ck: e.color, text: e.captured ? `Captured a piece! → step ${e.to}` : `Moved to box ${e.to}` },
+          { ck: e.color, text: e.captured ? t('game.capturedPiece', { to: e.to }) : t('game.movedPiece', { to: e.to }) },
           ...prev.slice(0, 7),
         ])
         // Board state (turn, legal moves, captures) already reflects the final
@@ -159,6 +251,15 @@ export function Game() {
             setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
           }, STEP_ANIM_MS)
         }
+        // Capture burst: show the ring/sparks exactly when the mover visually
+        // arrives (mirrors the server's own bot pacing math), then auto-clear.
+        if (e.captured) {
+          if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
+          captureFxTimerRef.current = setTimeout(() => {
+            setCaptureFx({ color: e.color, to: e.to })
+            setTimeout(() => setCaptureFx(null), 600)
+          }, path.length * STEP_ANIM_MS)
+        }
       } else if (type === 'lobby_update') {
         // If a color swap moved *my* seat, resync the socket's own notion of
         // playerColor by re-joining with the new color (server derives move/roll
@@ -179,6 +280,8 @@ export function Game() {
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
+          mode: activeMatch?.mode ?? 'pvp',
+          playerCount: activeMatch?.playerCount ?? 4,
           players: viewRef.current.players
             .filter((p) => p.status === 'active')
             .map((p) => ({
@@ -195,13 +298,45 @@ export function Game() {
     socket.on('game_started', handleEngineEvent)
     socket.on('game_ended', handleEngineEvent)
     socket.on('player_exited', handleEngineEvent)
+    socket.on('player_disconnected', handleEngineEvent)
+    socket.on('player_reconnected', handleEngineEvent)
     socket.on('clash_start', handleEngineEvent)
     socket.on('clash_result', handleEngineEvent)
     socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
 
-    socket.on('game_timeout', () => navigate('/home'))
-    socket.on('game_expired', () => navigate('/home'))
+    // Another PvP player pressed End Game — log a translatable line.
+    socket.on('player_aborted', (e: { color: PlayerColor; username: string }) => {
+      setMoveLogs((prev) => [
+        { ck: e.color, text: t('game.playerAborted', { name: e.username }) },
+        ...prev.slice(0, 7),
+      ])
+    })
+
+    socket.on('game_timeout', () => {
+      setLastResult({
+        winner: viewRef.current.currentTurn,
+        resultDetail: 'abandoned',
+        mode: activeMatch?.mode ?? 'pvp',
+        playerCount: activeMatch?.playerCount ?? 4,
+        players: [],
+        abandoned: true,
+      })
+      setActiveMatch(null)
+      navigate('/results')
+    })
+    socket.on('game_expired', () => {
+      setLastResult({
+        winner: viewRef.current.currentTurn,
+        resultDetail: 'abandoned',
+        mode: activeMatch?.mode ?? 'pvp',
+        playerCount: activeMatch?.playerCount ?? 4,
+        players: [],
+        abandoned: true,
+      })
+      setActiveMatch(null)
+      navigate('/results')
+    })
 
     socket.on('error', (msg: string) => {
       console.error('[engine]', msg)
@@ -213,7 +348,10 @@ export function Game() {
       socketRef.current = null
       if (animTimerRef.current) clearInterval(animTimerRef.current)
       animTimerRef.current = null
+      if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
+      captureFxTimerRef.current = null
       setAnimatingPiece(null)
+      setCaptureFx(null)
     }
   }, [activeMatch, setLastResult])
 
@@ -230,7 +368,33 @@ export function Game() {
     socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
   }, [view.currentTurn, view.status, activeMatch])
 
+  // Spacebar = roll dice (alternative to the Roll button). Guarded by the
+  // same conditions as the button (your turn, WAITING_FOR_ROLL, no clash, not
+  // already rolling) plus an input-field check so typing in a text box never
+  // rolls. Idempotent: a second press while a roll is in flight is ignored.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
+      const v = viewRef.current
+      if (v.status !== 'active') return
+      if (v.currentTurn !== v.myColor) return
+      if (v.turnPhase !== 'WAITING_FOR_ROLL') return
+      if (v.clash || v.legalMoves.length > 0) return
+      if (isRollingRef.current) return
+      e.preventDefault()
+      isRollingRef.current = true
+      setIsRolling(true)
+      socketRef.current?.emit('roll_dice')
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const rollDice = () => {
+    if (!canRoll || isRolling || isRollingRef.current) return
+    isRollingRef.current = true
     setIsRolling(true)
     socketRef.current?.emit('roll_dice')
   }
@@ -240,18 +404,43 @@ export function Game() {
   const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
   const clearClash = () => dispatch({ type: 'clash_clear' })
 
+  const inviteFriend = async (friendId: string) => {
+    if (!activeMatch || inviteStates[friendId] === 'busy') return
+    setInviteStates((prev) => ({ ...prev, [friendId]: 'busy' }))
+    try {
+      await postApi(`/api/game/${activeMatch.gameId}/invite`, { friendId })
+      setInviteStates((prev) => ({ ...prev, [friendId]: 'sent' }))
+    } catch {
+      setInviteStates((prev) => ({ ...prev, [friendId]: 'idle' }))
+    }
+  }
+
+  // "Go to Lobby" is PURE navigation: it leaves the game screen but does NOT
+  // mutate the engine state. The unmount socket.disconnect() puts the human in
+  // the grace/pause path (seat preserved) — Resume Last Game reconnects the
+  // exact same turn state. Definitive exit is only via End Game / end_game.
   const leaveGame = () => {
-    socketRef.current?.emit('leave_game')
-    // Ensure lastResult is set so Results page renders real data
+    navigate('/lobby')
+  }
+
+  // "End Game" definitively terminates the match for this player. Emits the
+  // engine's end_game event: bot-mode games are aborted + wiped (unreachable
+  // via Resume); PvP prunes just this seat and the game continues if >= 2
+  // humans remain. No result is posted for aborted games, and the match is
+  // cleared so Resume Last Game can never resurrect it.
+  const endGame = () => {
+    socketRef.current?.emit('end_game')
+    // Abandoned outcome: no result is posted for aborts, so the quitter gets
+    // the "Game Abandoned" card (no rating change) instead of a silent kick.
     setLastResult({
       winner: viewRef.current.currentTurn,
-      resultDetail: 'exit',
-      players: viewRef.current.players
-        .filter((p) => p.status === 'active')
-        .map((p) => ({
-          color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
-        })),
+      resultDetail: 'abandoned',
+      mode: activeMatch?.mode ?? 'pvp',
+      playerCount: activeMatch?.playerCount ?? 4,
+      players: [],
+      abandoned: true,
     })
+    setActiveMatch(null)
     navigate('/results')
   }
 
@@ -287,7 +476,7 @@ export function Game() {
               background: '#1a130d', fontSize: 13, fontWeight: 700, color: '#c9bda3',
             }}
           >
-            ← {t('game.leaveShort')}
+            ← {t('game.goToLobby')}
           </div>
           <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>
             {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
@@ -329,13 +518,17 @@ export function Game() {
 
       <div
         style={{
-          flex: 1, display: 'grid', gridTemplateColumns: '250px 1fr 280px', gap: 24, padding: '26px 30px',
+          flex: 1, display: 'grid', gridTemplateColumns: '320px 1fr 280px', gap: 24, padding: '26px 30px',
           alignItems: 'start', maxWidth: 1300, margin: '0 auto', width: '100%',
         }}
       >
         {/* Players sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ ...sectionLabel, color: '#a99a83' }}>{t('lobby.players')}</div>
+          {/* Sidebar header: Players label + "Last Rolled" column header, aligned over the dice column */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12 }}>
+            <div style={{ ...sectionLabel, color: '#a99a83' }}>{t('lobby.players')}</div>
+            <div style={{ ...sectionLabel, color: '#a99a83', fontSize: 10 }}>{t('game.lastRolled')}</div>
+          </div>
           {SEAT_COLORS.map((ck) => {
             const col = COL[ck]
             const playerMeta = view.players.find((p) => p.color === ck)
@@ -391,7 +584,10 @@ export function Game() {
               )
             }
 
-            if (!playerMeta || playerMeta.status !== 'active') return null
+            // active = full row, disconnected = dimmed "Reconnecting…", exited =
+            // removed from the roster (matches the board, whose pieces are gone).
+            if (!playerMeta || playerMeta.status === 'exited') return null
+            const isDisconnected = playerMeta.status === 'disconnected'
             const isHotseat = activeMatch.mode === 'hotseat'
             // Hotseat: every seat is controlled by the same device, so "isYou"
             // means "whoever's turn this device is currently authorized to
@@ -400,8 +596,9 @@ export function Game() {
             // isn't a separate real account.
             const isYou = isHotseat ? ck === view.myColor : !playerMeta.isBot && playerMeta.username === user?.username
             const name = playerMeta.username
-            const sub = playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : isHotseat ? t('game.localPlayer') : 'Player'
+            const sub = isDisconnected ? t('game.reconnecting') : playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : isHotseat ? t('game.localPlayer') : 'Player'
             const goalCount = playerMeta.piecesInGoal ?? 0
+            const lastRoll = view.lastRolls[ck]
 
             return (
               <div
@@ -411,6 +608,7 @@ export function Game() {
                   border: '1px solid ' + (isActive ? col.base : '#3a2c1d'),
                   background: isActive ? `linear-gradient(180deg,${col.base}22,#1a130d)` : 'linear-gradient(180deg,#241b13,#1a130d)',
                   boxShadow: isActive ? `0 0 0 1px ${col.base}55` : 'none',
+                  opacity: isDisconnected ? 0.55 : 1,
                 }}
               >
                 {!playerMeta.isBot && !isHotseat ? (
@@ -438,6 +636,10 @@ export function Game() {
                   <div style={{ color: '#a99a83', fontSize: 12 }}>{sub}</div>
                 </div>
                 <Pips count={goalCount} color={col.base} />
+                {/* Last Rolled column — fixed right edge, aligns under the sidebar header */}
+                <div style={{ flex: 'none' }}>
+                  {lastRoll ? <MiniDie value={lastRoll} /> : <div style={{ width: 44, height: 44, borderRadius: 11, border: '1px dashed #4a3826', display: 'grid', placeItems: 'center', color: '#8a7c66', fontSize: 14, flex: 'none' }}>–</div>}
+                </div>
               </div>
             )
           })}
@@ -453,7 +655,7 @@ export function Game() {
               border: '1px solid #4a3826',
             }}
           >
-            <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} animating={animatingPiece} />
+            <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} animating={animatingPiece} fx={captureFx} />
           </div>
         </div>
 
@@ -513,6 +715,38 @@ export function Game() {
                   total: view.players.filter((p) => p.status === 'active').length,
                 })}
               </div>
+
+              {activeMatch?.mode === 'pvp' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #3a2c1d', paddingTop: 14 }}>
+                  <div style={{ fontSize: 12.5, color: '#a99a83', fontWeight: 700 }}>{t('game.inviteFriend')}</div>
+                  {friends.length === 0 ? (
+                    <div style={{ fontSize: 12, color: '#8a7c66' }}>{t('game.noFriendsToInvite')}</div>
+                  ) : (
+                    friends.map((f) => {
+                      const st = inviteStates[f.id] ?? 'idle'
+                      return (
+                        <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13.5, color: '#f0e2c4' }}>{f.username}</div>
+                          <button
+                            onClick={() => inviteFriend(f.id)}
+                            disabled={st !== 'idle'}
+                            style={{
+                              border: '1px solid ' + (st === 'sent' ? '#2e4a38' : '#3a2c1d'),
+                              borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700,
+                              color: st === 'sent' ? '#5fd08a' : '#c9bda3',
+                              background: st === 'sent' ? 'rgba(34,67,47,.3)' : '#1a130d',
+                              cursor: st === 'idle' ? 'pointer' : 'default',
+                              flex: 'none',
+                            }}
+                          >
+                            {st === 'busy' ? t('game.invitingBtn') : st === 'sent' ? t('game.inviteSent') : t('game.inviteBtn')}
+                          </button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -560,7 +794,7 @@ export function Game() {
           </div>
 
           <button
-            onClick={() => navigate('/results')}
+            onClick={endGame}
             style={{
               border: '1px solid #2e4a38', borderRadius: 12, padding: 12, font: "700 13.5px 'Hanken Grotesk'",
               color: '#8fbf9f', cursor: 'pointer', background: 'rgba(34,67,47,.3)',

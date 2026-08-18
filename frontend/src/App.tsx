@@ -15,7 +15,8 @@ import { Profile } from './pages/Profile'
 import { TwoFactor } from './pages/TwoFactor'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
-import { MultiplayerLobby } from './pages/MultiplayerLobby'
+// MultiplayerLobby is intentionally UNWIRED (file kept for reference):
+// all multiplayer create/join/quick routes through /lobby (LudoLobby) now.
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 
@@ -32,7 +33,6 @@ const SHELL_ROUTES: Record<string, () => ReactNode> = {
 const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/login': () => <Login />,
   '/signup': () => <Signup />,
-  '/multiplayer-lobby': () => <MultiplayerLobby />,
   '/2fa': () => <TwoFactor />,
   '/forgot-password': () => <ForgotPassword />,
   '/reset-password': () => <ResetPassword />,

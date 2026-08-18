@@ -19,10 +19,10 @@ export function Results() {
     return (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#12100a', color: '#f0e2c4' }}>
         <div style={{ ...card, padding: 32, textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>No recent match result</div>
-          <div style={{ color: '#a99a83', marginBottom: 20 }}>Play a game first to see results here.</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>{t('results.noRecentResult')}</div>
+          <div style={{ color: '#a99a83', marginBottom: 20 }}>{t('results.noRecentResultDesc')}</div>
           <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '12px 24px' }}>
-            Go to Lobby
+            {t('home.goToLobby')}
           </button>
         </div>
       </div>
@@ -32,8 +32,22 @@ export function Results() {
   const ranked = [...lastResult.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
   const myColor = lastResult.players.find((p) => !p.isBot && p.username === user?.username)?.color
   const won = lastResult.winner === myColor
+  // On a loss, show how many of the player's own pieces made it home before
+  // the game ended (the raw engine resultDetail is the winner's end reason).
+  const myPiecesHome = ranked.find((p) => p.color === myColor)?.piecesInGoal ?? 0
   const winnerPlayer = lastResult.players.find((p) => p.color === lastResult.winner)
-  const winnerName = winnerPlayer ? (winnerPlayer.color === myColor ? t('common.you') : winnerPlayer.username) : lastResult.winner
+  // Color-name fallback must be translated: the raw color string (e.g. "blue")
+  // is what leaks when no winner player row exists.
+  // Translate every possible winner color (the four PlayerColors + a defensive
+  // fallback so t() never receives undefined or leaks a raw string).
+  const COLOR_NAME_KEYS: Record<string, string> = {
+    red: 'lobby.colorRed',
+    green: 'lobby.colorGreen',
+    yellow: 'lobby.colorYellow',
+    blue: 'lobby.colorBlue',
+  }
+  const winnerColorName = COLOR_NAME_KEYS[lastResult.winner] ?? COLOR_NAME_KEYS.red
+  const winnerName = winnerPlayer ? (winnerPlayer.color === myColor ? t('common.you') : winnerPlayer.username) : t(winnerColorName)
   const winnerInitials = (winnerPlayer?.username ?? lastResult.winner).slice(0, 2).toUpperCase()
 
   // "Rematch" votes (client → 'rematch' → server 'game_created') only work while still
@@ -43,10 +57,15 @@ export function Results() {
     setRematchError(null)
     setRematching(true)
     try {
-      const res = await postApi<{ gameId: string; token: string; color: PlayerColor }>('/api/match/create', {
-        mode: 'pve',
-        playerCount: playerCount,
-        botCount: seats.slice(0, playerCount).filter((s) => s.type === 'bot').length,
+      // "Play Again" must replay the mode that just finished. The REST
+      // /api/match/rematch route is unusable here (processGameEnd deletes the
+      // match hash, so the rematch lookup can't find the finished game), so
+      // PvP creates a fresh WAITING room via create — same as Create Room.
+      const finishedMode = lastResult?.mode ?? (seats.some((s) => s.type === 'bot') ? 'pve' : 'pvp')
+      const res = await postApi<{ gameId: string; token: string; color: PlayerColor; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>('/api/match/create', {
+        mode: finishedMode,
+        playerCount: finishedMode === 'hotseat' ? (lastResult?.playerCount ?? playerCount) : (lastResult?.playerCount ?? playerCount),
+        botCount: finishedMode === 'pve' ? seats.slice(0, playerCount).filter((s) => s.type === 'bot').length : 0,
         clashEnabled: true,
       })
       setActiveMatch(res)
@@ -71,14 +90,16 @@ export function Results() {
           boxShadow: '0 40px 80px -30px #000',
         }}
       >
-        <div style={{ fontFamily: "'Cinzel',serif", fontSize: 14, letterSpacing: '.34em', color: '#c99b45' }}>
-          {t('results.matchComplete')}
+        <div style={{ fontFamily: "'Cinzel',serif", fontSize: 14, letterSpacing: '.34em', color: lastResult.abandoned ? '#a99a83' : '#c99b45' }}>
+          {lastResult.abandoned ? t('results.abandoned') : t('results.matchComplete')}
         </div>
-        <div style={{ fontFamily: "'Cinzel',serif", fontSize: 48, lineHeight: 1, margin: '14px 0 6px', ...goldText }}>
-          {won ? t('results.victory') : t('results.defeat')}
+        <div style={{ fontFamily: "'Cinzel',serif", fontSize: 48, lineHeight: 1, margin: '14px 0 6px', ...(lastResult.abandoned ? { color: '#a99a83' } : goldText) }}>
+          {lastResult.abandoned ? t('results.abandoned') : (won ? t('results.victory') : t('results.defeat'))}
         </div>
         <div style={{ color: '#c9bda3', fontSize: 15 }}>
-          {won ? t('results.victoryDesc') : lastResult.resultDetail}
+          {lastResult.abandoned
+            ? t('results.abandonedDesc')
+            : won ? t('results.victoryDesc') : t('results.piecesHome', { count: myPiecesHome })}
         </div>
         {winnerPlayer && !winnerPlayer.isBot ? (
           <div style={{ display: 'flex', justifyContent: 'center', margin: '26px auto 10px' }}>
@@ -110,6 +131,7 @@ export function Results() {
         <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 16 }}>
           {winnerName}
         </div>
+        {!lastResult.abandoned && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '0 auto 22px', maxWidth: 340 }}>
           {ranked.map((p, i) => (
             <div
@@ -138,25 +160,39 @@ export function Results() {
             </div>
           ))}
         </div>
+        )}
         {rematchError && (
           <div style={{ color: '#e05050', fontSize: 13, marginBottom: 12 }}>{rematchError}</div>
         )}
         <div style={{ display: 'flex', gap: 12 }}>
-          <button
-            onClick={onRematch}
-            disabled={rematching}
-            style={{ flex: 1, border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
-              color: '#2a1c07', cursor: rematching ? 'default' : 'pointer', opacity: rematching ? 0.6 : 1,
-              background: 'linear-gradient(180deg,#f0d18a,#c99b45)' }}
-          >
-            {rematching ? '…' : t('results.rematchBtn')}
-          </button>
-          <button onClick={() => navigate('/leaderboard')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
-            {t('nav.leaderboard')}
-          </button>
-          <button onClick={() => navigate('/home')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
-            {t('nav.home')}
-          </button>
+          {lastResult.abandoned ? (
+            <>
+              <button onClick={() => navigate('/lobby')} style={{ ...btnGold, flex: 1, padding: 14 }}>
+                {t('home.goToLobby')}
+              </button>
+              <button onClick={() => navigate('/home')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
+                {t('nav.home')}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={onRematch}
+                disabled={rematching}
+                style={{ flex: 1, border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
+                  color: '#2a1c07', cursor: rematching ? 'default' : 'pointer', opacity: rematching ? 0.6 : 1,
+                  background: 'linear-gradient(180deg,#f0d18a,#c99b45)' }}
+              >
+                {rematching ? '…' : t('results.rematchBtn')}
+              </button>
+              <button onClick={() => navigate('/leaderboard')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
+                {t('nav.leaderboard')}
+              </button>
+              <button onClick={() => navigate('/home')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
+                {t('nav.home')}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

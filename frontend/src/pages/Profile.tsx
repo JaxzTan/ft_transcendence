@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
+import { UserAvatar } from '../components/UserAvatar'
 import { useRoute, navigate } from '../router'
 import { useApp } from '../store'
 import { card, goldText, avatarBlue, STATUS_STYLE, type PresenceStatus } from '../theme'
-import { UserAvatar } from '../components/UserAvatar'
 
 type UserProfile = {
   id: string
@@ -350,7 +350,7 @@ function StatBox({ label, value, color }: { label: string; value: React.ReactNod
   )
 }
 
-function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null, navigate: (url: string) => void }) {
+function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null; navigate: (path: string) => void }) {
   return (
     <div style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 32 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

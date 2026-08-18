@@ -143,7 +143,7 @@ export function Friends() {
     setInvitingId(friendId)
     setMsg(null)
     try {
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }>(
+      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>(
         '/api/friends/' + friendId + '/invite',
       )
       // Seat the host in the room now, before the friend can accept — otherwise
