@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { avatarDim, btnGold, card } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 type LadderEntry = { username: string; rating: number }
 

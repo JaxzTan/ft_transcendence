@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '../store'
 import { avatarBlue, card } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 type Profile = {
   username: string
@@ -80,7 +81,6 @@ export function Dashboard() {
 
   const totalGames = profile ? profile.wins + profile.losses : 0
   const winRate = totalGames > 0 ? Math.round((profile!.wins / totalGames) * 100) : 0
-  const initials = (profile?.username ?? user?.username ?? '').slice(0, 2).toUpperCase()
 
   const statTiles = profile
     ? [
@@ -95,7 +95,12 @@ export function Dashboard() {
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, borderRadius: 18, padding: '24px 26px', background: 'linear-gradient(180deg,#241b13,#1a130d)', border: '1px solid #3a2c1d' }}>
-        <div style={{ ...avatarBlue(74, 26, 18), boxShadow: '0 0 0 3px #f0d18a55' }}>{initials || 'YO'}</div>
+        <UserAvatar
+          username={profile?.username ?? user?.username ?? ''}
+          size={74}
+          fallbackStyle={avatarBlue(74, 26, 18)}
+          style={{ boxShadow: '0 0 0 3px #f0d18a55' }}
+        />
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "'Cinzel',serif", fontSize: 26, color: '#f4e9cf' }}>
             {profile?.username ?? user?.username ?? t('common.you')}

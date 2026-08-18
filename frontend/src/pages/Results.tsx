@@ -5,6 +5,7 @@ import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { btnGold, btnOutline, card, COL, goldText } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 const PLACE_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a', '#7a6c56']
 
@@ -100,16 +101,33 @@ export function Results() {
             ? t('results.abandonedDesc')
             : won ? t('results.victoryDesc') : t('results.piecesHome', { count: myPiecesHome })}
         </div>
-        <div
-          style={{
-            width: 96, height: 96, margin: '26px auto 10px', borderRadius: '50%',
-            background: `linear-gradient(180deg,${COL[lastResult.winner].base},${COL[lastResult.winner].dark})`,
-            display: 'grid', placeItems: 'center', fontSize: 34, fontWeight: 800, color: '#0d1b28',
-            boxShadow: '0 0 0 4px #f0d18a,0 0 40px rgba(240,209,138,.4)',
-          }}
-        >
-          {winnerInitials}
-        </div>
+        {winnerPlayer && !winnerPlayer.isBot ? (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '26px auto 10px' }}>
+            <UserAvatar
+              username={winnerPlayer.username}
+              size={96}
+              fallbackStyle={{
+                width: 96, height: 96, borderRadius: '50%',
+                background: `linear-gradient(180deg,${COL[lastResult.winner].base},${COL[lastResult.winner].dark})`,
+                fontSize: 34, fontWeight: 800, color: '#0d1b28',
+              }}
+              style={{
+                boxShadow: '0 0 0 4px #f0d18a,0 0 40px rgba(240,209,138,.4)',
+              }}
+            />
+          </div>
+        ) : (
+          <div
+            style={{
+              width: 96, height: 96, margin: '26px auto 10px', borderRadius: '50%',
+              background: `linear-gradient(180deg,${COL[lastResult.winner].base},${COL[lastResult.winner].dark})`,
+              display: 'grid', placeItems: 'center', fontSize: 34, fontWeight: 800, color: '#0d1b28',
+              boxShadow: '0 0 0 4px #f0d18a,0 0 40px rgba(240,209,138,.4)',
+            }}
+          >
+            {winnerInitials}
+          </div>
+        )}
         <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 16 }}>
           {winnerName}
         </div>

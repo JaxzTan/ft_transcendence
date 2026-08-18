@@ -10,6 +10,7 @@ import { connectSocket } from '../socket'
 import { getApi, postApi } from '../api'
 import { useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
+import { UserAvatar } from '../components/UserAvatar'
 
 function Pips({ count, color }: { count: number; color: string }) {
   return (
@@ -547,16 +548,27 @@ export function Game() {
                     opacity: occupied ? 1 : 0.55,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 13, color: '#12100a',
-                      background: occupied ? `linear-gradient(180deg,${col.base},${col.dark})` : 'transparent',
-                      border: occupied ? 'none' : `1.5px dashed ${col.base}88`,
-                    }}
-                  >
-                    {occupied ? playerMeta!.username.slice(0, 2).toUpperCase() : ''}
-                  </div>
+                  {occupied && playerMeta?.username ? (
+                    <UserAvatar
+                      username={playerMeta.username}
+                      size={38}
+                      fallbackStyle={{
+                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                        fontWeight: 800, fontSize: 13, color: '#12100a',
+                        background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                      }}
+                      style={{ borderRadius: 10 }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                        fontWeight: 800, fontSize: 13, color: '#12100a',
+                        background: 'transparent',
+                        border: `1.5px dashed ${col.base}88`,
+                      }}
+                    />
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 14, color: occupied ? '#f0e2c4' : '#8a7c66' }}>
                       {occupied ? playerMeta!.username : t('game.emptySeat')}
@@ -599,14 +611,26 @@ export function Game() {
                   opacity: isDisconnected ? 0.55 : 1,
                 }}
               >
-                <div
-                  style={{
-                    width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                    fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                  }}
-                >
-                  {name.slice(0, 2).toUpperCase()}
-                </div>
+                {!playerMeta.isBot && !isHotseat ? (
+                  <UserAvatar
+                    username={name}
+                    size={38}
+                    fallbackStyle={{
+                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                    }}
+                    style={{ borderRadius: 10 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
+                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
+                    }}
+                  >
+                    {name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4' }}>{name}</div>
                   <div style={{ color: '#a99a83', fontSize: 12 }}>{sub}</div>

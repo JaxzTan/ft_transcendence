@@ -3,20 +3,12 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { navigate, useRoute } from '../router'
 import { AccountMenu } from './AccountMenu'
-import { btnGold, btnOutline, goldText } from '../theme'
-import { apiFetch, getApi, postApi } from '../api'
-import type { PlayerColor } from '../game/types'
+import { NotificationBell } from './NotificationBell'
+import { NotificationToasts } from './NotificationToast'
+import { useNotifications } from '../hooks/useNotifications'
+import { goldText } from '../theme'
+import { apiFetch } from '../api'
 import { useApp } from '../store'
-
-type PendingInvite = {
-  gameId: string
-  token: string
-  engineUrl: string
-  color: PlayerColor
-  inviteCode: string
-  fromUsername: string
-  createdAt: number
-}
 
 const NAV: Array<{ path: string; glyph: string; titleKey: string }> = [
   { path: '/home', glyph: '⌂', titleKey: 'nav.home' },
@@ -68,10 +60,11 @@ function railGlyphStyle(active: boolean): CSSProperties {
 export function Shell({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const { path } = useRoute()
-  const { user, setActiveMatch } = useApp()
+  const { user } = useApp()
   const [rating, setRating] = useState<number | null>(null)
-  const [invite, setInvite] = useState<PendingInvite | null>(null)
-  const [inviteBusy, setInviteBusy] = useState(false)
+
+  // Notification system — replaces the old polling-based invite check.
+  const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } = useNotifications()
 
   useEffect(() => {
     if (!user) {
@@ -211,6 +204,12 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <span style={{ color: '#f0c24e' }}>♛</span>{rating !== null ? rating.toLocaleString() : '—'}
             </div>
+            <NotificationBell
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkRead={markRead}
+              onMarkAllRead={markAllRead}
+            />
             <AccountMenu />
           </div>
         </header>
@@ -218,31 +217,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <div style={{ flex: 1, overflow: 'auto', padding: 32 }}>{children}</div>
       </main>
 
-      {invite && (
-        <div
-          style={{
-            position: 'fixed', right: 24, bottom: 24, zIndex: 50, width: 320, padding: 18, borderRadius: 16,
-            background: 'linear-gradient(180deg,#241b13,#1a130d)', border: '1px solid #c99b45',
-            boxShadow: '0 20px 44px -20px rgba(0,0,0,.85)', display: 'flex', flexDirection: 'column', gap: 12,
-          }}
-        >
-          <div style={{ fontWeight: 800, fontSize: 14.5, color: '#f0e2c4' }}>
-            {t('nav.gameInviteFrom', { name: invite.fromUsername })}
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              onClick={acceptInvite}
-              disabled={inviteBusy}
-              style={{ ...btnGold, flex: 1, padding: '10px 14px', fontSize: 13, opacity: inviteBusy ? 0.6 : 1 }}
-            >
-              {inviteBusy ? '…' : t('nav.acceptInvite')}
-            </button>
-            <button onClick={dismissInvite} disabled={inviteBusy} style={{ ...btnOutline, flex: 1, padding: '10px 14px', fontSize: 13 }}>
-              {t('nav.declineInvite')}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Toast notifications — slide in from the right */}
+      <NotificationToasts toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

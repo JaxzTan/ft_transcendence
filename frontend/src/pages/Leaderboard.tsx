@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { MEDAL_COLORS } from '../data'
 import { avatarDim, card } from '../theme'
 import { useApp } from '../store'
+import { UserAvatar } from '../components/UserAvatar'
 
 type LeaderboardEntry = {
   rank: number
@@ -176,7 +177,11 @@ export function Leaderboard() {
                   <Medal rank={e.rank} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ ...avatarDim(34) }}>{e.username.slice(0, 2).toUpperCase()}</div>
+                  <UserAvatar
+                    username={e.username}
+                    size={34}
+                    fallbackStyle={avatarDim(34)}
+                  />
                   <span style={{ fontWeight: 700, fontSize: '14.5px' }}>{isMe ? t('common.you') : e.username}</span>
                 </div>
                 <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>♛ {e.rating}</div>
@@ -200,14 +205,14 @@ export function Leaderboard() {
               <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#4a92e0' }}>{myRank.rank}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div
-                style={{
+              <UserAvatar
+                username={user.username}
+                size={34}
+                fallbackStyle={{
                   width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center',
                   fontWeight: 800, fontSize: 12, background: 'linear-gradient(180deg,#4a92e0,#2c66ad)', color: '#0d1b28',
                 }}
-              >
-                YO
-              </div>
+              />
               <span style={{ fontWeight: 800, fontSize: '14.5px' }}>{t('common.you')}</span>
             </div>
             <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>♛ {myRank.rating.toLocaleString()}</div>
