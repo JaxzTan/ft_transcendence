@@ -85,6 +85,49 @@ export function Shell({ children }: { children: ReactNode }) {
     }
   }, [user])
 
+  // Presence/invites are poll-based (no push transport in this backend) —
+  // check for an incoming game invite from a friend every few seconds.
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    const poll = () => {
+      getApi<PendingInvite | null>('/api/friends/invites/pending')
+        .then((data) => { if (!cancelled) setInvite(data) })
+        .catch(() => {})
+    }
+    poll()
+    const iv = setInterval(poll, 8000)
+    return () => {
+      cancelled = true
+      clearInterval(iv)
+    }
+  }, [user])
+
+  const acceptInvite = async () => {
+    if (!invite) return
+    setInviteBusy(true)
+    try {
+      // The friend is already seated in the room (friends.service.ts seats
+      // them at invite time, same as online mode's synchronous join) — accept
+      // just confirms entry into the room already reserved for them.
+      const { gameId, token, color, inviteCode } = invite
+      // Friend-invite rooms are always 4-player PvP rooms (backend createInvite
+      // -> createMatch(userId, 'pvp', 4, ...)), so mode/playerCount are fixed.
+      setActiveMatch({ gameId, token, color, inviteCode, mode: 'pvp', playerCount: 4 })
+      setInvite(null)
+      navigate(`/game?gameId=${gameId}`)
+    } catch {
+      setInvite(null)
+    } finally {
+      setInviteBusy(false)
+    }
+  }
+
+  const dismissInvite = () => {
+    setInvite(null)
+    postApi('/api/friends/invites/dismiss').catch(() => {})
+  }
+
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       <aside

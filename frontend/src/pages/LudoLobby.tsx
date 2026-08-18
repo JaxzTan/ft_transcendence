@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getApi, postApi } from '../api'
 import { JoinByCode } from '../components/JoinByCode'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
-import { COL, btnGold, btnOutline, card, feltPanel, pill, sectionLabel } from '../theme'
-import { UserAvatar } from '../components/UserAvatar'
+import { COL, btnGold, card, feltPanel, pill, sectionLabel } from '../theme'
 
 type Room = {
   id: string
@@ -17,16 +16,7 @@ type Room = {
   mode: 'classic' | 'duel'
 }
 
-type MyRoom = {
-  id: string
-  roomCode: string | null
-  status: 'WAITING' | 'ACTIVE'
-  gameType: string
-  seats: number
-  maxSeats: number
-}
-
-type MatchResult = { gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string }
+type MatchResult = { gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }
 
 type ModeCard = {
   key: string
@@ -34,7 +24,7 @@ type ModeCard = {
   desc: string
   glyph: string
   hue: string
-  badge: 'casual' | 'ranked' | 'invite'
+  badge: 'casual' | 'ranked' | 'invite' | 'semiRanked'
   onClick: () => void
 }
 
@@ -48,33 +38,23 @@ function hueForHost(host: string): string {
 
 export function LudoLobby() {
   const { t } = useTranslation()
-  const { setActiveMatch } = useApp()
+  const { user, setActiveMatch } = useApp()
 
   const [rooms, setRooms] = useState<Room[] | null>(null)
   const [roomFilter, setRoomFilter] = useState<'all' | 'classic' | 'duel'>('all')
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null)
 
-  const [myRooms, setMyRooms] = useState<MyRoom[]>([])
-  const [rejoiningId, setRejoiningId] = useState<string | null>(null)
-
-  const [hostTable, setHostTable] = useState<MatchResult | null>(null)
+  // Whether the current player already has a WAITING/ACTIVE room — drives the
+  // "Create Room" guard (a player may only have one room at a time). Keep the
+  // /api/games/mine call silent: the "Your Tables" section is gone, this is a
+  // bare boolean, not data rendered to the user.
+  const [hasActiveGame, setHasActiveGame] = useState(false)
   const [hostBusy, setHostBusy] = useState(false)
-  const hostTableRef = useRef<MatchResult | null>(null)
-  const hostTableUsedRef = useRef(false)
 
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [joiningByCode, setJoiningByCode] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
-  const [codeCopied, setCodeCopied] = useState(false)
-
-  const copyHostCode = () => {
-    if (!hostTable?.inviteCode) return
-    navigator.clipboard.writeText(hostTable.inviteCode).then(() => {
-      setCodeCopied(true)
-      setTimeout(() => setCodeCopied(false), 1500)
-    })
-  }
 
   const fetchRooms = () => {
     getApi<Room[]>('/api/games/rooms')
@@ -82,41 +62,30 @@ export function LudoLobby() {
       .catch(() => setRooms((prev) => prev ?? []))
   }
 
-  const fetchMyRooms = () => {
-    getApi<MyRoom[]>('/api/games/mine')
-      .then((data) => setMyRooms(data))
+  const fetchHasActiveGame = () => {
+    getApi<Array<{ id: string }>>('/api/games/mine')
+      .then((data) => setHasActiveGame(data.length > 0))
       .catch(() => {})
   }
 
   useEffect(() => {
     fetchRooms()
-    fetchMyRooms()
-    const iv = setInterval(() => { fetchRooms(); fetchMyRooms() }, 1000)
+    fetchHasActiveGame()
+    const iv = setInterval(() => { fetchRooms(); fetchHasActiveGame() }, 1000)
     return () => clearInterval(iv)
   }, [])
 
-  const rejoinRoom = async (room: MyRoom) => {
-    setRejoiningId(room.id)
-    setError(null)
-    try {
-      const res = await postApi<MatchResult>(`/api/game/${room.id}/rejoin`, {})
-      setActiveMatch(res)
-      navigate(`/game?gameId=${res.gameId}`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to rejoin table')
-      setRejoiningId(null)
-      fetchMyRooms()
+  const createRoom = async () => {
+    if (hasActiveGame) {
+      setError(t('lobbyBrowser.createRoomWhileActiveError'))
+      return
     }
-  }
-
-  const spinNewTable = async (previous?: MatchResult | null) => {
     setHostBusy(true)
     setError(null)
-    hostTableUsedRef.current = false
     try {
       const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: true })
-      setHostTable(res)
-      if (previous) postApi(`/api/game/${previous.gameId}/abort`).catch(() => {})
+      setActiveMatch(res)
+      navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to host a table')
     } finally {
@@ -124,42 +93,28 @@ export function LudoLobby() {
     }
   }
 
-  const spunRef = useRef(false)
-  useEffect(() => {
-    if (spunRef.current) return
-    spunRef.current = true
-    spinNewTable()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Track the live invite room so it can be aborted on unmount — without
-  // this, every visit to the lobby that isn't followed by "Create Room"
-  // leaves a ghost WAITING room sitting in Redis, cluttering everyone's
-  // open-rooms list with tables nobody is actually hosting anymore.
-  useEffect(() => {
-    hostTableRef.current = hostTable
-  }, [hostTable])
-
-  useEffect(() => {
-    return () => {
-      if (hostTableRef.current && !hostTableUsedRef.current) {
-        postApi(`/api/game/${hostTableRef.current.gameId}/abort`).catch(() => {})
-      }
+  const rejoinRoom = async (room: Room) => {
+    setJoiningRoomId(room.id)
+    setError(null)
+    try {
+      const res = await postApi<MatchResult>(`/api/game/${room.id}/rejoin`, {})
+      setActiveMatch(res)
+      navigate(`/game?gameId=${res.gameId}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to rejoin table')
+      setJoiningRoomId(null)
+      fetchRooms()
     }
-  }, [])
-
-  const createTable = () => {
-    if (!hostTable) return
-    hostTableUsedRef.current = true
-    setActiveMatch(hostTable)
-    navigate(`/game?gameId=${hostTable.gameId}`)
   }
 
   const joinByCode = async (code: string) => {
     const trimmed = code.trim().toUpperCase()
     if (!trimmed) return
-    if (hostTable?.inviteCode && trimmed === hostTable.inviteCode) {
-      createTable()
+    // Typing your own room's code: the backend rejects joining your own invite,
+    // so route to the rejoin endpoint instead — same as the Rejoin button.
+    const ownRoom = (rooms ?? []).find((r) => r.host === user?.username && r.roomCode === trimmed)
+    if (ownRoom) {
+      await rejoinRoom(ownRoom)
       return
     }
     setJoiningByCode(true)
@@ -195,17 +150,8 @@ export function LudoLobby() {
       desc: t('lobbyBrowser.vsBotsDesc'),
       glyph: '♟',
       hue: COL.green.base,
-      badge: 'casual',
+      badge: 'semiRanked',
       onClick: () => navigate('/lobby/table?mode=4&bots=1'),
-    },
-    {
-      key: 'classic4P',
-      title: t('lobby.classic4P'),
-      desc: t('lobbyBrowser.classic4PDesc'),
-      glyph: '✦',
-      hue: COL.yellow.base,
-      badge: 'ranked',
-      onClick: () => navigate('/lobby/table?mode=4&bots=0'),
     },
     {
       key: 'duel2P',
@@ -213,29 +159,23 @@ export function LudoLobby() {
       desc: t('lobbyBrowser.duel2PDesc'),
       glyph: '✕',
       hue: COL.red.base,
-      badge: 'ranked',
-      onClick: () => navigate('/lobby/table?mode=4&bots=0&local=1'),
-    },
-    {
-      key: 'testYourLuck',
-      title: t('lobby.testYourLuck'),
-      desc: t('lobbyBrowser.testYourLuckDesc'),
-      glyph: '⚄',
-      hue: COL.blue.base,
       badge: 'casual',
-      onClick: () => navigate('/lobby/table?mode=1&bots=0&local=1'),
+      onClick: () => navigate('/lobby/table?mode=4&bots=0&local=1'),
     },
   ]
 
   const badgeStyle = (badge: ModeCard['badge']): React.CSSProperties => {
-    const hue = badge === 'ranked' ? '#f0c24e' : badge === 'casual' ? '#4bbf7b' : '#4a92e0'
+    const hue = badge === 'ranked' ? '#f0c24e' : badge === 'semiRanked' ? '#8fc47a' : badge === 'casual' ? '#4bbf7b' : '#4a92e0'
     return {
       fontSize: 10.5, fontWeight: 800, letterSpacing: '.04em', color: hue,
       background: `${hue}22`, border: `1px solid ${hue}55`, borderRadius: 999, padding: '3px 8px',
     }
   }
   const badgeLabel = (badge: ModeCard['badge']) =>
-    badge === 'ranked' ? t('lobbyBrowser.ranked') : badge === 'casual' ? t('lobbyBrowser.casual') : t('lobbyBrowser.invite')
+    badge === 'ranked' ? t('lobbyBrowser.ranked')
+      : badge === 'semiRanked' ? t('lobbyBrowser.semiRanked')
+      : badge === 'casual' ? t('lobbyBrowser.casual')
+      : t('lobbyBrowser.invite')
 
   const filteredRooms = (rooms ?? []).filter((r) => roomFilter === 'all' || r.mode === roomFilter)
 
@@ -296,39 +236,6 @@ export function LudoLobby() {
             </div>
           </div>
 
-          {myRooms.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={sectionLabel}>{t('lobbyBrowser.yourTables')} · {myRooms.length}</div>
-              <div style={{ ...card, overflow: 'hidden' }}>
-                {myRooms.map((room, i) => (
-                  <div
-                    key={room.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px',
-                      borderBottom: i < myRooms.length - 1 ? '1px solid #2a2015' : 'none',
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#f0e2c4' }}>
-                        {room.roomCode ?? room.gameType} <span style={{ color: '#a99a83', fontWeight: 600 }}>· {room.seats}/{room.maxSeats}</span>
-                      </div>
-                      <div style={{ color: '#a99a83', fontSize: 12 }}>
-                        {room.status === 'WAITING' ? t('lobbyBrowser.statusWaiting') : t('lobbyBrowser.statusActive')}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => rejoinRoom(room)}
-                      disabled={rejoiningId === room.id}
-                      style={{ ...btnOutline, padding: '8px 16px', fontSize: 12.5, opacity: rejoiningId === room.id ? 0.6 : 1 }}
-                    >
-                      {rejoiningId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.rejoinBtn')}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={sectionLabel}>{t('lobbyBrowser.openRooms')} · {filteredRooms.length}</div>
@@ -359,6 +266,7 @@ export function LudoLobby() {
                 <div style={{ padding: '20px 0', textAlign: 'center', color: '#a99a83', fontSize: 13.5 }}>{t('lobbyBrowser.noOpenRooms')}</div>
               ) : (
                 filteredRooms.map((room) => {
+                  const isOwn = room.host === user?.username
                   const full = room.seats >= room.maxSeats
                   const hue = hueForHost(room.host)
                   return (
@@ -393,15 +301,17 @@ export function LudoLobby() {
                         <span style={badgeStyle('ranked')}>{t('lobbyBrowser.ranked')}</span>
                       </div>
                       <button
-                        onClick={() => joinRoom(room)}
-                        disabled={full || joiningRoomId === room.id}
+                        onClick={() => (isOwn ? rejoinRoom(room) : joinRoom(room))}
+                        disabled={(!isOwn && full) || joiningRoomId === room.id}
                         style={{
                           ...btnGold, padding: '8px 16px', fontSize: 12.5,
-                          opacity: full ? 0.4 : joiningRoomId === room.id ? 0.7 : 1,
-                          cursor: full ? 'not-allowed' : 'pointer',
+                          opacity: (!isOwn && full) || joiningRoomId === room.id ? 0.4 : 1,
+                          cursor: !isOwn && full ? 'not-allowed' : 'pointer',
                         }}
                       >
-                        {full ? t('lobbyBrowser.fullBtn') : joiningRoomId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.joinBtn')}
+                        {isOwn
+                          ? (joiningRoomId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.rejoinBtn'))
+                          : full ? t('lobbyBrowser.fullBtn') : joiningRoomId === room.id ? t('lobbyBrowser.joiningBtn') : t('lobbyBrowser.joinBtn')}
                       </button>
                     </div>
                   )
@@ -415,41 +325,10 @@ export function LudoLobby() {
           <div style={{ ...feltPanel, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontFamily: "'Cinzel',serif", fontSize: 17, color: '#dff0e0' }}>{t('lobbyBrowser.hostTableTitle')}</div>
             <div style={{ color: '#c9d9c9', fontSize: 13, lineHeight: 1.5 }}>{t('lobbyBrowser.hostTableDesc')}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
-                onClick={copyHostCode}
-                title={hostTable?.inviteCode ? t('game.copyRoomCode') : undefined}
-                style={{
-                  flex: 1, background: 'rgba(0,0,0,.25)', border: '1px solid #2e4a38', borderRadius: 10,
-                  padding: '12px 14px', fontWeight: 800, fontSize: 18, letterSpacing: '.18em', color: '#f0e2c4',
-                  cursor: hostTable?.inviteCode ? 'pointer' : 'default',
-                }}
-              >
-                {hostTable?.inviteCode ?? '······'}
-              </div>
-              <button
-                onClick={copyHostCode}
-                disabled={!hostTable?.inviteCode}
-                style={{
-                  ...btnOutline, padding: '10px 14px', fontSize: 12.5,
-                  opacity: !hostTable?.inviteCode ? 0.5 : 1,
-                  color: codeCopied ? '#5fd08a' : '#fff',
-                }}
-              >
-                {codeCopied ? t('game.copiedBtn') : t('game.copyBtn')}
-              </button>
-              <button
-                onClick={() => spinNewTable(hostTable)}
-                disabled={hostBusy}
-                style={{ ...btnOutline, padding: '10px 14px', fontSize: 12.5, opacity: hostBusy ? 0.6 : 1 }}
-              >
-                ↻ {t('lobbyBrowser.newCodeBtn')}
-              </button>
-            </div>
             <button
-              onClick={createTable}
-              disabled={!hostTable || hostBusy}
-              style={{ ...btnGold, opacity: !hostTable || hostBusy ? 0.6 : 1 }}
+              onClick={createRoom}
+              disabled={hostBusy}
+              style={{ ...btnGold, opacity: hostBusy ? 0.6 : 1 }}
             >
               {hostBusy ? t('lobbyBrowser.creatingTableBtn') : t('lobbyBrowser.createTableBtn')}
             </button>

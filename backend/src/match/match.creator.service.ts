@@ -6,7 +6,7 @@ import Redis from 'ioredis';
 import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
 
 const BOT_PREFIX = 'bot-';
-const SLOT_COLORS = ['red', 'green', 'yellow', 'blue'];
+const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
 
@@ -72,7 +72,29 @@ export class MatchCreatorService {
 			throw new BadRequestException('PvP mode requires at least 2 players');
 		}
 
-		const gameId = crypto.randomUUID();
+		// SCAN guard: idempotent room creation — reuse existing WAITING/ACTIVE match if user already seated
+		let cursor = '0';
+		let foundExisting = false;
+		let existingGameId = '';
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				if (
+					(data.player1_id === userId ||
+			 		data.player2_id === userId ||
+			 		data.player3_id === userId ||
+			 		data.player4_id === userId) &&
+					(data.status === 'WAITING' || data.status === 'ACTIVE')
+				) {
+					foundExisting = true;
+					existingGameId = data.id;
+					break;
+				}
+			}
+		} while (!foundExisting && cursor !== '0');
+		const gameId = foundExisting ? existingGameId : crypto.randomUUID();
 		const totalBots = botCount;
 		const isPvP = mode === 'pvp';
 		const player1Color = SLOT_COLORS[0];
@@ -114,7 +136,11 @@ export class MatchCreatorService {
 			{ expiresIn: '24h' },
 		);
 
-		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color };
+		// mode + playerCount must be returned: the frontend persists activeMatch
+		// to sessionStorage for refresh/reconnect and branches on activeMatch.mode
+		// (hotseat eager multi-join, rejoin auth). Without them, a browser refresh
+		// silently loses the mode and hotseat/PvE rejoin as a generic PvP seat.
+		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color, mode, playerCount };
 		if (isPvP) {
 			result.inviteCode = updates.inviteCode;
 		}

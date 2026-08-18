@@ -45,6 +45,10 @@ export class ResultSubmitter {
 
       const participants = [];
       for (const player of state.players) {
+        // Players who aborted/left via End Game (status 'exited') are pruned
+        // from the board and must NOT receive a definitive result or rating —
+        // they didn't finish the match, so no outcome is recorded for them.
+        if (player.status === 'exited') continue;
         const stats = { ...player.stats };
         const userId = this.userIdMap.get(gameId)?.get(player.color) || `bot-${player.color}`;
         participants.push({

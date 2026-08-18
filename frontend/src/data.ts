@@ -64,7 +64,7 @@ export const MODE_CARDS = [
   { title: 'Private Table', desc: 'Invite friends to a room', glyph: '⌘', playerCount: 4, allowAddPlayers: false, hue: '#4a92e0' },
 ]
 
-export const MOVE_LOG_COLORS = ['red', 'green', 'yellow', 'blue'] as const
+export const MOVE_LOG_COLORS = ['blue', 'red', 'green', 'yellow'] as const
 
 export const MOVE_LOG = [
   { ck: 'red', text: 'Rook moved a piece out of home' },

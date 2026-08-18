@@ -5,7 +5,7 @@ import { secret } from '../secrets';
 import Redis from 'ioredis';
 
 const BOT_PREFIX = 'bot-';
-const SLOT_COLORS = ['red', 'green', 'yellow', 'blue'];
+const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 function isBotUserId(userId: string | undefined): boolean {
 	return !!userId && userId.startsWith(BOT_PREFIX);
 }
@@ -30,6 +30,9 @@ export class MatchPlayerService {
 		const data = await this.redis.hgetall(`match:${gameId}`);
 		if (!data || !data.id) throw new NotFoundException('Game not found');
 		if (data.status !== 'WAITING') throw new ForbiddenException('Game already started');
+		// Humans can only join human rooms — PvE/hotseat rooms are auto-started
+		// and never accept a second human via this endpoint.
+		if (data.gameType !== 'PVP') throw new ForbiddenException('Only PvP rooms can be joined');
 
 		const maxSeats = parseInt(data.playerCount || '4', 10);
 		const occupiedIds = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].filter(Boolean);
@@ -48,7 +51,7 @@ export class MatchPlayerService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: 'ws://localhost:3001', color: assignedColor, inviteCode: data.inviteCode || undefined };
+		return { gameId, token, engineUrl: 'ws://localhost:3001', color: assignedColor, inviteCode: data.inviteCode || undefined, mode: data.gameType ? data.gameType.toLowerCase() : 'pvp', playerCount: parseInt(data.playerCount || '2', 10) };
 	}
 
 	// Rejoin a match the user is already seated in (fresh token, no new slot).
@@ -74,7 +77,52 @@ export class MatchPlayerService {
 			{ expiresIn: '24h' },
 		);
 
-		return { gameId, token, engineUrl: 'ws://localhost:3001', color, inviteCode: data.inviteCode || undefined };
+		return { gameId, token, engineUrl: 'ws://localhost:3001', color, inviteCode: data.inviteCode || undefined, mode: data.gameType ? data.gameType.toLowerCase() : 'pvp', playerCount: parseInt(data.playerCount || '2', 10) };
+	}
+
+	/**
+	 * Seat a friend into an existing WAITING PvP room and stage an invite record
+	 * (`invite:{friendId}`) so their client's poll (Shell /api/friends/invites/
+	 * pending) picks it up. Same transport as FriendsService.inviteToGame, but
+	 * works on a room that already exists instead of creating a fresh one.
+	 */
+	async inviteFriendToGame(gameId: string, hostId: string, friendId: string) {
+		const data = await this.redis.hgetall(`match:${gameId}`);
+		if (!data || !data.id) throw new NotFoundException('Game not found');
+		if (data.gameType !== 'PVP') throw new ForbiddenException('Only PvP rooms can be invited to');
+		if (data.status !== 'WAITING') throw new ForbiddenException('Game already started');
+
+		const isHost = data.player1_id === hostId || data.player2_id === hostId ||
+			data.player3_id === hostId || data.player4_id === hostId;
+		if (!isHost) throw new ForbiddenException('You are not a player in this game');
+
+		const friendship = await this.prisma.db.friendship.findFirst({
+			where: {
+				OR: [
+					{ userId: hostId, friendId, status: 'accepted' },
+					{ userId: friendId, friendId: hostId, status: 'accepted' },
+				],
+			},
+		});
+		if (!friendship) throw new ForbiddenException('You are not friends with this user');
+
+		const friendSeat = await this.joinMatch(gameId, friendId);
+
+		await this.redis.set(
+			`invite:${friendId}`,
+			JSON.stringify({
+				gameId: friendSeat.gameId,
+				token: friendSeat.token,
+				engineUrl: friendSeat.engineUrl,
+				color: friendSeat.color,
+				inviteCode: data.inviteCode || undefined,
+				fromUsername: (await this.resolveUsername(hostId)) || 'A friend',
+				createdAt: Date.now(),
+			}),
+			'EX', 300,
+		);
+
+		return { message: 'Invite sent', gameId: friendSeat.gameId };
 	}
 
 	// Generate a spectator token for an ACTIVE match.

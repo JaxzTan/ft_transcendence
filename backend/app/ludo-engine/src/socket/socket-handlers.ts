@@ -6,7 +6,7 @@ import { firstActiveColor } from '../player-handler';
 import { GameSocket, isBotUserId, BOT_PREFIX } from './auth';
 import type { PlayerColor, PieceId } from '../types';
 
-const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
+const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
 export class SocketHandlers {
   // Serializes each game's join_game critical section (load → mutate → save
@@ -21,6 +21,8 @@ export class SocketHandlers {
     private clashManager: ClashManager,
     private userIdMap: Map<string, Map<PlayerColor, string>>,
     private getOrCreateBot: (gameId: string, color: PlayerColor, engine: LudoEngine, store: RedisGameStore) => LudoBot,
+    private scheduleBotTurn?: (gameId: string) => void,
+    private notifyAbort?: (gameId: string) => void,
   ) {}
 
   private withGameLock<T>(gameId: string, fn: () => Promise<T>): Promise<T> {
@@ -67,6 +69,11 @@ export class SocketHandlers {
           if (isReconnectingPlayer) {
             await this.engine.handlePlayerReconnect(effectiveGameId, playerColor);
             state = await this.store.loadGameState(effectiveGameId);
+            // The player is back on their old seat — tell the room so everyone
+            // sees them flip from "Reconnecting…" back to active.
+            if (state && !state.disconnectedPlayers.some((d) => d.color === playerColor)) {
+              this.engine.emitEvent({ type: 'player_reconnected', gameId: effectiveGameId, color: playerColor });
+            }
           } else {
             const player = state.players.find(p => p.color === playerColor);
             if (player) player.status = 'active';
@@ -103,6 +110,20 @@ export class SocketHandlers {
           await this.autoStartIfReady(effectiveGameId, matchData);
           // Reload state — autoStartIfReady may have transitioned it to 'active'
           state = await this.store.loadGameState(effectiveGameId);
+        }
+
+        // Resume re-arm: any reconnect/join into an ACTIVE game clears the
+        // pause flag, and if it's a bot's turn the bot trigger is re-scheduled.
+        // This is what un-freezes a bot-mode game the player left mid-game
+        // (or refreshed the browser on) — the turn state persisted in Redis,
+        // the human just needs a fresh bot kick.
+        if (state?.status === 'active' && state.paused) {
+          delete state.paused;
+          delete state.pauseTurnOwner;
+          await this.store.saveGameState(effectiveGameId, state);
+        }
+        if (state?.status === 'active' && state.currentTurn && isBotUserId(this.userIdMap.get(effectiveGameId)?.get(state.currentTurn))) {
+          this.scheduleBotTurn?.(effectiveGameId);
         }
 
         if (state) socket.emit('game_joined', state);
@@ -339,7 +360,7 @@ export class SocketHandlers {
 
     (async () => {
       try {
-        await this.engine.handlePlayerDisconnect(gameId, color);
+        await this.engine.handlePlayerDisconnect(gameId, color, this.notifyAbort);
         await this.clashManager.freezeClash(gameId, color);
       } catch (error) {
         console.error('Disconnect handler error:', error);
