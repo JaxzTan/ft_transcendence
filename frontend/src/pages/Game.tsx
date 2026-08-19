@@ -99,6 +99,9 @@ export function Game() {
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
   const viewRef = useRef(view)
   viewRef.current = view
+  // Mirrors `canRoll` (computed further down, from displayTurn) for the
+  // spacebar shortcut's mount-once effect — see canRoll's assignment below.
+  const canRollRef = useRef(false)
   const [connected, setConnected] = useState(false)
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const [isRolling, setIsRolling] = useState(false)
@@ -456,24 +459,28 @@ export function Game() {
   }, [view.currentTurn, view.status, activeMatch])
 
   // Spacebar = roll dice (alternative to the Roll button). Guarded by the
-  // same conditions as the button (your turn, WAITING_FOR_ROLL, no clash, not
-  // already rolling) plus an input-field check so typing in a text box never
-  // rolls. Idempotent: a second press while a roll is in flight is ignored.
+  // exact same gate as the button (canRollRef, mirroring canRoll) plus an
+  // input-field check so typing in a text box never rolls. Idempotent: a
+  // second press while a roll is in flight is ignored.
+  //
+  // Deliberately keyed off canRoll/displayTurn rather than the raw
+  // view.currentTurn: displayTurn lags the real turn by a beat (see
+  // TURN_CHANGE_DELAY_* above) so the turn change reads as a beat instead of
+  // an instant snap. Gating on the raw currentTurn let spacebar jump the gun
+  // and start rolling before that beat finished — before the turn indicator
+  // even said it was your turn yet — while the button correctly stayed
+  // disabled for that same window. This keeps both input paths in sync.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
       const el = e.target as HTMLElement | null
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
-      const v = viewRef.current
-      if (v.status !== 'active') return
-      if (v.currentTurn !== v.myColor) return
-      if (v.turnPhase !== 'WAITING_FOR_ROLL') return
-      if (v.clash || v.legalMoves.length > 0) return
+      if (!canRollRef.current) return
       if (isRollingRef.current) return
       e.preventDefault()
       isRollingRef.current = true
       setIsRolling(true)
-      setRollingColor(v.myColor)
+      setRollingColor(viewRef.current.myColor)
       socketRef.current?.emit('roll_dice')
     }
     window.addEventListener('keydown', onKeyDown)
@@ -557,6 +564,10 @@ export function Game() {
 
   const isMyTurn = displayTurn === view.myColor
   const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece
+  // Keep the spacebar shortcut in sync with the Roll button's own gate —
+  // it's declared in a mount-once effect below, so it reads this via a ref
+  // rather than closing over the (stale, first-render) canRoll value.
+  canRollRef.current = canRoll
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle')
     : isMyTurn ? t('game.yourTurnShort') : `${displayTurn.toUpperCase()}'s turn`
