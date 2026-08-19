@@ -8,7 +8,6 @@ import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
-type PageView = 'hub' | 'snake-page'
 type Widget3Tab = 'ladder' | 'guestbook'
 type LadderEntry = { username: string; rating: number; avatar?: string }
 type Friend = {
@@ -23,11 +22,6 @@ type Friend = {
 export function Home() {
 	const { t } = useTranslation()
 	const { user, setActiveMatch } = useApp()
-
-	// ------------------------------------------------------------------------
-	// 1. PAGE VIEW (HUB vs FULL SNAKE PAGE)
-	// ------------------------------------------------------------------------
-	const [pageView, setPageView] = useState<PageView>('hub')
 	const [widget3Tab, setWidget3Tab] = useState<Widget3Tab>('ladder')
 
 	// ------------------------------------------------------------------------
@@ -240,7 +234,6 @@ export function Home() {
 
 	useEffect(() => {
 		const handleGlobalKeyDown = (e: KeyboardEvent) => {
-			if (pageView !== 'hub') return
 			const activeTag = document.activeElement?.tagName.toLowerCase()
 			if (activeTag === 'input' || activeTag === 'textarea') return
 
@@ -251,10 +244,9 @@ export function Home() {
 		}
 		window.addEventListener('keydown', handleGlobalKeyDown)
 		return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-	}, [pageView, isWarpingToLobby])
+	}, [isWarpingToLobby])
 
 	useEffect(() => {
-		if (pageView !== 'hub') return
 		const canvas = canvasRef.current
 		if (!canvas) return
 		const ctx = canvas.getContext('2d')
@@ -628,226 +620,7 @@ export function Home() {
 		return () => {
 			cancelAnimationFrame(animId)
 		}
-	}, [pageView, theme])
-
-	// ------------------------------------------------------------------------
-	// 8. DEDICATED FULL SNAKE PAGE & THERMAL RECEIPT PRINTER
-	// ------------------------------------------------------------------------
-	const snakePageCanvasRef = useRef<HTMLCanvasElement | null>(null)
-	const [dedicatedSnakeScore, setDedicatedSnakeScore] = useState(0)
-	const [dedicatedSnakeHighScore, setDedicatedSnakeHighScore] = useState(0)
-	const [isReceiptPrinting, setIsReceiptPrinting] = useState(false)
-	const [receiptStats, setReceiptStats] = useState({
-		score: 0,
-		highScore: 0,
-		apples: 0,
-		length: 3,
-		time: '0.0',
-		rank: 'SNAKE MASTER',
-		date: new Date().toISOString().split('T')[0],
-	})
-
-	useEffect(() => {
-		const saved = parseInt(localStorage.getItem('retro_snake_page_highscore') || '0', 10)
-		setDedicatedSnakeHighScore(saved)
-	}, [])
-
-	const printReceipt = (finalScore: number, apples: number, length: number, elapsedSec: number) => {
-		const best = Math.max(finalScore, dedicatedSnakeHighScore)
-		let rank = 'ARCADE NOVICE'
-		if (finalScore >= 1000) rank = 'NEON LEGEND'
-		else if (finalScore >= 500) rank = 'CYBER MASTER'
-		else if (finalScore >= 250) rank = 'SNAKE PRO'
-
-		setReceiptStats({
-			score: finalScore,
-			highScore: best,
-			apples,
-			length,
-			time: elapsedSec.toFixed(1),
-			rank,
-			date: new Date().toISOString().split('T')[0],
-		})
-		setIsReceiptPrinting(true)
-		retroAudio.playPrinterSound()
-	}
-
-	useEffect(() => {
-		if (pageView !== 'snake-page') return
-		const canvas = snakePageCanvasRef.current
-		if (!canvas) return
-		const ctx = canvas.getContext('2d')
-		if (!ctx) return
-
-		let isGameOver = false
-		let isGameStarted = false
-		let currentScore = 0
-		let applesEaten = 0
-		let startTime = Date.now()
-		let animId: number
-
-		const gridSize = 20
-		let snake: Array<{ x: number; y: number }> = [
-			{ x: 15, y: 10 },
-			{ x: 14, y: 10 },
-			{ x: 13, y: 10 },
-		]
-		let dir = { x: 1, y: 0 }
-		let nextDir = { x: 1, y: 0 }
-		let food = { x: 22, y: 10 }
-		let snakeTick = 0
-
-		const spawnFood = () => {
-			const cols = Math.floor(canvas.width / gridSize)
-			const rows = Math.floor(canvas.height / gridSize)
-			food = {
-				x: Math.floor(Math.random() * cols),
-				y: Math.floor(Math.random() * rows),
-			}
-		}
-		spawnFood()
-
-		const keys: Record<string, boolean> = {}
-		const onKeyDown = (e: KeyboardEvent) => {
-			keys[e.code] = true
-			if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(e.code)) {
-				if (!isGameStarted && !isGameOver) {
-					isGameStarted = true
-					startTime = Date.now()
-				}
-				e.preventDefault()
-			}
-			if (e.code === 'KeyR' && isGameOver) {
-				restart()
-			}
-		}
-		const onKeyUp = (e: KeyboardEvent) => {
-			keys[e.code] = false
-		}
-		window.addEventListener('keydown', onKeyDown)
-		window.addEventListener('keyup', onKeyUp)
-
-		const restart = () => {
-			isGameOver = false
-			isGameStarted = false
-			currentScore = 0
-			applesEaten = 0
-			setIsReceiptPrinting(false)
-			setDedicatedSnakeScore(0)
-			snake = [
-				{ x: 15, y: 10 },
-				{ x: 14, y: 10 },
-				{ x: 13, y: 10 },
-			]
-			dir = { x: 1, y: 0 }
-			nextDir = { x: 1, y: 0 }
-			spawnFood()
-			snakeTick = 0
-		}
-
-		const triggerGameOver = () => {
-			isGameOver = true
-			retroAudio.playExplosionSound()
-			const elapsed = (Date.now() - startTime) / 1000
-			printReceipt(currentScore, applesEaten, snake.length, elapsed)
-		}
-
-		const loop = () => {
-			if (isGameStarted && !isGameOver) {
-				if ((keys['ArrowUp'] || keys['KeyW']) && dir.y === 0) nextDir = { x: 0, y: -1 }
-				if ((keys['ArrowDown'] || keys['KeyS']) && dir.y === 0) nextDir = { x: 0, y: 1 }
-				if ((keys['ArrowLeft'] || keys['KeyA']) && dir.x === 0) nextDir = { x: -1, y: 0 }
-				if ((keys['ArrowRight'] || keys['KeyD']) && dir.x === 0) nextDir = { x: 1, y: 0 }
-
-				snakeTick++
-				if (snakeTick >= 6) {
-					snakeTick = 0
-					dir = nextDir
-					const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y }
-
-					const cols = Math.floor(canvas.width / gridSize)
-					const rows = Math.floor(canvas.height / gridSize)
-
-					if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows) {
-						triggerGameOver()
-					} else {
-						let selfCollision = false
-						for (let i = 0; i < snake.length; i++) {
-							if (snake[i].x === head.x && snake[i].y === head.y) {
-								selfCollision = true
-								break
-							}
-						}
-						if (selfCollision) {
-							triggerGameOver()
-						} else {
-							snake.unshift(head)
-							if (head.x === food.x && head.y === food.y) {
-								currentScore += 50
-								applesEaten += 1
-								setDedicatedSnakeScore(currentScore)
-								const best = Math.max(currentScore, dedicatedSnakeHighScore)
-								setDedicatedSnakeHighScore(best)
-								localStorage.setItem('retro_snake_page_highscore', String(best))
-								spawnFood()
-								retroAudio.playUiBeep(660, 0.1, 'square')
-							} else {
-								snake.pop()
-							}
-						}
-					}
-				}
-			}
-
-			ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-			// Grid Lines
-			ctx.strokeStyle = 'rgba(0, 240, 255, 0.06)'
-			for (let x = 0; x < canvas.width; x += gridSize) {
-				ctx.beginPath()
-				ctx.moveTo(x, 0)
-				ctx.lineTo(x, canvas.height)
-				ctx.stroke()
-			}
-
-			// Snake
-			snake.forEach((seg, idx) => {
-				ctx.fillStyle = idx === 0 ? '#ffe600' : '#00f0ff'
-				ctx.shadowBlur = 8
-				ctx.shadowColor = '#00f0ff'
-				ctx.fillRect(seg.x * gridSize + 1, seg.y * gridSize + 1, gridSize - 2, gridSize - 2)
-			})
-
-			// Food
-			ctx.fillStyle = '#ff007f'
-			ctx.shadowColor = '#ff007f'
-			ctx.fillRect(food.x * gridSize + 1, food.y * gridSize + 1, gridSize - 2, gridSize - 2)
-
-			ctx.shadowBlur = 0
-
-			if (!isGameStarted && !isGameOver) {
-				ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
-				ctx.fillRect(0, 0, canvas.width, canvas.height)
-				ctx.fillStyle = '#ffe600'
-				ctx.font = '16px "Press Start 2P"'
-				ctx.textAlign = 'center'
-				ctx.fillText('PRESS ARROWS / W-A-S-D', canvas.width / 2, canvas.height / 2 - 15)
-				ctx.fillStyle = '#00f0ff'
-				ctx.font = '10px "Press Start 2P"'
-				ctx.fillText('OR CLICK HERE TO START', canvas.width / 2, canvas.height / 2 + 20)
-			}
-
-			animId = requestAnimationFrame(loop)
-		}
-
-		loop()
-
-		return () => {
-			cancelAnimationFrame(animId)
-			window.removeEventListener('keydown', onKeyDown)
-			window.removeEventListener('keyup', onKeyUp)
-		}
-	}, [pageView, dedicatedSnakeHighScore])
+	}, [theme])
 
 	const username = user?.username ?? t('common.you')
 
@@ -876,28 +649,12 @@ export function Home() {
 					{/* Navigation Header */}
 					<nav className="navbar" id="mainNav">
 						<div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-							{pageView === 'snake-page' && (
-								<button
-									className="retro-btn"
-									style={{ padding: '6px 12px' }}
-									onClick={() => {
-										retroAudio.playUiBeep(480, 0.05)
-										setPageView('hub')
-									}}
-								>
-									← HUB
-								</button>
-							)}
 							<div
 								className="brand-42-logo"
 								style={{
 									display: 'inline-flex',
 									alignItems: 'center',
 									cursor: 'pointer',
-								}}
-								onClick={() => {
-									retroAudio.playUiBeep(440, 0.05)
-									setPageView('hub')
 								}}
 								title="42 Hub"
 							>
@@ -917,7 +674,6 @@ export function Home() {
 						</div>
 
 						<div className="nav-controls">
-							{pageView === 'hub' && (
 								<>
 									<button
 										className="retro-btn theme-trigger-btn"
@@ -964,7 +720,6 @@ export function Home() {
 										<span className="theme-btn-text">PROFILE</span>
 									</button>
 								</>
-							)}
 
 							{/* Theme Selector Popover Menu */}
 							<div className="theme-popover-wrapper">
@@ -1052,10 +807,8 @@ export function Home() {
 						</div>
 					</nav>
 
-					{pageView === 'hub' ? (
-						<>
-							{/* Hero Header Banner */}
-							<header className="hero-section">
+					{/* Hero Header Banner */}
+					<header className="hero-section">
 								<h1 className="hero-title">RETROLUDO '42</h1>
 								<p className="hero-subtitle">
 									WELCOME BACK, PILOT {username.toUpperCase()} // PACE 24
@@ -1627,251 +1380,6 @@ export function Home() {
 							<footer className="retro-footer">
 								<p>© 1942-2026 RETROLUDO '42 // 42KL // ALL RIGHTS RESERVED // WEB AUDIO & CANV-ARCADE</p>
 							</footer>
-						</>
-					) : (
-						/* FULL PAGE UNIFIED RETRO WINDOW (SNAKE PAGE + PRINTER) */
-						<main className="dashboard-grid" style={{ justifyContent: 'center' }}>
-							<section
-								className="retro-window col-12"
-								id="unifiedSnakeWindow"
-								style={{ maxWidth: 1000, margin: '0 auto', width: '100%' }}
-							>
-								<div className="window-header">
-									<span id="windowHeaderTitle">
-										{isReceiptPrinting
-											? '🖨️ GAME OVER // THERMAL SCORE RECEIPT PRINTED'
-											: '🐍 RETRO SNAKE CABINET // PLAY MODE'}
-									</span>
-									<div className="window-controls">
-										<span className="window-btn min" />
-										<span className="window-btn max" />
-									</div>
-								</div>
-
-								<div
-									className="window-body"
-									style={{
-										minHeight: 720,
-										position: 'relative',
-										display: 'flex',
-										flexDirection: 'column',
-										justifyContent: 'center',
-										alignItems: 'center',
-										padding: 25,
-									}}
-								>
-									{!isReceiptPrinting ? (
-										/* VIEW 1: GAMEPLAY VIEW */
-										<div
-											id="snakeGameView"
-											className="arcade-container"
-											style={{
-												width: '100%',
-												minHeight: 660,
-												display: 'flex',
-												flexDirection: 'column',
-												justifyContent: 'space-between',
-												alignItems: 'center',
-											}}
-										>
-											<div className="arcade-score-bar" style={{ maxWidth: 720, fontSize: '0.95rem' }}>
-												<span>
-													SCORE: <span id="snakeScore">{dedicatedSnakeScore}</span>
-												</span>
-												<span>
-													HIGH SCORE: <span id="snakeHighScore">{dedicatedSnakeHighScore}</span>
-												</span>
-											</div>
-
-											<div
-												className="arcade-screen-frame"
-												style={{ position: 'relative', width: '100%', maxWidth: 720, margin: '10px auto' }}
-											>
-												<canvas id="snakeCanvas" ref={snakePageCanvasRef} width={680} height={400} />
-											</div>
-
-											<div
-												className="dpad-container"
-												style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}
-											>
-												<button
-													className="retro-btn dpad-btn"
-													id="btnUp"
-													style={{ padding: '10px 20px', fontSize: '0.75rem' }}
-													onClick={() => {
-														window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp' }))
-													}}
-												>
-													▲ UP
-												</button>
-												<button
-													className="retro-btn dpad-btn"
-													id="btnLeft"
-													style={{ padding: '10px 20px', fontSize: '0.75rem' }}
-													onClick={() => {
-														window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowLeft' }))
-													}}
-												>
-													◄ LEFT
-												</button>
-												<button
-													className="retro-btn dpad-btn"
-													id="btnDown"
-													style={{ padding: '10px 20px', fontSize: '0.75rem' }}
-													onClick={() => {
-														window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown' }))
-													}}
-												>
-													▼ DOWN
-												</button>
-												<button
-													className="retro-btn dpad-btn"
-													id="btnRight"
-													style={{ padding: '10px 20px', fontSize: '0.75rem' }}
-													onClick={() => {
-														window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowRight' }))
-													}}
-												>
-													► RIGHT
-												</button>
-												<button
-													className="retro-btn"
-													id="demoPrintBtn"
-													style={{ padding: '10px 16px', background: 'var(--accent-pink)', color: '#fff', fontSize: '0.75rem' }}
-													onClick={() => {
-														printReceipt(dedicatedSnakeScore, 4, 7, 24.5)
-													}}
-												>
-													🖨️ TEST PRINT
-												</button>
-											</div>
-
-											<div style={{ marginTop: 10, textAlign: 'center', fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>
-												<span>🎮 KEYBOARD: ARROW KEYS / W-A-S-D | RESTART: [R]</span>
-											</div>
-										</div>
-									) : (
-										/* VIEW 2: GAME OVER THERMAL RECEIPT VIEW */
-										<div id="printerReceiptView" style={{ width: '100%', minHeight: 660 }}>
-											<div className="container invoice-container" id="receiptContainer" style={{ maxWidth: 540, margin: '0 auto', height: 660 }}>
-												<div className="invoice-slot">
-													<div className="slot-label">PRINTER</div>
-													<div className="slot-hole" />
-												</div>
-
-												<div className="invoice printing-active" id="invoiceCard">
-													<div style={{ textAlign: 'center', fontSize: '0.75rem', letterSpacing: 1, marginBottom: 5, opacity: 0.85 }}>
-														STORE #01984 // RETROWAVE TERMINAL 84
-													</div>
-
-													<div className="title">OFFICIAL GAME OVER RECEIPT</div>
-
-													<div className="amount">
-														<span>FINAL SCORE</span>
-														<span className="value" id="receiptScore">{receiptStats.score} PTS</span>
-													</div>
-
-													<div className="amount">
-														<span>HIGH SCORE</span>
-														<span className="value" id="receiptHighScore">{receiptStats.highScore} PTS</span>
-													</div>
-
-													<div className="status-progress">
-														<div className="checkpoint"><span className="circle" /></div>
-														<div className="checkpoint"><span className="circle" /></div>
-														<div className="checkpoint"><span className="circle" /></div>
-														<div className="checkpoint"><span className="circle" /></div>
-														<div className="checkpoint"><i className="fa-solid fa-stamp" /></div>
-													</div>
-
-													<div className="payment-status">
-														<div className="heading">
-															<span>PLAYER TELEMETRY & BREAKDOWN</span>
-															<i className="fa-solid fa-circle-check" />
-														</div>
-
-														<ul className="payers-list">
-															<li>
-																<div className="payer-image-container">
-																	<img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=CyberSnake" alt="Player Avatar" />
-																</div>
-																<p>
-																	<span>CYBER PILOT</span>
-																	<span className="pay-tag" id="receiptPlayerTag">VERIFIED</span>
-																</p>
-															</li>
-															<li>
-																<p>
-																	<span>APPLES CONSUMED</span>
-																	<strong id="receiptApples">{receiptStats.apples}</strong>
-																</p>
-															</li>
-															<li>
-																<p>
-																	<span>SNAKE BODY LENGTH</span>
-																	<strong id="receiptSnakeLength">{receiptStats.length} UNITS</strong>
-																</p>
-															</li>
-															<li>
-																<p>
-																	<span>SURVIVAL TIME</span>
-																	<strong id="receiptTime">{receiptStats.time} SEC</strong>
-																</p>
-															</li>
-															<li>
-																<p>
-																	<span>RANK RATING</span>
-																	<strong id="receiptRank" style={{ color: '#ff007f' }}>{receiptStats.rank}</strong>
-																</p>
-															</li>
-														</ul>
-													</div>
-
-													<div className="receipt-barcode-section" style={{ textAlign: 'center', margin: '12px 0 8px 0', borderTop: '1px dashed #bbb', paddingTop: 10 }}>
-														<div className="receipt-barcode" style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '1.4rem', letterSpacing: 4, lineHeight: 1 }}>
-															||| ||||| || ||||||| ||| ||||
-														</div>
-														<div style={{ fontSize: '0.68rem', letterSpacing: 2, marginTop: 3, opacity: 0.7 }}>
-															SER #8492-RETRO-SNAKE
-														</div>
-													</div>
-
-													<div className="payment-info">
-														<div className="card-info">
-															<span className="card-icon" />
-															<span id="receiptDate">{receiptStats.date}</span>
-														</div>
-														<span style={{ color: '#22c55e', fontWeight: 'bold' }}>PAID & VERIFIED</span>
-													</div>
-
-													<div className="btn-group" style={{ marginTop: 15 }}>
-														<button
-															className="btn reminder-btn"
-															id="retrySnakeBtn"
-															style={{ width: '100%', padding: '0.7em 0', fontSize: '0.95rem' }}
-															onClick={() => {
-																setIsReceiptPrinting(false)
-															}}
-														>
-															🎮 PLAY AGAIN
-														</button>
-													</div>
-
-													<div style={{ textAlign: 'center', fontSize: '0.65rem', marginTop: 12, opacity: 0.7, letterSpacing: 0.5 }}>
-														*** THANK YOU FOR PLAYING RETROLUDO '42 ***
-													</div>
-												</div>
-											</div>
-										</div>
-									)}
-								</div>
-							</section>
-
-							<footer className="retro-footer">
-								<p>© 1942-2026 RETROLUDO '42 // 42KL // THERMAL RECEIPT PRINTER SYSTEM</p>
-							</footer>
-						</main>
-					)}
 				</div>
 			</div>
 		</>
