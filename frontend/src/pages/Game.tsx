@@ -2,13 +2,14 @@ import { useEffect, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
+import { RulesModal } from '../components/RulesModal'
 import { ClashOverlay } from '../game/ClashOverlay'
 import { applyEvent, initialView } from '../game/reducer'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { connectSocket } from '../socket'
 import { getApi, postApi } from '../api'
-import { useApp } from '../store'
+import { RULES_ON_START_KEY, useApp } from '../store'
 import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
 
@@ -85,7 +86,7 @@ const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 
 export function Game() {
   const { t } = useTranslation()
-  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
+  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch, settingOn } = useApp()
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
@@ -151,6 +152,20 @@ export function Game() {
     const timer = setTimeout(() => setDisplayTurn(view.currentTurn), delay)
     return () => clearTimeout(timer)
   }, [view.currentTurn, displayTurn, view.players])
+
+  // Auto-pop the rules once per match, right as it goes active, if the
+  // Lobby's Rules toggle was on when this match was created. Keyed off
+  // gameId (not a plain "have we shown it" boolean) so navigating between
+  // matches in the same session shows it again for each new one.
+  const [rulesOpen, setRulesOpen] = useState(false)
+  const rulesShownForGameRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (view.status !== 'active') return
+    if (!settingOn(RULES_ON_START_KEY)) return
+    if (rulesShownForGameRef.current === activeMatch?.gameId) return
+    rulesShownForGameRef.current = activeMatch?.gameId ?? null
+    setRulesOpen(true)
+  }, [view.status, activeMatch?.gameId, settingOn])
 
   const copyRoomCode = () => {
     if (!activeMatch?.inviteCode) return
@@ -928,6 +943,8 @@ export function Game() {
           onComplete={clearClash}
         />
       )}
+
+      {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
     </div>
   )
 }

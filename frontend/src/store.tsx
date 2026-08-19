@@ -41,6 +41,8 @@ function storedLang(): Lang {
 }
 
 const HEARTBEAT_INTERVAL_MS = 20_000
+/** settingOn/toggleSetting key for "show the rules popup when a match starts" — read by Lobby's Rules button and Game.tsx. */
+export const RULES_ON_START_KEY = 'rulesShowOnStart'
 /** Defaults for the settings toggles, keyed "<group>-<row>". */
 export const SETTING_DEFAULTS: Record<string, boolean> = {
   '0-0': true, // Sound effects

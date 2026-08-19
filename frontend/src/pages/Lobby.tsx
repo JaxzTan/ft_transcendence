@@ -3,9 +3,10 @@ import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
 import { Board } from '../components/Board'
+import { RulesModal } from '../components/RulesModal'
 import type { PlayerColor } from '../game/types'
 import { navigate, useRoute } from '../router'
-import { useApp, type PlayerCount } from '../store'
+import { RULES_ON_START_KEY, useApp, type PlayerCount } from '../store'
 import { COL, SEAT_COLORS, card, feltPanel, sectionLabel, type ColorKey } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
 
@@ -19,11 +20,15 @@ const COLOR_KEYS: Record<ColorKey, string> = {
 export function Lobby() {
   const { t } = useTranslation()
   const { query } = useRoute()
-  const { user, seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, setActiveMatch } = useApp()
+  const { user, seats, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, setActiveMatch, settingOn, toggleSetting } = useApp()
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
   const [editingSeat, setEditingSeat] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
+  const [rulesOpen, setRulesOpen] = useState(false)
+  // Persists (in-memory, for this session) whether Game.tsx should pop the
+  // rules up automatically the moment a match starts — see RULES_ON_START_KEY there.
+  const showRulesOnStart = settingOn(RULES_ON_START_KEY)
 
   // A fresh room must never inherit bots/players seated during a previous
   // visit — seats live in the app-wide store, not scoped to this page.
@@ -113,7 +118,43 @@ export function Lobby() {
             </div>
           </div>
         </div>
+
+        {/* Rules toggle: turning it on also opens the rules right away; the
+            on/off state (styled gold when on) controls whether Game.tsx
+            also pops them up automatically the moment this match starts.
+            Turning it off just disables that auto-popup — no modal. */}
+        <button
+          onClick={() => {
+            toggleSetting(RULES_ON_START_KEY)
+            if (!showRulesOnStart) setRulesOpen(true)
+          }}
+          title={t('rules.toggleHint')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '9px 16px', borderRadius: 10,
+            font: "700 13.5px 'Hanken Grotesk'",
+            border: showRulesOnStart ? '1px solid #c99b45' : '1px solid #3a2c1d',
+            background: showRulesOnStart ? 'rgba(201,155,69,.15)' : '#1a130d',
+            color: showRulesOnStart ? '#f0d18a' : '#c9bda3',
+          }}
+        >
+          📖 {t('rules.buttonLabel')}
+          <span
+            style={{
+              width: 30, height: 16, borderRadius: 99, position: 'relative', flex: 'none',
+              background: showRulesOnStart ? '#c99b45' : '#3a2c1d', transition: 'background .15s',
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute', top: 2, left: showRulesOnStart ? 16 : 2, width: 12, height: 12, borderRadius: '50%',
+                background: '#f4e9cf', transition: 'left .15s',
+              }}
+            />
+          </span>
+        </button>
       </header>
+
+      {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
 
       <div
         style={{
