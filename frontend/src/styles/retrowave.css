@@ -160,22 +160,23 @@ html, body {
 
 .perspective-grid {
   position: absolute;
-  bottom: -30%;
+  top: 55%;
   left: -50%;
   width: 200%;
-  height: 100%;
+  height: 55vh;
   background-image: 
     linear-gradient(0deg, transparent 24%, var(--grid-line-color) 25%, var(--grid-line-color) 26%, transparent 27%, transparent 74%, var(--grid-line-color) 75%, var(--grid-line-color) 76%, transparent 77%),
     linear-gradient(90deg, transparent 24%, var(--grid-line-color) 25%, var(--grid-line-color) 26%, transparent 27%, transparent 74%, var(--grid-line-color) 75%, var(--grid-line-color) 76%, transparent 77%);
   background-size: 50px 50px;
-  transform: perspective(300px) rotateX(75deg);
-  animation: grid-scroll 4s linear infinite;
+  transform-origin: 50% 0%;
+  transform: perspective(220px) rotateX(65deg);
+  animation: grid-scroll 3.5s linear infinite;
   z-index: 2;
 }
 
 @keyframes grid-scroll {
-  0% { transform: perspective(300px) rotateX(75deg) translateY(0); }
-  100% { transform: perspective(300px) rotateX(75deg) translateY(50px); }
+  0% { transform: perspective(220px) rotateX(65deg) translateY(0); }
+  100% { transform: perspective(220px) rotateX(65deg) translateY(50px); }
 }
 
 .grid-horizon {
@@ -919,7 +920,6 @@ canvas#snakeCanvas {
 #color-scheme {
 	border: 2px solid var(--fs-border);
 	border-radius: 5px;
-	corner-shape: notch;
 	color: var(--fs-text);
 	background: var(--fs-bg);
 	outline: 2px solid var(--fs-cyan);	
@@ -967,7 +967,6 @@ canvas#snakeCanvas {
 	color: inherit;
 	
 	border-radius: 3px;
-	corner-shape: notch;
 	rotate: var(--rotation);
 	
 	margin: 0;
@@ -985,7 +984,6 @@ canvas#snakeCanvas {
 /* Hover rotation & morphing animation */
 #color-scheme label:hover input:not(:checked) {
 	--rotation: 90deg;
-	corner-shape: superellipse(-.25);
 	outline-color: var(--fs-cyan);
 }
 
@@ -995,7 +993,6 @@ canvas#snakeCanvas {
 	color: inherit;
 	outline-color: var(--fs-cyan);
 	outline-offset: 1px;
-	corner-shape: superellipse(-.5);
 }
 
 #color-scheme label:hover input:checked {
@@ -1005,7 +1002,6 @@ canvas#snakeCanvas {
 /* Vertical List Item Labels */
 #color-scheme label {
 	border-radius: 4px;
-	corner-shape: superellipse(-1);
 	
 	display: flex;
 	align-items: center;
