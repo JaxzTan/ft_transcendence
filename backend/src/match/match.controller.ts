@@ -1,4 +1,4 @@
-import { Controller, Post, UseGuards, Request, Body, Param, Get, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, UseGuards, Request, Body, Param, Get, Headers, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { MatchService, ENGINE_WS_URL } from './match.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
@@ -28,6 +28,16 @@ export class MatchController {
 		return this.match.joinByInvite(code, req.user.id);
 	}
 
+	// ─── PvP: Quick match (findRandomMatch) — join first open room or create ──
+	@UseGuards(JwtAuthGuard)
+	@Post('api/match/pvp/random')
+	quickMatch(
+		@Request() req: { user: { id: string } },
+		@Body('clashEnabled') clashEnabled?: boolean,
+	) {
+		return this.match.findRandomMatch(req.user.id, clashEnabled);
+	}
+
 	// ─── PvE: Human vs Bot (2p or 4p) ────────────────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/pve')
@@ -49,9 +59,20 @@ export class MatchController {
 		@Body('botCount') botCount: number,
 		@Body('clashEnabled') clashEnabled?: boolean,
 	) {
+		// mode is REQUIRED: omitting it must not silently fall back to a bot game
+		// (the old `mode || 'pve'` default let any caller create a bot-seeded PvE
+		// room even when a human-vs-human game was intended).
+		if (mode !== 'pvp' && mode !== 'pve' && mode !== 'hotseat') {
+			throw new BadRequestException('mode is required and must be pvp, pve, or hotseat');
+		}
+		// Bots are exclusively a PvE thing: any other mode with a positive
+		// botCount must fail loudly rather than relying on service checks.
+		if (mode !== 'pve' && (botCount ?? 0) > 0) {
+			throw new BadRequestException('Bots are only allowed in PvE games');
+		}
 		return this.match.createMatch(
 			req.user.id,
-			mode || 'pve',
+			mode,
 			playerCount || 2,
 			botCount || 0,
 			clashEnabled,
@@ -96,6 +117,17 @@ export class MatchController {
 	@Get('api/games/mine')
 	listMine(@Request() req: { user: { id: string } }) {
 		return this.match.listMyRooms(req.user.id);
+	}
+
+	// ─── Invite a friend into this WAITING PvP room ──────────────────────────
+	@UseGuards(JwtAuthGuard)
+	@Post('api/game/:id/invite')
+	inviteFriend(
+		@Request() req: { user: { id: string } },
+		@Param('id') gameId: string,
+		@Body('friendId') friendId: string,
+	) {
+		return this.match.inviteFriendToGame(gameId, req.user.id, friendId);
 	}
 
 	@UseGuards(JwtAuthGuard)

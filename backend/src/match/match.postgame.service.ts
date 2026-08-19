@@ -76,7 +76,11 @@ export class MatchPostgameService {
 				// Points-based rating (no ELO). Bots are skipped.
 				if (isBotUserId(p.userId)) continue;
 				const isWinner = p.rank === 1;
-				const ratingDelta = isWinner ? WIN_POINTS : -LOSS_POINTS;
+				// Beating bots is worth HALF the points of beating humans: a PvE win
+							// nets the winner ~50% of the normal PvP win reward (10 -> 5).
+							const isBotGame = gameType === 'PVE';
+							const winPoints = isBotGame ? Math.round(WIN_POINTS / 2) : WIN_POINTS;
+							const ratingDelta = isWinner ? winPoints : -LOSS_POINTS;
 				const user = await tx.user.findUnique({ where: { id: p.userId } });
 				if (user) {
 					const newRating = Math.max(0, user.rating + ratingDelta);

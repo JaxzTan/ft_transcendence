@@ -30,6 +30,12 @@ function frontendUrlFor(req: Request): string {
   return isTunnelRequest(req.get('host')) ? NGROK_FRONTEND_URL : LOCAL_FRONTEND_URL;
 }
 
+function originFromRequest(req: Request): string {
+  const proto = (req.headers['x-forwarded-proto'] as string)?.split(',')[0]?.trim()
+    || req.protocol || 'https';
+  return `${proto}://${req.get('host') || 'localhost:8443'}`;
+}
+
 @Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -37,8 +43,8 @@ export class AuthController {
   // No cookie here anymore: the account must be email-verified before its
   // first login, and every login must pass the 2FA code step.
   @Post('register')
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  async register(@Body() dto: RegisterDto, @Req() req: Request) {
+    return this.authService.register(dto, originFromRequest(req));
   }
 
   // Target of the emailed verification link — lands in a browser tab, so it
@@ -47,7 +53,7 @@ export class AuthController {
   async verifyEmail(@Query('token') token: string, @Req() req: Request, @Res() res: Response) {
     const ok = await this.authService.verifyEmail(token ?? '');
     res.redirect(
-      `${frontendUrlFor(req)}/login?${ok ? 'verified=1' : 'error=invalid-verification-link'}`,
+      `${originFromRequest(req)}/login?${ok ? 'verified=1' : 'error=invalid-verification-link'}`,
     );
   }
 
@@ -100,8 +106,8 @@ export class AuthController {
   // whether or not the email is registered (no account enumeration).
   @Post('forgot-password')
   @HttpCode(200)
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.forgotPassword(dto.email);
+  async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
+    return this.authService.forgotPassword(dto.email, originFromRequest(req));
   }
 
   // Password reset, step two: the emailed token + a new password.
