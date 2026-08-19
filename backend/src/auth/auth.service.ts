@@ -47,7 +47,7 @@ export class AuthService {
     private readonly session: SessionService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, baseUrl: string = BASE_URL) {
     const existing = await this.prisma.db.user.findUnique({ where: { username: dto.username } });
     if (existing) {
       throw new ConflictException('Username is already taken');
@@ -75,7 +75,7 @@ export class AuthService {
     const token = await this.twoFactor.createVerifyToken(user.id);
     await this.mail.sendVerification(
       user.email!,
-      `${BASE_URL}/api/auth/verify-email?token=${token}`,
+      `${baseUrl}/api/auth/verify-email?token=${token}`,
     );
     return { message: 'Account created — check your email to verify your address.' };
   }
@@ -130,14 +130,14 @@ export class AuthService {
    * case — unknown email, OAuth-only account, or success — so a caller can't
    * use this endpoint to discover which emails are registered.
    */
-  async forgotPassword(rawEmail: string) {
+  async forgotPassword(rawEmail: string, baseUrl: string = BASE_URL) {
     const email = normalizeEmail(rawEmail);
     const user = await this.prisma.db.user.findUnique({ where: { email } });
     // Only local accounts have a password to reset; OAuth-only users (no
     // password_hash) sign in through their provider instead.
     if (user?.password_hash) {
       const token = await this.twoFactor.createResetToken(user.id);
-      await this.mail.sendPasswordReset(email, `${BASE_URL}/reset-password?token=${token}`);
+      await this.mail.sendPasswordReset(email, `${baseUrl}/reset-password?token=${token}`);
     }
     return { message: 'If that email is registered, a reset link is on its way.' };
   }
