@@ -1,19 +1,57 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { navigate } from '../router'
+import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
 type GameType = 'space' | 'snake'
 type PageView = 'hub' | 'snake-page'
+type Widget3Tab = 'ladder' | 'guestbook'
+type LadderEntry = { username: string; rating: number; avatar?: string }
 
 export function Home() {
+	const { t } = useTranslation()
+	const { user } = useApp()
+
 	// ------------------------------------------------------------------------
 	// 1. PAGE VIEW (HUB vs FULL SNAKE PAGE)
 	// ------------------------------------------------------------------------
 	const [pageView, setPageView] = useState<PageView>('hub')
+	const [widget3Tab, setWidget3Tab] = useState<Widget3Tab>('ladder')
 
 	// ------------------------------------------------------------------------
-	// 2. THEME & CRT CONTROLS
+	// 2. LIVE LEADERBOARD LADDER API
+	// ------------------------------------------------------------------------
+	const [ladder, setLadder] = useState<LadderEntry[] | null>(null)
+	const [isLadderLoading, setIsLadderLoading] = useState(false)
+
+	useEffect(() => {
+		let cancelled = false
+		setIsLadderLoading(true)
+		fetch('/api/leaderboard?mode=global&limit=4', { credentials: 'include' })
+			.then((r) => (r.ok ? (r.json() as Promise<{ entries: LadderEntry[] }>) : Promise.reject(r.status)))
+			.then((body) => {
+				if (!cancelled) {
+					setLadder(body.entries)
+					setIsLadderLoading(false)
+				}
+			})
+			.catch((e) => {
+				console.error(e)
+				if (!cancelled) {
+					setLadder([])
+					setIsLadderLoading(false)
+				}
+			})
+		return () => {
+			cancelled = true
+		}
+	}, [])
+
+	// ------------------------------------------------------------------------
+	// 3. THEME & CRT CONTROLS
 	// ------------------------------------------------------------------------
 	const [theme, setTheme] = useState<ThemeType>('synthwave')
 	const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
@@ -52,7 +90,7 @@ export function Home() {
 	}
 
 	// ------------------------------------------------------------------------
-	// 3. CHIPTUNE BOOMBOX
+	// 4. CHIPTUNE BOOMBOX
 	// ------------------------------------------------------------------------
 	const [isPlayingAudio, setIsPlayingAudio] = useState(false)
 	const [currentTrack, setCurrentTrack] = useState("SYNTHWAVE NIGHTS '84")
@@ -94,7 +132,7 @@ export function Home() {
 	}, [isPlayingAudio])
 
 	// ------------------------------------------------------------------------
-	// 4. STICKY NOTES & GUESTBOOK
+	// 5. STICKY NOTES & GUESTBOOK
 	// ------------------------------------------------------------------------
 	const [notes, setNotes] = useState<string[]>([
 		'Welcome to the Retro Arcade! Press Play to start chiptunes!',
@@ -132,7 +170,7 @@ export function Home() {
 	}
 
 	// ------------------------------------------------------------------------
-	// 5. SYSTEM TELEMETRY & DIGITAL CLOCK
+	// 6. SYSTEM TELEMETRY & DIGITAL CLOCK
 	// ------------------------------------------------------------------------
 	const [clockTime, setClockTime] = useState('12:00:00')
 	const [cpuWidth, setCpuWidth] = useState(45)
@@ -161,7 +199,7 @@ export function Home() {
 	}, [])
 
 	// ------------------------------------------------------------------------
-	// 6. HUB ARCADE CANVAS (SPACE DEFENDER & SNAKE MINI)
+	// 7. HUB ARCADE CANVAS (SPACE DEFENDER & SNAKE MINI)
 	// ------------------------------------------------------------------------
 	const canvasRef = useRef<HTMLCanvasElement | null>(null)
 	const [activeGame, setActiveGame] = useState<GameType>('space')
@@ -518,7 +556,7 @@ export function Home() {
 	}, [activeGame, pageView])
 
 	// ------------------------------------------------------------------------
-	// 7. DEDICATED FULL SNAKE PAGE & THERMAL RECEIPT PRINTER
+	// 8. DEDICATED FULL SNAKE PAGE & THERMAL RECEIPT PRINTER
 	// ------------------------------------------------------------------------
 	const snakePageCanvasRef = useRef<HTMLCanvasElement | null>(null)
 	const [dedicatedSnakeScore, setDedicatedSnakeScore] = useState(0)
@@ -736,6 +774,8 @@ export function Home() {
 		}
 	}, [pageView, dedicatedSnakeHighScore])
 
+	const username = user?.username ?? t('common.you')
+
 	return (
 		<>
 			{/* Animated 3D Synthwave Grid & Sun Background */}
@@ -758,11 +798,11 @@ export function Home() {
 				<div className="app-wrapper">
 					{/* Navigation Header */}
 					<nav className="navbar" id="mainNav">
-						<div className="brand">
+						<div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 							{pageView === 'snake-page' && (
 								<button
 									className="retro-btn"
-									style={{ padding: '6px 12px', marginRight: 10 }}
+									style={{ padding: '6px 12px' }}
 									onClick={() => {
 										retroAudio.playUiBeep(480, 0.05)
 										setPageView('hub')
@@ -773,11 +813,60 @@ export function Home() {
 							)}
 							<div className="brand-logo" />
 							<span className="brand-title">
-								{pageView === 'hub' ? "RETROWAVE '84" : "RETRO SNAKE '84"}
+								{pageView === 'hub' ? "RETROLUDO '42" : "RETRO SNAKE '42"}
 							</span>
 						</div>
 
 						<div className="nav-controls">
+							{pageView === 'hub' && (
+								<>
+									<button
+										className="retro-btn theme-trigger-btn"
+										style={{ justifyContent: 'center', gap: 8 }}
+										onClick={() => {
+											retroAudio.playUiBeep(600, 0.05)
+											navigate('/lobby')
+										}}
+									>
+										<span className="theme-btn-icon">&gt;_</span>
+										<span className="theme-btn-text">LOBBY</span>
+									</button>
+									<button
+										className="retro-btn theme-trigger-btn"
+										style={{ justifyContent: 'center', gap: 8 }}
+										onClick={() => {
+											retroAudio.playUiBeep(600, 0.05)
+											navigate('/game')
+										}}
+									>
+										<span className="theme-btn-icon">&#123;&#125;</span>
+										<span className="theme-btn-text">GAME</span>
+									</button>
+									<button
+										className="retro-btn theme-trigger-btn"
+										style={{ justifyContent: 'center', gap: 8 }}
+										onClick={() => {
+											retroAudio.playUiBeep(600, 0.05)
+											navigate('/leaderboard')
+										}}
+									>
+										<span className="theme-btn-icon">#_</span>
+										<span className="theme-btn-text">LADDER</span>
+									</button>
+									<button
+										className="retro-btn theme-trigger-btn"
+										style={{ justifyContent: 'center', gap: 8 }}
+										onClick={() => {
+											retroAudio.playUiBeep(600, 0.05)
+											navigate('/profile')
+										}}
+									>
+										<span className="theme-btn-icon">@/</span>
+										<span className="theme-btn-text">PROFILE</span>
+									</button>
+								</>
+							)}
+
 							{/* Theme Selector Popover Menu */}
 							<div className="theme-popover-wrapper">
 								<button
@@ -868,13 +957,59 @@ export function Home() {
 						<>
 							{/* Hero Header Banner */}
 							<header className="hero-section">
-								<h1 className="hero-title">RETROWAVE ARCADE</h1>
-								<p className="hero-subtitle">SYSTEM VERSION 2.0 // HIGH-OCTANE CYBERSPACE</p>
+								<h1 className="hero-title">RETROLUDO '42</h1>
+								<p className="hero-subtitle">
+									WELCOME BACK, PILOT {username.toUpperCase()} // HIGH-OCTANE CYBERSPACE
+								</p>
 
 								<div className="badge-bar">
-									<span className="retro-badge">⚡ WEB AUDIO CHIPTUNE</span>
-									<span className="retro-badge">🎮 CANV-ARCADE GAMES</span>
-									<span className="retro-badge">📺 CRT SCANLINE DISPLAY</span>
+									<button
+										className="retro-badge"
+										style={{
+											cursor: 'pointer',
+											background: 'var(--bg-secondary)',
+											border: isPlayingAudio ? '1px solid var(--accent-pink)' : '1px dashed var(--accent-cyan)',
+											color: isPlayingAudio ? 'var(--accent-pink)' : 'var(--accent-cyan)',
+											fontFamily: 'var(--font-mono)',
+											outline: 'none',
+										}}
+										onClick={handleToggleAudio}
+										title="Click to toggle Chiptune Audio"
+									>
+										// AUDIO: {isPlayingAudio ? 'PLAYING [PAUSE]' : 'STANDBY [PLAY]'}
+									</button>
+									<span
+										className="retro-badge"
+										style={{
+											border: '1px solid var(--accent-cyan)',
+											color: 'var(--accent-cyan)',
+											display: 'inline-flex',
+											alignItems: 'center',
+											gap: 6,
+										}}
+									>
+										// ONLINE PLAYERS: 42
+									</span>
+									<span
+										className="retro-badge"
+										style={{
+											border: '1px dashed rgba(255, 255, 255, 0.2)',
+											color: 'var(--text-muted)',
+											opacity: 0.5,
+										}}
+									>
+										// SLOT_03: [EMPTY]
+									</span>
+									<span
+										className="retro-badge"
+										style={{
+											border: '1px dashed rgba(255, 255, 255, 0.2)',
+											color: 'var(--text-muted)',
+											opacity: 0.5,
+										}}
+									>
+										// SLOT_04: [EMPTY]
+									</span>
 								</div>
 							</header>
 
@@ -991,49 +1126,172 @@ export function Home() {
 									</div>
 								</section>
 
-								{/* Widget 3: Sticky Wall & Guestbook */}
+								{/* Widget 3: Live Cyber Ladder & Guestbook Tabs */}
 								<section className="retro-window col-8" id="guestbookWindow">
 									<div className="window-header">
-										<span>📝 RETRO GUESTBOOK & STICKY NOTES</span>
+										<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+											<span>🏆 CYBER LADDER & GUESTBOOK</span>
+										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
 											<span className="window-btn max" />
 										</div>
 									</div>
 									<div className="window-body">
-										<div className="sticky-input-group">
-											<textarea
-												id="stickyInput"
-												className="retro-textarea"
-												placeholder="Leave a retro note on the wall..."
-												aria-label="Guestbook Note Input"
-												value={newNote}
-												onChange={(e) => setNewNote(e.target.value)}
-											/>
+										{/* Mode Tabs */}
+										<div className="arcade-tabs" style={{ marginBottom: 15 }}>
 											<button
-												className="retro-btn"
-												id="addStickyBtn"
-												style={{ alignSelf: 'flex-start' }}
-												onClick={handleAddNote}
+												className={`tab-btn ${widget3Tab === 'ladder' ? 'active' : ''}`}
+												onClick={() => {
+													setWidget3Tab('ladder')
+													retroAudio.playUiBeep(520, 0.05)
+												}}
 											>
-												POST STICKY NOTE
+												🏆 TOP RANKED PILOTS
+											</button>
+											<button
+												className={`tab-btn ${widget3Tab === 'guestbook' ? 'active' : ''}`}
+												onClick={() => {
+													setWidget3Tab('guestbook')
+													retroAudio.playUiBeep(520, 0.05)
+												}}
+											>
+												📝 GUESTBOOK WALL
 											</button>
 										</div>
 
-										<div className="sticky-wall" id="stickyWall">
-											{notes.map((txt, index) => (
-												<div key={index} className="sticky-note">
-													<span
-														className="delete-btn"
-														data-index={index}
-														onClick={() => handleDeleteNote(index)}
-													>
-														&times;
+										{widget3Tab === 'ladder' ? (
+											/* TAB 1: LIVE LEADERBOARD */
+											<div style={{ width: '100%' }}>
+												<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+													<span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>
+														GLOBAL RANKINGS // TOP PILOTS
 													</span>
-													<p>{txt}</p>
+													<button
+														className="retro-btn"
+														style={{ padding: '5px 10px', fontSize: '0.6rem' }}
+														onClick={() => {
+															retroAudio.playUiBeep(600, 0.05)
+															navigate('/leaderboard')
+														}}
+													>
+														VIEW ALL RANKINGS →
+													</button>
 												</div>
-											))}
-										</div>
+
+												{isLadderLoading ? (
+													<div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--accent-yellow)' }}>
+														TRANSMITTING LEADERBOARD TELEMETRY...
+													</div>
+												) : ladder === null || ladder.length === 0 ? (
+													<div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>
+														NO RANKED CYBER PILOTS REGISTERED YET. BE THE FIRST TO WIN IN LOBBY!
+													</div>
+												) : (
+													<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+														{ladder.map((entry, index) => {
+															const rankBadge = index === 0 ? '👑 #1' : index === 1 ? '🥈 #2' : index === 2 ? '🥉 #3' : `#${index + 1}`
+															const isCurrent = entry.username.toLowerCase() === username.toLowerCase()
+															return (
+																<div
+																	key={entry.username}
+																	style={{
+																		display: 'flex',
+																		alignItems: 'center',
+																		justifyContent: 'space-between',
+																		padding: '10px 14px',
+																		background: isCurrent ? 'rgba(0, 240, 255, 0.15)' : 'rgba(25, 10, 56, 0.6)',
+																		border: isCurrent ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 0, 127, 0.3)',
+																		borderRadius: 4,
+																	}}
+																>
+																	<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+																		<span
+																			style={{
+																				fontFamily: 'var(--font-heading)',
+																				fontSize: '0.75rem',
+																				color: index === 0 ? 'var(--accent-yellow)' : 'var(--accent-pink)',
+																				minWidth: 45,
+																			}}
+																		>
+																			{rankBadge}
+																		</span>
+																		<div
+																			style={{
+																				width: 32,
+																				height: 32,
+																				borderRadius: '50%',
+																				background: 'var(--accent-purple)',
+																				border: '1px solid var(--accent-cyan)',
+																				display: 'flex',
+																				alignItems: 'center',
+																				justifyContent: 'center',
+																				fontWeight: 'bold',
+																				fontSize: '0.75rem',
+																				color: '#fff',
+																			}}
+																		>
+																			{entry.username.slice(0, 2).toUpperCase()}
+																		</div>
+																		<span
+																			style={{
+																				fontWeight: 'bold',
+																				fontSize: '0.85rem',
+																				color: isCurrent ? 'var(--accent-cyan)' : 'var(--text-main)',
+																			}}
+																		>
+																			{entry.username} {isCurrent && '(YOU)'}
+																		</span>
+																	</div>
+																	<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+																		<span style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontSize: '0.9rem' }}>
+																			♛ {entry.rating} PTS
+																		</span>
+																	</div>
+																</div>
+															)
+														})}
+													</div>
+												)}
+											</div>
+										) : (
+											/* TAB 2: GUESTBOOK WALL */
+											<div>
+												<div className="sticky-input-group">
+													<textarea
+														id="stickyInput"
+														className="retro-textarea"
+														placeholder="Leave a retro note on the wall..."
+														aria-label="Guestbook Note Input"
+														value={newNote}
+														onChange={(e) => setNewNote(e.target.value)}
+													/>
+													<button
+														className="retro-btn"
+														id="addStickyBtn"
+														style={{ alignSelf: 'flex-start' }}
+														onClick={handleAddNote}
+													>
+														POST STICKY NOTE
+													</button>
+												</div>
+
+												<div className="sticky-wall" id="stickyWall">
+													{notes.map((txt, index) => (
+														<div key={index} className="sticky-note">
+															<span
+																className="delete-btn"
+																data-index={index}
+																onClick={() => handleDeleteNote(index)}
+															>
+																&times;
+															</span>
+															<p>{txt}</p>
+														</div>
+													))}
+												</div>
+											</div>
+										)}
 									</div>
 								</section>
 
@@ -1052,8 +1310,14 @@ export function Home() {
 											{clockTime}
 										</div>
 
-										{/* System Resource Meters */}
+										{/* Pilot & System Resource Meters */}
 										<div style={{ marginTop: '20px' }}>
+											<div className="stat-row">
+												<span>PILOT ID:</span>
+												<span style={{ color: 'var(--accent-yellow)', fontWeight: 'bold' }}>
+													{username.toUpperCase()}
+												</span>
+											</div>
 											<div className="stat-row">
 												<span>CPU LOAD:</span>
 												<div className="stat-bar-outer">
@@ -1075,8 +1339,8 @@ export function Home() {
 												</div>
 											</div>
 											<div className="stat-row">
-												<span>GPU ACCEL:</span>
-												<span style={{ color: 'var(--accent-cyan)' }}>ACTIVE</span>
+												<span>ONLINE PLAYERS:</span>
+												<span style={{ color: 'var(--accent-cyan)' }}>42 ACTIVE</span>
 											</div>
 										</div>
 									</div>
@@ -1085,7 +1349,7 @@ export function Home() {
 
 							{/* Footer */}
 							<footer className="retro-footer">
-								<p>© 1984-2026 RETROWAVE LABS // ALL RIGHTS RESERVED // BUILT WITH VANILLA JS & WEB AUDIO API</p>
+								<p>© 1942-2026 RETROLUDO '42 // 42KL // ALL RIGHTS RESERVED // WEB AUDIO & CANV-ARCADE</p>
 							</footer>
 						</>
 					) : (
@@ -1318,7 +1582,7 @@ export function Home() {
 													</div>
 
 													<div style={{ textAlign: 'center', fontSize: '0.65rem', marginTop: 12, opacity: 0.7, letterSpacing: 0.5 }}>
-														*** THANK YOU FOR PLAYING RETROWAVE ARCADE ***
+														*** THANK YOU FOR PLAYING RETROLUDO '42 ***
 													</div>
 												</div>
 											</div>
@@ -1328,7 +1592,7 @@ export function Home() {
 							</section>
 
 							<footer className="retro-footer">
-								<p>© 1984-2026 RETROWAVE ARCADE // THERMAL RECEIPT PRINTER SYSTEM</p>
+								<p>© 1942-2026 RETROLUDO '42 // 42KL // THERMAL RECEIPT PRINTER SYSTEM</p>
 							</footer>
 						</main>
 					)}
