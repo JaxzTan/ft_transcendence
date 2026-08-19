@@ -152,7 +152,7 @@ export function LudoLobby() {
       glyph: '♟',
       hue: COL.green.base,
       badge: 'semiRanked',
-      onClick: () => navigate('/lobby/table?mode=4&bots=1'),
+      onClick: () => navigate('/gamelobby/table?mode=4&bots=1'),
     },
     {
       key: 'duel2P',
@@ -161,7 +161,7 @@ export function LudoLobby() {
       glyph: '✕',
       hue: COL.red.base,
       badge: 'casual',
-      onClick: () => navigate('/lobby/table?mode=4&bots=0&local=1'),
+      onClick: () => navigate('/gamelobby/table?mode=4&bots=0&local=1'),
     },
   ]
 

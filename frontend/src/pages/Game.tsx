@@ -420,7 +420,7 @@ export function Game() {
   // the grace/pause path (seat preserved) — Resume Last Game reconnects the
   // exact same turn state. Definitive exit is only via End Game / end_game.
   const leaveGame = () => {
-    navigate('/lobby')
+    navigate('/gamelobby')
   }
 
   // "End Game" definitively terminates the match for this player. Emits the
@@ -451,7 +451,7 @@ export function Game() {
         <div style={{ ...card, padding: 32, textAlign: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>No active match found</div>
           <div style={{ color: '#a99a83', marginBottom: 20 }}>Please set up a game from the lobby first.</div>
-          <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '12px 24px' }}>
+          <button onClick={() => navigate('/gamelobby')} style={{ ...btnGold, padding: '12px 24px' }}>
             Go to Lobby
           </button>
         </div>

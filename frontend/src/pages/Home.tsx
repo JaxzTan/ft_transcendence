@@ -844,7 +844,7 @@ export function Home() {
 										style={{ justifyContent: 'center', gap: 8 }}
 										onClick={() => {
 											retroAudio.playUiBeep(600, 0.05)
-											navigate('/lobby')
+											navigate('/gamelobby')
 										}}
 									>
 										<span className="theme-btn-icon">&gt;_</span>

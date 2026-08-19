@@ -16,7 +16,7 @@ import { TwoFactor } from './pages/TwoFactor'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
 // MultiplayerLobby is intentionally UNWIRED (file kept for reference):
-// all multiplayer create/join/quick routes through /lobby (LudoLobby) now.
+// all multiplayer create/join/quick routes through /gamelobby (LudoLobby) now.
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 
@@ -36,8 +36,8 @@ const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/2fa': () => <TwoFactor />,
   '/forgot-password': () => <ForgotPassword />,
   '/reset-password': () => <ResetPassword />,
-  '/lobby': () => <LudoLobby />,
-  '/lobby/table': () => <Lobby />,
+  '/gamelobby': () => <LudoLobby />,
+  '/gamelobby/table': () => <Lobby />,
   '/game': () => <Game />,
   '/results': () => <Results />,
 }
