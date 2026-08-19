@@ -130,6 +130,8 @@ export function NotificationBell({
         token: p.token as string,
         color: p.color as PlayerColor,
         inviteCode: p.inviteCode as string | undefined,
+        mode: 'pvp',
+        playerCount: 4,
       })
       navigate(`/game?gameId=${p.gameId}`)
       setOpen(false)
