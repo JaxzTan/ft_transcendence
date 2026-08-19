@@ -8,8 +8,6 @@ import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
-type Widget3Tab = 'ladder' | 'guestbook'
-type LadderEntry = { username: string; rating: number; avatar?: string }
 type Friend = {
 	id: string
 	username: string
@@ -22,35 +20,35 @@ type Friend = {
 export function Home() {
 	const { t } = useTranslation()
 	const { user, setActiveMatch } = useApp()
-	const [widget3Tab, setWidget3Tab] = useState<Widget3Tab>('ladder')
 
 	// ------------------------------------------------------------------------
-	// 2. LIVE LEADERBOARD LADDER API
+	// 2. LIVE PLAYER CAREER STATS API
 	// ------------------------------------------------------------------------
-	const [ladder, setLadder] = useState<LadderEntry[] | null>(null)
-	const [isLadderLoading, setIsLadderLoading] = useState(false)
+	type PlayerStats = {
+		totalGames: number
+		wins: number
+		losses: number
+		totalCaptures: number
+		totalPiecesInGoal: number
+		avgCapturesPerGame: number
+	}
+	const [stats, setStats] = useState<PlayerStats | null>(null)
+	const [isStatsLoading, setIsStatsLoading] = useState(false)
 
 	useEffect(() => {
-		let cancelled = false
-		setIsLadderLoading(true)
-		fetch('/api/leaderboard?mode=global&limit=4', { credentials: 'include' })
-			.then((r) => (r.ok ? (r.json() as Promise<{ entries: LadderEntry[] }>) : Promise.reject(r.status)))
+		setIsStatsLoading(true)
+		getApi<PlayerStats>('/api/stats')
 			.then((body) => {
-				if (!cancelled) {
-					setLadder(body.entries)
-					setIsLadderLoading(false)
+				if (body && typeof body.totalGames === 'number') {
+					setStats(body)
 				}
 			})
 			.catch((e) => {
 				console.error(e)
-				if (!cancelled) {
-					setLadder([])
-					setIsLadderLoading(false)
-				}
 			})
-		return () => {
-			cancelled = true
-		}
+			.finally(() => {
+				setIsStatsLoading(false)
+			})
 	}, [])
 
 	// ------------------------------------------------------------------------
@@ -101,7 +99,15 @@ export function Home() {
 			getApi<{ received: Array<{ id: string }> }>('/api/friends/requests'),
 		])
 			.then(([friendsData, reqData]) => {
-				setFriends(Array.isArray(friendsData) ? friendsData : [])
+				const list = Array.isArray(friendsData) ? friendsData : []
+				// Sort online and playing friends to the top
+				list.sort((a, b) => {
+					const scoreA = a.status === 'playing' ? 2 : a.status === 'online' ? 1 : 0
+					const scoreB = b.status === 'playing' ? 2 : b.status === 'online' ? 1 : 0
+					if (scoreA !== scoreB) return scoreB - scoreA
+					return a.username.localeCompare(b.username)
+				})
+				setFriends(list)
 				setPendingRequestsCount(Array.isArray(reqData?.received) ? reqData.received.length : 0)
 			})
 			.catch((e) => {
@@ -147,74 +153,7 @@ export function Home() {
 	}
 
 	// ------------------------------------------------------------------------
-	// 5. STICKY NOTES & GUESTBOOK
-	// ------------------------------------------------------------------------
-	const [notes, setNotes] = useState<string[]>([
-		'Welcome to the Retro Arcade! Connect with cyber pilots & battle!',
-		'High score challenge: Can you beat 1,000 pts in Space Defender?',
-		'Retro wave visuals inspired by 1984 arcade culture!',
-	])
-	const [newNote, setNewNote] = useState('')
-
-	useEffect(() => {
-		const saved = localStorage.getItem('retro_sticky_notes')
-		if (saved) {
-			try {
-				setNotes(JSON.parse(saved))
-			} catch (e) {
-				console.error(e)
-			}
-		}
-	}, [])
-
-	const handleAddNote = () => {
-		if (!newNote.trim()) return
-		const updated = [newNote.trim(), ...notes]
-		setNotes(updated)
-		localStorage.setItem('retro_sticky_notes', JSON.stringify(updated))
-		setNewNote('')
-		retroAudio.playUiBeep(700, 0.08)
-	}
-
-	const handleDeleteNote = (index: number) => {
-		const updated = [...notes]
-		updated.splice(index, 1)
-		setNotes(updated)
-		localStorage.setItem('retro_sticky_notes', JSON.stringify(updated))
-		retroAudio.playUiBeep(300, 0.05)
-	}
-
-	// ------------------------------------------------------------------------
-	// 6. SYSTEM TELEMETRY & DIGITAL CLOCK
-	// ------------------------------------------------------------------------
-	const [clockTime, setClockTime] = useState('12:00:00')
-	const [cpuWidth, setCpuWidth] = useState(45)
-	const [memWidth, setMemWidth] = useState(62)
-
-	useEffect(() => {
-		const updateClock = () => {
-			const now = new Date()
-			const hrs = String(now.getHours()).padStart(2, '0')
-			const mins = String(now.getMinutes()).padStart(2, '0')
-			const secs = String(now.getSeconds()).padStart(2, '0')
-			setClockTime(`${hrs}:${mins}:${secs}`)
-		}
-		updateClock()
-		const clockTimer = setInterval(updateClock, 1000)
-
-		const jitterTimer = setInterval(() => {
-			setCpuWidth(Math.floor(Math.random() * 40) + 30)
-			setMemWidth(Math.floor(Math.random() * 20) + 55)
-		}, 2500)
-
-		return () => {
-			clearInterval(clockTimer)
-			clearInterval(jitterTimer)
-		}
-	}, [])
-
-	// ------------------------------------------------------------------------
-	// 7. HUB ARCADE CABINET: 3D ATTRACT MODE & PRESS START
+	// 5. HUB ARCADE CABINET: 3D ATTRACT MODE & PRESS START
 	// ------------------------------------------------------------------------
 	const canvasRef = useRef<HTMLCanvasElement | null>(null)
 	const [isWarpingToLobby, setIsWarpingToLobby] = useState(false)
@@ -1155,223 +1094,282 @@ export function Home() {
 									</div>
 								</section>
 
-								{/* Widget 3: Live Cyber Ladder & Guestbook Tabs */}
-								<section className="retro-window col-8" id="guestbookWindow">
+								{/* Widget 3: Pilot Career Dossier & Combat Stats */}
+								<section className="retro-window col-8" id="pilotDossierWindow">
 									<div className="window-header">
-										<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-											<span>CYBER LADDER & GUESTBOOK</span>
+										<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+											<span>🪪 PILOT CAREER DOSSIER // COMBAT TELEMETRY</span>
 										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
 											<span className="window-btn max" />
 										</div>
 									</div>
-									<div className="window-body">
-										{/* Mode Tabs */}
-										<div className="arcade-tabs" style={{ marginBottom: 15 }}>
+									<div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+										{/* Top Row: Pilot Profile Identity Header */}
+										<div
+											style={{
+												display: 'flex',
+												alignItems: 'center',
+												justifyContent: 'space-between',
+												padding: '12px 16px',
+												background: 'rgba(0, 0, 0, 0.45)',
+												border: '1px solid var(--accent-cyan)',
+												borderRadius: 4,
+												flexWrap: 'wrap',
+												gap: 12,
+											}}
+										>
+											<div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+												<UserAvatar
+													username={username}
+													size={48}
+												/>
+												<div>
+													<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+														<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: 'var(--accent-yellow)', letterSpacing: 1 }}>
+															{username.toUpperCase()}
+														</span>
+														<span
+															style={{
+																fontSize: '0.65rem',
+																background: 'var(--accent-pink)',
+																color: '#fff',
+																padding: '2px 8px',
+																borderRadius: 3,
+																fontWeight: 'bold',
+															}}
+														>
+															{stats && stats.wins >= 10 ? 'CYBER MASTER' : stats && stats.wins >= 5 ? 'CYBER ACE' : stats && stats.wins >= 1 ? 'CYBER VETERAN' : 'CYBER RECRUIT'}
+														</span>
+													</div>
+													<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+														PILOT ID: #{user?.id ? user.id.slice(0, 8).toUpperCase() : 'UNKNOWN'} // RANKED COMBATANT
+													</span>
+												</div>
+											</div>
+
 											<button
-												className={`tab-btn ${widget3Tab === 'ladder' ? 'active' : ''}`}
+												className="retro-btn"
+												style={{ padding: '6px 14px', fontSize: '0.72rem' }}
 												onClick={() => {
-													setWidget3Tab('ladder')
-													retroAudio.playUiBeep(520, 0.05)
+													retroAudio.playUiBeep(600, 0.05)
+													navigate('/profile')
 												}}
 											>
-												TOP RANKED PILOTS
-											</button>
-											<button
-												className={`tab-btn ${widget3Tab === 'guestbook' ? 'active' : ''}`}
-												onClick={() => {
-													setWidget3Tab('guestbook')
-													retroAudio.playUiBeep(520, 0.05)
-												}}
-											>
-												📝 GUESTBOOK WALL
+												FULL PROFILE ↗
 											</button>
 										</div>
 
-										{widget3Tab === 'ladder' ? (
-											/* TAB 1: LIVE LEADERBOARD */
-											<div style={{ width: '100%' }}>
-												<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-													<span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>
-														GLOBAL RANKINGS // TOP PILOTS
-													</span>
-													<button
-														className="retro-btn"
-														style={{ padding: '5px 10px', fontSize: '0.6rem' }}
-														onClick={() => {
-															retroAudio.playUiBeep(600, 0.05)
-															navigate('/leaderboard')
-														}}
-													>
-														VIEW ALL RANKINGS →
-													</button>
-												</div>
-
-												{isLadderLoading ? (
-													<div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--accent-yellow)' }}>
-														TRANSMITTING LEADERBOARD TELEMETRY...
-													</div>
-												) : ladder === null || ladder.length === 0 ? (
-													<div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted)' }}>
-														NO RANKED CYBER PILOTS REGISTERED YET. BE THE FIRST TO WIN IN LOBBY!
-													</div>
-												) : (
-													<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-														{ladder.map((entry, index) => {
-															const rankBadge = `#${index + 1}`
-															const isCurrent = entry.username.toLowerCase() === username.toLowerCase()
-															return (
-																<div
-																	key={entry.username}
-																	style={{
-																		display: 'flex',
-																		alignItems: 'center',
-																		justifyContent: 'space-between',
-																		padding: '10px 14px',
-																		background: isCurrent ? 'rgba(0, 240, 255, 0.15)' : 'rgba(25, 10, 56, 0.6)',
-																		border: isCurrent ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 0, 127, 0.3)',
-																		borderRadius: 4,
-																	}}
-																>
-																	<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-																		<span
-																			style={{
-																				fontFamily: 'var(--font-heading)',
-																				fontSize: '0.75rem',
-																				color: index === 0 ? 'var(--accent-yellow)' : 'var(--accent-pink)',
-																				minWidth: 45,
-																			}}
-																		>
-																			{rankBadge}
-																		</span>
-																		<div
-																			style={{
-																				width: 32,
-																				height: 32,
-																				borderRadius: '50%',
-																				background: 'var(--accent-purple)',
-																				border: '1px solid var(--accent-cyan)',
-																				display: 'flex',
-																				alignItems: 'center',
-																				justifyContent: 'center',
-																				fontWeight: 'bold',
-																				fontSize: '0.75rem',
-																				color: '#fff',
-																			}}
-																		>
-																			{entry.username.slice(0, 2).toUpperCase()}
-																		</div>
-																		<span
-																			style={{
-																				fontWeight: 'bold',
-																				fontSize: '0.85rem',
-																				color: isCurrent ? 'var(--accent-cyan)' : 'var(--text-main)',
-																			}}
-																		>
-																			{entry.username} {isCurrent && '(YOU)'}
-																		</span>
-																	</div>
-																	<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-																		<span style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontSize: '0.9rem' }}>
-																			{entry.rating} PTS
-																		</span>
-																	</div>
-																</div>
-															)
-														})}
-													</div>
-												)}
+										{/* Bottom Row: 4 Retro Stat Metrics */}
+										<div
+											style={{
+												display: 'grid',
+												gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+												gap: 12,
+											}}
+										>
+											{/* Stat 1: Total Battles */}
+											<div
+												style={{
+													padding: '12px 14px',
+													background: 'rgba(25, 10, 56, 0.5)',
+													border: '1px solid rgba(0, 240, 255, 0.3)',
+													borderRadius: 4,
+													display: 'flex',
+													flexDirection: 'column',
+													gap: 4,
+												}}
+											>
+												<span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+													TOTAL MATCHES
+												</span>
+												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: 'var(--accent-cyan)' }}>
+													{isStatsLoading ? '...' : stats ? stats.totalGames : 0}
+												</span>
 											</div>
-										) : (
-											/* TAB 2: GUESTBOOK WALL */
-											<div>
-												<div className="sticky-input-group">
-													<textarea
-														id="stickyInput"
-														className="retro-textarea"
-														placeholder="Leave a retro note on the wall..."
-														aria-label="Guestbook Note Input"
-														value={newNote}
-														onChange={(e) => setNewNote(e.target.value)}
-													/>
-													<button
-														className="retro-btn"
-														id="addStickyBtn"
-														style={{ alignSelf: 'flex-start' }}
-														onClick={handleAddNote}
-													>
-														POST STICKY NOTE
-													</button>
-												</div>
 
-												<div className="sticky-wall" id="stickyWall">
-													{notes.map((txt, index) => (
-														<div key={index} className="sticky-note">
-															<span
-																className="delete-btn"
-																data-index={index}
-																onClick={() => handleDeleteNote(index)}
-															>
-																&times;
-															</span>
-															<p>{txt}</p>
-														</div>
-													))}
-												</div>
+											{/* Stat 2: Victories & Defeats */}
+											<div
+												style={{
+													padding: '12px 14px',
+													background: 'rgba(25, 10, 56, 0.5)',
+													border: '1px solid rgba(255, 0, 127, 0.3)',
+													borderRadius: 4,
+													display: 'flex',
+													flexDirection: 'column',
+													gap: 4,
+												}}
+											>
+												<span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+													VICTORIES / DEFEATS
+												</span>
+												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem', color: 'var(--accent-pink)' }}>
+													{isStatsLoading ? '...' : stats ? `${stats.wins}W / ${stats.losses}L` : '0W / 0L'}
+												</span>
 											</div>
-										)}
+
+											{/* Stat 3: Win Rate */}
+											<div
+												style={{
+													padding: '12px 14px',
+													background: 'rgba(25, 10, 56, 0.5)',
+													border: '1px solid rgba(255, 230, 0, 0.3)',
+													borderRadius: 4,
+													display: 'flex',
+													flexDirection: 'column',
+													gap: 4,
+												}}
+											>
+												<span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+													WIN RATIO
+												</span>
+												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: 'var(--accent-yellow)' }}>
+													{isStatsLoading ? '...' : stats && stats.totalGames > 0 ? `${Math.round((stats.wins / stats.totalGames) * 100)}%` : '0%'}
+												</span>
+											</div>
+
+											{/* Stat 4: Total Captures */}
+											<div
+												style={{
+													padding: '12px 14px',
+													background: 'rgba(25, 10, 56, 0.5)',
+													border: '1px solid rgba(0, 255, 102, 0.3)',
+													borderRadius: 4,
+													display: 'flex',
+													flexDirection: 'column',
+													gap: 4,
+												}}
+											>
+												<span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+													PAWNS CAPTURED
+												</span>
+												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: '#00ff88' }}>
+													{isStatsLoading ? '...' : stats ? stats.totalCaptures : 0}
+												</span>
+											</div>
+										</div>
 									</div>
 								</section>
 
-								{/* Widget 4: Retro System Status & LED Clock */}
-								<section className="retro-window col-4" id="statsWindow">
+								{/* Widget 4: Quick Deploy Arena Modes */}
+								<section className="retro-window col-4" id="quickDeployWindow">
 									<div className="window-header">
-										<span>📟 SYSTEM TELEMETRY</span>
+										<span>🕹️ QUICK DEPLOY // ARENA</span>
 										<div className="window-controls">
 											<span className="window-btn min" />
 											<span className="window-btn max" />
 										</div>
 									</div>
-									<div className="window-body">
-										{/* LED Digital Clock */}
-										<div className="digital-clock" id="digitalClock">
-											{clockTime}
-										</div>
+									<div
+										className="window-body"
+										style={{
+											display: 'flex',
+											flexDirection: 'column',
+											gap: 10,
+											justifyContent: 'space-between',
+										}}
+									>
+										{/* Cartridge 1: 1v1 Cyber Duel */}
+										<button
+											className="retro-btn"
+											style={{
+												width: '100%',
+												padding: '10px 14px',
+												display: 'flex',
+												justifyContent: 'space-between',
+												alignItems: 'center',
+												background: 'rgba(0, 240, 255, 0.08)',
+												border: '1px solid var(--accent-cyan)',
+											}}
+											onClick={() => {
+												retroAudio.playUiBeep(700, 0.06)
+												navigate('/gamelobby')
+											}}
+										>
+											<div style={{ textAlign: 'left' }}>
+												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-cyan)' }}>
+													⚔️ 1v1 CYBER DUEL
+												</div>
+												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+													Fast 2-Player Head-to-Head
+												</div>
+											</div>
+											<span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>DEPLOY →</span>
+										</button>
 
-										{/* Pilot & System Resource Meters */}
-										<div style={{ marginTop: '20px' }}>
-											<div className="stat-row">
-												<span>PILOT ID:</span>
-												<span style={{ color: 'var(--accent-yellow)', fontWeight: 'bold' }}>
-													{username.toUpperCase()}
-												</span>
-											</div>
-											<div className="stat-row">
-												<span>CPU LOAD:</span>
-												<div className="stat-bar-outer">
-													<div
-														className="stat-bar-inner"
-														id="cpuBar"
-														style={{ width: `${cpuWidth}%` }}
-													/>
+										{/* Cartridge 2: 4-Player Royale */}
+										<button
+											className="retro-btn"
+											style={{
+												width: '100%',
+												padding: '10px 14px',
+												display: 'flex',
+												justifyContent: 'space-between',
+												alignItems: 'center',
+												background: 'rgba(255, 0, 127, 0.08)',
+												border: '1px solid var(--accent-pink)',
+											}}
+											onClick={() => {
+												retroAudio.playUiBeep(700, 0.06)
+												navigate('/gamelobby')
+											}}
+										>
+											<div style={{ textAlign: 'left' }}>
+												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-pink)' }}>
+													👑 4-PLAYER ROYALE
+												</div>
+												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+													Full 4-Color Mayhem
 												</div>
 											</div>
-											<div className="stat-row">
-												<span>MEM LOAD:</span>
-												<div className="stat-bar-outer">
-													<div
-														className="stat-bar-inner"
-														id="memBar"
-														style={{ width: `${memWidth}%` }}
-													/>
+											<span style={{ fontSize: '0.8rem', color: 'var(--accent-pink)' }}>DEPLOY →</span>
+										</button>
+
+										{/* Cartridge 3: AI Practice / Local */}
+										<button
+											className="retro-btn"
+											style={{
+												width: '100%',
+												padding: '10px 14px',
+												display: 'flex',
+												justifyContent: 'space-between',
+												alignItems: 'center',
+												background: 'rgba(255, 230, 0, 0.08)',
+												border: '1px solid var(--accent-yellow)',
+											}}
+											onClick={() => {
+												retroAudio.playUiBeep(700, 0.06)
+												navigate('/game')
+											}}
+										>
+											<div style={{ textAlign: 'left' }}>
+												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-yellow)' }}>
+													🤖 BOT SKIRMISH
+												</div>
+												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+													Offline Practice Arena
 												</div>
 											</div>
-											<div className="stat-row">
-												<span>ONLINE PLAYERS:</span>
-												<span style={{ color: 'var(--accent-cyan)' }}>42 ACTIVE</span>
-											</div>
-										</div>
+											<span style={{ fontSize: '0.8rem', color: 'var(--accent-yellow)' }}>PLAY →</span>
+										</button>
+
+										{/* Global Ladder Footer Link */}
+										<button
+											className="retro-btn"
+											style={{
+												width: '100%',
+												padding: '8px 12px',
+												fontSize: '0.72rem',
+												marginTop: 4,
+											}}
+											onClick={() => {
+												retroAudio.playUiBeep(600, 0.05)
+												navigate('/leaderboard')
+											}}
+										>
+											🏆 VIEW GLOBAL LADDER →
+										</button>
 									</div>
 								</section>
 							</main>
