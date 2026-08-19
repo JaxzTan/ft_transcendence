@@ -21,7 +21,7 @@ export function Results() {
         <div style={{ ...card, padding: 32, textAlign: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>{t('results.noRecentResult')}</div>
           <div style={{ color: '#a99a83', marginBottom: 20 }}>{t('results.noRecentResultDesc')}</div>
-          <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '12px 24px' }}>
+          <button onClick={() => navigate('/gamelobby')} style={{ ...btnGold, padding: '12px 24px' }}>
             {t('home.goToLobby')}
           </button>
         </div>
@@ -167,7 +167,7 @@ export function Results() {
         <div style={{ display: 'flex', gap: 12 }}>
           {lastResult.abandoned ? (
             <>
-              <button onClick={() => navigate('/lobby')} style={{ ...btnGold, flex: 1, padding: 14 }}>
+              <button onClick={() => navigate('/gamelobby')} style={{ ...btnGold, flex: 1, padding: 14 }}>
                 {t('home.goToLobby')}
               </button>
               <button onClick={() => navigate('/home')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
