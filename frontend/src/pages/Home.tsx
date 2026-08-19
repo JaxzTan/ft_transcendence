@@ -267,17 +267,113 @@ export function Home() {
 		let gridOffset = 0
 		let time = 0
 
+		// Theme-specific color palettes
+		const themeConfig = {
+			synthwave: {
+				bgTop: '#070114',
+				bgMid: '#160530',
+				bgBot: '#05010d',
+				hasSun: true,
+				sunC1: 'rgba(255, 230, 0, 0.72)',
+				sunC2: 'rgba(255, 0, 127, 0.38)',
+				sunScanline: '#070114',
+				gridColor: 'rgba(0, 240, 255, 0.45)',
+				starRgb: '255, 255, 255',
+				diceBg: 'rgba(25, 8, 55, 0.32)',
+				pipColor: '#ffffff',
+				faces: [
+					{ v: [4, 5, 6, 7], pips: 1, color: '#ff007f', bg: 'rgba(255, 0, 127, 0.28)' },
+					{ v: [1, 0, 3, 2], pips: 6, color: '#00f0ff', bg: 'rgba(0, 240, 255, 0.28)' },
+					{ v: [0, 1, 5, 4], pips: 2, color: '#ffe600', bg: 'rgba(255, 230, 0, 0.28)' },
+					{ v: [3, 7, 6, 2], pips: 5, color: '#9d00ff', bg: 'rgba(157, 0, 255, 0.28)' },
+					{ v: [1, 2, 6, 5], pips: 3, color: '#00f0ff', bg: 'rgba(0, 240, 255, 0.28)' },
+					{ v: [0, 4, 7, 3], pips: 4, color: '#ff007f', bg: 'rgba(255, 0, 127, 0.28)' },
+				],
+				sparks: ['#00f0ff', '#ff007f'],
+				pawns: [
+					{ label: 'RED', color: '#ff0055', x: 85, y: 350 },
+					{ label: 'GREEN', color: '#00ff88', x: 230, y: 360 },
+					{ label: 'YELLOW', color: '#ffe600', x: 490, y: 360 },
+					{ label: 'BLUE', color: '#00f0ff', x: 635, y: 350 },
+				],
+				marquee: '⚡ TRANSCENDENCE // CYBER LUDO ⚡',
+				marqueeColor: '#00f0ff',
+			},
+			win95: {
+				bgTop: '#000000',
+				bgMid: '#000000',
+				bgBot: '#000000',
+				hasSun: false,
+				sunC1: 'rgba(0, 0, 0, 0)',
+				sunC2: 'rgba(0, 0, 0, 0)',
+				sunScanline: '#000000',
+				gridColor: 'rgba(0, 160, 160, 0.65)',
+				starRgb: '255, 255, 255',
+				diceBg: 'rgba(180, 180, 180, 0.28)',
+				pipColor: '#ffffff',
+				faces: [
+					{ v: [4, 5, 6, 7], pips: 1, color: '#ff4444', bg: 'rgba(230, 30, 30, 0.32)' },
+					{ v: [1, 0, 3, 2], pips: 6, color: '#4477ff', bg: 'rgba(30, 90, 255, 0.32)' },
+					{ v: [0, 1, 5, 4], pips: 2, color: '#ffdd00', bg: 'rgba(250, 200, 0, 0.32)' },
+					{ v: [3, 7, 6, 2], pips: 5, color: '#00dd44', bg: 'rgba(0, 180, 50, 0.32)' },
+					{ v: [1, 2, 6, 5], pips: 3, color: '#aa44ff', bg: 'rgba(120, 30, 220, 0.32)' },
+					{ v: [0, 4, 7, 3], pips: 4, color: '#00ddff', bg: 'rgba(0, 210, 240, 0.32)' },
+				],
+				sparks: ['#ffffff', '#00ffff'],
+				pawns: [
+					{ label: 'P1-RED', color: '#ff2222', x: 85, y: 350 },
+					{ label: 'P2-GRN', color: '#00cc33', x: 230, y: 360 },
+					{ label: 'P3-YLW', color: '#ffee00', x: 490, y: 360 },
+					{ label: 'P4-BLU', color: '#2255ff', x: 635, y: 350 },
+				],
+				marquee: '🎮 DIRECTX 3D // CYBER LUDO 95',
+				marqueeColor: '#00ffff',
+			},
+			terminal: {
+				bgTop: '#000800',
+				bgMid: '#001400',
+				bgBot: '#000400',
+				hasSun: true,
+				sunC1: 'rgba(0, 255, 102, 0.55)',
+				sunC2: 'rgba(0, 180, 70, 0.25)',
+				sunScanline: '#000800',
+				gridColor: 'rgba(0, 255, 102, 0.4)',
+				starRgb: '0, 255, 102',
+				diceBg: 'rgba(0, 40, 10, 0.32)',
+				pipColor: '#00ff66',
+				faces: [
+					{ v: [4, 5, 6, 7], pips: 1, color: '#00ff66', bg: 'rgba(0, 255, 102, 0.22)' },
+					{ v: [1, 0, 3, 2], pips: 6, color: '#33ff88', bg: 'rgba(0, 255, 102, 0.22)' },
+					{ v: [0, 1, 5, 4], pips: 2, color: '#00dd55', bg: 'rgba(0, 255, 102, 0.22)' },
+					{ v: [3, 7, 6, 2], pips: 5, color: '#00ff66', bg: 'rgba(0, 255, 102, 0.22)' },
+					{ v: [1, 2, 6, 5], pips: 3, color: '#33ff88', bg: 'rgba(0, 255, 102, 0.22)' },
+					{ v: [0, 4, 7, 3], pips: 4, color: '#00dd55', bg: 'rgba(0, 255, 102, 0.22)' },
+				],
+				sparks: ['#00ff66', '#33ff88'],
+				pawns: [
+					{ label: 'NODE:RED', color: '#00ff66', x: 85, y: 350 },
+					{ label: 'NODE:GRN', color: '#33ff88', x: 230, y: 360 },
+					{ label: 'NODE:YLW', color: '#00ff66', x: 490, y: 360 },
+					{ label: 'NODE:BLU', color: '#33ff88', x: 635, y: 350 },
+				],
+				marquee: '> SYS_EXEC: TRANSCENDENCE_LUDO_CORE.SH',
+				marqueeColor: '#00ff66',
+			},
+		}
+
+		const currentCfg = themeConfig[theme] || themeConfig.synthwave
+
 		// Background stars
-		const stars = Array.from({ length: 45 }, () => ({
-			x: Math.random() * 480,
-			y: Math.random() * 190,
+		const stars = Array.from({ length: 65 }, () => ({
+			x: Math.random() * 720,
+			y: Math.random() * 260,
 			size: Math.random() * 1.8 + 0.5,
 			speed: Math.random() * 0.3 + 0.1,
 			alpha: Math.random() * 0.7 + 0.3,
 		}))
 
-		// 3D Cube vertices (centered at origin, side length = 72)
-		const cubeSize = 36
+		// 3D Cube vertices (centered at origin, side length = 108)
+		const cubeSize = 54
 		const rawVertices = [
 			[-cubeSize, -cubeSize, -cubeSize],
 			[cubeSize, -cubeSize, -cubeSize],
@@ -289,15 +385,7 @@ export function Home() {
 			[-cubeSize, cubeSize, cubeSize],
 		]
 
-		// Faces: [v0, v1, v2, v3, pipCount, edgeColor]
-		const faces = [
-			{ v: [4, 5, 6, 7], pips: 1, color: '#ff007f', name: 'front' },
-			{ v: [1, 0, 3, 2], pips: 6, color: '#00f0ff', name: 'back' },
-			{ v: [0, 1, 5, 4], pips: 2, color: '#ffe600', name: 'top' },
-			{ v: [3, 7, 6, 2], pips: 5, color: '#9d00ff', name: 'bottom' },
-			{ v: [1, 2, 6, 5], pips: 3, color: '#00f0ff', name: 'right' },
-			{ v: [0, 4, 7, 3], pips: 4, color: '#ff007f', name: 'left' },
-		]
+		const faces = currentCfg.faces
 
 		const pipPositions: Record<number, number[][]> = {
 			1: [[0, 0]],
@@ -313,58 +401,60 @@ export function Home() {
 			rotX += 0.012
 			rotY += 0.018
 			rotZ += 0.007
-			gridOffset = (gridOffset + 1.2) % 24
+			gridOffset = (gridOffset + 1.3) % 26
 
 			ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-			// 1. Deep Space Canvas Background with subtle gradient
+			// 1. Deep Canvas Background with theme gradient
 			const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height)
-			bgGrad.addColorStop(0, '#070114')
-			bgGrad.addColorStop(0.65, '#12052b')
-			bgGrad.addColorStop(1, '#05010d')
+			bgGrad.addColorStop(0, currentCfg.bgTop)
+			bgGrad.addColorStop(0.65, currentCfg.bgMid)
+			bgGrad.addColorStop(1, currentCfg.bgBot)
 			ctx.fillStyle = bgGrad
 			ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-			// 2. Distant Synthwave Sun
-			const sunY = 175
-			const sunGrad = ctx.createRadialGradient(240, sunY, 5, 240, sunY, 65)
-			sunGrad.addColorStop(0, 'rgba(255, 230, 0, 0.65)')
-			sunGrad.addColorStop(0.5, 'rgba(255, 0, 127, 0.35)')
-			sunGrad.addColorStop(1, 'rgba(157, 0, 255, 0)')
-			ctx.fillStyle = sunGrad
-			ctx.beginPath()
-			ctx.arc(240, sunY, 65, Math.PI, 0, false)
-			ctx.fill()
-
-			// Sun horizon scanlines
-			ctx.strokeStyle = '#070114'
-			ctx.lineWidth = 2
-			for (let sy = sunY - 45; sy < sunY; sy += 7) {
+			// 2. Distant Sun (only for themes with sun)
+			if (currentCfg.hasSun !== false) {
+				const sunY = 250
+				const sunGrad = ctx.createRadialGradient(360, sunY, 7, 360, sunY, 90)
+				sunGrad.addColorStop(0, currentCfg.sunC1)
+				sunGrad.addColorStop(0.5, currentCfg.sunC2)
+				sunGrad.addColorStop(1, 'rgba(0, 0, 0, 0)')
+				ctx.fillStyle = sunGrad
 				ctx.beginPath()
-				ctx.moveTo(175, sy)
-				ctx.lineTo(305, sy)
-				ctx.stroke()
+				ctx.arc(360, sunY, 90, Math.PI, 0, false)
+				ctx.fill()
+
+				// Sun horizon scanlines
+				ctx.strokeStyle = currentCfg.sunScanline
+				ctx.lineWidth = 2
+				for (let sy = sunY - 60; sy < sunY; sy += 8) {
+					ctx.beginPath()
+					ctx.moveTo(265, sy)
+					ctx.lineTo(455, sy)
+					ctx.stroke()
+				}
 			}
 
 			// 3. Floating Stars
 			stars.forEach((st) => {
 				st.y += st.speed
-				if (st.y > 185) st.y = 0
-				ctx.fillStyle = `rgba(255, 255, 255, ${st.alpha * (0.8 + 0.2 * Math.sin(time * 3 + st.x))})`
+				if (st.y > 260) st.y = 0
+				ctx.fillStyle = `rgba(${currentCfg.starRgb}, ${st.alpha * (0.8 + 0.2 * Math.sin(time * 3 + st.x))})`
 				ctx.beginPath()
 				ctx.arc(st.x, st.y, st.size, 0, Math.PI * 2)
 				ctx.fill()
 			})
 
-			// 4. Horizon Synthwave Perspective Grid
-			const horizonY = 185
+			// 4. Horizon Perspective Grid
+			const horizonY = 260
 			ctx.save()
-			ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)'
+			ctx.strokeStyle = currentCfg.gridColor
 			ctx.lineWidth = 1
 
 			// Horizontal grid lines moving toward camera
-			for (let gy = 0; gy < 95; gy += 12) {
-				const y = horizonY + Math.pow((gy + gridOffset) / 100, 1.8) * 95
+			for (let gy = 0; gy < 140; gy += 14) {
+				const y = horizonY + Math.pow((gy + gridOffset) / 145, 1.8) * 140
 				if (y <= canvas.height) {
 					ctx.beginPath()
 					ctx.moveTo(0, y)
@@ -373,19 +463,19 @@ export function Home() {
 				}
 			}
 
-			// Perspective radiating vertical lines from vanishing point (240, 185)
-			for (let x = -200; x <= canvas.width + 200; x += 36) {
+			// Perspective radiating vertical lines from vanishing point (360, 260)
+			for (let x = -250; x <= canvas.width + 250; x += 45) {
 				ctx.beginPath()
-				ctx.moveTo(240, horizonY)
+				ctx.moveTo(360, horizonY)
 				ctx.lineTo(x, canvas.height)
 				ctx.stroke()
 			}
 			ctx.restore()
 
 			// 5. 3D Tumbling Ludo Dice in Center
-			const centerX = 240
-			const centerY = 95 + Math.sin(time * 2.2) * 8
-			const cameraDist = 200
+			const centerX = 360
+			const centerY = 135 + Math.sin(time * 2.2) * 10
+			const cameraDist = 260
 
 			// 3D rotation matrix calculation
 			const cosX = Math.cos(rotX), sinX = Math.sin(rotX)
@@ -393,22 +483,18 @@ export function Home() {
 			const cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ)
 
 			const transformedVertices = rawVertices.map(([x, y, z]) => {
-				// Rotate Y
 				let x1 = x * cosY + z * sinY
 				let y1 = y
 				let z1 = -x * sinY + z * cosY
 
-				// Rotate X
 				let x2 = x1
 				let y2 = y1 * cosX - z1 * sinX
 				let z2 = y1 * sinX + z1 * cosX
 
-				// Rotate Z
 				let x3 = x2 * cosZ - y2 * sinZ
 				let y3 = x2 * sinZ + y2 * cosZ
 				let z3 = z2
 
-				// Perspective projection
 				const scale = cameraDist / (cameraDist + z3)
 				return {
 					px: centerX + x3 * scale,
@@ -420,16 +506,17 @@ export function Home() {
 			})
 
 			// Render glowing particle sparks behind dice
-			for (let i = 0; i < 6; i++) {
-				const sparkAngle = time * 3 + (i * Math.PI) / 3
-				const sparkR = 55 + Math.sin(time * 4 + i) * 12
+			for (let i = 0; i < 8; i++) {
+				const sparkAngle = time * 3 + (i * Math.PI) / 4
+				const sparkR = 74 + Math.sin(time * 4 + i) * 15
 				const sx = centerX + Math.cos(sparkAngle) * sparkR
 				const sy = centerY + Math.sin(sparkAngle * 1.3) * (sparkR * 0.5)
-				ctx.fillStyle = i % 2 === 0 ? 'rgba(0, 240, 255, 0.7)' : 'rgba(255, 0, 127, 0.7)'
-				ctx.shadowColor = i % 2 === 0 ? '#00f0ff' : '#ff007f'
-				ctx.shadowBlur = 8
+				const sparkCol = currentCfg.sparks[i % currentCfg.sparks.length]
+				ctx.fillStyle = sparkCol
+				ctx.shadowColor = sparkCol
+				ctx.shadowBlur = 9
 				ctx.beginPath()
-				ctx.arc(sx, sy, 2, 0, Math.PI * 2)
+				ctx.arc(sx, sy, 2.4, 0, Math.PI * 2)
 				ctx.fill()
 				ctx.shadowBlur = 0
 			}
@@ -438,7 +525,6 @@ export function Home() {
 			const faceList = faces.map((face) => {
 				const pts = face.v.map((idx) => transformedVertices[idx])
 				const avgZ = (pts[0].z + pts[1].z + pts[2].z + pts[3].z) / 4
-				// Calculate face normal vector in 2D (cross product) to do backface culling
 				const v0 = pts[0], v1 = pts[1], v2 = pts[2]
 				const normalZ = (v1.px - v0.px) * (v2.py - v0.py) - (v1.py - v0.py) * (v2.px - v0.px)
 				return { ...face, pts, avgZ, normalZ }
@@ -447,10 +533,13 @@ export function Home() {
 			faceList.sort((a, b) => a.avgZ - b.avgZ)
 
 			faceList.forEach((face) => {
-				if (face.normalZ <= 0) return // Backface culling
+				const isBackface = face.normalZ <= 0
+				const alpha = isBackface ? 0.35 : 1.0
 
-				// Draw face background
 				ctx.save()
+				ctx.globalAlpha = alpha
+
+				// Draw face translucent background
 				ctx.beginPath()
 				ctx.moveTo(face.pts[0].px, face.pts[0].py)
 				for (let i = 1; i < 4; i++) {
@@ -458,14 +547,14 @@ export function Home() {
 				}
 				ctx.closePath()
 
-				ctx.fillStyle = 'rgba(20, 8, 48, 0.85)'
+				ctx.fillStyle = (face as any).bg || currentCfg.diceBg
 				ctx.fill()
 
-				// Draw face neon edges
-				ctx.strokeStyle = face.color
-				ctx.lineWidth = 2.5
-				ctx.shadowColor = face.color
-				ctx.shadowBlur = 10
+				// Draw face edges
+				ctx.strokeStyle = theme === 'win95' ? '#dfdfdf' : face.color
+				ctx.lineWidth = isBackface ? 1.5 : theme === 'win95' ? 2 : 3
+				ctx.shadowColor = theme === 'win95' || isBackface ? 'transparent' : face.color
+				ctx.shadowBlur = theme === 'win95' || isBackface ? 0 : 11
 				ctx.stroke()
 				ctx.shadowBlur = 0
 
@@ -474,7 +563,6 @@ export function Home() {
 				const p0 = face.pts[0], p1 = face.pts[1], p2 = face.pts[2], p3 = face.pts[3]
 
 				pips.forEach(([u, v]) => {
-					// Interpolate position across the 3D quad using bilinear interpolation
 					const su = u + 0.5
 					const sv = v + 0.5
 					const topX = p0.px + (p1.px - p0.px) * su
@@ -484,56 +572,51 @@ export function Home() {
 					const pipX = topX + (botX - topX) * sv
 					const pipY = topY + (botY - topY) * sv
 
-					ctx.fillStyle = '#ffffff'
-					ctx.shadowColor = face.color
-					ctx.shadowBlur = 8
+					ctx.fillStyle = currentCfg.pipColor
+					ctx.shadowColor = theme === 'win95' || isBackface ? 'transparent' : face.color
+					ctx.shadowBlur = theme === 'win95' || isBackface ? 0 : 8
 					ctx.beginPath()
-					ctx.arc(pipX, pipY, 3.2, 0, Math.PI * 2)
+					ctx.arc(pipX, pipY, isBackface ? 2.8 : 4, 0, Math.PI * 2)
 					ctx.fill()
 					ctx.shadowBlur = 0
 				})
 				ctx.restore()
 			})
 
-			// 6. 4-Player Army Hologram Nodes (Red, Green, Yellow, Blue)
-			const pawns = [
-				{ label: 'RED', color: '#ff0055', x: 50, y: 250 },
-				{ label: 'GREEN', color: '#00ff88', x: 130, y: 260 },
-				{ label: 'YELLOW', color: '#ffe600', x: 350, y: 260 },
-				{ label: 'BLUE', color: '#00f0ff', x: 430, y: 250 },
-			]
+			// 6. 4-Player Army Hologram Nodes
+			const pawns = currentCfg.pawns
 
 			pawns.forEach((p, idx) => {
-				const pulse = Math.sin(time * 3 + idx * 1.5) * 2
+				const pulse = Math.sin(time * 3 + idx * 1.5) * 2.4
 				ctx.save()
 				ctx.fillStyle = p.color
-				ctx.shadowColor = p.color
-				ctx.shadowBlur = 10
+				ctx.shadowColor = theme === 'win95' ? 'transparent' : p.color
+				ctx.shadowBlur = theme === 'win95' ? 0 : 11
 				ctx.beginPath()
-				ctx.arc(p.x, p.y + pulse, 6, 0, Math.PI * 2)
+				ctx.arc(p.x, p.y + pulse, 7.5, 0, Math.PI * 2)
 				ctx.fill()
 
 				// Base ring
 				ctx.strokeStyle = p.color
-				ctx.lineWidth = 1.5
+				ctx.lineWidth = 1.8
 				ctx.beginPath()
-				ctx.ellipse(p.x, p.y + 10, 12, 4, 0, 0, Math.PI * 2)
+				ctx.ellipse(p.x, p.y + 12, 15, 5, 0, 0, Math.PI * 2)
 				ctx.stroke()
 
-				ctx.font = '7px "Press Start 2P", monospace'
+				ctx.font = '8.5px "Press Start 2P", monospace'
 				ctx.textAlign = 'center'
-				ctx.fillText(p.label, p.x, p.y - 10 + pulse)
+				ctx.fillText(p.label, p.x, p.y - 13 + pulse)
 				ctx.restore()
 			})
 
 			// 7. Marquee Title on Top of Screen
 			ctx.save()
-			ctx.font = '10px "Press Start 2P", monospace'
+			ctx.font = '12px "Press Start 2P", monospace'
 			ctx.textAlign = 'center'
-			ctx.fillStyle = '#00f0ff'
-			ctx.shadowColor = '#00f0ff'
-			ctx.shadowBlur = 10
-			ctx.fillText('⚡ TRANSCENDENCE // CYBER LUDO ⚡', 240, 24)
+			ctx.fillStyle = currentCfg.marqueeColor
+			ctx.shadowColor = currentCfg.marqueeColor
+			ctx.shadowBlur = 11
+			ctx.fillText(currentCfg.marquee, 360, 28)
 			ctx.shadowBlur = 0
 			ctx.restore()
 
@@ -545,7 +628,7 @@ export function Home() {
 		return () => {
 			cancelAnimationFrame(animId)
 		}
-	}, [pageView])
+	}, [pageView, theme])
 
 	// ------------------------------------------------------------------------
 	// 8. DEDICATED FULL SNAKE PAGE & THERMAL RECEIPT PRINTER
@@ -1046,65 +1129,34 @@ export function Home() {
 										{/* Arcade Canvas Frame & Interactive Press Start Overlay */}
 										<div
 											className="arcade-screen-frame"
-											style={{
-												position: 'relative',
-												cursor: 'pointer',
-												overflow: 'hidden',
-												width: '100%',
-												maxWidth: 480,
-												border: isWarpingToLobby ? '4px solid #ffffff' : '4px solid #333333',
-												boxShadow: isWarpingToLobby
-													? '0 0 35px #ffffff, 0 0 50px var(--accent-cyan)'
-													: 'inset 0 0 20px #000000, 0 0 15px var(--accent-cyan)',
-												transition: 'all 0.15s ease',
-											}}
+											style={
+												isWarpingToLobby
+													? {
+															border: '4px solid #ffffff',
+															boxShadow: '0 0 35px #ffffff, 0 0 50px var(--accent-cyan)',
+													  }
+													: undefined
+											}
 											onClick={launchToLobby}
 											title="Click or press Spacebar to enter Ludo Lobby"
 										>
-											<canvas id="arcadeCanvas" ref={canvasRef} width={480} height={280} />
+											<canvas id="arcadeCanvas" ref={canvasRef} width={720} height={400} />
 
-											{/* Interactive Pulsing Press Start Banner Overlay */}
-											<div
-												style={{
-													position: 'absolute',
-													bottom: 22,
-													left: '50%',
-													transform: 'translateX(-50%)',
-													width: '88%',
-													background: 'rgba(10, 2, 28, 0.85)',
-													border: '2px solid var(--accent-pink)',
-													boxShadow: '0 0 20px rgba(255, 0, 127, 0.6), inset 0 0 15px rgba(0, 240, 255, 0.3)',
-													borderRadius: 6,
-													padding: '10px 14px',
-													textAlign: 'center',
-													display: 'flex',
-													flexDirection: 'column',
-													alignItems: 'center',
-													gap: 6,
-													pointerEvents: 'none',
-													animation: 'pulse 1.8s infinite',
-												}}
-											>
-												<span
-													style={{
-														fontFamily: 'var(--font-heading)',
-														fontSize: '0.82rem',
-														color: '#ffe600',
-														textShadow: '0 0 10px #ffe600, 0 0 20px #ff007f',
-														letterSpacing: '1px',
-													}}
-												>
-													▶ INSERT COIN // PRESS START ◀
+											{/* Interactive Translucent Press Start Banner Overlay */}
+											<div className="arcade-start-overlay">
+												<span className="arcade-start-title">
+													{theme === 'win95'
+														? '▶ START GAME: CYBER LUDO 3D'
+														: theme === 'terminal'
+														? '[ EXEC: INITIALIZE_LUDO_MATCH ]'
+														: '▶ INSERT COIN // PRESS START ◀'}
 												</span>
-												<span
-													style={{
-														fontFamily: 'var(--font-mono)',
-														fontSize: '0.75rem',
-														color: 'var(--accent-cyan)',
-														letterSpacing: '0.5px',
-													}}
-												>
-													[ CLICK SCREEN OR PRESS SPACEBAR ]
+												<span className="arcade-start-sub">
+													{theme === 'terminal'
+														? '[ CLICK OR PRESS SPACEBAR TO EXECUTE ]'
+														: theme === 'win95'
+														? '[ CLICK WINDOW OR PRESS SPACEBAR ]'
+														: '[ CLICK SCREEN OR PRESS SPACEBAR ]'}
 												</span>
 											</div>
 
