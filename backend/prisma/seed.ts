@@ -286,17 +286,33 @@ async function main() {
 
   console.log('  Created abandoned game');
 
-  // ── Friendships (one per status) ──────────────────────────────────────────
-  await prisma.friendship.createMany({
-    data: [
-      { id: randomUUID(), userId: alice.id, friendId: bob.id, status: 'accepted' },
-      { id: randomUUID(), userId: alice.id, friendId: eve.id, status: 'accepted' },
-      { id: randomUUID(), userId: carol.id, friendId: alice.id, status: 'pending' },
-      { id: randomUUID(), userId: bob.id, friendId: dave.id, status: 'blocked' },
-    ],
+  // ── Friendships (for fixture users & all registered users) ───────────────
+  const otherUsers = await prisma.user.findMany({
+    where: { username: { notIn: SEED_USERNAMES } },
+    select: { id: true, username: true },
   });
 
-  console.log('  Created friendships');
+  const friendshipsToCreate: Array<{ id: string; userId: string; friendId: string; status: 'accepted' | 'pending' | 'blocked' }> = [
+    { id: randomUUID(), userId: alice.id, friendId: bob.id, status: 'accepted' },
+    { id: randomUUID(), userId: alice.id, friendId: eve.id, status: 'accepted' },
+    { id: randomUUID(), userId: carol.id, friendId: alice.id, status: 'pending' },
+    { id: randomUUID(), userId: bob.id, friendId: dave.id, status: 'blocked' },
+  ];
+
+  for (const other of otherUsers) {
+    friendshipsToCreate.push(
+      { id: randomUUID(), userId: other.id, friendId: alice.id, status: 'accepted' },
+      { id: randomUUID(), userId: other.id, friendId: bob.id, status: 'accepted' },
+      { id: randomUUID(), userId: other.id, friendId: eve.id, status: 'accepted' },
+      { id: randomUUID(), userId: carol.id, friendId: other.id, status: 'pending' },
+    );
+  }
+
+  await prisma.friendship.createMany({
+    data: friendshipsToCreate,
+  });
+
+  console.log(`  Created friendships (including links for ${otherUsers.length} existing user(s))`);
   console.log('✅ Seeding complete!');
 }
 

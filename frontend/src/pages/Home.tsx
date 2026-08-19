@@ -1,19 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getApi, postApi } from '../api'
+import { UserAvatar } from '../components/UserAvatar'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
-type GameType = 'space' | 'snake'
 type PageView = 'hub' | 'snake-page'
 type Widget3Tab = 'ladder' | 'guestbook'
 type LadderEntry = { username: string; rating: number; avatar?: string }
+type Friend = {
+	id: string
+	username: string
+	avatarStyle?: any
+	rating?: number
+	friendsSince?: string
+	status?: 'online' | 'playing' | 'offline'
+}
 
 export function Home() {
 	const { t } = useTranslation()
-	const { user } = useApp()
+	const { user, setActiveMatch } = useApp()
 
 	// ------------------------------------------------------------------------
 	// 1. PAGE VIEW (HUB vs FULL SNAKE PAGE)
@@ -85,52 +94,69 @@ export function Home() {
 	}
 
 	// ------------------------------------------------------------------------
-	// 4. CHIPTUNE BOOMBOX
+	// 4. CYBER COMM // FRIEND LIST & AUDIO
 	// ------------------------------------------------------------------------
-	const [isPlayingAudio, setIsPlayingAudio] = useState(false)
-	const [currentTrack, setCurrentTrack] = useState("SYNTHWAVE NIGHTS '84")
-	const [isMuted, setIsMuted] = useState(false)
-	const [spectrumHeights, setSpectrumHeights] = useState<number[]>([
-		20, 45, 70, 30, 85, 60, 40, 90, 55, 35, 75, 50,
-	])
+	const [friends, setFriends] = useState<Friend[] | null>(null)
+	const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
+	const [isFriendsLoading, setIsFriendsLoading] = useState(false)
+	const [invitingFriendId, setInvitingFriendId] = useState<string | null>(null)
 
+	const fetchFriendsData = () => {
+		Promise.all([
+			getApi<Friend[]>('/api/friends'),
+			getApi<{ received: Array<{ id: string }> }>('/api/friends/requests'),
+		])
+			.then(([friendsData, reqData]) => {
+				setFriends(Array.isArray(friendsData) ? friendsData : [])
+				setPendingRequestsCount(Array.isArray(reqData?.received) ? reqData.received.length : 0)
+			})
+			.catch((e) => {
+				console.error(e)
+			})
+	}
+
+	useEffect(() => {
+		setIsFriendsLoading(true)
+		fetchFriendsData()
+		setIsFriendsLoading(false)
+		const iv = setInterval(fetchFriendsData, 12000)
+		return () => clearInterval(iv)
+	}, [])
+
+	const handleInviteFriend = async (friendId: string) => {
+		if (invitingFriendId) return
+		setInvitingFriendId(friendId)
+		retroAudio.playUiBeep(800, 0.08)
+		try {
+			const res = await postApi<{
+				gameId: string
+				token: string
+				engineUrl: string
+				color: any
+				inviteCode?: string
+				mode: 'pvp' | 'pve' | 'hotseat'
+				playerCount: number
+			}>(`/api/friends/${friendId}/invite`, { clashEnabled: true })
+			setActiveMatch(res)
+			navigate(`/game?gameId=${res.gameId}`)
+		} catch (e) {
+			console.error(e)
+		} finally {
+			setInvitingFriendId(null)
+		}
+	}
+
+	const [isPlayingAudio, setIsPlayingAudio] = useState(false)
 	const handleToggleAudio = () => {
 		const playing = retroAudio.togglePlay()
 		setIsPlayingAudio(playing)
 	}
 
-	const handleNextTrack = () => {
-		const name = retroAudio.nextTrack()
-		setCurrentTrack(name)
-		retroAudio.playUiBeep(1200, 0.08)
-	}
-
-	const handleToggleMute = () => {
-		retroAudio.muted = !retroAudio.muted
-		setIsMuted(retroAudio.muted)
-	}
-
-	useEffect(() => {
-		if (typeof window !== 'undefined') {
-			;(window as unknown as { updateSpectrumBars?: () => void }).updateSpectrumBars = () => {
-				setSpectrumHeights(
-					Array.from({ length: 12 }, () => Math.floor(Math.random() * 85) + 15)
-				)
-			}
-		}
-	}, [])
-
-	useEffect(() => {
-		if (!isPlayingAudio) {
-			setSpectrumHeights([15, 20, 15, 25, 20, 15, 20, 25, 15, 20, 15, 20])
-		}
-	}, [isPlayingAudio])
-
 	// ------------------------------------------------------------------------
 	// 5. STICKY NOTES & GUESTBOOK
 	// ------------------------------------------------------------------------
 	const [notes, setNotes] = useState<string[]>([
-		'Welcome to the Retro Arcade! Press Play to start chiptunes!',
+		'Welcome to the Retro Arcade! Connect with cyber pilots & battle!',
 		'High score challenge: Can you beat 1,000 pts in Space Defender?',
 		'Retro wave visuals inspired by 1984 arcade culture!',
 	])
@@ -194,17 +220,38 @@ export function Home() {
 	}, [])
 
 	// ------------------------------------------------------------------------
-	// 7. HUB ARCADE CANVAS (SPACE DEFENDER & SNAKE MINI)
+	// 7. HUB ARCADE CABINET: 3D ATTRACT MODE & PRESS START
 	// ------------------------------------------------------------------------
 	const canvasRef = useRef<HTMLCanvasElement | null>(null)
-	const [activeGame, setActiveGame] = useState<GameType>('space')
-	const [score, setScore] = useState(0)
-	const [highScore, setHighScore] = useState(0)
+	const [isWarpingToLobby, setIsWarpingToLobby] = useState(false)
+
+	const launchToLobby = () => {
+		if (isWarpingToLobby) return
+		setIsWarpingToLobby(true)
+		// Arcade coin drop and power-up chime
+		retroAudio.playUiBeep(987, 0.08)
+		setTimeout(() => retroAudio.playUiBeep(1318, 0.12), 90)
+		setTimeout(() => retroAudio.playUiBeep(1760, 0.2), 200)
+
+		setTimeout(() => {
+			navigate('/gamelobby')
+		}, 350)
+	}
 
 	useEffect(() => {
-		const saved = parseInt(localStorage.getItem('retro_arcade_highscore') || '0', 10)
-		setHighScore(saved)
-	}, [])
+		const handleGlobalKeyDown = (e: KeyboardEvent) => {
+			if (pageView !== 'hub') return
+			const activeTag = document.activeElement?.tagName.toLowerCase()
+			if (activeTag === 'input' || activeTag === 'textarea') return
+
+			if (e.code === 'Space' || e.code === 'Enter') {
+				e.preventDefault()
+				launchToLobby()
+			}
+		}
+		window.addEventListener('keydown', handleGlobalKeyDown)
+		return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+	}, [pageView, isWarpingToLobby])
 
 	useEffect(() => {
 		if (pageView !== 'hub') return
@@ -213,329 +260,282 @@ export function Home() {
 		const ctx = canvas.getContext('2d')
 		if (!ctx) return
 
-		let isGameOver = false
-		let currentScore = 0
 		let animId: number
+		let rotX = 0.4
+		let rotY = 0.6
+		let rotZ = 0.2
+		let gridOffset = 0
+		let time = 0
 
-		const keys: Record<string, boolean> = {}
-		const onKeyDown = (e: KeyboardEvent) => {
-			keys[e.code] = true
-			if (e.code === 'KeyR' && isGameOver) {
-				restart()
-			}
-		}
-		const onKeyUp = (e: KeyboardEvent) => {
-			keys[e.code] = false
-		}
-		window.addEventListener('keydown', onKeyDown)
-		window.addEventListener('keyup', onKeyUp)
+		// Background stars
+		const stars = Array.from({ length: 45 }, () => ({
+			x: Math.random() * 480,
+			y: Math.random() * 190,
+			size: Math.random() * 1.8 + 0.5,
+			speed: Math.random() * 0.3 + 0.1,
+			alpha: Math.random() * 0.7 + 0.3,
+		}))
 
-		// Space Defender
-		let player = {
-			x: canvas.width / 2 - 15,
-			y: canvas.height - 40,
-			w: 30,
-			h: 20,
-			speed: 5,
-		}
-		let lasers: Array<{ x: number; y: number; w: number; h: number; speed: number }> = []
-		let enemies: Array<{
-			x: number
-			y: number
-			w: number
-			h: number
-			speed: number
-			color: string
-		}> = []
-		let particles: Array<{
-			x: number
-			y: number
-			vx: number
-			vy: number
-			life: number
-			color: string
-		}> = []
-		let enemySpawnTimer = 0
-		let shootCooldown = 0
-
-		// Snake Mini
-		const gridSize = 16
-		let snake: Array<{ x: number; y: number }> = [
-			{ x: 10, y: 10 },
-			{ x: 9, y: 10 },
-			{ x: 8, y: 10 },
+		// 3D Cube vertices (centered at origin, side length = 72)
+		const cubeSize = 36
+		const rawVertices = [
+			[-cubeSize, -cubeSize, -cubeSize],
+			[cubeSize, -cubeSize, -cubeSize],
+			[cubeSize, cubeSize, -cubeSize],
+			[-cubeSize, cubeSize, -cubeSize],
+			[-cubeSize, -cubeSize, cubeSize],
+			[cubeSize, -cubeSize, cubeSize],
+			[cubeSize, cubeSize, cubeSize],
+			[-cubeSize, cubeSize, cubeSize],
 		]
-		let dir = { x: 1, y: 0 }
-		let nextDir = { x: 1, y: 0 }
-		let food = { x: 15, y: 10 }
-		let snakeTick = 0
 
-		const spawnFood = () => {
-			const cols = Math.floor(canvas.width / gridSize)
-			const rows = Math.floor(canvas.height / gridSize)
-			food = {
-				x: Math.floor(Math.random() * cols),
-				y: Math.floor(Math.random() * rows),
-			}
-		}
-		spawnFood()
+		// Faces: [v0, v1, v2, v3, pipCount, edgeColor]
+		const faces = [
+			{ v: [4, 5, 6, 7], pips: 1, color: '#ff007f', name: 'front' },
+			{ v: [1, 0, 3, 2], pips: 6, color: '#00f0ff', name: 'back' },
+			{ v: [0, 1, 5, 4], pips: 2, color: '#ffe600', name: 'top' },
+			{ v: [3, 7, 6, 2], pips: 5, color: '#9d00ff', name: 'bottom' },
+			{ v: [1, 2, 6, 5], pips: 3, color: '#00f0ff', name: 'right' },
+			{ v: [0, 4, 7, 3], pips: 4, color: '#ff007f', name: 'left' },
+		]
 
-		const triggerGameOver = () => {
-			isGameOver = true
-			retroAudio.playExplosionSound()
+		const pipPositions: Record<number, number[][]> = {
+			1: [[0, 0]],
+			2: [[-0.28, -0.28], [0.28, 0.28]],
+			3: [[-0.3, -0.3], [0, 0], [0.3, 0.3]],
+			4: [[-0.28, -0.28], [0.28, -0.28], [-0.28, 0.28], [0.28, 0.28]],
+			5: [[-0.28, -0.28], [0.28, -0.28], [0, 0], [-0.28, 0.28], [0.28, 0.28]],
+			6: [[-0.28, -0.32], [0.28, -0.32], [-0.28, 0], [0.28, 0], [-0.28, 0.32], [0.28, 0.32]],
 		}
-
-		const saveHighScore = (newScore: number) => {
-			const best = parseInt(localStorage.getItem('retro_arcade_highscore') || '0', 10)
-			if (newScore > best) {
-				localStorage.setItem('retro_arcade_highscore', String(newScore))
-				setHighScore(newScore)
-			}
-		}
-
-		const restart = () => {
-			isGameOver = false
-			currentScore = 0
-			setScore(0)
-			if (activeGame === 'space') {
-				player = {
-					x: canvas.width / 2 - 15,
-					y: canvas.height - 40,
-					w: 30,
-					h: 20,
-					speed: 5,
-				}
-				lasers = []
-				enemies = []
-				particles = []
-				enemySpawnTimer = 0
-				shootCooldown = 0
-			} else {
-				snake = [
-					{ x: 10, y: 10 },
-					{ x: 9, y: 10 },
-					{ x: 8, y: 10 },
-				]
-				dir = { x: 1, y: 0 }
-				nextDir = { x: 1, y: 0 }
-				spawnFood()
-				snakeTick = 0
-			}
-		}
-
-		const onCanvasClick = () => {
-			if (isGameOver) {
-				restart()
-			}
-		}
-		canvas.addEventListener('click', onCanvasClick)
 
 		const loop = () => {
-			if (activeGame === 'space') {
-				if (!isGameOver) {
-					if ((keys['ArrowLeft'] || keys['KeyA']) && player.x > 0) {
-						player.x -= player.speed
-					}
-					if ((keys['ArrowRight'] || keys['KeyD']) && player.x + player.w < canvas.width) {
-						player.x += player.speed
-					}
+			time += 0.02
+			rotX += 0.012
+			rotY += 0.018
+			rotZ += 0.007
+			gridOffset = (gridOffset + 1.2) % 24
 
-					if (shootCooldown > 0) shootCooldown--
-					if (
-						(keys['Space'] || keys['ArrowUp'] || keys['KeyW']) &&
-						shootCooldown === 0
-					) {
-						lasers.push({
-							x: player.x + player.w / 2 - 2,
-							y: player.y,
-							w: 4,
-							h: 10,
-							speed: 7,
-						})
-						shootCooldown = 12
-						retroAudio.playLaserSound()
-					}
+			ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-					for (let i = lasers.length - 1; i >= 0; i--) {
-						lasers[i].y -= lasers[i].speed
-						if (lasers[i].y < 0) lasers.splice(i, 1)
-					}
+			// 1. Deep Space Canvas Background with subtle gradient
+			const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height)
+			bgGrad.addColorStop(0, '#070114')
+			bgGrad.addColorStop(0.65, '#12052b')
+			bgGrad.addColorStop(1, '#05010d')
+			ctx.fillStyle = bgGrad
+			ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-					enemySpawnTimer++
-					if (enemySpawnTimer > 40) {
-						enemySpawnTimer = 0
-						enemies.push({
-							x: Math.random() * (canvas.width - 24),
-							y: -20,
-							w: 24,
-							h: 20,
-							speed: 1.8 + Math.random() * 1.5,
-							color: ['#ff007f', '#00f0ff', '#ffe600'][Math.floor(Math.random() * 3)],
-						})
-					}
+			// 2. Distant Synthwave Sun
+			const sunY = 175
+			const sunGrad = ctx.createRadialGradient(240, sunY, 5, 240, sunY, 65)
+			sunGrad.addColorStop(0, 'rgba(255, 230, 0, 0.65)')
+			sunGrad.addColorStop(0.5, 'rgba(255, 0, 127, 0.35)')
+			sunGrad.addColorStop(1, 'rgba(157, 0, 255, 0)')
+			ctx.fillStyle = sunGrad
+			ctx.beginPath()
+			ctx.arc(240, sunY, 65, Math.PI, 0, false)
+			ctx.fill()
 
-					for (let eIdx = enemies.length - 1; eIdx >= 0; eIdx--) {
-						const enemy = enemies[eIdx]
-						enemy.y += enemy.speed
-
-						if (enemy.y > canvas.height) {
-							triggerGameOver()
-							break
-						}
-
-						for (let lIdx = lasers.length - 1; lIdx >= 0; lIdx--) {
-							const laser = lasers[lIdx]
-							if (
-								laser.x < enemy.x + enemy.w &&
-								laser.x + laser.w > enemy.x &&
-								laser.y < enemy.y + enemy.h &&
-								laser.y + laser.h > enemy.y
-							) {
-								for (let p = 0; p < 8; p++) {
-									particles.push({
-										x: enemy.x + enemy.w / 2,
-										y: enemy.y + enemy.h / 2,
-										vx: (Math.random() - 0.5) * 4,
-										vy: (Math.random() - 0.5) * 4,
-										life: 15,
-										color: enemy.color,
-									})
-								}
-								enemies.splice(eIdx, 1)
-								lasers.splice(lIdx, 1)
-								currentScore += 100
-								setScore(currentScore)
-								saveHighScore(currentScore)
-								retroAudio.playExplosionSound()
-								break
-							}
-						}
-					}
-
-					for (let pIdx = particles.length - 1; pIdx >= 0; pIdx--) {
-						const part = particles[pIdx]
-						part.x += part.vx
-						part.y += part.vy
-						part.life--
-						if (part.life <= 0) particles.splice(pIdx, 1)
-					}
-				}
-
-				ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-				ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
-				for (let i = 0; i < 20; i++) {
-					const sx = (Math.sin(i * 99 + Date.now() * 0.001) * 0.5 + 0.5) * canvas.width
-					const sy = (Math.cos(i * 33 + Date.now() * 0.0005) * 0.5 + 0.5) * canvas.height
-					ctx.fillRect(sx, sy, 2, 2)
-				}
-
-				ctx.fillStyle = '#00f0ff'
-				ctx.shadowBlur = 10
-				ctx.shadowColor = '#00f0ff'
+			// Sun horizon scanlines
+			ctx.strokeStyle = '#070114'
+			ctx.lineWidth = 2
+			for (let sy = sunY - 45; sy < sunY; sy += 7) {
 				ctx.beginPath()
-				ctx.moveTo(player.x + player.w / 2, player.y)
-				ctx.lineTo(player.x + player.w, player.y + player.h)
-				ctx.lineTo(player.x, player.y + player.h)
-				ctx.closePath()
+				ctx.moveTo(175, sy)
+				ctx.lineTo(305, sy)
+				ctx.stroke()
+			}
+
+			// 3. Floating Stars
+			stars.forEach((st) => {
+				st.y += st.speed
+				if (st.y > 185) st.y = 0
+				ctx.fillStyle = `rgba(255, 255, 255, ${st.alpha * (0.8 + 0.2 * Math.sin(time * 3 + st.x))})`
+				ctx.beginPath()
+				ctx.arc(st.x, st.y, st.size, 0, Math.PI * 2)
 				ctx.fill()
+			})
 
-				ctx.fillStyle = '#ffe600'
-				ctx.shadowColor = '#ffe600'
-				lasers.forEach((l) => ctx.fillRect(l.x, l.y, l.w, l.h))
+			// 4. Horizon Synthwave Perspective Grid
+			const horizonY = 185
+			ctx.save()
+			ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)'
+			ctx.lineWidth = 1
 
-				enemies.forEach((e) => {
-					ctx.fillStyle = e.color
-					ctx.shadowColor = e.color
-					ctx.fillRect(e.x, e.y, e.w, e.h)
-				})
-
-				particles.forEach((p) => {
-					ctx.fillStyle = p.color
-					ctx.shadowColor = p.color
-					ctx.fillRect(p.x, p.y, 3, 3)
-				})
-
-				ctx.shadowBlur = 0
-			} else {
-				if (!isGameOver) {
-					if ((keys['ArrowUp'] || keys['KeyW']) && dir.y === 0) nextDir = { x: 0, y: -1 }
-					if ((keys['ArrowDown'] || keys['KeyS']) && dir.y === 0) nextDir = { x: 0, y: 1 }
-					if ((keys['ArrowLeft'] || keys['KeyA']) && dir.x === 0) nextDir = { x: -1, y: 0 }
-					if ((keys['ArrowRight'] || keys['KeyD']) && dir.x === 0) nextDir = { x: 1, y: 0 }
-
-					snakeTick++
-					if (snakeTick >= 6) {
-						snakeTick = 0
-						dir = nextDir
-						const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y }
-
-						const cols = Math.floor(canvas.width / gridSize)
-						const rows = Math.floor(canvas.height / gridSize)
-
-						if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows) {
-							triggerGameOver()
-						} else {
-							let selfCollision = false
-							for (let i = 0; i < snake.length; i++) {
-								if (snake[i].x === head.x && snake[i].y === head.y) {
-									selfCollision = true
-									break
-								}
-							}
-							if (selfCollision) {
-								triggerGameOver()
-							} else {
-								snake.unshift(head)
-								if (head.x === food.x && head.y === food.y) {
-									currentScore += 50
-									setScore(currentScore)
-									saveHighScore(currentScore)
-									spawnFood()
-									retroAudio.playUiBeep(660, 0.1, 'square')
-								} else {
-									snake.pop()
-								}
-							}
-						}
-					}
-				}
-
-				ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-				ctx.strokeStyle = 'rgba(0, 240, 255, 0.08)'
-				for (let x = 0; x < canvas.width; x += gridSize) {
+			// Horizontal grid lines moving toward camera
+			for (let gy = 0; gy < 95; gy += 12) {
+				const y = horizonY + Math.pow((gy + gridOffset) / 100, 1.8) * 95
+				if (y <= canvas.height) {
 					ctx.beginPath()
-					ctx.moveTo(x, 0)
-					ctx.lineTo(x, canvas.height)
+					ctx.moveTo(0, y)
+					ctx.lineTo(canvas.width, y)
 					ctx.stroke()
 				}
+			}
 
-				snake.forEach((seg, idx) => {
-					ctx.fillStyle = idx === 0 ? '#ffe600' : '#00f0ff'
-					ctx.shadowBlur = 8
-					ctx.shadowColor = '#00f0ff'
-					ctx.fillRect(seg.x * gridSize + 1, seg.y * gridSize + 1, gridSize - 2, gridSize - 2)
-				})
+			// Perspective radiating vertical lines from vanishing point (240, 185)
+			for (let x = -200; x <= canvas.width + 200; x += 36) {
+				ctx.beginPath()
+				ctx.moveTo(240, horizonY)
+				ctx.lineTo(x, canvas.height)
+				ctx.stroke()
+			}
+			ctx.restore()
 
-				ctx.fillStyle = '#ff007f'
-				ctx.shadowColor = '#ff007f'
-				ctx.fillRect(food.x * gridSize + 1, food.y * gridSize + 1, gridSize - 2, gridSize - 2)
+			// 5. 3D Tumbling Ludo Dice in Center
+			const centerX = 240
+			const centerY = 95 + Math.sin(time * 2.2) * 8
+			const cameraDist = 200
 
+			// 3D rotation matrix calculation
+			const cosX = Math.cos(rotX), sinX = Math.sin(rotX)
+			const cosY = Math.cos(rotY), sinY = Math.sin(rotY)
+			const cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ)
+
+			const transformedVertices = rawVertices.map(([x, y, z]) => {
+				// Rotate Y
+				let x1 = x * cosY + z * sinY
+				let y1 = y
+				let z1 = -x * sinY + z * cosY
+
+				// Rotate X
+				let x2 = x1
+				let y2 = y1 * cosX - z1 * sinX
+				let z2 = y1 * sinX + z1 * cosX
+
+				// Rotate Z
+				let x3 = x2 * cosZ - y2 * sinZ
+				let y3 = x2 * sinZ + y2 * cosZ
+				let z3 = z2
+
+				// Perspective projection
+				const scale = cameraDist / (cameraDist + z3)
+				return {
+					px: centerX + x3 * scale,
+					py: centerY + y3 * scale,
+					z: z3,
+					orig: [x, y, z],
+					rot: [x3, y3, z3],
+				}
+			})
+
+			// Render glowing particle sparks behind dice
+			for (let i = 0; i < 6; i++) {
+				const sparkAngle = time * 3 + (i * Math.PI) / 3
+				const sparkR = 55 + Math.sin(time * 4 + i) * 12
+				const sx = centerX + Math.cos(sparkAngle) * sparkR
+				const sy = centerY + Math.sin(sparkAngle * 1.3) * (sparkR * 0.5)
+				ctx.fillStyle = i % 2 === 0 ? 'rgba(0, 240, 255, 0.7)' : 'rgba(255, 0, 127, 0.7)'
+				ctx.shadowColor = i % 2 === 0 ? '#00f0ff' : '#ff007f'
+				ctx.shadowBlur = 8
+				ctx.beginPath()
+				ctx.arc(sx, sy, 2, 0, Math.PI * 2)
+				ctx.fill()
 				ctx.shadowBlur = 0
 			}
 
-			if (isGameOver) {
-				ctx.fillStyle = 'rgba(0, 0, 0, 0.75)'
-				ctx.fillRect(0, 0, canvas.width, canvas.height)
-				ctx.fillStyle = '#ff007f'
-				ctx.font = '20px "Press Start 2P"'
+			// Sort faces by average Z depth (Painter's algorithm)
+			const faceList = faces.map((face) => {
+				const pts = face.v.map((idx) => transformedVertices[idx])
+				const avgZ = (pts[0].z + pts[1].z + pts[2].z + pts[3].z) / 4
+				// Calculate face normal vector in 2D (cross product) to do backface culling
+				const v0 = pts[0], v1 = pts[1], v2 = pts[2]
+				const normalZ = (v1.px - v0.px) * (v2.py - v0.py) - (v1.py - v0.py) * (v2.px - v0.px)
+				return { ...face, pts, avgZ, normalZ }
+			})
+
+			faceList.sort((a, b) => a.avgZ - b.avgZ)
+
+			faceList.forEach((face) => {
+				if (face.normalZ <= 0) return // Backface culling
+
+				// Draw face background
+				ctx.save()
+				ctx.beginPath()
+				ctx.moveTo(face.pts[0].px, face.pts[0].py)
+				for (let i = 1; i < 4; i++) {
+					ctx.lineTo(face.pts[i].px, face.pts[i].py)
+				}
+				ctx.closePath()
+
+				ctx.fillStyle = 'rgba(20, 8, 48, 0.85)'
+				ctx.fill()
+
+				// Draw face neon edges
+				ctx.strokeStyle = face.color
+				ctx.lineWidth = 2.5
+				ctx.shadowColor = face.color
+				ctx.shadowBlur = 10
+				ctx.stroke()
+				ctx.shadowBlur = 0
+
+				// Draw Pips on face
+				const pips = pipPositions[face.pips] || []
+				const p0 = face.pts[0], p1 = face.pts[1], p2 = face.pts[2], p3 = face.pts[3]
+
+				pips.forEach(([u, v]) => {
+					// Interpolate position across the 3D quad using bilinear interpolation
+					const su = u + 0.5
+					const sv = v + 0.5
+					const topX = p0.px + (p1.px - p0.px) * su
+					const topY = p0.py + (p1.py - p0.py) * su
+					const botX = p3.px + (p2.px - p3.px) * su
+					const botY = p3.py + (p2.py - p3.py) * su
+					const pipX = topX + (botX - topX) * sv
+					const pipY = topY + (botY - topY) * sv
+
+					ctx.fillStyle = '#ffffff'
+					ctx.shadowColor = face.color
+					ctx.shadowBlur = 8
+					ctx.beginPath()
+					ctx.arc(pipX, pipY, 3.2, 0, Math.PI * 2)
+					ctx.fill()
+					ctx.shadowBlur = 0
+				})
+				ctx.restore()
+			})
+
+			// 6. 4-Player Army Hologram Nodes (Red, Green, Yellow, Blue)
+			const pawns = [
+				{ label: 'RED', color: '#ff0055', x: 50, y: 250 },
+				{ label: 'GREEN', color: '#00ff88', x: 130, y: 260 },
+				{ label: 'YELLOW', color: '#ffe600', x: 350, y: 260 },
+				{ label: 'BLUE', color: '#00f0ff', x: 430, y: 250 },
+			]
+
+			pawns.forEach((p, idx) => {
+				const pulse = Math.sin(time * 3 + idx * 1.5) * 2
+				ctx.save()
+				ctx.fillStyle = p.color
+				ctx.shadowColor = p.color
+				ctx.shadowBlur = 10
+				ctx.beginPath()
+				ctx.arc(p.x, p.y + pulse, 6, 0, Math.PI * 2)
+				ctx.fill()
+
+				// Base ring
+				ctx.strokeStyle = p.color
+				ctx.lineWidth = 1.5
+				ctx.beginPath()
+				ctx.ellipse(p.x, p.y + 10, 12, 4, 0, 0, Math.PI * 2)
+				ctx.stroke()
+
+				ctx.font = '7px "Press Start 2P", monospace'
 				ctx.textAlign = 'center'
-				ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 10)
-				ctx.fillStyle = '#00f0ff'
-				ctx.font = '10px "Press Start 2P"'
-				ctx.fillText('CLICK OR PRESS R TO RESTART', canvas.width / 2, canvas.height / 2 + 25)
-			}
+				ctx.fillText(p.label, p.x, p.y - 10 + pulse)
+				ctx.restore()
+			})
+
+			// 7. Marquee Title on Top of Screen
+			ctx.save()
+			ctx.font = '10px "Press Start 2P", monospace'
+			ctx.textAlign = 'center'
+			ctx.fillStyle = '#00f0ff'
+			ctx.shadowColor = '#00f0ff'
+			ctx.shadowBlur = 10
+			ctx.fillText('⚡ TRANSCENDENCE // CYBER LUDO ⚡', 240, 24)
+			ctx.shadowBlur = 0
+			ctx.restore()
 
 			animId = requestAnimationFrame(loop)
 		}
@@ -544,11 +544,8 @@ export function Home() {
 
 		return () => {
 			cancelAnimationFrame(animId)
-			window.removeEventListener('keydown', onKeyDown)
-			window.removeEventListener('keyup', onKeyUp)
-			canvas.removeEventListener('click', onCanvasClick)
 		}
-	}, [activeGame, pageView])
+	}, [pageView])
 
 	// ------------------------------------------------------------------------
 	// 8. DEDICATED FULL SNAKE PAGE & THERMAL RECEIPT PRINTER
@@ -1034,112 +1031,320 @@ export function Home() {
 
 							{/* Main Interactive Dashboard Grid */}
 							<main className="dashboard-grid">
-								{/* Widget 1: Playable Retro Arcade Machine */}
+								{/* Widget 1: 3D Attract Mode Arcade Cabinet & Press Start */}
 								<section className="retro-window col-8" id="arcadeWindow">
 									<div className="window-header">
-										<span>🎮 RETRO ARCADE CABINET</span>
+										<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+											<span>🕹️ CYBER LUDO '84 // ARCADE CABINET</span>
+										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
 											<span className="window-btn max" />
 										</div>
 									</div>
 									<div className="window-body arcade-container">
-										{/* Game Selection Tabs */}
-										<div className="arcade-tabs">
-											<button
-												className={`tab-btn ${activeGame === 'space' ? 'active' : ''}`}
-												id="tabSpace"
-												onClick={() => {
-													setActiveGame('space')
-													retroAudio.playUiBeep(520, 0.05)
-												}}
-											>
-												SPACE DEFENDER
-											</button>
-											<button
-												className={`tab-btn ${activeGame === 'snake' ? 'active' : ''}`}
-												id="tabSnake"
-												onClick={() => {
-													setActiveGame('snake')
-													retroAudio.playUiBeep(520, 0.05)
-												}}
-											>
-												RETRO SNAKE
-											</button>
-											<button
-												className="tab-btn"
-												style={{
-													background: 'var(--accent-pink)',
-													color: '#fff',
-													display: 'inline-flex',
-													alignItems: 'center',
-													gap: 4,
-													cursor: 'pointer',
-												}}
-												onClick={() => {
-													retroAudio.playUiBeep(700, 0.05)
-													setPageView('snake-page')
-												}}
-											>
-												🐍 FULL SNAKE PAGE + RECEIPT PRINTER
-											</button>
-										</div>
-
-										{/* Arcade Canvas Frame */}
-										<div className="arcade-screen-frame">
+										{/* Arcade Canvas Frame & Interactive Press Start Overlay */}
+										<div
+											className="arcade-screen-frame"
+											style={{
+												position: 'relative',
+												cursor: 'pointer',
+												overflow: 'hidden',
+												width: '100%',
+												maxWidth: 480,
+												border: isWarpingToLobby ? '4px solid #ffffff' : '4px solid #333333',
+												boxShadow: isWarpingToLobby
+													? '0 0 35px #ffffff, 0 0 50px var(--accent-cyan)'
+													: 'inset 0 0 20px #000000, 0 0 15px var(--accent-cyan)',
+												transition: 'all 0.15s ease',
+											}}
+											onClick={launchToLobby}
+											title="Click or press Spacebar to enter Ludo Lobby"
+										>
 											<canvas id="arcadeCanvas" ref={canvasRef} width={480} height={280} />
-										</div>
 
-										{/* Score Board */}
-										<div className="arcade-score-bar">
-											<span>
-												SCORE: <span id="currentScore">{score}</span>
-											</span>
-											<span>
-												HIGH SCORE: <span id="highScore">{highScore}</span>
-											</span>
+											{/* Interactive Pulsing Press Start Banner Overlay */}
+											<div
+												style={{
+													position: 'absolute',
+													bottom: 22,
+													left: '50%',
+													transform: 'translateX(-50%)',
+													width: '88%',
+													background: 'rgba(10, 2, 28, 0.85)',
+													border: '2px solid var(--accent-pink)',
+													boxShadow: '0 0 20px rgba(255, 0, 127, 0.6), inset 0 0 15px rgba(0, 240, 255, 0.3)',
+													borderRadius: 6,
+													padding: '10px 14px',
+													textAlign: 'center',
+													display: 'flex',
+													flexDirection: 'column',
+													alignItems: 'center',
+													gap: 6,
+													pointerEvents: 'none',
+													animation: 'pulse 1.8s infinite',
+												}}
+											>
+												<span
+													style={{
+														fontFamily: 'var(--font-heading)',
+														fontSize: '0.82rem',
+														color: '#ffe600',
+														textShadow: '0 0 10px #ffe600, 0 0 20px #ff007f',
+														letterSpacing: '1px',
+													}}
+												>
+													▶ INSERT COIN // PRESS START ◀
+												</span>
+												<span
+													style={{
+														fontFamily: 'var(--font-mono)',
+														fontSize: '0.75rem',
+														color: 'var(--accent-cyan)',
+														letterSpacing: '0.5px',
+													}}
+												>
+													[ CLICK SCREEN OR PRESS SPACEBAR ]
+												</span>
+											</div>
+
+											{/* Hyperdrive Warp Flash on Launch */}
+											{isWarpingToLobby && (
+												<div
+													style={{
+														position: 'absolute',
+														inset: 0,
+														background: 'rgba(255, 255, 255, 0.85)',
+														display: 'flex',
+														alignItems: 'center',
+														justifyContent: 'center',
+														fontFamily: 'var(--font-heading)',
+														fontSize: '1.2rem',
+														color: '#0d0221',
+														animation: 'pulse 0.2s infinite',
+													}}
+												>
+													⚡ WARPING TO ARENA...
+												</div>
+											)}
 										</div>
 									</div>
 								</section>
 
-								{/* Widget 2: Web Audio Chiptune Boombox */}
-								<section className="retro-window col-4" id="audioWindow">
+								{/* Widget 2: Comrades & Friend List */}
+								<section className="retro-window col-4" id="friendsWindow">
 									<div className="window-header">
-										<span>📻 CHIPTUNE SYNTH BOOMBOX</span>
+										<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+											<span>👥 CYBER NET // FRIENDS</span>
+											{pendingRequestsCount > 0 && (
+												<span
+													style={{
+														background: 'var(--accent-pink)',
+														color: '#fff',
+														fontSize: '0.6rem',
+														padding: '2px 6px',
+														borderRadius: 3,
+														fontWeight: 'bold',
+														animation: 'pulse 1.5s infinite',
+													}}
+												>
+													{pendingRequestsCount} NEW
+												</span>
+											)}
+										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
 											<span className="window-btn max" />
 										</div>
 									</div>
-									<div className="window-body synth-panel">
-										<div className="track-info">
-											<span id="currentTrackLabel">{currentTrack}</span>
-										</div>
-
-										{/* Animated Spectrum Visualizer */}
-										<div className="spectrum-display" aria-label="Audio Spectrum Visualizer">
-											{spectrumHeights.map((h, i) => (
-												<div key={i} className="spectrum-bar" style={{ height: `${h}%` }} />
-											))}
-										</div>
-
-										{/* Playback Buttons */}
-										<div className="playback-controls">
+									<div
+										className="window-body"
+										style={{
+											display: 'flex',
+											flexDirection: 'column',
+											gap: 10,
+											minHeight: 280,
+											boxSizing: 'border-box',
+										}}
+									>
+										{/* Top Sub-Bar: Online status & Manage button */}
+										<div
+											style={{
+												display: 'flex',
+												justifyContent: 'space-between',
+												alignItems: 'center',
+												padding: '6px 10px',
+												background: 'rgba(0, 0, 0, 0.4)',
+												border: '1px solid rgba(0, 240, 255, 0.25)',
+												borderRadius: 4,
+											}}
+										>
+											<span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+												🟢 {friends ? friends.filter((f) => f.status === 'online' || f.status === 'playing').length : 0} ONLINE // {friends ? friends.length : 0} TOTAL
+											</span>
 											<button
 												className="retro-btn"
-												id="playAudioBtn"
-												style={{
-													background: isPlayingAudio ? 'var(--accent-pink)' : 'var(--btn-bg)',
+												style={{ padding: '3px 8px', fontSize: '0.65rem' }}
+												onClick={() => {
+													retroAudio.playUiBeep(600, 0.05)
+													navigate('/friends')
 												}}
-												onClick={handleToggleAudio}
 											>
-												{isPlayingAudio ? 'PAUSE' : 'PLAY'}
+												MANAGE ↗
 											</button>
-											<button className="retro-btn" id="nextAudioBtn" onClick={handleNextTrack}>
-												NEXT TRACK
-											</button>
-											<button className="retro-btn" id="muteAudioBtn" onClick={handleToggleMute}>
-												{isMuted ? 'UNMUTE' : 'MUTE'}
+										</div>
+
+										{/* Friends List Container */}
+										<div
+											style={{
+												flex: 1,
+												maxHeight: 215,
+												minHeight: 180,
+												overflowY: 'auto',
+												display: 'flex',
+												flexDirection: 'column',
+												gap: 8,
+												paddingRight: 4,
+											}}
+										>
+											{isFriendsLoading && friends === null ? (
+												<div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--accent-yellow)', fontSize: '0.8rem' }}>
+													SCANNING CYBER COMMS...
+												</div>
+											) : !friends || friends.length === 0 ? (
+												<div
+													style={{
+														textAlign: 'center',
+														padding: '24px 12px',
+														display: 'flex',
+														flexDirection: 'column',
+														alignItems: 'center',
+														gap: 10,
+														color: 'var(--text-muted)',
+													}}
+												>
+													<div style={{ fontSize: '1.8rem', opacity: 0.8 }}>📡</div>
+													<div style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
+														NO COMRADES LINKED YET
+													</div>
+													<button
+														className="retro-btn"
+														style={{ padding: '6px 12px', fontSize: '0.7rem', color: 'var(--accent-cyan)' }}
+														onClick={() => {
+															retroAudio.playUiBeep(600, 0.05)
+															navigate('/friends')
+														}}
+													>
+														➕ ADD FRIENDS
+													</button>
+												</div>
+											) : (
+												friends.map((friend) => {
+													const isOnline = friend.status === 'online'
+													const isPlaying = friend.status === 'playing'
+													const statusColor = isPlaying
+														? 'var(--accent-yellow)'
+														: isOnline
+														? 'var(--accent-cyan)'
+														: 'var(--text-muted)'
+													const statusLabel = isPlaying ? 'IN GAME' : isOnline ? 'ONLINE' : 'OFFLINE'
+
+													return (
+														<div
+															key={friend.id}
+															style={{
+																display: 'flex',
+																alignItems: 'center',
+																justifyContent: 'space-between',
+																padding: '8px 10px',
+																background: isOnline || isPlaying ? 'rgba(25, 10, 56, 0.7)' : 'rgba(10, 5, 25, 0.5)',
+																border: isOnline ? '1px solid rgba(0, 240, 255, 0.4)' : isPlaying ? '1px solid rgba(255, 230, 0, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+																borderRadius: 4,
+																gap: 8,
+															}}
+														>
+															<div
+																style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', overflow: 'hidden', flex: 1 }}
+																onClick={() => {
+																	retroAudio.playUiBeep(520, 0.05)
+																	navigate(`/profile/${encodeURIComponent(friend.username)}`)
+																}}
+																title={`View ${friend.username}'s profile`}
+															>
+																<div style={{ position: 'relative', flexShrink: 0 }}>
+																	<UserAvatar
+																		username={friend.username}
+																		size={32}
+																		avatarStyle={friend.avatarStyle}
+																		style={{ border: `1px solid ${statusColor}` }}
+																	/>
+																	<span
+																		style={{
+																			position: 'absolute',
+																			bottom: -1,
+																			right: -1,
+																			width: 8,
+																			height: 8,
+																			borderRadius: '50%',
+																			background: statusColor,
+																			border: '1px solid #000',
+																		}}
+																	/>
+																</div>
+																<div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+																	<span
+																		style={{
+																			fontFamily: 'var(--font-mono)',
+																			fontWeight: 'bold',
+																			fontSize: '0.85rem',
+																			color: '#ffffff',
+																			whiteSpace: 'nowrap',
+																			overflow: 'hidden',
+																			textOverflow: 'ellipsis',
+																		}}
+																	>
+																		{friend.username}
+																	</span>
+																	<span style={{ fontSize: '0.65rem', color: statusColor }}>
+																		● {statusLabel} {friend.rating ? `// ${friend.rating} LP` : ''}
+																	</span>
+																</div>
+															</div>
+
+															<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+																{isOnline && (
+																	<button
+																		className="retro-btn"
+																		style={{
+																			padding: '4px 8px',
+																			fontSize: '0.65rem',
+																			background: 'var(--accent-pink)',
+																			color: '#fff',
+																		}}
+																		disabled={invitingFriendId === friend.id}
+																		onClick={() => handleInviteFriend(friend.id)}
+																	>
+																		{invitingFriendId === friend.id ? '...' : '⚔️ INVITE'}
+																	</button>
+																)}
+															</div>
+														</div>
+													)
+												})
+											)}
+										</div>
+
+										{/* Quick Navigation Footer */}
+										<div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 4 }}>
+											<button
+												className="retro-btn"
+												style={{ width: '100%', padding: '6px 0', fontSize: '0.7rem', textAlign: 'center' }}
+												onClick={() => {
+													retroAudio.playUiBeep(600, 0.05)
+													navigate('/friends')
+												}}
+											>
+												👥 OPEN FULL FRIEND TERMINAL
 											</button>
 										</div>
 									</div>
@@ -1149,7 +1354,7 @@ export function Home() {
 								<section className="retro-window col-8" id="guestbookWindow">
 									<div className="window-header">
 										<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-											<span>🏆 CYBER LADDER & GUESTBOOK</span>
+											<span>CYBER LADDER & GUESTBOOK</span>
 										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
@@ -1166,7 +1371,7 @@ export function Home() {
 													retroAudio.playUiBeep(520, 0.05)
 												}}
 											>
-												🏆 TOP RANKED PILOTS
+												TOP RANKED PILOTS
 											</button>
 											<button
 												className={`tab-btn ${widget3Tab === 'guestbook' ? 'active' : ''}`}
@@ -1209,7 +1414,7 @@ export function Home() {
 												) : (
 													<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 														{ladder.map((entry, index) => {
-															const rankBadge = index === 0 ? '👑 #1' : index === 1 ? '🥈 #2' : index === 2 ? '🥉 #3' : `#${index + 1}`
+															const rankBadge = `#${index + 1}`
 															const isCurrent = entry.username.toLowerCase() === username.toLowerCase()
 															return (
 																<div
@@ -1264,7 +1469,7 @@ export function Home() {
 																	</div>
 																	<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 																		<span style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontSize: '0.9rem' }}>
-																			♛ {entry.rating} PTS
+																			{entry.rating} PTS
 																		</span>
 																	</div>
 																</div>

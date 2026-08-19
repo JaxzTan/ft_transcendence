@@ -184,7 +184,7 @@ export function Leaderboard() {
                   />
                   <span style={{ fontWeight: 700, fontSize: '14.5px' }}>{isMe ? t('common.you') : e.username}</span>
                 </div>
-                <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>♛ {e.rating}</div>
+                <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>{e.rating}</div>
                 <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>{e.wins}</div>
                 <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>{e.winRate}%</div>
               </div>
@@ -215,7 +215,7 @@ export function Leaderboard() {
               />
               <span style={{ fontWeight: 800, fontSize: '14.5px' }}>{t('common.you')}</span>
             </div>
-            <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>♛ {myRank.rating.toLocaleString()}</div>
+            <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>{myRank.rating.toLocaleString()}</div>
             <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>
             <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>
           </div>
