@@ -811,10 +811,32 @@ export function Home() {
 									← HUB
 								</button>
 							)}
-							<div className="brand-logo" />
-							<span className="brand-title">
-								{pageView === 'hub' ? "RETROLUDO '42" : "RETRO SNAKE '42"}
-							</span>
+							<div
+								className="brand-42-logo"
+								style={{
+									display: 'inline-flex',
+									alignItems: 'center',
+									cursor: 'pointer',
+								}}
+								onClick={() => {
+									retroAudio.playUiBeep(440, 0.05)
+									setPageView('hub')
+								}}
+								title="42 Hub"
+							>
+								<svg
+									width="38"
+									height="38"
+									viewBox="0 0 24 24"
+									style={{
+										fill: 'var(--accent-cyan)',
+										filter: 'drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 14px var(--accent-pink))',
+										transition: 'transform 0.2s ease',
+									}}
+								>
+									<path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
+								</svg>
+							</div>
 						</div>
 
 						<div className="nav-controls">
@@ -959,7 +981,7 @@ export function Home() {
 							<header className="hero-section">
 								<h1 className="hero-title">RETROLUDO '42</h1>
 								<p className="hero-subtitle">
-									WELCOME BACK, PILOT {username.toUpperCase()} // HIGH-OCTANE CYBERSPACE
+									WELCOME BACK, PILOT {username.toUpperCase()} // PACE 24
 								</p>
 
 								<div className="badge-bar">
