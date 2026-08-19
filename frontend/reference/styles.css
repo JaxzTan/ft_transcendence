@@ -1,0 +1,1673 @@
+/* ==========================================================================
+   RETRO WAVE ARCADE & OS - MAIN STYLESHEET
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+/* --------------------------------------------------------------------------
+   THEME DESIGN SYSTEM TOKENS
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Default Theme: Synthwave '84 */
+  --bg-primary: #0d0221;
+  --bg-secondary: #190a38;
+  --bg-card: rgba(25, 10, 56, 0.85);
+  --accent-cyan: #00f0ff;
+  --accent-pink: #ff007f;
+  --accent-yellow: #ffe600;
+  --accent-purple: #9d00ff;
+  --text-main: #ffffff;
+  --text-muted: #b8a6e4;
+  --border-color: #ff007f;
+  --box-shadow: 0 0 15px rgba(255, 0, 127, 0.5), inset 0 0 15px rgba(0, 240, 255, 0.2);
+  --font-heading: 'Press Start 2P', cursive;
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+  --grid-line-color: rgba(255, 0, 127, 0.35);
+  --grid-bg-glow: rgba(157, 0, 255, 0.2);
+  --btn-bg: linear-gradient(135deg, #ff007f, #9d00ff);
+  --btn-hover-shadow: 0 0 20px #00f0ff, 0 0 35px #ff007f;
+  --crt-scanline-opacity: 0.15;
+  --crt-flicker-opacity: 0.03;
+  --window-header-bg: linear-gradient(90deg, #ff007f, #00f0ff);
+  --window-header-text: #ffffff;
+  --card-border-style: 2px solid var(--accent-pink);
+}
+
+/* Theme: Windows 95 Desktop */
+[data-theme="win95"] {
+  --bg-primary: #008080;
+  --bg-secondary: #c0c0c0;
+  --bg-card: #c0c0c0;
+  --accent-cyan: #000080;
+  --accent-pink: #800080;
+  --accent-yellow: #ffff00;
+  --accent-purple: #000080;
+  --text-main: #000000;
+  --text-muted: #404040;
+  --border-color: #ffffff;
+  --box-shadow: 2px 2px 0px #000000, inset -1px -1px 0px #000000, inset 1px 1px 0px #dfdfdf;
+  --font-heading: 'Press Start 2P', cursive;
+  --font-display: 'VT323', monospace;
+  --font-mono: 'VT323', monospace;
+  --grid-line-color: transparent;
+  --grid-bg-glow: transparent;
+  --btn-bg: #c0c0c0;
+  --btn-hover-shadow: inset 1px 1px 0px #ffffff, inset -1px -1px 0px #000000;
+  --crt-scanline-opacity: 0.05;
+  --crt-flicker-opacity: 0.01;
+  --window-header-bg: linear-gradient(90deg, #000080, #1084d0);
+  --window-header-text: #ffffff;
+  --card-border-style: 2px solid #ffffff;
+}
+
+/* Theme: CRT Terminal (Green Phosphor) */
+[data-theme="terminal"] {
+  --bg-primary: #051005;
+  --bg-secondary: #0a1f0a;
+  --bg-card: rgba(10, 31, 10, 0.9);
+  --accent-cyan: #33ff33;
+  --accent-pink: #00cc00;
+  --accent-yellow: #aaffaa;
+  --accent-purple: #116611;
+  --text-main: #33ff33;
+  --text-muted: #22aa22;
+  --border-color: #33ff33;
+  --box-shadow: 0 0 10px rgba(51, 255, 51, 0.4), inset 0 0 10px rgba(51, 255, 51, 0.15);
+  --font-heading: 'VT323', monospace;
+  --font-display: 'VT323', monospace;
+  --font-mono: 'VT323', monospace;
+  --grid-line-color: rgba(51, 255, 51, 0.1);
+  --grid-bg-glow: rgba(51, 255, 51, 0.05);
+  --btn-bg: #0a1f0a;
+  --btn-hover-shadow: 0 0 15px #33ff33;
+  --crt-scanline-opacity: 0.25;
+  --crt-flicker-opacity: 0.06;
+  --window-header-bg: #116611;
+  --window-header-text: #33ff33;
+  --card-border-style: 1px solid #33ff33;
+}
+
+/* --------------------------------------------------------------------------
+   GLOBAL & RESET STYLES
+   -------------------------------------------------------------------------- */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  overflow-x: hidden;
+  position: relative;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-pink);
+  border: 1px solid var(--accent-cyan);
+}
+
+/* --------------------------------------------------------------------------
+   SYNTHWAVE 3D ANIMATED GRID BACKGROUND
+   -------------------------------------------------------------------------- */
+
+.grid-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.synthwave-sun {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, #ffe600 0%, #ff007f 70%, #9d00ff 100%);
+  box-shadow: 0 0 60px #ff007f, 0 0 100px #ffe600;
+  z-index: 1;
+  opacity: 0.85;
+  transition: opacity 0.5s ease;
+}
+
+[data-theme="win95"] .synthwave-sun,
+[data-theme="terminal"] .synthwave-sun {
+  display: none;
+}
+
+.perspective-grid {
+  position: absolute;
+  bottom: -30%;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background-image: 
+    linear-gradient(0deg, transparent 24%, var(--grid-line-color) 25%, var(--grid-line-color) 26%, transparent 27%, transparent 74%, var(--grid-line-color) 75%, var(--grid-line-color) 76%, transparent 77%),
+    linear-gradient(90deg, transparent 24%, var(--grid-line-color) 25%, var(--grid-line-color) 26%, transparent 27%, transparent 74%, var(--grid-line-color) 75%, var(--grid-line-color) 76%, transparent 77%);
+  background-size: 50px 50px;
+  transform: perspective(300px) rotateX(75deg);
+  animation: grid-scroll 4s linear infinite;
+  z-index: 2;
+}
+
+@keyframes grid-scroll {
+  0% { transform: perspective(300px) rotateX(75deg) translateY(0); }
+  100% { transform: perspective(300px) rotateX(75deg) translateY(50px); }
+}
+
+.grid-horizon {
+  position: absolute;
+  top: 55%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 15px var(--accent-cyan);
+  z-index: 3;
+}
+
+/* --------------------------------------------------------------------------
+   CRT MONITOR OVERLAY EFFECTS
+   -------------------------------------------------------------------------- */
+
+.crt-screen {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+}
+
+.crt-scanlines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 999;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, var(--crt-scanline-opacity)) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.03),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.03)
+  );
+  background-size: 100% 3px, 6px 100%;
+  transition: opacity 0.3s ease;
+}
+
+.crt-flicker {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 998;
+  background: rgba(255, 255, 255, var(--crt-flicker-opacity));
+  animation: crt-flicker-anim 0.15s infinite;
+}
+
+@keyframes crt-flicker-anim {
+  0% { opacity: 0.8; }
+  50% { opacity: 1.2; }
+  100% { opacity: 0.9; }
+}
+
+.crt-curved {
+  position: relative;
+}
+
+.crt-curved::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.65) 100%);
+  pointer-events: none;
+  z-index: 997;
+}
+
+/* --------------------------------------------------------------------------
+   LAYOUT CONTAINER & NAVIGATION
+   -------------------------------------------------------------------------- */
+
+.app-wrapper {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px;
+  position: relative;
+  z-index: 10;
+}
+
+.navbar {
+  position: relative;
+  z-index: 9999;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 25px;
+  background: var(--bg-card);
+  border: var(--card-border-style);
+  box-shadow: var(--box-shadow);
+  backdrop-filter: blur(10px);
+  margin-bottom: 25px;
+  border-radius: 4px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  background: var(--accent-pink);
+  box-shadow: 0 0 10px var(--accent-pink);
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+  animation: pulse-glow 2s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  from { filter: drop-shadow(0 0 2px var(--accent-cyan)); }
+  to { filter: drop-shadow(0 0 12px var(--accent-pink)); }
+}
+
+.brand-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 8px var(--accent-cyan);
+  letter-spacing: 1px;
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+/* --------------------------------------------------------------------------
+   BUTTONS & FORM INPUTS
+   -------------------------------------------------------------------------- */
+
+.retro-btn {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  padding: 10px 16px;
+  color: var(--text-main);
+  background: var(--btn-bg);
+  border: 2px solid var(--accent-cyan);
+  box-shadow: var(--box-shadow);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.retro-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--btn-hover-shadow);
+}
+
+.retro-btn:active {
+  transform: translateY(1px);
+}
+
+/* Custom Theme Trigger Button Styling - CONSTANT LOCKED DIMENSIONS */
+.theme-trigger-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.65rem;
+  height: 38px;
+  width: 125px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 4px;
+  gap: 4px;
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.theme-btn-icon {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.theme-btn-text {
+  font-size: 0.62rem;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.theme-chevron {
+  font-size: 0.55rem;
+  transition: transform 0.25s ease;
+  display: inline-block;
+  line-height: 1;
+}
+
+.theme-trigger-btn.active .theme-chevron {
+  transform: rotate(180deg);
+}
+
+/* Theme 1: Synthwave '84 */
+[data-theme="synthwave"] .theme-trigger-btn,
+:root:not([data-theme]) .theme-trigger-btn {
+  background: linear-gradient(135deg, #190a38, #ff007f);
+  border: 2px solid #00f0ff;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.3);
+  text-shadow: 0 0 5px #00f0ff;
+}
+
+[data-theme="synthwave"] .theme-trigger-btn:hover,
+[data-theme="synthwave"] .theme-trigger-btn.active {
+  background: linear-gradient(135deg, #ff007f, #9d00ff);
+  border-color: #ffe600;
+  box-shadow: 0 0 18px #00f0ff, 0 0 25px #ff007f;
+}
+
+/* Theme 2: Win95 Desktop */
+[data-theme="win95"] .theme-trigger-btn {
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #000000;
+  border-bottom: 2px solid #000000;
+  color: #000000;
+  box-shadow: 1px 1px 0px #000000;
+  text-shadow: none;
+}
+
+[data-theme="win95"] .theme-trigger-btn:hover {
+  background: #d4d4d4;
+}
+
+[data-theme="win95"] .theme-trigger-btn.active {
+  background: #a0a0a0;
+  border-top: 2px solid #000000;
+  border-left: 2px solid #000000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset 1px 1px 0px #000000;
+}
+
+/* Theme 3: CRT Terminal */
+[data-theme="terminal"] .theme-trigger-btn {
+  background: #051005;
+  border: 2px solid #33ff33;
+  color: #33ff33;
+  box-shadow: 0 0 10px rgba(51, 255, 51, 0.4), inset 0 0 10px rgba(51, 255, 51, 0.15);
+  text-shadow: 0 0 8px #33ff33;
+}
+
+[data-theme="terminal"] .theme-trigger-btn:hover,
+[data-theme="terminal"] .theme-trigger-btn.active {
+  background: #0a290a;
+  border-color: #aaffaa;
+  box-shadow: 0 0 20px #33ff33, inset 0 0 15px #33ff33;
+}
+
+.retro-select {
+  font-family: var(--font-mono);
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  color: var(--text-main);
+  border: 1px solid var(--accent-cyan);
+  outline: none;
+  cursor: pointer;
+}
+
+.retro-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.retro-toggle input {
+  display: none;
+}
+
+.toggle-slider {
+  width: 36px;
+  height: 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-cyan);
+  position: relative;
+  transition: background 0.3s;
+}
+
+.toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--accent-pink);
+  transition: transform 0.3s;
+}
+
+.retro-toggle input:checked + .toggle-slider::after {
+  transform: translateX(18px);
+  background: var(--accent-cyan);
+}
+
+/* --------------------------------------------------------------------------
+   HERO BANNER
+   -------------------------------------------------------------------------- */
+
+.hero-section {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--bg-card);
+  border: var(--card-border-style);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.hero-title {
+  font-family: var(--font-heading);
+  font-size: 2.2rem;
+  line-height: 1.4;
+  color: #ffffff;
+  text-shadow: 3px 3px 0px var(--accent-pink), -2px -2px 0px var(--accent-cyan), 0 0 20px rgba(255, 0, 127, 0.8);
+  margin-bottom: 15px;
+  letter-spacing: 2px;
+}
+
+.hero-subtitle {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--accent-yellow);
+  text-shadow: 0 0 10px var(--accent-yellow);
+  margin-bottom: 25px;
+}
+
+.badge-bar {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.retro-badge {
+  background: var(--bg-secondary);
+  border: 1px dashed var(--accent-cyan);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--accent-cyan);
+}
+
+/* --------------------------------------------------------------------------
+   GRID DASHBOARD BOARDS & WIDGETS
+   -------------------------------------------------------------------------- */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.retro-window {
+  background: var(--bg-card);
+  border: var(--card-border-style);
+  box-shadow: var(--box-shadow);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.window-header {
+  background: var(--window-header-bg);
+  color: var(--window-header-text);
+  padding: 8px 14px;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.window-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.window-btn {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  background: #ff5f56;
+  cursor: pointer;
+}
+.window-btn.min { background: #ffbd2e; }
+.window-btn.max { background: #27c93f; }
+
+.window-body {
+  padding: 20px;
+  flex-grow: 1;
+}
+
+/* Column Spans */
+.col-12 { grid-column: span 12; }
+.col-8  { grid-column: span 8; }
+.col-7  { grid-column: span 7; }
+.col-6  { grid-column: span 6; }
+.col-5  { grid-column: span 5; }
+.col-4  { grid-column: span 4; }
+
+@media (max-width: 992px) {
+  .col-8, .col-7, .col-6, .col-5, .col-4 { grid-column: span 12; }
+}
+
+/* --------------------------------------------------------------------------
+   AUDIO BOOMBOX & SYNTH CONTROLLER
+   -------------------------------------------------------------------------- */
+
+.synth-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.spectrum-display {
+  width: 100%;
+  height: 80px;
+  background: #000000;
+  border: 1px solid var(--accent-cyan);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 5px;
+  gap: 3px;
+}
+
+.spectrum-bar {
+  flex-grow: 1;
+  background: linear-gradient(to top, var(--accent-cyan), var(--accent-pink));
+  height: 10%;
+  transition: height 0.08s ease;
+}
+
+.track-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--accent-yellow);
+  background: rgba(0,0,0,0.5);
+  padding: 8px 12px;
+  border: 1px solid var(--accent-purple);
+}
+
+.playback-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   RETRO MINI ARCADE CANVAS
+   -------------------------------------------------------------------------- */
+
+.arcade-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.arcade-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tab-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-pink);
+  color: var(--text-main);
+  padding: 6px 14px;
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: var(--accent-pink);
+  color: #ffffff;
+  box-shadow: 0 0 10px var(--accent-pink);
+}
+
+.arcade-screen-frame {
+  background: #000000;
+  padding: 12px;
+  border: 4px solid #333333;
+  box-shadow: inset 0 0 20px #000000, 0 0 15px var(--accent-cyan);
+  position: relative;
+}
+
+canvas#arcadeCanvas,
+canvas#snakeCanvas {
+  background: #000000;
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.arcade-score-bar {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  color: var(--accent-cyan);
+}
+
+/* --------------------------------------------------------------------------
+   STICKY NOTES & GUESTBOOK WIDGET
+   -------------------------------------------------------------------------- */
+
+.sticky-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.retro-textarea {
+  width: 100%;
+  height: 80px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-cyan);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  padding: 10px;
+  outline: none;
+  resize: vertical;
+}
+
+.sticky-wall {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.sticky-note {
+  background: #ffe600;
+  color: #000000;
+  padding: 12px;
+  font-family: 'VT323', monospace;
+  font-size: 1.1rem;
+  box-shadow: 3px 3px 8px rgba(0,0,0,0.5);
+  transform: rotate(-1.5deg);
+  position: relative;
+  word-break: break-word;
+}
+.sticky-note:nth-child(even) {
+  background: #ff77a9;
+  transform: rotate(1.5deg);
+}
+.sticky-note:nth-child(3n) {
+  background: #00f0ff;
+  transform: rotate(-0.5deg);
+}
+
+.sticky-note .delete-btn {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #000;
+}
+
+/* --------------------------------------------------------------------------
+   DIGITAL CLOCK & SYSTEM STATS
+   -------------------------------------------------------------------------- */
+
+.digital-clock {
+  font-family: 'VT323', monospace;
+  font-size: 2.8rem;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 12px var(--accent-cyan);
+  text-align: center;
+  background: #000000;
+  border: 1px solid var(--accent-purple);
+  padding: 10px;
+  letter-spacing: 4px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+.stat-bar-outer {
+  width: 55%;
+  height: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-pink);
+}
+.stat-bar-inner {
+  height: 100%;
+  background: var(--accent-pink);
+  width: 45%;
+  box-shadow: 0 0 8px var(--accent-pink);
+  transition: width 1s ease;
+}
+
+/* --------------------------------------------------------------------------
+   FOOTER
+   -------------------------------------------------------------------------- */
+
+.retro-footer {
+  text-align: center;
+  padding: 20px;
+  background: var(--bg-card);
+  border: var(--card-border-style);
+  margin-top: 20px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   CUSTOM RETRO FIELDSET & COLOR SCHEME COMPONENT
+   ========================================================================== */
+
+@font-face {
+	src: url("https://assets.codepen.io/2392/Silkscreen-Regular.woff2");
+	font-family: "Silkscreen";
+}
+
+/* Base Theme Variable Mapping */
+:root {
+	--fs-border: #ff007f;
+	--fs-text: #ffffff;
+	--fs-accent: #ff007f;
+	--fs-cyan: #00f0ff;
+	--fs-bg: rgba(25, 10, 56, 0.9);
+	--fs-glow: rgba(255, 0, 127, 0.5);
+}
+
+[data-theme="win95"] {
+	--fs-border: #808080;
+	--fs-text: #000000;
+	--fs-accent: #000080;
+	--fs-cyan: #000080;
+	--fs-bg: #c0c0c0;
+	--fs-glow: transparent;
+}
+
+[data-theme="terminal"] {
+	--fs-border: #33ff33;
+	--fs-text: #33ff33;
+	--fs-accent: #33ff33;
+	--fs-cyan: #33ff33;
+	--fs-bg: #0a1f0a;
+	--fs-glow: rgba(51, 255, 51, 0.4);
+}
+
+/* Popover Menu Container */
+.theme-popover-wrapper {
+	position: relative;
+	z-index: 10000;
+	display: inline-block;
+}
+
+.theme-popover-menu {
+	position: absolute;
+	top: calc(100% + 10px);
+	right: 0;
+	z-index: 10001;
+	display: none;
+	background: var(--fs-bg);
+	border: 2px solid var(--fs-border);
+	box-shadow: 0 14px 40px rgba(0, 0, 0, 0.9), 0 0 25px var(--fs-glow);
+	padding: 10px;
+	border-radius: 6px;
+	min-width: 240px;
+	transform-origin: top right;
+	backdrop-filter: blur(10px);
+}
+
+.theme-popover-menu.active {
+	display: block;
+	animation: popover-slide-down 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popover-slide-down {
+	0% {
+		opacity: 0;
+		transform: perspective(600px) rotateX(-20deg) translateY(-12px) scale(0.9);
+	}
+	100% {
+		opacity: 1;
+		transform: perspective(600px) rotateX(0deg) translateY(0) scale(1);
+	}
+}
+
+#color-scheme {
+	border: 2px solid var(--fs-border);
+	border-radius: 5px;
+	corner-shape: notch;
+	color: var(--fs-text);
+	background: var(--fs-bg);
+	outline: 2px solid var(--fs-cyan);	
+	outline-offset: 2px;
+	filter: drop-shadow(0 0 8px var(--fs-glow));
+	
+	font-family: "Silkscreen", monospace;	
+	font-size: 0.75rem;
+	letter-spacing: -.05ch;
+	text-rendering: geometricprecision;
+	
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 8px;
+	
+	margin: 0;
+	padding: 14px 10px 10px 10px;
+	box-sizing: border-box;
+	width: 100%;
+	
+	position: relative;
+	z-index: 3;
+}
+
+#color-scheme legend {
+	color: var(--fs-cyan);
+	text-align: center;
+	position: relative;
+	top: -2px;
+	padding: 0 8px;
+	font-size: 0.62rem;
+	letter-spacing: 1.5px;
+	font-weight: bold;
+	background: var(--fs-bg);
+}
+
+#color-scheme input {
+	--d: 10px;
+	--rotation: 225deg;
+	
+	appearance: none;
+	
+	background: currentColor;
+	color: inherit;
+	
+	border-radius: 3px;
+	corner-shape: notch;
+	rotate: var(--rotation);
+	
+	margin: 0;
+	
+	outline: 1.5px solid var(--fs-text);
+	outline-offset: 1px;
+	
+	height: var(--d);
+	width: var(--d);
+	flex-shrink: 0;
+	cursor: pointer;
+	box-sizing: border-box;
+}
+
+/* Hover rotation & morphing animation */
+#color-scheme label:hover input:not(:checked) {
+	--rotation: 90deg;
+	corner-shape: superellipse(-.25);
+	outline-color: var(--fs-cyan);
+}
+
+/* Checked state animation */
+#color-scheme input:checked {		
+	--rotation: 0deg;
+	color: inherit;
+	outline-color: var(--fs-cyan);
+	outline-offset: 1px;
+	corner-shape: superellipse(-.5);
+}
+
+#color-scheme label:hover input:checked {
+	outline-color: var(--fs-cyan);
+}
+
+/* Vertical List Item Labels */
+#color-scheme label {
+	border-radius: 4px;
+	corner-shape: superellipse(-1);
+	
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 10px;	
+	
+	user-select: none;
+	padding: 8px 12px;
+	height: 34px;
+	width: 100%;
+	cursor: pointer;
+	box-sizing: border-box;
+	border: 1px solid transparent;
+	transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+#color-scheme label span {
+	display: inline-block;
+	font-size: 0.7rem;
+	line-height: 1;
+	letter-spacing: 1px;
+}
+
+#color-scheme label:has(:checked) {		
+	background: var(--fs-cyan);		
+	color: var(--fs-bg);
+	box-shadow: 0 0 10px var(--fs-cyan);
+	border-color: var(--fs-cyan);
+}
+
+#color-scheme label:has(:checked) input {
+	color: var(--fs-bg);
+}
+
+#color-scheme label:not(:has(:checked)):hover {
+	background: rgba(255, 255, 255, 0.12);
+	border-color: color-mix(in oklab, var(--fs-cyan), transparent 60%);
+	transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: no-preference) {		
+	#color-scheme, 
+	#color-scheme label, 
+	#color-scheme input { 
+		transition-property: background, border-color, box-shadow, color, filter, rotate, transform;
+		transition-duration: .2s;
+		transition-timing-function: ease-out;
+	}
+	
+	#color-scheme label,
+	#color-scheme input {
+		&:focus-within,
+		&:focus,
+		&:hover,
+		&:focus-visible {
+			transition-property: background, border-color, rotate, transform;
+			transition-duration: .2s;
+			transition-timing-function: ease-in;
+		}
+	}
+}
+
+/* ==========================================================================
+   GAME OVER RECEIPT PRINTER WIDGET
+   ========================================================================== */
+
+.invoice-container {
+  position: relative;
+  margin: 0 auto 2em auto;
+  height: 660px;
+  width: min(95%, 520px);
+}
+
+.invoice-slot {
+  width: 100%;
+  height: 95px;
+  background-color: #2b2b2b;
+  border: 2px solid #2c2c2c;
+  border-radius: 1em;
+  box-shadow: 0 0 1px 0 #000, 0 5px 15px 0 rgba(0, 0, 0, 0.45);
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+}
+
+.slot-label {
+  text-align: center;
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  color: #ffffff;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+[data-theme="synthwave"] .slot-label,
+:root:not([data-theme]) .slot-label {
+  color: #00f0ff;
+  text-shadow: 0 0 6px #00f0ff;
+}
+
+[data-theme="win95"] .slot-label {
+  color: #000000;
+  text-shadow: none;
+  font-weight: bold;
+}
+
+[data-theme="terminal"] .slot-label {
+  color: #33ff33;
+  text-shadow: 0 0 8px #33ff33;
+}
+
+.slot-hole {
+  background-color: #000;
+  border-radius: 100vmax;
+  width: 90%;
+  height: 25px;
+  margin: 0.6em auto 0 auto;
+  border: 1px solid #1b1b1b;
+  box-shadow: 0 0 1px 0 #000, inset 0 5px 10px 0 rgba(0, 0, 0, 0.85);
+}
+
+.invoice {
+  position: absolute;
+  width: 90%;
+  top: 1.5em;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #fff;
+  color: #4b5563;
+  padding: 1em;
+  border-radius: 0.5em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+  font-family: 'Share Tech Mono', sans-serif;
+}
+
+/* Thermal Paper Feed Animation - Realistic Mechanical Motor Stepping Feed */
+.invoice.printing-active {
+  animation: print-receipt-down 2.2s steps(24, end) forwards;
+}
+
+@keyframes print-receipt-down {
+  0% {
+    top: -580px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    clip-path: inset(100% 0 0 0);
+  }
+  10% {
+    top: -480px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 1;
+    clip-path: inset(85% 0 0 0);
+  }
+  30% {
+    top: -320px;
+    left: 50%;
+    transform: translateX(-50%);
+    clip-path: inset(65% 0 0 0);
+  }
+  55% {
+    top: -160px;
+    left: 50%;
+    transform: translateX(-50%);
+    clip-path: inset(35% 0 0 0);
+  }
+  80% {
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    clip-path: inset(10% 0 0 0);
+  }
+  100% {
+    top: 1.5em;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.invoice::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 60px;
+  left: 0;
+  top: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.4) 0%,
+    rgba(0, 0, 0, 0.2) 30%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.invoice .title {
+  position: relative;
+  font-size: 1.1rem;
+  padding: 0.5em 0;
+  letter-spacing: 0.5px;
+  text-align: center;
+  margin-bottom: 1.25em;
+  font-weight: bold;
+  color: #1b1b1b;
+  font-family: 'VT323', monospace;
+}
+
+.invoice .title::before {
+  content: "";
+  position: absolute;
+  height: 1.5px;
+  width: 100%;
+  top: 0;
+  left: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #1b1b1b,
+    #1b1b1b 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+
+.invoice .title::after {
+  content: "";
+  position: absolute;
+  height: 1.5px;
+  width: 100%;
+  bottom: 0;
+  left: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    #1b1b1b,
+    #1b1b1b 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+
+.invoice .amount,
+.invoice .payment-status .heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  margin-bottom: 0.5em;
+}
+
+.invoice .amount .value {
+  font-weight: 700;
+  color: #000;
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+}
+
+.invoice .payment-status {
+  border: 1px solid #ddd;
+  padding: 0.8em;
+  border-radius: 12px;
+  margin-top: 0.8em;
+  background: #fafafa;
+}
+
+.invoice .payment-status .heading span {
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #000;
+  font-size: 0.85rem;
+}
+
+.payers-list {
+  list-style-type: none;
+  margin: 0.4em 0;
+}
+
+.payers-list li {
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+}
+
+.payers-list li p {
+  flex-grow: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  padding: 0.4em;
+}
+
+.payers-list .payer-image-container {
+  padding: 0.3em;
+  border-right: 1px solid #eee;
+}
+
+.payers-list .payer-image-container img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #eee;
+}
+
+.payers-list .pay-tag {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.2em 0.4em;
+  font-size: 0.75rem;
+  background: #eef2ff;
+  color: #1a43bf;
+  font-weight: bold;
+}
+
+.fa-circle-check {
+  color: #22c55e;
+}
+
+.btn-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin-top: 1em;
+}
+
+.status-progress {
+  position: relative;
+  margin: 1.2em 0 0.5em 0;
+  height: 6px;
+  background-image: linear-gradient(90deg, #000 75%, #eee 75%);
+}
+
+.checkpoint {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.95);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0.5px solid #eee;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.15);
+}
+
+.checkpoint .circle {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #000;
+}
+
+.checkpoint:nth-child(1) { left: 0; top: 0; transform: translate(-5%, -40%); }
+.checkpoint:nth-child(2) { left: 25%; top: 0; transform: translate(-25%, -40%); }
+.checkpoint:nth-child(3) { left: 50%; top: 0; transform: translate(-50%, -40%); }
+.checkpoint:nth-child(4) { left: 75%; top: 0; transform: translate(-75%, -40%); }
+.checkpoint:nth-child(5) { right: 0; top: 0; transform: translate(5%, -40%); }
+
+.payment-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0.6em 0.5em;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.card-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.card-icon {
+  display: inline-block;
+  width: 28px;
+  height: 20px;
+  background-color: #1a43bf;
+  border-radius: 4px;
+}
+
+.btn {
+  flex-grow: 1;
+  border-radius: 100vmax;
+  padding: 0.5em 0;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: bold;
+  text-align: center;
+}
+
+.reminder-btn {
+  color: #fff;
+  background-color: #111827;
+  border: 1px solid #1b1b1b;
+}
+
+.reminder-btn:hover {
+  background-color: #1f2937;
+}
+
+.download-btn {
+  border: 1px solid #ddd;
+  background-color: #fff;
+  color: #111827;
+}
+
+.download-btn:hover {
+  background-color: #f3f4f6;
+}
+
+/* ==========================================================================
+   PRINTER & RECEIPT THEME ACCORDANCE STYLING OVERRIDES
+   ========================================================================== */
+
+/* Theme 1: Synthwave '84 */
+[data-theme="synthwave"] .invoice-slot,
+:root:not([data-theme]) .invoice-slot {
+  background: #190a38;
+  border: 2px solid #00f0ff;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), inset 0 0 10px rgba(255, 0, 127, 0.3);
+}
+
+[data-theme="synthwave"] .slot-hole,
+:root:not([data-theme]) .slot-hole {
+  background: #0d0221;
+  border: 1px solid #ff007f;
+  box-shadow: inset 0 0 10px #000000, 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
+[data-theme="synthwave"] .invoice,
+:root:not([data-theme]) .invoice {
+  background: #12082b;
+  color: #e2d9f3;
+  border: 1.5px solid #ff007f;
+  box-shadow: 0 0 25px rgba(255, 0, 127, 0.3), 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+[data-theme="synthwave"] .invoice .title,
+:root:not([data-theme]) .invoice .title {
+  color: #00f0ff;
+  text-shadow: 0 0 6px #00f0ff;
+}
+
+[data-theme="synthwave"] .invoice .title::before,
+[data-theme="synthwave"] .invoice .title::after,
+:root:not([data-theme]) .invoice .title::before,
+:root:not([data-theme]) .invoice .title::after {
+  background-image: repeating-linear-gradient(90deg, #ff007f, #ff007f 8px, transparent 8px, transparent 16px);
+}
+
+[data-theme="synthwave"] .invoice .amount .value,
+:root:not([data-theme]) .invoice .amount .value {
+  color: #ffe600;
+  text-shadow: 0 0 5px #ffe600;
+}
+
+[data-theme="synthwave"] .payment-status,
+:root:not([data-theme]) .payment-status {
+  background: #1c0d3a;
+  border-color: #9d00ff;
+}
+
+[data-theme="synthwave"] .payment-status .heading span,
+:root:not([data-theme]) .payment-status .heading span {
+  color: #00f0ff;
+}
+
+[data-theme="synthwave"] .payers-list li,
+:root:not([data-theme]) .payers-list li {
+  border-bottom-color: rgba(255, 0, 127, 0.2);
+}
+
+[data-theme="synthwave"] .payers-list .pay-tag,
+:root:not([data-theme]) .payers-list .pay-tag {
+  background: #ff007f;
+  color: #ffffff;
+  border-color: #ff007f;
+  box-shadow: 0 0 6px #ff007f;
+}
+
+[data-theme="synthwave"] .reminder-btn,
+:root:not([data-theme]) .reminder-btn {
+  background: linear-gradient(135deg, #ff007f, #9d00ff);
+  color: #ffffff;
+  border: 1px solid #00f0ff;
+  box-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
+}
+
+[data-theme="synthwave"] .download-btn,
+:root:not([data-theme]) .download-btn {
+  background: #190a38;
+  color: #00f0ff;
+  border: 1px solid #00f0ff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+}
+
+/* Theme 2: Win95 Desktop */
+[data-theme="win95"] .invoice-slot {
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #000000;
+  border-bottom: 2px solid #000000;
+  box-shadow: 1px 1px 0px #000000;
+}
+
+[data-theme="win95"] .slot-hole {
+  background: #000000;
+  border: 1px solid #808080;
+  box-shadow: inset 1px 1px 2px #000;
+}
+
+[data-theme="win95"] .invoice {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #808080;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.3);
+  font-family: 'VT323', monospace;
+}
+
+[data-theme="win95"] .invoice .title {
+  color: #000080;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.85rem;
+}
+
+[data-theme="win95"] .invoice .title::before,
+[data-theme="win95"] .invoice .title::after {
+  background-image: repeating-linear-gradient(90deg, #000080, #000080 8px, transparent 8px, transparent 16px);
+}
+
+[data-theme="win95"] .invoice .amount .value {
+  color: #000080;
+}
+
+[data-theme="win95"] .payment-status {
+  background: #dfdfdf;
+  border: 1px solid #808080;
+}
+
+[data-theme="win95"] .payment-status .heading span {
+  color: #000080;
+}
+
+[data-theme="win95"] .payers-list .pay-tag {
+  background: #000080;
+  color: #ffffff;
+  border-color: #000080;
+}
+
+[data-theme="win95"] .reminder-btn {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #000000;
+  border-bottom: 2px solid #000000;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.65rem;
+}
+
+[data-theme="win95"] .reminder-btn:active {
+  border-top: 2px solid #000000;
+  border-left: 2px solid #000000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+}
+
+[data-theme="win95"] .download-btn {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+/* Theme 3: CRT Terminal */
+[data-theme="terminal"] .invoice-slot {
+  background: #0a1f0a;
+  border: 2px solid #33ff33;
+  box-shadow: 0 0 15px rgba(51, 255, 51, 0.5), inset 0 0 10px rgba(51, 255, 51, 0.2);
+}
+
+[data-theme="terminal"] .slot-hole {
+  background: #020a02;
+  border: 1px solid #33ff33;
+  box-shadow: inset 0 0 10px #000000, 0 0 8px rgba(51, 255, 51, 0.5);
+}
+
+[data-theme="terminal"] .invoice {
+  background: #081708;
+  color: #33ff33;
+  border: 1.5px solid #33ff33;
+  box-shadow: 0 0 25px rgba(51, 255, 51, 0.4);
+  font-family: 'VT323', monospace;
+}
+
+[data-theme="terminal"] .invoice .title {
+  color: #33ff33;
+  text-shadow: 0 0 8px #33ff33;
+  font-size: 1.3rem;
+}
+
+[data-theme="terminal"] .invoice .title::before,
+[data-theme="terminal"] .invoice .title::after {
+  background-image: repeating-linear-gradient(90deg, #33ff33, #33ff33 8px, transparent 8px, transparent 16px);
+}
+
+[data-theme="terminal"] .invoice .amount .value {
+  color: #aaffaa;
+  text-shadow: 0 0 6px #aaffaa;
+  font-size: 1.4rem;
+}
+
+[data-theme="terminal"] .payment-status {
+  background: #0d260d;
+  border-color: #33ff33;
+}
+
+[data-theme="terminal"] .payment-status .heading span {
+  color: #33ff33;
+}
+
+[data-theme="terminal"] .payers-list li {
+  border-bottom-color: rgba(51, 255, 51, 0.25);
+}
+
+[data-theme="terminal"] .payers-list .pay-tag {
+  background: #33ff33;
+  color: #051005;
+  border-color: #33ff33;
+  box-shadow: 0 0 6px #33ff33;
+  font-weight: bold;
+}
+
+[data-theme="terminal"] .reminder-btn {
+  background: #051005;
+  color: #33ff33;
+  border: 1.5px solid #33ff33;
+  box-shadow: 0 0 10px rgba(51, 255, 51, 0.4);
+  font-family: 'VT323', monospace;
+  font-size: 1.1rem;
+}
+
+[data-theme="terminal"] .reminder-btn:hover {
+  background: #0e300e;
+  box-shadow: 0 0 18px #33ff33;
+}
+
+[data-theme="terminal"] .download-btn {
+  background: #0d260d;
+  color: #aaffaa;
+  border: 1px solid #33ff33;
+  font-family: 'VT323', monospace;
+  font-size: 1.1rem;
+}
