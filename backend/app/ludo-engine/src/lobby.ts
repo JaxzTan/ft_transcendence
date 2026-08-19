@@ -34,6 +34,14 @@ export class LobbyManager {
       throw new Error('You are not a player in this game');
     }
 
+    // Colors beyond this match's seat count have no PlayerMeta in the engine
+    // state (see redis.ts createGame's activeColors) — reject before touching
+    // the match hash so it can't drift out of sync with the engine.
+    const maxSeats = parseInt(data.playerCount || '4', 10);
+    if (SLOT_COLORS.indexOf(color) >= maxSeats) {
+      throw new Error('Color not available for this match size');
+    }
+
     // Check if color is already taken by another player
     const currentColorKey = `player${slotIndex + 1}_color`;
     const currentColor = (data[currentColorKey] as PlayerColor) || SLOT_COLORS[slotIndex];

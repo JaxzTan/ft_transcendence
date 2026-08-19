@@ -37,16 +37,19 @@ export class RedisGameStore {
     await this.subscriber.quit();
   }
 
-  /** Create a new game with all 16 pieces in prison */
-  async createGame(gameId: string, clashMode: boolean = true): Promise<void> {
+  /** Create a new game with all 16 pieces in prison. `activeColors` are the
+   * seats actually in play for this match size — colors outside that set get
+   * no PlayerMeta entry at all, so unused seats never appear anywhere
+   * downstream (sidebar, color picker, turn order). */
+  async createGame(gameId: string, clashMode: boolean = true, activeColors: PlayerColor[] = COLORS): Promise<void> {
     const pieces: Piece[] = [];
     for (const color of COLORS) {
       for (let i = 0; i < 4; i++) {
         pieces.push({ id: `${color}-${i}`, color, step: 0, isInGoal: false, isInBase: true });
       }
     }
-    
-    const players: PlayerMeta[] = COLORS.map(color => ({
+
+    const players: PlayerMeta[] = activeColors.map(color => ({
       color,
       status: 'inactive',
       username: color === 'blue' ? 'You' : color.charAt(0).toUpperCase() + color.slice(1),
@@ -64,7 +67,7 @@ export class RedisGameStore {
       id: gameId,
       pieces,
       players,
-      currentTurn: 'blue',
+      currentTurn: activeColors[0] ?? 'blue',
       consecutiveSixes: 0,
       moveCounter: 0,
       turnPhase: 'WAITING_FOR_ROLL',
