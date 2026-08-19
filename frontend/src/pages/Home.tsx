@@ -75,11 +75,6 @@ export function Home() {
 		if (savedCrt === 'false') {
 			setCrtEnabled(false)
 		}
-
-		return () => {
-			document.documentElement.removeAttribute('data-theme')
-			document.body.removeAttribute('data-theme')
-		}
 	}, [])
 
 	const toggleCrt = () => {
@@ -783,6 +778,8 @@ export function Home() {
 				<div className="synthwave-sun" />
 				<div className="grid-horizon" />
 				<div className="perspective-grid" />
+				<div className="win95-starfield" />
+				<div className="terminal-vector-core" />
 			</div>
 
 			{/* CRT Monitor Overlay FX Container */}
@@ -925,7 +922,7 @@ export function Home() {
 													setIsThemePopoverOpen(false)
 												}}
 											/>
-											<span>SYNTHWAVE</span>
+											<span>CYBERPUNK</span>
 										</label>
 										<label htmlFor="theme-win95">
 											<input
