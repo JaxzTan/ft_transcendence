@@ -227,7 +227,7 @@ export function Home() {
 					{ label: 'YELLOW', color: '#ffe600', x: 490, y: 360 },
 					{ label: 'BLUE', color: '#00f0ff', x: 635, y: 350 },
 				],
-				marquee: '⚡ TRANSCENDENCE // CYBER LUDO ⚡',
+				marquee: '[ TRANSCENDENCE // CYBER LUDO ]',
 				marqueeColor: '#00f0ff',
 			},
 			win95: {
@@ -257,7 +257,7 @@ export function Home() {
 					{ label: 'P3-YLW', color: '#ffee00', x: 490, y: 360 },
 					{ label: 'P4-BLU', color: '#2255ff', x: 635, y: 350 },
 				],
-				marquee: '🎮 DIRECTX 3D // CYBER LUDO 95',
+				marquee: '[ DIRECTX 3D // CYBER LUDO 95 ]',
 				marqueeColor: '#00ffff',
 			},
 			terminal: {
@@ -810,7 +810,7 @@ export function Home() {
 								<section className="retro-window col-8" id="arcadeWindow">
 									<div className="window-header">
 										<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-											<span>🕹️ CYBER LUDO '84 // ARCADE CABINET</span>
+											<span>CYBER LUDO '84 // ARCADE CABINET</span>
 										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
@@ -868,7 +868,7 @@ export function Home() {
 														animation: 'pulse 0.2s infinite',
 													}}
 												>
-													⚡ WARPING TO ARENA...
+													WARPING TO ARENA...
 												</div>
 											)}
 										</div>
@@ -879,9 +879,9 @@ export function Home() {
 								<section className="retro-window col-4" id="friendsWindow">
 									<div className="window-header">
 										<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-											<span>👥 CYBER NET // FRIENDS</span>
+											<span>FRIENDS</span>
 											{pendingRequestsCount > 0 && (
-												<span
+												<button
 													style={{
 														background: 'var(--accent-pink)',
 														color: '#fff',
@@ -890,10 +890,22 @@ export function Home() {
 														borderRadius: 3,
 														fontWeight: 'bold',
 														animation: 'pulse 1.5s infinite',
+														cursor: 'pointer',
+														border: 'none',
+														outline: 'none',
+														fontFamily: 'inherit',
+														display: 'inline-flex',
+														alignItems: 'center',
 													}}
+													onClick={(e) => {
+														e.stopPropagation()
+														retroAudio.playUiBeep(650, 0.05)
+														navigate('/friends')
+													}}
+													title={`${pendingRequestsCount} pending friend request${pendingRequestsCount > 1 ? 's' : ''} - Click to review`}
 												>
 													{pendingRequestsCount} NEW
-												</span>
+												</button>
 											)}
 										</div>
 										<div className="window-controls">
@@ -924,7 +936,7 @@ export function Home() {
 											}}
 										>
 											<span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-												🟢 {friends ? friends.filter((f) => f.status === 'online' || f.status === 'playing').length : 0} ONLINE // {friends ? friends.length : 0} TOTAL
+												● {friends ? friends.filter((f) => f.status === 'online' || f.status === 'playing').length : 0} ONLINE // {friends ? friends.length : 0} TOTAL
 											</span>
 											<button
 												className="retro-btn"
@@ -953,7 +965,7 @@ export function Home() {
 										>
 											{isFriendsLoading && friends === null ? (
 												<div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--accent-yellow)', fontSize: '0.8rem' }}>
-													SCANNING CYBER COMMS...
+													SCANNING COMMS...
 												</div>
 											) : !friends || friends.length === 0 ? (
 												<div
@@ -967,7 +979,6 @@ export function Home() {
 														color: 'var(--text-muted)',
 													}}
 												>
-													<div style={{ fontSize: '1.8rem', opacity: 0.8 }}>📡</div>
 													<div style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
 														NO COMRADES LINKED YET
 													</div>
@@ -979,7 +990,7 @@ export function Home() {
 															navigate('/friends')
 														}}
 													>
-														➕ ADD FRIENDS
+														[+] ADD FRIENDS
 													</button>
 												</div>
 											) : (
@@ -1068,7 +1079,7 @@ export function Home() {
 																		disabled={invitingFriendId === friend.id}
 																		onClick={() => handleInviteFriend(friend.id)}
 																	>
-																		{invitingFriendId === friend.id ? '...' : '⚔️ INVITE'}
+																		{invitingFriendId === friend.id ? '...' : 'INVITE'}
 																	</button>
 																)}
 															</div>
@@ -1088,7 +1099,7 @@ export function Home() {
 													navigate('/friends')
 												}}
 											>
-												👥 OPEN FULL FRIEND TERMINAL
+												FULL FRIEND TERMINAL
 											</button>
 										</div>
 									</div>
@@ -1098,7 +1109,7 @@ export function Home() {
 								<section className="retro-window col-8" id="pilotDossierWindow">
 									<div className="window-header">
 										<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-											<span>🪪 PILOT CAREER DOSSIER // COMBAT TELEMETRY</span>
+											<span>PILOT CAREER DOSSIER // COMBAT TELEMETRY</span>
 										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
@@ -1255,7 +1266,7 @@ export function Home() {
 								{/* Widget 4: Quick Deploy Arena Modes */}
 								<section className="retro-window col-4" id="quickDeployWindow">
 									<div className="window-header">
-										<span>🕹️ QUICK DEPLOY // ARENA</span>
+										<span>QUICK DEPLOY // ARENA</span>
 										<div className="window-controls">
 											<span className="window-btn min" />
 											<span className="window-btn max" />
@@ -1289,7 +1300,7 @@ export function Home() {
 										>
 											<div style={{ textAlign: 'left' }}>
 												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-cyan)' }}>
-													⚔️ 1v1 CYBER DUEL
+													1v1 CYBER DUEL
 												</div>
 												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
 													Fast 2-Player Head-to-Head
@@ -1317,7 +1328,7 @@ export function Home() {
 										>
 											<div style={{ textAlign: 'left' }}>
 												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-pink)' }}>
-													👑 4-PLAYER ROYALE
+													4-PLAYER ROYALE
 												</div>
 												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
 													Full 4-Color Mayhem
@@ -1345,7 +1356,7 @@ export function Home() {
 										>
 											<div style={{ textAlign: 'left' }}>
 												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-yellow)' }}>
-													🤖 BOT SKIRMISH
+													BOT SKIRMISH
 												</div>
 												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
 													Offline Practice Arena
@@ -1368,7 +1379,7 @@ export function Home() {
 												navigate('/leaderboard')
 											}}
 										>
-											🏆 VIEW GLOBAL LADDER →
+											VIEW GLOBAL LADDER →
 										</button>
 									</div>
 								</section>
