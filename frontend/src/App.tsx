@@ -21,16 +21,15 @@ import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 
 /** Screens that render inside the app shell (rail + header). */
-const SHELL_ROUTES: Record<string, () => ReactNode> = {
-  '/leaderboard': () => <Leaderboard />,
-  '/friends': () => <Friends />,
-  '/profile': () => <Profile />,
-}
+const SHELL_ROUTES: Record<string, () => ReactNode> = {}
 
 /** Full-bleed screens (no shell). */
 const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/home': () => <Home />,
   '/dashboard': () => <Dashboard />,
+  '/leaderboard': () => <Leaderboard />,
+  '/friends': () => <Friends />,
+  '/profile': () => <Profile />,
   '/login': () => <Login />,
   '/signup': () => <Signup />,
   '/2fa': () => <TwoFactor />,
