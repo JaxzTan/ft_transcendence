@@ -2,7 +2,11 @@ import { useEffect, useState, useRef } from 'react'
 import { UserAvatar } from '../components/UserAvatar'
 import { useRoute, navigate } from '../router'
 import { useApp } from '../store'
-import { card, goldText, avatarBlue, STATUS_STYLE, type PresenceStatus } from '../theme'
+import { STATUS_STYLE, type PresenceStatus } from '../theme'
+import { retroAudio } from '../utils/audio'
+import '../styles/retrowave.css'
+
+type ThemeType = 'synthwave' | 'win95' | 'terminal'
 
 type UserProfile = {
   id: string
@@ -58,6 +62,40 @@ export function Profile() {
   const username = query.get('u') || user?.username
   const isOwnProfile = user?.username === username
 
+  // ------------------------------------------------------------------------
+  // THEME & CRT CONTROLS
+  // ------------------------------------------------------------------------
+  const [theme, setTheme] = useState<ThemeType>('synthwave')
+  const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
+  const [crtEnabled, setCrtEnabled] = useState(true)
+
+  const applyTheme = (newTheme: ThemeType) => {
+    setTheme(newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+    document.body.setAttribute('data-theme', newTheme)
+    localStorage.setItem('retro_theme', newTheme)
+    retroAudio.playUiBeep(880, 0.05)
+  }
+
+  useEffect(() => {
+    const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
+    setTheme(savedTheme)
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    document.body.setAttribute('data-theme', savedTheme)
+
+    const savedCrt = localStorage.getItem('retro_crt')
+    if (savedCrt === 'false') {
+      setCrtEnabled(false)
+    }
+  }, [])
+
+  const toggleCrt = () => {
+    const next = !crtEnabled
+    setCrtEnabled(next)
+    localStorage.setItem('retro_crt', next ? 'true' : 'false')
+    retroAudio.playUiBeep(440, 0.05)
+  }
+
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [gamesData, setGamesData] = useState<MatchHistory | null>(null)
   const [friendsData, setFriendsData] = useState<Friend[] | null>(null)
@@ -92,12 +130,13 @@ export function Profile() {
       const res = await fetch('/api/user/avatar', {
         method: 'POST',
         body: formData,
-        credentials: 'include'
+        credentials: 'include',
       })
       if (!res.ok) {
         const err = await res.json()
         setUploadError(err.message || 'Failed to upload avatar.')
       } else {
+        retroAudio.playUiBeep(880, 0.06)
         setAvatarBuster(Date.now())
       }
     } catch (e) {
@@ -114,8 +153,9 @@ export function Profile() {
     try {
       await fetch('/api/user/avatar', {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
       })
+      retroAudio.playUiBeep(440, 0.06)
       setAvatarBuster(Date.now())
     } catch (e) {
       setUploadError('Failed to remove avatar.')
@@ -129,12 +169,12 @@ export function Profile() {
     setLoading(true)
 
     const fetches = [
-      fetch(`/api/user/${username}`).then((res) => res.ok ? res.json() : null),
-      fetch(`/api/user/${username}/games`).then((res) => res.ok ? res.json() : null),
+      fetch(`/api/user/${username}`).then((res) => (res.ok ? res.json() : null)),
+      fetch(`/api/user/${username}/games`).then((res) => (res.ok ? res.json() : null)),
     ]
 
     if (isOwnProfile) {
-      fetches.push(fetch('/api/friends').then((res) => res.ok ? res.json() : null))
+      fetches.push(fetch('/api/friends').then((res) => (res.ok ? res.json() : null)))
     }
 
     Promise.all(fetches).then(([profileData, gamesRes, friendsRes]) => {
@@ -147,280 +187,664 @@ export function Profile() {
     })
   }, [username, isOwnProfile])
 
-  // Presence isn't pushed, so poll for it — matches the client's own
-  // heartbeat cadence in store.tsx. Games/stats don't need this refetch.
   useEffect(() => {
     if (!username) return
     const id = setInterval(() => {
-      fetch(`/api/user/${username}`).then((res) => res.ok && res.json()).then((data) => {
-        if (data) setProfile(data)
-      })
-      if (isOwnProfile) {
-        fetch('/api/friends').then((res) => res.ok && res.json()).then((data) => {
-          if (data) setFriendsData(data)
+      fetch(`/api/user/${username}`)
+        .then((res) => res.ok && res.json())
+        .then((data) => {
+          if (data) setProfile(data)
         })
+      if (isOwnProfile) {
+        fetch('/api/friends')
+          .then((res) => res.ok && res.json())
+          .then((data) => {
+            if (data) setFriendsData(data)
+          })
       }
     }, 15_000)
     return () => clearInterval(id)
   }, [username, isOwnProfile])
 
-  if (loading) {
-    return <div style={{ color: '#a99a83', textAlign: 'center', marginTop: 80, fontSize: 18 }}>Loading profile...</div>
-  }
-
-  if (!profile) {
-    return (
-      <div style={{ color: '#e4574d', textAlign: 'center', marginTop: 80, fontSize: 18, fontWeight: 600 }}>
-        User "{username}" not found.
-      </div>
-    )
-  }
-
-
-  const totalGames = profile.wins + profile.losses
-  const winRate = totalGames > 0 ? Math.round((profile.wins / totalGames) * 100) : 0
-  const statusStyle = STATUS_STYLE[profile.status] ?? STATUS_STYLE.offline
+  const totalGames = profile ? profile.wins + profile.losses : 0
+  const winRate = totalGames > 0 ? Math.round((profile!.wins / totalGames) * 100) : 0
+  const statusStyle = profile ? STATUS_STYLE[profile.status] ?? STATUS_STYLE.offline : STATUS_STYLE.offline
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 320px', gap: 32, paddingBottom: 60, alignItems: 'start' }}>
-      
-      {/* Left Column: Stats & Matches */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-        {/* Header Card */}
-        <div style={{ ...card, padding: 36, display: 'flex', alignItems: 'center', gap: 32, position: 'relative', overflow: 'hidden' }}>
-          <div style={{
-            position: 'absolute', top: -50, right: -50, width: 300, height: 300,
-            background: 'radial-gradient(circle, rgba(201, 155, 69, 0.15) 0%, transparent 65%)',
-            pointerEvents: 'none'
-          }} />
+    <>
+      {/* Animated 3D Synthwave Grid & Sun Background */}
+      <div className="grid-background">
+        <div className="synthwave-sun" />
+        <div className="grid-horizon" />
+        <div className="perspective-grid" />
+        <div className="win95-starfield" />
+        <div className="terminal-vector-core" />
+      </div>
 
-          <div style={{ position: 'relative' }}>
-            <UserAvatar 
-              username={profile.username}
-              avatarStyle={profile.avatarStyle}
-              size={100}
-              fallbackStyle={avatarBlue(100, 36, 30)}
-              style={{ boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d' }}
-              cacheBuster={avatarBuster}
-            />
-            <span
-              title={statusStyle.label}
-              style={{
-                position: 'absolute', right: 4, bottom: 4, width: 18, height: 18, borderRadius: '50%',
-                background: statusStyle.color, border: '3px solid #1a130d',
-              }}
-            />
-            {isOwnProfile && (
-              <div 
-                onClick={() => !uploading && fileInputRef.current?.click()}
-                style={{
-                  position: 'absolute', inset: 0, borderRadius: '50%',
-                  background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: 13, fontWeight: 700, cursor: uploading ? 'not-allowed' : 'pointer',
-                  opacity: 0, transition: 'opacity 0.2s',
-                  boxShadow: '0 0 0 4px #1a130d, 0 0 0 2px #3a2c1d'
+      {/* CRT Monitor Overlay FX Container */}
+      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+        <div
+          className="crt-scanlines"
+          id="crtOverlay"
+          style={{ display: crtEnabled ? 'block' : 'none' }}
+        />
+        <div className="crt-flicker" />
+
+        {/* Main Content Wrapper */}
+        <div className="app-wrapper">
+          {/* Navigation Header */}
+          <nav className="navbar" id="mainNav">
+            <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                className="retro-btn"
+                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                onClick={() => {
+                  retroAudio.playUiBeep(440, 0.05)
+                  navigate('/home')
                 }}
-                onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                onMouseOut={(e) => e.currentTarget.style.opacity = '0'}
+                title="Return to Hub"
               >
-                {uploading ? '...' : 'Upload'}
-              </div>
-            )}
-            <input 
-              type="file" 
-              accept="image/png, image/jpeg, image/gif, image/webp" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              style={{ display: 'none' }} 
-            />
-          </div>
-
-          <div style={{ flex: 1 }}>
-            <div style={{ ...goldText, fontFamily: "'Cinzel',serif", fontWeight: 800, fontSize: 40, lineHeight: 1.1 }}>
-              {profile.username}
-            </div>
-            <div style={{ color: statusStyle.color, fontSize: 13, marginTop: 6, fontWeight: 700 }}>
-              {statusStyle.label}
-            </div>
-            <div style={{ color: '#a99a83', fontSize: 14, marginTop: 2, fontWeight: 500 }}>
-              Member since {new Date(profile.createdAt).toLocaleDateString()}
-            </div>
-            {isOwnProfile && (
-              <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center' }}>
-                <span onClick={handleRemoveAvatar} style={{ color: '#e4574d', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: 0.8 }} onMouseOver={(e) => e.currentTarget.style.opacity = '1'} onMouseOut={(e) => e.currentTarget.style.opacity = '0.8'}>
-                  Remove Avatar
-                </span>
-                {uploadError && <span style={{ color: '#e4574d', fontSize: 12, fontWeight: 700 }}>· {uploadError}</span>}
-              </div>
-            )}
-          </div>
-
-          <div style={{ textAlign: 'center', background: 'linear-gradient(180deg,#241b13,#17110b)', padding: '16px 28px', borderRadius: 20, border: '1px solid #3a2c1d', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.05)' }}>
-            <div style={{ fontSize: 12, color: '#a99a83', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700 }}>Rating</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: '#f0e2c4', marginTop: 4 }}>{profile.rating}</div>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-          <StatBox label="Wins" value={profile.wins} color="#4bbf7b" />
-          <StatBox label="Losses" value={profile.losses} color="#e4574d" />
-          <StatBox label="Win Rate" value={`${winRate}%`} color="#4a92e0" />
-          <StatBox label="Best Streak" value={profile.bestWinStreak} color="#f0c24e" />
-        </div>
-
-        <div style={{ ...card, padding: 28 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h3 style={{ margin: 0, fontSize: 20, color: '#f0e2c4', fontWeight: 700, fontFamily: "'Cinzel',serif" }}>Recent Matches</h3>
-            {gamesData && gamesData.total > 0 && (
-              <div style={{ color: '#a99a83', fontSize: 14, fontWeight: 600 }}>{gamesData.total} Games Played</div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {!gamesData || gamesData.games.length === 0 ? (
-              <div style={{ color: '#a99a83', fontStyle: 'italic', padding: '20px 0', textAlign: 'center', background: '#17110b', borderRadius: 12, border: '1px solid #2e2115' }}>
-                No matches played yet.
-              </div>
-            ) : (
-              gamesData.games.map((game) => {
-                const isWinner = game.rank === 1
-                const isDraw = game.status === 'COMPLETED' && !game.participants.some(p => p.rank === 1)
-                const resultText = isWinner ? 'VICTORY' : (isDraw ? 'DRAW' : 'DEFEAT')
-                const resultColor = isWinner ? '#4bbf7b' : (isDraw ? '#a99a83' : '#e4574d')
-
-                const opponents = game.participants.filter(p => p.username !== profile.username)
-
-                return (
-                  <div key={game.gameId} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '16px 20px', background: '#17110b', borderRadius: 16, border: '1px solid #2e2115',
-                    transition: 'background 0.2s, transform 0.2s', cursor: 'default'
+                ← HUB
+              </button>
+              <div
+                className="brand-42-logo"
+                style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => {
+                  retroAudio.playUiBeep(440, 0.05)
+                  navigate('/home')
+                }}
+                title="42 Hub"
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  style={{
+                    fill: 'var(--accent-cyan)',
+                    filter: 'drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 14px var(--accent-pink))',
                   }}
-                    onMouseOver={(e) => { e.currentTarget.style.background = '#1e1610'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                    onMouseOut={(e) => { e.currentTarget.style.background = '#17110b'; e.currentTarget.style.transform = 'translateY(0)' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                      <div style={{
-                        fontWeight: 800, fontSize: 13, padding: '6px 12px', borderRadius: 8, letterSpacing: 1,
-                        background: resultColor + '22', color: resultColor, border: `1px solid ${resultColor}44`,
-                        width: 85, textAlign: 'center'
-                      }}>
-                        {resultText}
-                      </div>
+                >
+                  <path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
+                </svg>
+              </div>
+            </div>
 
-                      <div style={{ color: '#f0e2c4', fontWeight: 600, fontSize: 15 }}>
-                        vs {opponents.length > 0 ? opponents.map(o => o.username).join(', ') : 'Bots / Unknown'}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                      <div style={{ color: '#c99b45', fontSize: 13, fontWeight: 700 }}>
-                        {game.piecesInGoal} / 4 Goals
-                      </div>
-                      <div style={{ color: '#a99a83', fontSize: 13, minWidth: 80, textAlign: 'right' }}>
-                        {new Date(game.startedAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      {isOwnProfile && (
-        <FriendsSidebar friends={friendsData} navigate={navigate} />
-      )}
-    </div>
-  )
-}
-
-function StatBox({ label, value, color }: { label: string; value: React.ReactNode; color: string }) {
-  return (
-    <div style={{ ...card, padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 6, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color, opacity: 0.8 }} />
-      <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 32, fontWeight: 800, color, fontFamily: "'Hanken Grotesk', sans-serif" }}>
-        {value}
-      </div>
-    </div>
-  )
-}
-
-function FriendsSidebar({ friends, navigate }: { friends: Friend[] | null; navigate: (path: string) => void }) {
-  return (
-    <div style={{ ...card, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 32 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <h3 style={{ margin: 0, fontSize: 18, color: '#f0e2c4', fontWeight: 700, fontFamily: "'Cinzel',serif" }}>
-          Friends
-        </h3>
-        <div style={{ background: '#241b13', color: '#c99b45', padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 800 }}>
-          {friends ? friends.length : 0}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {!friends ? (
-          <div style={{ color: '#a99a83', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Loading...</div>
-        ) : friends.length === 0 ? (
-          <div style={{ color: '#a99a83', fontSize: 13, textAlign: 'center', padding: '20px 0', background: '#17110b', borderRadius: 12, border: '1px solid #2e2115' }}>
-            No friends yet.<br/><br/>
-            <span style={{ color: '#c99b45', cursor: 'pointer', fontWeight: 600 }}>Find players</span>
-          </div>
-        ) : (
-          friends.map((friend) => {
-            const status = STATUS_STYLE[friend.status] ?? STATUS_STYLE.offline
-            return (
-              <div key={friend.id} style={{
-                display: 'flex', alignItems: 'center', padding: '8px 12px', background: '#1a140e',
-                borderRadius: 12, border: '1px solid #2e2115', cursor: 'pointer', transition: 'background 0.2s'
-              }}
-                onClick={() => navigate(`/profile?u=${friend.username}`)}
-                onMouseOver={(e) => { e.currentTarget.style.background = '#241b13' }}
-                onMouseOut={(e) => { e.currentTarget.style.background = '#1a140e' }}
+            <div className="nav-controls">
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/gamelobby')
+                }}
               >
-                <div style={{ position: 'relative', marginRight: 12, flexShrink: 0 }}>
-                  <UserAvatar 
-                    username={friend.username}
-                    avatarStyle={friend.avatarStyle}
-                    size={36}
-                    fallbackStyle={avatarBlue(36, 12, 10)}
-                    style={{ boxShadow: '0 0 0 2px #1a130d, 0 0 0 1px #3a2c1d' }}
-                  />
-                  <span
-                    style={{
-                      position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: '50%',
-                      background: status.color, border: '2px solid #1a140e',
-                    }}
-                  />
-                </div>
+                <span className="theme-btn-icon">&gt;_</span>
+                <span className="theme-btn-text">LOBBY</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/dashboard')
+                }}
+              >
+                <span className="theme-btn-icon">▦</span>
+                <span className="theme-btn-text">DASHBOARD</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/leaderboard')
+                }}
+              >
+                <span className="theme-btn-icon">#_</span>
+                <span className="theme-btn-text">LADDER</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/friends')
+                }}
+              >
+                <span className="theme-btn-icon">♟</span>
+                <span className="theme-btn-text">FRIENDS</span>
+              </button>
 
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#f0e2c4', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                    {friend.username}
-                  </div>
-                  <div style={{ color: status.color, fontSize: 11, fontWeight: 600 }}>
-                    {status.label}
-                  </div>
-                </div>
+              {/* Theme Selector Popover Menu */}
+              <div className="theme-popover-wrapper">
+                <button
+                  className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
+                  id="themeModalBtn"
+                  aria-label="Toggle Theme Menu"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const next = !isThemePopoverOpen
+                    setIsThemePopoverOpen(next)
+                    retroAudio.playUiBeep(next ? 960 : 480, 0.05)
+                  }}
+                >
+                  <span className="theme-btn-icon">&lt;/&gt;</span>
+                  <span className="theme-btn-text">THEME</span>
+                  <span className="theme-chevron">▼</span>
+                </button>
 
-                {/* Rating Badge (Steam Level style) */}
-                <div style={{
-                  width: 32, height: 32, borderRadius: '50%', border: '2px solid #c99b45',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'radial-gradient(circle, rgba(201,155,69,0.2) 0%, rgba(201,155,69,0) 70%)',
-                  color: '#f0e2c4', fontSize: 11, fontWeight: 800, flexShrink: 0
-                }}>
-                  {friend.rating}
+                <div
+                  className={`theme-popover-menu ${isThemePopoverOpen ? 'active' : ''}`}
+                  id="themePopoverMenu"
+                >
+                  <fieldset id="color-scheme">
+                    <legend>THEME SELECTOR</legend>
+                    <label htmlFor="theme-synthwave">
+                      <input
+                        type="radio"
+                        id="theme-synthwave"
+                        name="theme-radio"
+                        value="synthwave"
+                        checked={theme === 'synthwave'}
+                        onChange={() => {
+                          applyTheme('synthwave')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>CYBERPUNK</span>
+                    </label>
+                    <label htmlFor="theme-win95">
+                      <input
+                        type="radio"
+                        id="theme-win95"
+                        name="theme-radio"
+                        value="win95"
+                        checked={theme === 'win95'}
+                        onChange={() => {
+                          applyTheme('win95')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>WIN95</span>
+                    </label>
+                    <label htmlFor="theme-terminal">
+                      <input
+                        type="radio"
+                        id="theme-terminal"
+                        name="theme-radio"
+                        value="terminal"
+                        checked={theme === 'terminal'}
+                        onChange={() => {
+                          applyTheme('terminal')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>TERMINAL</span>
+                    </label>
+                  </fieldset>
                 </div>
               </div>
-            )
-          })
-        )}
+
+              {/* CRT Scanlines Toggle */}
+              <div className="control-group">
+                <label className="retro-toggle" title="Toggle CRT Screen Scanlines">
+                  <span>CRT FX</span>
+                  <input
+                    type="checkbox"
+                    id="crtToggle"
+                    checked={crtEnabled}
+                    onChange={toggleCrt}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+            </div>
+          </nav>
+
+          {/* Hero Telemetry Banner */}
+          <header className="hero-section" style={{ padding: '16px 0 14px' }}>
+            <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 4 }}>
+              PILOT DOSSIER // CALLSIGN RECORDS
+            </h1>
+            <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+              AUTHENTICATED PILOT SPECIFICATIONS, AVATAR UPLOAD & COMBAT HISTORY
+            </p>
+          </header>
+
+          {loading ? (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+              INITIALIZING PILOT DOSSIER TELEMETRY...
+            </div>
+          ) : !profile ? (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: '#ff0055', fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
+              PILOT "{username}" NOT FOUND IN ARCHIVES.
+            </div>
+          ) : (
+            <div
+              style={{
+                maxWidth: 1100,
+                margin: '0 auto',
+                width: '100%',
+                display: 'grid',
+                gridTemplateColumns: isOwnProfile ? '1fr 300px' : '1fr',
+                gap: 20,
+                alignItems: 'start',
+              }}
+            >
+              {/* Left Column: Dossier Header, Stats & Match History */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Dossier Header Window */}
+                <section className="retro-window">
+                  <div className="window-header">
+                    <span>👤 PILOT IDENTIFICATION // RECORD #{profile.id.slice(0, 8)}</span>
+                    <div className="window-controls">
+                      <span className="window-btn min" />
+                      <span className="window-btn max" />
+                    </div>
+                  </div>
+
+                  <div
+                    className="window-body"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 20,
+                      padding: 20,
+                      background: 'rgba(25, 10, 56, 0.85)',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {/* Avatar Container */}
+                    <div style={{ position: 'relative' }}>
+                      <div
+                        style={{
+                          padding: 3,
+                          borderRadius: 8,
+                          background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-pink))',
+                          boxShadow: '0 0 16px rgba(0, 240, 255, 0.4)',
+                        }}
+                      >
+                        <UserAvatar
+                          username={profile.username}
+                          avatarStyle={profile.avatarStyle}
+                          size={88}
+                          fallbackStyle={{
+                            width: 88,
+                            height: 88,
+                            borderRadius: 6,
+                            background: 'rgba(10, 2, 28, 0.95)',
+                            color: 'var(--accent-cyan)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontSize: '1.8rem',
+                            fontWeight: 'bold',
+                            fontFamily: 'var(--font-mono)',
+                          }}
+                          cacheBuster={avatarBuster}
+                        />
+                      </div>
+                      <span
+                        title={statusStyle.label}
+                        style={{
+                          position: 'absolute',
+                          right: 2,
+                          bottom: 2,
+                          width: 14,
+                          height: 14,
+                          borderRadius: '50%',
+                          background: statusStyle.color,
+                          border: '2px solid #0d0221',
+                          boxShadow: `0 0 8px ${statusStyle.color}`,
+                        }}
+                      />
+                      {isOwnProfile && (
+                        <div
+                          onClick={() => !uploading && fileInputRef.current?.click()}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            borderRadius: 8,
+                            background: 'rgba(0,0,0,0.65)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--accent-cyan)',
+                            fontSize: '0.72rem',
+                            fontWeight: 'bold',
+                            fontFamily: 'var(--font-mono)',
+                            cursor: uploading ? 'not-allowed' : 'pointer',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                          }}
+                          onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
+                          onMouseOut={(e) => (e.currentTarget.style.opacity = '0')}
+                        >
+                          {uploading ? 'UPLOADING...' : 'CHANGE'}
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/gif, image/webp"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                      />
+                    </div>
+
+                    {/* Pilot Info */}
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-heading)',
+                          fontSize: '1.4rem',
+                          color: '#ffffff',
+                          textShadow: '0 0 10px var(--accent-cyan)',
+                        }}
+                      >
+                        {profile.username}
+                      </div>
+                      <div style={{ color: statusStyle.color, fontSize: '0.75rem', fontFamily: 'var(--font-mono)', marginTop: 4, fontWeight: 'bold' }}>
+                        ● {statusStyle.label.toUpperCase()}
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                        COMMISSIONED: {new Date(profile.createdAt).toLocaleDateString()}
+                      </div>
+
+                      {isOwnProfile && (
+                        <div style={{ display: 'flex', gap: 10, marginTop: 8, alignItems: 'center' }}>
+                          <button
+                            className="retro-btn"
+                            onClick={handleRemoveAvatar}
+                            style={{ padding: '3px 8px', fontSize: '0.65rem', color: '#ff0055', borderColor: '#ff0055' }}
+                          >
+                            REMOVE AVATAR
+                          </button>
+                          {uploadError && (
+                            <span style={{ color: '#ff0055', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>
+                              ⚠️ {uploadError}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Rating Big Box */}
+                    <div
+                      style={{
+                        padding: '12px 20px',
+                        borderRadius: 4,
+                        background: 'rgba(5, 2, 18, 0.8)',
+                        border: '1.5px solid #ffe600',
+                        boxShadow: '0 0 14px rgba(255, 230, 0, 0.25)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                        COMBAT RATING
+                      </div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: '#ffe600', fontFamily: 'var(--font-mono)' }}>
+                        ♛ {profile.rating}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* 4 Stat Boxes */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
+                  <div
+                    className="retro-window"
+                    style={{
+                      padding: 12,
+                      textAlign: 'center',
+                      border: '1px solid #00ff88',
+                      background: 'rgba(25, 10, 56, 0.8)',
+                    }}
+                  >
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>VICTORIES</div>
+                    <div style={{ color: '#00ff88', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                      {profile.wins}
+                    </div>
+                  </div>
+
+                  <div
+                    className="retro-window"
+                    style={{
+                      padding: 12,
+                      textAlign: 'center',
+                      border: '1px solid #ff007f',
+                      background: 'rgba(25, 10, 56, 0.8)',
+                    }}
+                  >
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>DEFEATS</div>
+                    <div style={{ color: '#ff007f', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                      {profile.losses}
+                    </div>
+                  </div>
+
+                  <div
+                    className="retro-window"
+                    style={{
+                      padding: 12,
+                      textAlign: 'center',
+                      border: '1px solid var(--accent-cyan)',
+                      background: 'rgba(25, 10, 56, 0.8)',
+                    }}
+                  >
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>WIN RATIO</div>
+                    <div style={{ color: 'var(--accent-cyan)', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                      {winRate}%
+                    </div>
+                  </div>
+
+                  <div
+                    className="retro-window"
+                    style={{
+                      padding: 12,
+                      textAlign: 'center',
+                      border: '1px solid #ffe600',
+                      background: 'rgba(25, 10, 56, 0.8)',
+                    }}
+                  >
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>BEST STREAK</div>
+                    <div style={{ color: '#ffe600', fontSize: '1.3rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                      🔥 {profile.bestWinStreak}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Match History Window */}
+                <section className="retro-window">
+                  <div className="window-header">
+                    <span>📜 COMBAT TELEMETRY LOGS ({gamesData?.total ?? 0} MATCHES)</span>
+                    <div className="window-controls">
+                      <span className="window-btn min" />
+                      <span className="window-btn max" />
+                    </div>
+                  </div>
+
+                  <div className="window-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {!gamesData || gamesData.games.length === 0 ? (
+                      <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>
+                        NO COMBAT MISSIONS RECORDED IN ARCHIVE.
+                      </div>
+                    ) : (
+                      gamesData.games.map((game) => {
+                        const isWinner = game.rank === 1
+                        const isDraw = game.status === 'COMPLETED' && !game.participants.some((p) => p.rank === 1)
+                        const resultText = isWinner ? 'VICTORY' : isDraw ? 'DRAW' : 'DEFEAT'
+                        const resultColor = isWinner ? '#00ff88' : isDraw ? '#ffe600' : '#ff007f'
+                        const opponents = game.participants.filter((p) => p.username !== profile.username)
+
+                        return (
+                          <div
+                            key={game.gameId}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '10px 14px',
+                              borderRadius: 4,
+                              background: 'rgba(5, 2, 18, 0.8)',
+                              border: `1px solid ${resultColor}55`,
+                              boxShadow: `inset 0 0 10px ${resultColor}11`,
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div
+                                style={{
+                                  fontWeight: 'bold',
+                                  fontSize: '0.72rem',
+                                  padding: '4px 10px',
+                                  borderRadius: 4,
+                                  color: '#0d0221',
+                                  background: resultColor,
+                                  boxShadow: `0 0 8px ${resultColor}`,
+                                  fontFamily: 'var(--font-mono)',
+                                }}
+                              >
+                                {resultText}
+                              </div>
+                              <div style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}>
+                                VS {opponents.length > 0 ? opponents.map((o) => o.username).join(', ') : 'Bots / Unknown'}
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                              <div style={{ color: '#ffe600', fontSize: '0.75rem', fontWeight: 'bold', fontFamily: 'var(--font-mono)' }}>
+                                {game.piecesInGoal} / 4 GOALS
+                              </div>
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontFamily: 'var(--font-mono)' }}>
+                                {new Date(game.startedAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </section>
+              </div>
+
+              {/* Right Column: Allied Comrades Roster (when viewing own profile) */}
+              {isOwnProfile && (
+                <section className="retro-window">
+                  <div className="window-header">
+                    <span>♟ ALLIED COMRADES ({friendsData ? friendsData.length : 0})</span>
+                    <div className="window-controls">
+                      <span className="window-btn min" />
+                      <span className="window-btn max" />
+                    </div>
+                  </div>
+
+                  <div className="window-body" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {!friendsData ? (
+                      <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+                        LOADING ROSTER...
+                      </div>
+                    ) : friendsData.length === 0 ? (
+                      <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+                        NO COMRADES LINKED.
+                      </div>
+                    ) : (
+                      friendsData.map((friend) => {
+                        const status = STATUS_STYLE[friend.status] ?? STATUS_STYLE.offline
+                        return (
+                          <div
+                            key={friend.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '8px 10px',
+                              background: 'rgba(5, 2, 18, 0.8)',
+                              borderRadius: 4,
+                              border: '1px solid rgba(0, 240, 255, 0.2)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                            onClick={() => {
+                              retroAudio.playUiBeep(640, 0.04)
+                              navigate(`/profile?u=${friend.username}`)
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = 'var(--accent-cyan)'
+                              e.currentTarget.style.background = 'rgba(25, 10, 56, 0.9)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.2)'
+                              e.currentTarget.style.background = 'rgba(5, 2, 18, 0.8)'
+                            }}
+                          >
+                            <div style={{ position: 'relative', marginRight: 10, flexShrink: 0 }}>
+                              <UserAvatar
+                                username={friend.username}
+                                avatarStyle={friend.avatarStyle}
+                                size={32}
+                                fallbackStyle={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 3,
+                                  background: 'rgba(10, 2, 28, 0.9)',
+                                  color: 'var(--accent-cyan)',
+                                  display: 'grid',
+                                  placeItems: 'center',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.7rem',
+                                }}
+                              />
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  right: -1,
+                                  bottom: -1,
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  background: status.color,
+                                  border: '1px solid #0d0221',
+                                }}
+                              />
+                            </div>
+
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  fontWeight: 'bold',
+                                  fontSize: '0.78rem',
+                                  color: '#ffffff',
+                                  whiteSpace: 'nowrap',
+                                  textOverflow: 'ellipsis',
+                                  overflow: 'hidden',
+                                  fontFamily: 'var(--font-mono)',
+                                }}
+                              >
+                                {friend.username}
+                              </div>
+                              <div style={{ color: status.color, fontSize: '0.62rem', fontFamily: 'var(--font-mono)' }}>
+                                {status.label}
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                color: '#ffe600',
+                                fontSize: '0.72rem',
+                                fontWeight: 'bold',
+                                fontFamily: 'var(--font-mono)',
+                              }}
+                            >
+                              ♛ {friend.rating}
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
