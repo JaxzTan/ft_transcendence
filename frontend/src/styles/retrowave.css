@@ -876,6 +876,29 @@ body {
   }
 }
 
+.badge-tier-paddle,
+.badge-tier-super {
+  position: relative;
+  background: linear-gradient(135deg, rgba(4, 28, 42, 0.95), rgba(2, 14, 24, 0.98)) !important;
+  border: 1.5px solid #00f0ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.7), inset 0 0 8px rgba(0, 240, 255, 0.35) !important;
+  text-shadow: 0 0 6px #ffffff, 0 0 10px #00f0ff !important;
+  animation: paddle-laser-pulse 2.2s infinite alternate !important;
+}
+
+@keyframes paddle-laser-pulse {
+  0% {
+    border-color: #00f0ff;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.6), inset 0 0 8px rgba(0, 240, 255, 0.3);
+  }
+
+  100% {
+    border-color: #00ffff;
+    box-shadow: 0 0 18px rgba(0, 240, 255, 0.85), 0 0 28px rgba(0, 255, 230, 0.4), inset 0 0 12px rgba(0, 240, 255, 0.5);
+  }
+}
+
 .badge-tier-honey {
   position: relative;
   background: linear-gradient(135deg, rgba(38, 30, 6, 0.95), rgba(20, 15, 3, 0.98)) !important;
@@ -894,15 +917,6 @@ body {
   100% {
     box-shadow: 0 0 18px rgba(255, 215, 0, 0.85), 0 0 28px rgba(255, 230, 0, 0.4);
   }
-}
-
-.badge-tier-super {
-  position: relative;
-  background: linear-gradient(135deg, rgba(5, 25, 35, 0.95), rgba(2, 12, 18, 0.98)) !important;
-  border: 1.5px solid #00f0ff !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.6), inset 0 0 8px rgba(0, 240, 255, 0.3) !important;
-  text-shadow: 0 0 6px #ffffff, 0 0 10px #00f0ff !important;
 }
 
 .badge-tier-choki {

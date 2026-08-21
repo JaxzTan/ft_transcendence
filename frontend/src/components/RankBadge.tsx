@@ -22,18 +22,18 @@ export function RankBadge({
 }: RankBadgeProps) {
   const isMamee = tier.key === 'mamee'
   const isMilo = tier.key === 'milo'
+  const isPaddle = tier.key === 'paddle' || tier.key === 'super'
   const isHoney = tier.key === 'honey'
-  const isSuper = tier.key === 'super'
   const isChoki = tier.key === 'choki'
 
   const tierClass = isMamee
     ? 'badge-mamee-monster'
     : isMilo
       ? 'badge-tier-milo'
-      : isHoney
-        ? 'badge-tier-honey'
-        : isSuper
-          ? 'badge-tier-super'
+      : isPaddle
+        ? 'badge-tier-paddle'
+        : isHoney
+          ? 'badge-tier-honey'
           : isChoki
             ? 'badge-tier-choki'
             : ''
@@ -42,10 +42,10 @@ export function RankBadge({
     ? '#ffe600'
     : isMilo
       ? '#ff00ff'
-      : isHoney
-        ? '#ffd700'
-        : isSuper
-          ? '#00f0ff'
+      : isPaddle
+        ? '#00f0ff'
+        : isHoney
+          ? '#ffd700'
           : '#d7a15c'
 
   return (
