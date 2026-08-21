@@ -868,7 +868,7 @@ export function Profile() {
                             NO COMBAT FLIGHT RECORDS FOUND IN PILOT ARCHIVE.
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {gamesData.games.map((g) => {
                               const isWin = g.rank === 1
                               return (
@@ -878,57 +878,72 @@ export function Profile() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
-                                    padding: '10px 14px',
-                                    borderRadius: 6,
-                                    background: isWin ? 'rgba(0, 255, 136, 0.08)' : 'rgba(255, 0, 127, 0.06)',
-                                    border: `1.5px solid ${isWin ? 'rgba(0, 255, 136, 0.38)' : 'rgba(255, 0, 127, 0.32)'}`,
+                                    padding: '12px 18px',
+                                    borderRadius: 7,
+                                    background: isWin ? 'rgba(0, 255, 136, 0.09)' : 'rgba(255, 0, 127, 0.07)',
+                                    border: `1.5px solid ${isWin ? 'rgba(0, 255, 136, 0.42)' : 'rgba(255, 0, 127, 0.36)'}`,
                                     fontFamily: 'var(--font-display)',
                                     transition: 'all 0.18s ease',
                                   }}
                                 >
                                   {/* Left: Result Tag & Info */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                                     <span
                                       style={{
-                                        fontSize: '0.78rem',
+                                        fontSize: '0.88rem',
                                         fontWeight: 900,
-                                        padding: '3px 8px',
-                                        borderRadius: 4,
+                                        padding: '5px 12px',
+                                        borderRadius: 5,
                                         background: isWin ? 'rgba(0, 255, 136, 0.22)' : 'rgba(255, 0, 127, 0.22)',
                                         color: isWin ? '#00ff88' : '#ff007f',
                                         border: `1px solid ${isWin ? '#00ff88' : '#ff007f'}`,
-                                        textShadow: isWin ? '0 0 8px #00ff88' : '0 0 8px #ff007f',
-                                        minWidth: 90,
+                                        textShadow: isWin ? '0 0 10px #00ff88' : '0 0 10px #ff007f',
+                                        minWidth: 105,
                                         textAlign: 'center',
+                                        letterSpacing: '0.04em',
                                       }}
                                     >
                                       {isWin ? '#1 VICTORY' : `RANK #${g.rank ?? '?'}`}
                                     </span>
 
                                     <div>
-                                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.03em' }}>
+                                      <div style={{ fontSize: '1rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.03em' }}>
                                         {isWin ? 'MISSION ACCOMPLISHED' : 'TACTICAL DEFEAT'}
                                       </div>
-                                      <div style={{ color: 'var(--text-muted)', fontSize: '0.68rem', marginTop: 2 }}>
+                                      <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: 3 }}>
                                         {g.participants.length} COMBATANTS • {new Date(g.startedAt).toLocaleDateString()} {new Date(g.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                       </div>
                                     </div>
                                   </div>
 
-                                  {/* Right: Scores & Status */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                                    <div style={{ textAlign: 'right', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                                      CAPTURED: <strong style={{ color: '#ffffff' }}>{g.piecesCaptured}</strong> • GOAL: <strong style={{ color: isWin ? '#00ff88' : '#ffffff' }}>{g.piecesInGoal}/4</strong>
+                                  {/* Right: Scores & ELO Delta */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                      <div
+                                        style={{
+                                          fontSize: '0.94rem',
+                                          fontWeight: 900,
+                                          color: isWin ? '#00ff88' : '#ff007f',
+                                          textShadow: isWin ? '0 0 8px rgba(0, 255, 136, 0.6)' : '0 0 8px rgba(255, 0, 127, 0.6)',
+                                          lineHeight: 1,
+                                        }}
+                                      >
+                                        {isWin ? '+25 ELO' : '-5 ELO'}
+                                      </div>
+                                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                                        GOAL: <strong style={{ color: isWin ? '#00ff88' : '#ffffff' }}>{g.piecesInGoal}/4</strong>
+                                      </div>
                                     </div>
                                     <span
                                       style={{
-                                        fontSize: '0.72rem',
-                                        padding: '2px 8px',
+                                        fontSize: '0.8rem',
+                                        padding: '4px 12px',
                                         borderRadius: 4,
                                         background: isWin ? 'rgba(0, 255, 136, 0.22)' : 'rgba(255, 0, 127, 0.22)',
                                         color: isWin ? '#00ff88' : '#ff007f',
                                         fontWeight: 900,
                                         border: `1px solid ${isWin ? '#00ff88' : '#ff007f'}`,
+                                        letterSpacing: '0.5px',
                                       }}
                                     >
                                       {isWin ? 'WIN' : 'LOSS'}
@@ -1091,17 +1106,17 @@ export function Profile() {
 
                       <div
                         style={{
-                          padding: '10px 12px',
+                          padding: '12px 14px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: 6,
+                          gap: 9,
                           flex: 1,
                           overflowY: 'auto',
                           minHeight: 0,
                         }}
                       >
                         {!friendsData || friendsData.length === 0 ? (
-                          <div style={{ padding: 18, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.76rem', fontFamily: 'var(--font-display)' }}>
+                          <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
                             NO ALLIED OPERATIVES FOUND.
                           </div>
                         ) : (
@@ -1115,10 +1130,10 @@ export function Profile() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
-                                  padding: '6px 8px',
-                                  borderRadius: 5,
-                                  background: 'rgba(10, 3, 24, 0.7)',
-                                  border: '1px solid rgba(0, 240, 255, 0.18)',
+                                  padding: '10px 14px',
+                                  borderRadius: 6,
+                                  background: 'rgba(10, 3, 24, 0.75)',
+                                  border: '1.5px solid rgba(0, 240, 255, 0.22)',
                                   cursor: 'pointer',
                                   transition: 'all 0.18s ease',
                                 }}
@@ -1127,42 +1142,51 @@ export function Profile() {
                                   navigate(`/profile?u=${f.username}`)
                                 }}
                                 onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'rgba(0, 240, 255, 0.12)'
+                                  e.currentTarget.style.background = 'rgba(0, 240, 255, 0.14)'
                                   e.currentTarget.style.borderColor = 'var(--accent-cyan)'
                                 }}
                                 onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'rgba(10, 3, 24, 0.7)'
-                                  e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.18)'
+                                  e.currentTarget.style.background = 'rgba(10, 3, 24, 0.75)'
+                                  e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.22)'
                                 }}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                                    <UserAvatar
-                                      username={f.username}
-                                      avatarStyle={f.avatarStyle}
-                                      size={30}
-                                      fallbackStyle={{
-                                        width: 30,
-                                        height: 30,
-                                        borderRadius: 4,
-                                        background: 'rgba(10, 2, 28, 0.9)',
-                                        color: 'var(--accent-cyan)',
-                                        display: 'grid',
-                                        placeItems: 'center',
-                                        fontWeight: 900,
-                                        fontSize: '0.8rem',
+                                    <div
+                                      style={{
+                                        padding: 2,
+                                        borderRadius: 5,
+                                        background: `linear-gradient(135deg, ${fTier.color}, var(--accent-cyan))`,
+                                        boxShadow: `0 0 8px ${fTier.glow}`,
                                       }}
-                                    />
+                                    >
+                                      <UserAvatar
+                                        username={f.username}
+                                        avatarStyle={f.avatarStyle}
+                                        size={40}
+                                        fallbackStyle={{
+                                          width: 40,
+                                          height: 40,
+                                          borderRadius: 4,
+                                          background: 'rgba(10, 2, 28, 0.95)',
+                                          color: 'var(--accent-cyan)',
+                                          display: 'grid',
+                                          placeItems: 'center',
+                                          fontWeight: 900,
+                                          fontSize: '1rem',
+                                        }}
+                                      />
+                                    </div>
                                     <span
                                       style={{
                                         position: 'absolute',
-                                        right: -1,
-                                        bottom: -1,
-                                        width: 7,
-                                        height: 7,
+                                        right: -2,
+                                        bottom: -2,
+                                        width: 10,
+                                        height: 10,
                                         borderRadius: '50%',
                                         background: fStatus.color,
-                                        border: '1.5px solid #0d0221',
+                                        border: '2px solid #0d0221',
                                         boxShadow: `0 0 6px ${fStatus.color}`,
                                       }}
                                     />
@@ -1170,29 +1194,30 @@ export function Profile() {
                                   <div style={{ minWidth: 0 }}>
                                     <div
                                       style={{
-                                        fontSize: '0.8rem',
+                                        fontSize: '0.92rem',
                                         fontWeight: 900,
                                         color: '#ffffff',
                                         fontFamily: 'var(--font-display)',
                                         whiteSpace: 'nowrap',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
+                                        letterSpacing: '0.02em',
                                       }}
                                     >
                                       {f.username}
                                     </div>
-                                    <div style={{ fontSize: '0.62rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold' }}>
+                                    <div style={{ fontSize: '0.7rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
                                       ● {fStatus.label.toUpperCase()}
                                     </div>
                                   </div>
                                 </div>
 
                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                  <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)' }}>
+                                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
                                     {f.rating}
                                   </div>
-                                  <div style={{ marginTop: 1 }}>
-                                    <RankBadge tier={fTier} fontSize="8.5px" padding="1px 5px" />
+                                  <div style={{ marginTop: 3 }}>
+                                    <RankBadge tier={fTier} fontSize="10px" padding="2px 7px" />
                                   </div>
                                 </div>
                               </div>
