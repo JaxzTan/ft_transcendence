@@ -247,11 +247,8 @@ export function NotificationBell({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '1rem', color: count > 0 ? 'var(--accent-pink)' : 'var(--accent-cyan)' }}>
-              🔔
-            </span>
             <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
-              COMMS
+              NOTIFICATIONS
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -278,12 +275,12 @@ export function NotificationBell({
         <button
           className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
           onClick={toggleOpen}
-          title="Comms Telemetry & Notifications"
+          title="Notifications"
           style={{
             justifyContent: 'center',
             gap: 8,
             height: 38,
-            width: 125,
+            width: 140,
             margin: 0,
             ...buttonStyle,
           }}
@@ -303,7 +300,7 @@ export function NotificationBell({
           />
 
           <span className="theme-btn-text" style={{ fontSize: '0.62rem' }}>
-            COMM{count > 0 ? `[${count < 10 ? `0${count}` : count}]` : ''}
+            NOTIFICATIONS{count > 0 ? ` [${count < 10 ? `0${count}` : count}]` : ''}
           </span>
         </button>
       )}
@@ -331,7 +328,7 @@ export function NotificationBell({
                 fontWeight: 'bold',
               }}
             >
-              TRANSMISSION LOG // COMMS
+              TRANSMISSION LOG // NOTIFICATIONS
             </span>
           </div>
 

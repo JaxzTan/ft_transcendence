@@ -121,7 +121,7 @@ export function RetroNavbar({
         ...style,
       }}
     >
-      {/* Top Section: Glowing 42 Emblem & User Profile Pill with Account Menu Popover */}
+      {/* Top Section: User Profile Pill with Account Menu Popover */}
       <div
         style={{
           width: '100%',
@@ -133,57 +133,6 @@ export function RetroNavbar({
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
         }}
       >
-        {/* 42 Logo Button Capsule */}
-        <button
-          className="brand-42-logo"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            background: 'linear-gradient(135deg, rgba(255, 0, 127, 0.22), rgba(0, 240, 255, 0.18))',
-            border: '1px solid rgba(0, 240, 255, 0.45)',
-            borderRadius: 14,
-            outline: 'none',
-            padding: '14px 0',
-            width: '100%',
-            boxShadow:
-              '0 0 20px rgba(0, 240, 255, 0.25), inset 0 0 12px rgba(255, 0, 127, 0.15)',
-            transition: 'all 0.22s ease',
-          }}
-          onClick={() => {
-            retroAudio.playUiBeep(440, 0.05)
-            navigate('/home')
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.02)'
-            e.currentTarget.style.borderColor = 'var(--accent-cyan)'
-            e.currentTarget.style.boxShadow =
-              '0 0 28px rgba(0, 240, 255, 0.6), inset 0 0 16px rgba(255, 0, 127, 0.3)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)'
-            e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.45)'
-            e.currentTarget.style.boxShadow =
-              '0 0 20px rgba(0, 240, 255, 0.25), inset 0 0 12px rgba(255, 0, 127, 0.15)'
-          }}
-          title="Return to Mainframe (Home)"
-        >
-          <svg
-            width="54"
-            height="30"
-            viewBox="0 0 54 30"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{
-              fill: 'var(--accent-cyan)',
-              filter: 'drop-shadow(0 0 10px rgba(0, 240, 255, 0.8))',
-            }}
-          >
-            <path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
-          </svg>
-        </button>
-
         {/* User Profile Pill Button -> Opens Account & Settings Popover Menu */}
         <div className="theme-popover-wrapper" ref={accountPopoverRef} style={{ width: '100%', position: 'relative' }}>
           <button
@@ -662,22 +611,24 @@ export function RetroNavbar({
               </span>
             </div>
             <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
-              ▼
+              {isThemePopoverOpen ? '▼' : '▲'}
             </span>
           </button>
 
-          {/* Enlarged Theme Popover Menu */}
+          {/* Upward Opening Theme Popover Menu */}
           <div
-            className={`theme-popover-menu ${isThemePopoverOpen ? 'active' : ''}`}
+            className={`theme-popover-menu open-up ${isThemePopoverOpen ? 'active' : ''}`}
             id="themePopoverMenu"
             style={{
-              left: 'calc(100% + 14px)',
-              right: 'auto',
-              top: 0,
-              bottom: 'auto',
-              width: 275,
+              bottom: 'calc(100% + 8px)',
+              top: 'auto',
+              left: 0,
+              right: 0,
+              width: '100%',
               padding: '14px 16px',
               borderRadius: 14,
+              boxSizing: 'border-box',
+              zIndex: 10005,
             }}
           >
             <fieldset
