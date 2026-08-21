@@ -48,8 +48,9 @@ const HOME_LANES: Record<ColorKey, Cell[]> = {
 
 const TRACK_OFFSET: Record<ColorKey, number> = { red: 0, green: 13, yellow: 26, blue: 39 }
 
-/** Map a piece's logical step (1-57) to a board cell, or null if not on the board (base/goal). */
+/** Map a piece's logical step (1-57) to a board cell, or null if not on the board (base). */
 function stepToCell(color: ColorKey, step: number): Cell | null {
+  if (step === 57) return { r: 7, c: 7 } // center goal triangle
   if (step >= 52 && step <= 56) return HOME_LANES[color][step - 52]
   if (step >= 1 && step <= 51) {
     const trackPos = ((step + TRACK_OFFSET[color] - 1) % 52) + 1
@@ -182,14 +183,21 @@ type BoardProps = {
   animating?: { pieceId: string; step: number } | null
   /** Transient capture burst: expanding ring + sparks on the cell the mover landed on. Pure cosmetic overlay. */
   fx?: { color: string; to: number } | null
+  /** Eaten piece(s) still drawn at their pre-capture cell so they don't vanish before the mover visually arrives — pops out once `popping` flips true. */
+  fading?: Array<{ id: string; ck: string; step: number; popping: boolean }>
 }
 
 /** The classic 15×15 cross board, rendered procedurally — no images. */
-export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating, fx }: BoardProps = {}) {
+export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating, fx, fading }: BoardProps = {}) {
   const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
   const activeColors = new Set(players.filter((p) => p.status === 'active' || p.status === 'disconnected').map((p) => p.color))
+  // Pieces currently drawn as a fading ghost on the track are already
+  // isInBase in engine state — skip them here so they don't also render in
+  // the home Yard, which would show the same piece twice (and the color's
+  // count would visually exceed 4) until the ghost pops out.
+  const fadingIds = new Set((fading ?? []).map((f) => f.id))
   const basePieces = (ck: ColorKey) =>
-    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase) : []
+    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase && !fadingIds.has(p.id)) : []
 
   const cells: ReactNode[] = []
   for (let r = 0; r < 15; r++) {
@@ -246,7 +254,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
   // Render engine-driven pieces on the actual track cell their step maps to.
   // Grouped by cell so pieces sharing a square (common near base/captures)
   // fan out into sub-positions instead of fully overlapping.
-  const byCell = new Map<string, Array<{ id: string; ck: ColorKey; isLegal: boolean }>>()
+  const byCell = new Map<string, Array<{ id: string; ck: ColorKey; isLegal: boolean; popGoal: boolean }>>()
   for (const piece of pieces) {
     if (!activeColors.has(piece.color)) continue
     const isAnimating = animating?.pieceId === piece.id
@@ -255,11 +263,14 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
     // in-transit step regardless so the box-by-box travel stays visible.
     if (!isAnimating && (piece.isInBase || piece.isInGoal || piece.step <= 0)) continue
     const ck = piece.color as ColorKey
-    const cell = stepToCell(ck, isAnimating ? animating!.step : piece.step)
+    const animStep = isAnimating ? animating!.step : piece.step
+    const cell = stepToCell(ck, animStep)
     if (!cell) continue
     const key = `${cell.r},${cell.c}`
     const list = byCell.get(key) ?? []
-    list.push({ id: piece.id, ck, isLegal: legalPieceIds.has(piece.id) })
+    // Final animation frame lands in the center goal triangle — pop it out
+    // there instead of just cutting to nothing once `animating` clears.
+    list.push({ id: piece.id, ck, isLegal: legalPieceIds.has(piece.id), popGoal: isAnimating && animStep === 57 })
     byCell.set(key, list)
   }
 
@@ -290,6 +301,11 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
       @keyframes captureSpark {
         from { transform: translate(0,0) scale(1); opacity: 1; }
         to   { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; }
+      }
+      @keyframes capturePop {
+        0%   { transform: scale(1); opacity: 1; }
+        40%  { transform: scale(1.25); opacity: 1; }
+        100% { transform: scale(0); opacity: 0; }
       }
     `
     document.head.appendChild(style)
@@ -357,6 +373,34 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
     }
   }
 
+  // Ghost render of eaten piece(s) — see `fading` prop doc above.
+  for (const f of fading ?? []) {
+    const ck = f.ck as ColorKey
+    const cell = stepToCell(ck, f.step)
+    if (!cell) continue
+    const col = COL[ck]
+    enginePieces.push(
+      <div
+        key={`fade-${f.id}`}
+        style={{
+          gridRow: cell.r + 1,
+          gridColumn: cell.c + 1,
+          width: 20,
+          height: 20,
+          alignSelf: 'center',
+          justifySelf: 'center',
+          borderRadius: '50%',
+          background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${col.base} 52%, ${col.dark})`,
+          border: '2px solid rgba(0,0,0,.28)',
+          boxShadow: '0 2px 4px rgba(0,0,0,.45)',
+          pointerEvents: 'none',
+          zIndex: 9,
+          animation: f.popping ? 'capturePop 320ms ease-in forwards' : 'none',
+        }}
+      />,
+    )
+  }
+
   for (const [key, list] of byCell) {
     const [r, c] = key.split(',').map(Number)
     list.forEach((p, i) => {
@@ -377,7 +421,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
             background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${col.base} 52%, ${col.dark})`,
             border: p.isLegal ? '2.5px solid #9aa4ad' : '2px solid rgba(0,0,0,.28)',
             boxShadow: p.isLegal ? '0 0 0 4px rgba(160,165,170,.35), 0 0 10px rgba(0,0,0,.45)' : '0 2px 4px rgba(0,0,0,.45)',
-            animation: p.isLegal ? 'haloPulse 1.8s ease-in-out infinite' : 'none',
+            animation: p.popGoal ? 'capturePop 220ms ease-in forwards' : p.isLegal ? 'haloPulse 1.8s ease-in-out infinite' : 'none',
             cursor: p.isLegal ? 'pointer' : 'default',
             zIndex: 10,
             transform: `translate(${offset.x}%, ${offset.y}%)`,
@@ -413,7 +457,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
             gridColumn: '7 / span 3',
             background: `conic-gradient(from 45deg, ${COL.yellow.base} 0 90deg, ${COL.blue.base} 90deg 180deg, ${COL.red.base} 180deg 270deg, ${COL.green.base} 270deg 360deg)`,
             boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
-            transform: 'rotate(-90deg)',
+            transform: 'rotate',
           }}
         />
         {cells}

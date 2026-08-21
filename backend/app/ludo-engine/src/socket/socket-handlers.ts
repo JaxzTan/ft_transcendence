@@ -52,7 +52,9 @@ export class SocketHandlers {
 
         let state = await this.store.loadGameState(effectiveGameId);
         if (!state) {
-          await this.store.createGame(effectiveGameId, true);
+          const creationMatchData = await this.store.getMatchData(effectiveGameId);
+          const playerCount = parseInt(creationMatchData?.playerCount || '4', 10);
+          await this.store.createGame(effectiveGameId, true, SLOT_COLORS.slice(0, playerCount));
           state = await this.store.loadGameState(effectiveGameId);
         }
 
