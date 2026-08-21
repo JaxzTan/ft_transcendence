@@ -22,9 +22,8 @@ interface RetroNavbarProps {
 const NAV_ITEMS = [
   { path: '/leaderboard', label: 'LEADERBOARD', icon: '♛' },
   { path: '/profile', label: 'PROFILE', icon: '@/' },
-  { path: '/dashboard', label: 'DASHBOARD', icon: '▦' },
   { path: '/gamelobby', label: 'LOBBY', icon: '>_' },
-  { path: '/game', label: 'ARENA', icon: '{}' },
+  { path: '/game', label: 'ARENA', icon: '{}', disabled: true },
   { path: '/friends', label: 'FRIENDS', icon: '♟' },
 ]
 
@@ -249,15 +248,18 @@ export function RetroNavbar({
         }}
       >
         {NAV_ITEMS.map((item) => {
+          const isDisabled = !!item.disabled
           const isActive =
-            currentPath === item.path ||
-            (item.path === '/gamelobby' && currentPath === '/ludolobby') ||
-            (item.path === '/profile' && currentPath.startsWith('/profile'))
+            !isDisabled &&
+            (currentPath === item.path ||
+              (item.path === '/gamelobby' && currentPath === '/ludolobby') ||
+              (item.path === '/profile' && currentPath.startsWith('/profile')))
 
           return (
             <button
               key={item.path}
-              className={`retro-btn theme-trigger-btn ${isActive ? 'active' : ''}`}
+              disabled={isDisabled}
+              className={`retro-btn theme-trigger-btn ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
               style={{
                 width: '100%',
                 height: 52,
@@ -266,26 +268,41 @@ export function RetroNavbar({
                 padding: '0 14px',
                 fontSize: '0.94rem',
                 borderRadius: 12,
-                background: isActive
-                  ? 'linear-gradient(90deg, rgba(255, 0, 127, 0.95), rgba(157, 0, 255, 0.95))'
-                  : 'rgba(255, 255, 255, 0.03)',
-                color: isActive ? '#ffffff' : 'var(--text-main)',
-                border: isActive
-                  ? '1.5px solid #ff007f'
-                  : '1px solid rgba(255, 255, 255, 0.07)',
+                background: isDisabled
+                  ? 'rgba(255, 255, 255, 0.015)'
+                  : isActive
+                    ? 'linear-gradient(90deg, rgba(255, 0, 127, 0.95), rgba(157, 0, 255, 0.95))'
+                    : 'rgba(255, 255, 255, 0.03)',
+                color: isDisabled
+                  ? 'rgba(255, 255, 255, 0.3)'
+                  : isActive
+                    ? '#ffffff'
+                    : 'var(--text-main)',
+                border: isDisabled
+                  ? '1px dashed rgba(255, 255, 255, 0.12)'
+                  : isActive
+                    ? '1.5px solid #ff007f'
+                    : '1px solid rgba(255, 255, 255, 0.07)',
                 boxShadow: isActive
                   ? '0 0 20px rgba(255, 0, 127, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
                   : 'none',
                 fontWeight: isActive ? 900 : 'bold',
                 letterSpacing: '1px',
+                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                opacity: isDisabled ? 0.45 : 1,
                 transition: 'all 0.18s ease',
               }}
+              title={isDisabled ? `${item.label} (Enter match via Game Lobby)` : item.label}
               onClick={() => {
+                if (isDisabled) {
+                  retroAudio.playUiBeep(220, 0.06)
+                  return
+                }
                 retroAudio.playUiBeep(isActive ? 480 : 640, 0.05)
                 navigate(item.path)
               }}
               onMouseEnter={(e) => {
-                if (!isActive) {
+                if (!isActive && !isDisabled) {
                   e.currentTarget.style.background = 'rgba(0, 240, 255, 0.14)'
                   e.currentTarget.style.borderColor = 'var(--accent-cyan)'
                   e.currentTarget.style.color = '#ffffff'
@@ -294,7 +311,7 @@ export function RetroNavbar({
                 }
               }}
               onMouseLeave={(e) => {
-                if (!isActive) {
+                if (!isActive && !isDisabled) {
                   e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
                   e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)'
                   e.currentTarget.style.color = 'var(--text-main)'
@@ -308,12 +325,20 @@ export function RetroNavbar({
                   width: 32,
                   height: 32,
                   borderRadius: 7,
-                  background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 240, 255, 0.08)',
+                  background: isDisabled
+                    ? 'rgba(255, 255, 255, 0.03)'
+                    : isActive
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'rgba(0, 240, 255, 0.08)',
                   display: 'grid',
                   placeItems: 'center',
                   fontFamily: 'var(--font-mono)',
                   fontSize: '1.12rem',
-                  color: isActive ? '#ffffff' : 'var(--accent-cyan)',
+                  color: isDisabled
+                    ? 'rgba(255, 255, 255, 0.3)'
+                    : isActive
+                      ? '#ffffff'
+                      : 'var(--accent-cyan)',
                   flexShrink: 0,
                   filter: isActive ? 'drop-shadow(0 0 6px #ffffff)' : 'none',
                 }}
