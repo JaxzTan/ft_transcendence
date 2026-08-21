@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useApp } from '../store'
-import { avatarBlue, card } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
+import { navigate } from '../router'
+import { useApp } from '../store'
+import { retroAudio } from '../utils/audio'
 import { getRankTier } from '../utils/ranks'
+import '../styles/retrowave.css'
+
+type ThemeType = 'synthwave' | 'win95' | 'terminal'
 
 type Profile = {
   username: string
@@ -54,6 +58,40 @@ export function Dashboard() {
   const { t } = useTranslation()
   const { user } = useApp()
 
+  // ------------------------------------------------------------------------
+  // THEME & CRT CONTROLS
+  // ------------------------------------------------------------------------
+  const [theme, setTheme] = useState<ThemeType>('synthwave')
+  const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
+  const [crtEnabled, setCrtEnabled] = useState(true)
+
+  const applyTheme = (newTheme: ThemeType) => {
+    setTheme(newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+    document.body.setAttribute('data-theme', newTheme)
+    localStorage.setItem('retro_theme', newTheme)
+    retroAudio.playUiBeep(880, 0.05)
+  }
+
+  useEffect(() => {
+    const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
+    setTheme(savedTheme)
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    document.body.setAttribute('data-theme', savedTheme)
+
+    const savedCrt = localStorage.getItem('retro_crt')
+    if (savedCrt === 'false') {
+      setCrtEnabled(false)
+    }
+  }, [])
+
+  const toggleCrt = () => {
+    const next = !crtEnabled
+    setCrtEnabled(next)
+    localStorage.setItem('retro_crt', next ? 'true' : 'false')
+    retroAudio.playUiBeep(440, 0.05)
+  }
+
   const [profile, setProfile] = useState<Profile | null>(null)
   const [games, setGames] = useState<GamesResponse | null>(null)
   const [achievements, setAchievements] = useState<Record<string, boolean> | null>(null)
@@ -65,162 +103,612 @@ export function Dashboard() {
 
     fetch(`/api/user/${user.username}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (!cancelled) setProfile(data) })
-      .catch(() => { if (!cancelled) setProfile(null) })
+      .then((data) => {
+        if (!cancelled) setProfile(data)
+      })
+      .catch(() => {
+        if (!cancelled) setProfile(null)
+      })
 
     fetch(`/api/user/${user.username}/games?limit=5`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (!cancelled) setGames(data) })
-      .catch(() => { if (!cancelled) setGames({ games: [] }) })
+      .then((data) => {
+        if (!cancelled) setGames(data)
+      })
+      .catch(() => {
+        if (!cancelled) setGames({ games: [] })
+      })
 
     fetch('/api/achievements', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (!cancelled) setAchievements(data ?? {}) })
-      .catch(() => { if (!cancelled) setAchievements({}) })
+      .then((data) => {
+        if (!cancelled) setAchievements(data ?? {})
+      })
+      .catch(() => {
+        if (!cancelled) setAchievements({})
+      })
 
     fetch('/api/leaderboard?mode=global&limit=1', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (!cancelled && data?.myRank?.rank) setLeaderboardRank(data.myRank.rank) })
-      .catch(() => { if (!cancelled) setLeaderboardRank(null) })
+      .then((data) => {
+        if (!cancelled && data?.myRank?.rank) setLeaderboardRank(data.myRank.rank)
+      })
+      .catch(() => {
+        if (!cancelled) setLeaderboardRank(null)
+      })
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [user?.username])
 
   const totalGames = profile ? profile.wins + profile.losses : 0
   const winRate = totalGames > 0 ? Math.round((profile!.wins / totalGames) * 100) : 0
+  const currentTier = getRankTier(profile?.rating ?? 1200, leaderboardRank)
 
   const statTiles = profile
     ? [
-      { label: t('dashboard.rating'), value: `♛ ${profile.rating}` },
-      { label: t('dashboard.gamesPlayed'), value: String(totalGames) },
-      { label: t('dashboard.winRate'), value: `${winRate}%` },
-      { label: t('dashboard.currentStreak'), value: String(profile.winStreak) },
-      { label: t('dashboard.bestStreak'), value: String(profile.bestWinStreak) },
+      { label: t('dashboard.rating'), value: `♛ ${profile.rating}`, hue: currentTier.color, badge: currentTier.badge },
+      { label: t('dashboard.gamesPlayed'), value: String(totalGames), hue: '#00f0ff' },
+      { label: t('dashboard.winRate'), value: `${winRate}%`, hue: '#00ff88' },
+      { label: t('dashboard.currentStreak'), value: String(profile.winStreak), hue: '#ff007f' },
+      { label: t('dashboard.bestStreak'), value: String(profile.bestWinStreak), hue: '#9d00ff' },
     ]
     : []
 
+  const unlockedCount = achievements ? Object.values(achievements).filter(Boolean).length : 0
+
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, borderRadius: 18, padding: '24px 26px', background: 'linear-gradient(180deg,#241b13,#1a130d)', border: '1px solid #3a2c1d' }}>
-        <UserAvatar
-          username={profile?.username ?? user?.username ?? ''}
-          size={74}
-          fallbackStyle={avatarBlue(74, 26, 18)}
-          style={{ boxShadow: '0 0 0 3px #f0d18a55' }}
+    <>
+      {/* Animated 3D Synthwave Grid & Sun Background */}
+      <div className="grid-background">
+        <div className="synthwave-sun" />
+        <div className="grid-horizon" />
+        <div className="perspective-grid" />
+        <div className="win95-starfield" />
+        <div className="terminal-vector-core" />
+      </div>
+
+      {/* CRT Monitor Overlay FX Container */}
+      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+        <div
+          className="crt-scanlines"
+          id="crtOverlay"
+          style={{ display: crtEnabled ? 'block' : 'none' }}
         />
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 26, color: '#f4e9cf' }}>
-              {profile?.username ?? user?.username ?? t('common.you')}
-            </div>
-            {profile && (() => {
-              const tier = getRankTier(profile.rating, leaderboardRank)
-              return (
-                <span
+        <div className="crt-flicker" />
+
+        {/* Main Content Wrapper */}
+        <div className="app-wrapper">
+          {/* Navigation Header */}
+          <nav className="navbar" id="mainNav">
+            <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                className="retro-btn"
+                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                onClick={() => {
+                  retroAudio.playUiBeep(440, 0.05)
+                  navigate('/home')
+                }}
+                title="Return to Hub"
+              >
+                ← HUB
+              </button>
+              <div
+                className="brand-42-logo"
+                style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => {
+                  retroAudio.playUiBeep(440, 0.05)
+                  navigate('/home')
+                }}
+                title="42 Hub"
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
                   style={{
-                    fontSize: '11px',
-                    padding: '3px 8px',
-                    borderRadius: 4,
-                    background: tier.bg,
-                    color: tier.color,
-                    border: `1px solid ${tier.border}`,
-                    fontWeight: 800,
-                    letterSpacing: '0.04em',
+                    fill: 'var(--accent-cyan)',
+                    filter: 'drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 14px var(--accent-pink))',
                   }}
                 >
-                  {tier.name}
-                </span>
-              )
-            })()}
-          </div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 30, fontWeight: 800, color: profile ? getRankTier(profile.rating, leaderboardRank).color : '#f0c24e' }}>♛ {profile?.rating ?? '—'}</div>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14 }}>
-        {(profile ? statTiles : Array.from<{ label: string; value: string } | undefined>({ length: 5 })).map((s, i) => (
-          <div key={i} style={{ borderRadius: 14, padding: 18, background: 'linear-gradient(180deg,#221a12,#18120c)', border: '1px solid #33261a' }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#f0e2c4' }}>{s ? s.value : t('common.loading')}</div>
-            <div style={{ color: '#a99a83', fontSize: '12.5px', marginTop: 4, fontWeight: 600 }}>
-              {s ? s.label : ''}
+                  <path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
+                </svg>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
-        <div style={{ ...card, padding: 22 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 14 }}>{t('dashboard.recentMatches')}</div>
-          {!games ? (
-            <div style={{ color: '#a99a83', fontSize: 13.5, padding: '8px 0' }}>{t('common.loading')}</div>
-          ) : games.games.length === 0 ? (
-            <div style={{ color: '#a99a83', fontSize: 13.5, padding: '8px 0' }}>{t('dashboard.noMatchesYet')}</div>
-          ) : (
-            games.games.map((m) => {
-              const win = m.rank === 1
-              const opponents = m.participants.filter((p) => p.username !== (profile?.username ?? user?.username))
-              return (
-                <div key={m.gameId} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 0', borderBottom: '1px solid #2a2015' }}>
-                  <div
-                    style={{
-                      width: 34, height: 34, flex: 'none', borderRadius: 9, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 14,
-                      color: win ? '#0d1b12' : '#2a0f0c',
-                      background: win ? 'linear-gradient(180deg,#5fd08a,#2c8a53)' : 'linear-gradient(180deg,#e4574d,#a8362e)',
-                    }}
-                  >
-                    {win ? t('dashboard.win') : t('dashboard.loss')}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>
-                      {t('dashboard.vs')} {opponents.length > 0 ? opponents.map((o) => o.username).join(', ') : '—'}
-                    </div>
-                    <div style={{ color: '#a99a83', fontSize: 12 }}>{relativeTime(m.startedAt, t)}</div>
-                  </div>
+            <div className="nav-controls">
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/gamelobby')
+                }}
+              >
+                <span className="theme-btn-icon">&gt;_</span>
+                <span className="theme-btn-text">LOBBY</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/game')
+                }}
+              >
+                <span className="theme-btn-icon">&#123;&#125;</span>
+                <span className="theme-btn-text">GAME</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/leaderboard')
+                }}
+              >
+                <span className="theme-btn-icon">#_</span>
+                <span className="theme-btn-text">LADDER</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/friends')
+                }}
+              >
+                <span className="theme-btn-icon">♟</span>
+                <span className="theme-btn-text">FRIENDS</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/profile')
+                }}
+              >
+                <span className="theme-btn-icon">@/</span>
+                <span className="theme-btn-text">PROFILE</span>
+              </button>
+
+              {/* Theme Selector Popover Menu */}
+              <div className="theme-popover-wrapper">
+                <button
+                  className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
+                  id="themeModalBtn"
+                  aria-label="Toggle Theme Menu"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const next = !isThemePopoverOpen
+                    setIsThemePopoverOpen(next)
+                    retroAudio.playUiBeep(next ? 960 : 480, 0.05)
+                  }}
+                >
+                  <span className="theme-btn-icon">&lt;/&gt;</span>
+                  <span className="theme-btn-text">THEME</span>
+                  <span className="theme-chevron">▼</span>
+                </button>
+
+                <div
+                  className={`theme-popover-menu ${isThemePopoverOpen ? 'active' : ''}`}
+                  id="themePopoverMenu"
+                >
+                  <fieldset id="color-scheme">
+                    <legend>THEME SELECTOR</legend>
+                    <label htmlFor="theme-synthwave">
+                      <input
+                        type="radio"
+                        id="theme-synthwave"
+                        name="theme-radio"
+                        value="synthwave"
+                        checked={theme === 'synthwave'}
+                        onChange={() => {
+                          applyTheme('synthwave')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>CYBERPUNK</span>
+                    </label>
+                    <label htmlFor="theme-win95">
+                      <input
+                        type="radio"
+                        id="theme-win95"
+                        name="theme-radio"
+                        value="win95"
+                        checked={theme === 'win95'}
+                        onChange={() => {
+                          applyTheme('win95')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>WIN95</span>
+                    </label>
+                    <label htmlFor="theme-terminal">
+                      <input
+                        type="radio"
+                        id="theme-terminal"
+                        name="theme-radio"
+                        value="terminal"
+                        checked={theme === 'terminal'}
+                        onChange={() => {
+                          applyTheme('terminal')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>TERMINAL</span>
+                    </label>
+                  </fieldset>
                 </div>
-              )
-            })
-          )}
-        </div>
-        <div style={{ ...card, padding: 22 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 14 }}>{t('dashboard.achievements')}</div>
-          {!achievements ? (
-            <div style={{ color: '#a99a83', fontSize: 13.5 }}>{t('common.loading')}</div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {ACHIEVEMENT_LIST.map((a) => {
-                const unlocked = !!achievements[a.key]
-                return (
-                  <div
-                    key={a.key}
-                    style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 10px',
-                      borderRadius: 12, textAlign: 'center',
-                      background: unlocked ? 'rgba(240,209,138,.08)' : '#18120c',
-                      border: '1px solid ' + (unlocked ? '#4a3826' : '#241a10'),
+              </div>
+
+              {/* CRT Scanlines Toggle */}
+              <div className="control-group">
+                <label className="retro-toggle" title="Toggle CRT Screen Scanlines">
+                  <span>CRT FX</span>
+                  <input
+                    type="checkbox"
+                    id="crtToggle"
+                    checked={crtEnabled}
+                    onChange={toggleCrt}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+            </div>
+          </nav>
+
+          {/* Hero Telemetry Banner */}
+          <header className="hero-section" style={{ padding: '16px 0 14px' }}>
+            <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 4 }}>
+              TACTICAL HUD // PILOT DASHBOARD
+            </h1>
+            <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+              LIVE COMBAT TELEMETRY, CYBER ACHIEVEMENTS & RECON LOGS
+            </p>
+
+            <div className="badge-bar" style={{ marginTop: 12 }}>
+              <span
+                className="retro-badge"
+                style={{
+                  border: '1px solid var(--accent-cyan)',
+                  color: 'var(--accent-cyan)',
+                }}
+              >
+                // CALLSIGN: {user?.username?.toUpperCase() ?? 'GUEST'}
+              </span>
+              <span
+                className="retro-badge"
+                style={{
+                  border: `1px solid ${currentTier.border}`,
+                  color: currentTier.color,
+                  boxShadow: `0 0 8px ${currentTier.glow}`,
+                }}
+              >
+                // RANK: {currentTier.name} ({profile?.rating ?? 1200} ELO)
+              </span>
+              <span
+                className="retro-badge"
+                style={{
+                  border: '1px solid #00ff88',
+                  color: '#00ff88',
+                }}
+              >
+                // ACHIEVEMENTS: {unlockedCount}/15 UNLOCKED
+              </span>
+            </div>
+          </header>
+
+          {/* Pilot Dossier Card Window */}
+          <section className="retro-window" style={{ maxWidth: 1100, margin: '0 auto 20px', width: '100%' }}>
+            <div className="window-header">
+              <span>👤 PILOT DOSSIER // CALLSIGN OVERVIEW</span>
+              <div className="window-controls">
+                <span className="window-btn min" />
+                <span className="window-btn max" />
+              </div>
+            </div>
+
+            <div
+              className="window-body"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 16,
+                padding: '16px 20px',
+                background: 'rgba(25, 10, 56, 0.75)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div
+                  style={{
+                    padding: 3,
+                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-pink))',
+                    boxShadow: '0 0 16px rgba(0, 240, 255, 0.4)',
+                  }}
+                >
+                  <UserAvatar
+                    username={profile?.username ?? user?.username ?? ''}
+                    size={68}
+                    fallbackStyle={{
+                      width: 68,
+                      height: 68,
+                      borderRadius: 6,
+                      background: 'rgba(10, 2, 28, 0.95)',
+                      color: 'var(--accent-cyan)',
+                      display: 'grid',
+                      placeItems: 'center',
+                      fontSize: '1.4rem',
+                      fontWeight: 'bold',
+                      fontFamily: 'var(--font-mono)',
                     }}
-                  >
-                    <div
+                  />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span
                       style={{
-                        width: 42, height: 42, borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 20,
-                        color: unlocked ? '#2a1c07' : '#4a3826',
-                        background: unlocked ? 'linear-gradient(180deg,#f0d18a,#c99b45)' : '#241a10',
+                        fontFamily: 'var(--font-heading)',
+                        fontSize: '1.25rem',
+                        color: '#ffffff',
+                        textShadow: '0 0 8px var(--accent-cyan)',
+                        letterSpacing: '1px',
                       }}
                     >
-                      {a.glyph}
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: unlocked ? '#f0e2c4' : '#6b5d49' }}>
-                      {t(`dashboard.${a.key}`)}
-                    </div>
+                      {profile?.username ?? user?.username ?? t('common.you')}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.68rem',
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        background: currentTier.bg,
+                        color: currentTier.color,
+                        border: `1px solid ${currentTier.border}`,
+                        boxShadow: `0 0 8px ${currentTier.glow}`,
+                        fontWeight: 'bold',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {currentTier.name}
+                    </span>
                   </div>
-                )
-              })}
+                  <div style={{ color: 'var(--accent-cyan)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
+                    // COMBAT STATUS: ACTIVE PILOT • {currentTier.badge} • ELO {profile?.rating ?? 1200}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button
+                  className="retro-btn"
+                  style={{ padding: '8px 16px', fontSize: '0.75rem' }}
+                  onClick={() => {
+                    retroAudio.playUiBeep(700, 0.05)
+                    navigate('/gamelobby')
+                  }}
+                >
+                  ⚔️ ENTER ARENA
+                </button>
+                <button
+                  className="retro-btn"
+                  style={{ padding: '8px 16px', fontSize: '0.75rem' }}
+                  onClick={() => {
+                    retroAudio.playUiBeep(700, 0.05)
+                    navigate('/profile')
+                  }}
+                >
+                  @/ DOSSIER SETTINGS
+                </button>
+              </div>
             </div>
-          )}
+          </section>
+
+          {/* 5-Tile Tactical Telemetry Matrix */}
+          <div
+            style={{
+              maxWidth: 1100,
+              margin: '0 auto 20px',
+              width: '100%',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+              gap: 14,
+            }}
+          >
+            {(profile ? statTiles : Array.from<{ label: string; value: string; hue: string; badge?: string } | undefined>({ length: 5 })).map(
+              (s, i) => (
+                <div
+                  key={i}
+                  className="retro-window"
+                  style={{
+                    padding: 14,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'rgba(25, 10, 56, 0.65)',
+                    border: `1px solid ${s?.hue ? s.hue + '55' : 'rgba(0, 240, 255, 0.3)'}`,
+                  }}
+                >
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
+                    {s ? s.label.toUpperCase() : '...'}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-heading)',
+                      fontSize: '1.45rem',
+                      color: s?.hue ?? '#ffffff',
+                      textShadow: s?.hue ? `0 0 10px ${s.hue}` : 'none',
+                    }}
+                  >
+                    {s ? s.value : '...'}
+                  </div>
+                  {s?.badge && (
+                    <span style={{ fontSize: '0.65rem', color: s.hue, fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                      {s.badge}
+                    </span>
+                  )}
+                </div>
+              ),
+            )}
+          </div>
+
+          {/* Main 2-Column Section: Match History & Achievement Vault */}
+          <div
+            style={{
+              maxWidth: 1100,
+              margin: '0 auto',
+              width: '100%',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: 20,
+            }}
+          >
+            {/* Match History Recon Logs */}
+            <section className="retro-window">
+              <div className="window-header">
+                <span>📜 RECON LOGS // COMBAT ARCHIVE</span>
+                <div className="window-controls">
+                  <span className="window-btn min" />
+                  <span className="window-btn max" />
+                </div>
+              </div>
+
+              <div
+                className="window-body"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  padding: 14,
+                  background: 'rgba(25, 10, 56, 0.65)',
+                }}
+              >
+                {!games || games.games.length === 0 ? (
+                  <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                    NO COMBAT TELEMETRY LOGGED. DEPLOY INTO ARENA.
+                  </div>
+                ) : (
+                  games.games.map((g) => {
+                    const isWin = g.rank === 1
+                    return (
+                      <div
+                        key={g.gameId}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          borderRadius: 4,
+                          background: isWin ? 'rgba(0, 255, 136, 0.08)' : 'rgba(255, 0, 127, 0.08)',
+                          border: `1px solid ${isWin ? 'rgba(0, 255, 136, 0.35)' : 'rgba(255, 0, 127, 0.35)'}`,
+                          fontFamily: 'var(--font-mono)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: '1.2rem' }}>{isWin ? '🏆' : '💀'}</span>
+                          <div>
+                            <div
+                              style={{
+                                fontSize: '0.82rem',
+                                fontWeight: 'bold',
+                                color: isWin ? '#00ff88' : '#ff007f',
+                                letterSpacing: '0.5px',
+                              }}
+                            >
+                              {isWin ? 'VICTORY SECURED' : `DEFEATED // RANK #${g.rank ?? '?'}`}
+                            </div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.68rem', marginTop: 2 }}>
+                              {g.participants.length} COMBATANTS • {relativeTime(g.startedAt, t)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            padding: '3px 8px',
+                            borderRadius: 3,
+                            background: isWin ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 0, 127, 0.2)',
+                            color: isWin ? '#00ff88' : '#ff007f',
+                            border: `1px solid ${isWin ? '#00ff88' : '#ff007f'}`,
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {isWin ? '+ELO' : '-ELO'}
+                        </span>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </section>
+
+            {/* Achievement Matrix Vault */}
+            <section className="retro-window">
+              <div className="window-header">
+                <span>🏆 CYBER VAULT // ACHIEVEMENTS ({unlockedCount}/15)</span>
+                <div className="window-controls">
+                  <span className="window-btn min" />
+                  <span className="window-btn max" />
+                </div>
+              </div>
+
+              <div
+                className="window-body"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                  gap: 10,
+                  padding: 14,
+                  background: 'rgba(25, 10, 56, 0.65)',
+                }}
+              >
+                {ACHIEVEMENT_LIST.map((ach) => {
+                  const isUnlocked = achievements ? !!achievements[ach.key] : false
+                  return (
+                    <div
+                      key={ach.key}
+                      style={{
+                        padding: '10px 8px',
+                        borderRadius: 4,
+                        textAlign: 'center',
+                        background: isUnlocked ? 'rgba(255, 230, 0, 0.08)' : 'rgba(0, 0, 0, 0.35)',
+                        border: `1px solid ${isUnlocked ? 'rgba(255, 230, 0, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
+                        opacity: isUnlocked ? 1 : 0.45,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ fontSize: '1.4rem', marginBottom: 4, filter: isUnlocked ? 'none' : 'grayscale(1)' }}>
+                        {ach.glyph}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 'bold',
+                          color: isUnlocked ? '#ffe600' : 'var(--text-muted)',
+                          fontFamily: 'var(--font-mono)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {t(`dashboard.${ach.key}`, ach.key)}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

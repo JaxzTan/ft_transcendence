@@ -9,20 +9,27 @@ import { navigate } from '../router'
 import { connectSocket } from '../socket'
 import { getApi, postApi } from '../api'
 import { useApp } from '../store'
-import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
+import { SEAT_COLORS } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
+import { retroAudio } from '../utils/audio'
+import '../styles/retrowave.css'
+
+type ThemeType = 'synthwave' | 'win95' | 'terminal'
 
 function Pips({ count, color }: { count: number; color: string }) {
   return (
-    <div style={{ display: 'flex', gap: 3 }}>
+    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
       {Array.from({ length: 4 }, (_, i) => (
         <div
           key={i}
           style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: i < count ? color : 'transparent',
-            border: '1.5px solid ' + (i < count ? color : '#4a3826'),
-            boxSizing: 'border-box',
+            width: 9,
+            height: 9,
+            borderRadius: '50%',
+            background: i < count ? color : 'rgba(255, 255, 255, 0.05)',
+            border: `1.5px solid ${i < count ? color : 'rgba(255, 255, 255, 0.2)'}`,
+            boxShadow: i < count ? `0 0 6px ${color}` : 'none',
+            transition: 'all 0.2s ease',
           }}
         />
       ))}
@@ -46,12 +53,12 @@ function MiniDie({ value }: { value: number }) {
   return (
     <div
       style={{
-        width: 44,
-        height: 44,
-        borderRadius: 11,
-        background: 'linear-gradient(150deg,#fbf5e6,#e4d8bf)',
-        boxShadow: 'inset 0 1px 2px rgba(255,255,255,.8),inset 0 -2px 3px rgba(140,120,80,.35),0 2px 4px rgba(0,0,0,.45)',
-        border: '1px solid #cbb99a',
+        width: 38,
+        height: 38,
+        borderRadius: 8,
+        background: 'linear-gradient(135deg, #1f0d3d, #0d0221)',
+        boxShadow: '0 0 8px rgba(0, 240, 255, 0.3), inset 0 0 4px rgba(255, 0, 127, 0.3)',
+        border: '1.5px solid var(--accent-cyan)',
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr',
         gridTemplateRows: '1fr 1fr 1fr',
@@ -65,10 +72,11 @@ function MiniDie({ value }: { value: number }) {
           {on.includes(i) ? (
             <div
               style={{
-                width: 8,
-                height: 8,
+                width: 6,
+                height: 6,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle at 35% 30%,#5a4a2e,#241a0c)',
+                background: '#ffe600',
+                boxShadow: '0 0 4px #ffe600',
               }}
             />
           ) : null}
@@ -85,6 +93,40 @@ const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 export function Game() {
   const { t } = useTranslation()
   const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
+
+  // ------------------------------------------------------------------------
+  // THEME & CRT CONTROLS
+  // ------------------------------------------------------------------------
+  const [theme, setTheme] = useState<ThemeType>('synthwave')
+  const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
+  const [crtEnabled, setCrtEnabled] = useState(true)
+
+  const applyTheme = (newTheme: ThemeType) => {
+    setTheme(newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+    document.body.setAttribute('data-theme', newTheme)
+    localStorage.setItem('retro_theme', newTheme)
+    retroAudio.playUiBeep(880, 0.05)
+  }
+
+  useEffect(() => {
+    const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
+    setTheme(savedTheme)
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    document.body.setAttribute('data-theme', savedTheme)
+
+    const savedCrt = localStorage.getItem('retro_crt')
+    if (savedCrt === 'false') {
+      setCrtEnabled(false)
+    }
+  }, [])
+
+  const toggleCrt = () => {
+    const next = !crtEnabled
+    setCrtEnabled(next)
+    localStorage.setItem('retro_crt', next ? 'true' : 'false')
+    retroAudio.playUiBeep(440, 0.05)
+  }
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
@@ -103,6 +145,7 @@ export function Game() {
   const [isRolling, setIsRolling] = useState(false)
   const isRollingRef = useRef(false)
   const [codeCopied, setCodeCopied] = useState(false)
+
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
   // piece_moved handler below, which steps through the server's `path`.
@@ -121,6 +164,7 @@ export function Game() {
 
   const copyRoomCode = () => {
     if (!activeMatch?.inviteCode) return
+    retroAudio.playUiBeep(720, 0.06)
     navigator.clipboard.writeText(activeMatch.inviteCode).then(() => {
       setCodeCopied(true)
       setTimeout(() => setCodeCopied(false), 1500)
@@ -169,20 +213,13 @@ export function Game() {
       setConnected(true)
       // Hotseat: one physical device controls every seat — the engine has no
       // separate accounts to join with, so this single socket must join_game
-      // for every local color up front (else an un-joined seat stays 'inactive'
-      // forever and advanceTurnInState skips it, effectively stranding the
-      // game on whoever joined first). Join the others first, own color last,
-      // so socket.data.playerColor (server-side move/roll authorization,
-      // overwritten by each join_game call) ends up on blue — the color that
-      // actually goes first.
+      // for every local color up front.
       if (activeMatch.mode === 'hotseat') {
         for (const ck of Object.keys(localNames) as PlayerColor[]) {
           socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
         }
       }
       socket.emit('join_game', activeMatch.gameId, activeMatch.color)
-      // Socket.IO re-fires 'connect' on every reconnect, so this also covers
-      // rejoining after a drop; if a clash was frozen mid-QTE, resume it too.
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -200,23 +237,20 @@ export function Game() {
       dispatch({ type: 'game_joined', ...(state as object) })
     })
 
-    // The engine publishes events through Redis pub/sub, and redis-broadcaster.ts
-    // now forwards each one under its own Socket.IO event name (e.g. `dice_rolled`,
-    // `piece_moved`, `game_started`, `game_ended`, `player_exited`, `clash_start`,
-    // `clash_result`, `clash_frozen`, `lobby_update`). We register a single
-    // `handleEngineEvent` on all of those names (plus `state_update` for safety).
-    // Every payload carries its own `type`; spreading it after the literal
-    // 'state_update' below lets it win, so the reducer still resolves the correct
-    // case. Side effects for each type live here too.
     const handleEngineEvent = (state: unknown) => {
       const type = (state as { type?: string }).type
       dispatch({ type: 'state_update', ...(state as object) })
 
       if (type === 'dice_rolled') {
-        setIsRolling(false)
-        isRollingRef.current = false
         const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
         const roller = viewRef.current.players.find((p) => p.color === viewRef.current.currentTurn)
+        retroAudio.playLaserSound()
+        setIsRolling(true)
+        setTimeout(() => {
+          setIsRolling(false)
+          isRollingRef.current = false
+        }, 750)
+
         setMoveLogs((prev) => [
           {
             ck: viewRef.current.currentTurn,
@@ -224,17 +258,15 @@ export function Game() {
               ? t('game.thirdSixForfeit', { name: roller?.username || viewRef.current.currentTurn })
               : `${t('game.rolledValue', { value: e.value })}${e.bonusRoll ? t('game.bonusSuffix') : ''}`,
           },
-          ...prev.slice(0, 7),
+          ...prev.slice(0, 11),
         ])
       } else if (type === 'piece_moved') {
         const e = state as unknown as { pieceId: string; color: PlayerColor; captured: boolean; to: number; path: number[] }
+        retroAudio.playUiBeep(580, 0.06, 'sine')
         setMoveLogs((prev) => [
           { ck: e.color, text: e.captured ? t('game.capturedPiece', { to: e.to }) : t('game.movedPiece', { to: e.to }) },
-          ...prev.slice(0, 7),
+          ...prev.slice(0, 11),
         ])
-        // Board state (turn, legal moves, captures) already reflects the final
-        // move above — this only walks the *visual* piece through the server's
-        // path box by box instead of snapping straight to the destination.
         if (animTimerRef.current) clearInterval(animTimerRef.current)
         const path = e.path ?? []
         if (path.length > 0) {
@@ -251,9 +283,8 @@ export function Game() {
             setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
           }, STEP_ANIM_MS)
         }
-        // Capture burst: show the ring/sparks exactly when the mover visually
-        // arrives (mirrors the server's own bot pacing math), then auto-clear.
         if (e.captured) {
+          retroAudio.playExplosionSound()
           if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
           captureFxTimerRef.current = setTimeout(() => {
             setCaptureFx({ color: e.color, to: e.to })
@@ -261,22 +292,16 @@ export function Game() {
           }, path.length * STEP_ANIM_MS)
         }
       } else if (type === 'lobby_update') {
-        // If a color swap moved *my* seat, resync the socket's own notion of
-        // playerColor by re-joining with the new color (server derives move/roll
-        // authorization from socket.data.playerColor, set once at join_game time).
         const e = state as unknown as { players: Array<{ username: string; color: PlayerColor }> }
         const mine = e.players.find((p) => p.username === user?.username)
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
           socket.emit('join_game', activeMatch.gameId, mine.color)
-          // Persist the swap so a refresh/rejoin re-joins with the color the
-          // player actually picked, not the one assigned when the match was
-          // created (activeMatch is what seeds initialView() and the
-          // post-reconnect join_game call — see below).
           setActiveMatch({ ...activeMatch, color: mine.color })
         }
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
+        retroAudio.playUiBeep(1100, 0.3, 'sawtooth')
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
@@ -305,11 +330,10 @@ export function Game() {
     socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
 
-    // Another PvP player pressed End Game — log a translatable line.
     socket.on('player_aborted', (e: { color: PlayerColor; username: string }) => {
       setMoveLogs((prev) => [
         { ck: e.color, text: t('game.playerAborted', { name: e.username }) },
-        ...prev.slice(0, 7),
+        ...prev.slice(0, 11),
       ])
     })
 
@@ -355,10 +379,6 @@ export function Game() {
     }
   }, [activeMatch, setLastResult])
 
-  // Hotseat: keep the single socket's server-side authorization (playerColor)
-  // pointed at whoever's turn it currently is, so the same device can roll for
-  // every local seat in turn. Re-emitting join_game is the only way to update
-  // that — see the eager multi-join above for why the same mechanism applies.
   useEffect(() => {
     if (!activeMatch || activeMatch.mode !== 'hotseat') return
     if (view.status !== 'active' || view.currentTurn === viewRef.current.myColor) return
@@ -368,10 +388,6 @@ export function Game() {
     socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
   }, [view.currentTurn, view.status, activeMatch])
 
-  // Spacebar = roll dice (alternative to the Roll button). Guarded by the
-  // same conditions as the button (your turn, WAITING_FOR_ROLL, no clash, not
-  // already rolling) plus an input-field check so typing in a text box never
-  // rolls. Idempotent: a second press while a roll is in flight is ignored.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
@@ -386,6 +402,7 @@ export function Game() {
       e.preventDefault()
       isRollingRef.current = true
       setIsRolling(true)
+      retroAudio.playUiBeep(980, 0.08, 'sawtooth')
       socketRef.current?.emit('roll_dice')
     }
     window.addEventListener('keydown', onKeyDown)
@@ -396,16 +413,32 @@ export function Game() {
     if (!canRoll || isRolling || isRollingRef.current) return
     isRollingRef.current = true
     setIsRolling(true)
+    retroAudio.playUiBeep(980, 0.08, 'sawtooth')
     socketRef.current?.emit('roll_dice')
   }
-  const movePiece = (pieceId: string) => socketRef.current?.emit('move_piece', pieceId)
-  const markReady = () => socketRef.current?.emit('player_ready')
-  const selectColor = (color: PlayerColor) => socketRef.current?.emit('select_color', color)
+
+  const movePiece = (pieceId: string) => {
+    if (isRolling || isRollingRef.current) return
+    retroAudio.playUiBeep(640, 0.05)
+    socketRef.current?.emit('move_piece', pieceId)
+  }
+
+  const markReady = () => {
+    retroAudio.playUiBeep(1100, 0.1)
+    socketRef.current?.emit('player_ready')
+  }
+
+  const selectColor = (color: PlayerColor) => {
+    retroAudio.playUiBeep(720, 0.05)
+    socketRef.current?.emit('select_color', color)
+  }
+
   const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
   const clearClash = () => dispatch({ type: 'clash_clear' })
 
   const inviteFriend = async (friendId: string) => {
     if (!activeMatch || inviteStates[friendId] === 'busy') return
+    retroAudio.playUiBeep(800, 0.06)
     setInviteStates((prev) => ({ ...prev, [friendId]: 'busy' }))
     try {
       await postApi(`/api/game/${activeMatch.gameId}/invite`, { friendId })
@@ -415,23 +448,14 @@ export function Game() {
     }
   }
 
-  // "Go to Lobby" is PURE navigation: it leaves the game screen but does NOT
-  // mutate the engine state. The unmount socket.disconnect() puts the human in
-  // the grace/pause path (seat preserved) — Resume Last Game reconnects the
-  // exact same turn state. Definitive exit is only via End Game / end_game.
   const leaveGame = () => {
+    retroAudio.playUiBeep(440, 0.05)
     navigate('/gamelobby')
   }
 
-  // "End Game" definitively terminates the match for this player. Emits the
-  // engine's end_game event: bot-mode games are aborted + wiped (unreachable
-  // via Resume); PvP prunes just this seat and the game continues if >= 2
-  // humans remain. No result is posted for aborted games, and the match is
-  // cleared so Resume Last Game can never resurrect it.
   const endGame = () => {
+    retroAudio.playExplosionSound()
     socketRef.current?.emit('end_game')
-    // Abandoned outcome: no result is posted for aborts, so the quitter gets
-    // the "Game Abandoned" card (no rating change) instead of a silent kick.
     setLastResult({
       winner: viewRef.current.currentTurn,
       resultDetail: 'abandoned',
@@ -447,361 +471,982 @@ export function Game() {
   // If no match credentials exist, redirect back to lobby
   if (!activeMatch) {
     return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#12100a', color: '#f0e2c4' }}>
-        <div style={{ ...card, padding: 32, textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>No active match found</div>
-          <div style={{ color: '#a99a83', marginBottom: 20 }}>Please set up a game from the lobby first.</div>
-          <button onClick={() => navigate('/gamelobby')} style={{ ...btnGold, padding: '12px 24px' }}>
-            Go to Lobby
-          </button>
+      <>
+        <div className="grid-background">
+          <div className="synthwave-sun" />
+          <div className="grid-horizon" />
+          <div className="perspective-grid" />
+          <div className="win95-starfield" />
+          <div className="terminal-vector-core" />
         </div>
-      </div>
+
+        <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+          <div className="crt-scanlines" id="crtOverlay" style={{ display: crtEnabled ? 'block' : 'none' }} />
+          <div className="crt-flicker" />
+
+          <div className="app-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <section className="retro-window" style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
+              <div className="window-header">
+                <span>⚠️ SYSTEM ALERT // NO ACTIVE SESSION</span>
+                <div className="window-controls">
+                  <span className="window-btn min" />
+                  <span className="window-btn max" />
+                </div>
+              </div>
+              <div className="window-body" style={{ textAlign: 'center', padding: '30px 24px' }}>
+                <div style={{ fontSize: '2rem', marginBottom: 12 }}>📡</div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', color: 'var(--accent-yellow)', marginBottom: 10 }}>
+                  NO MATCH CREDENTIALS DETECTED
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 24, lineHeight: 1.5 }}>
+                  Please initialize or join a tactical Ludo arena from the Game Lobby first.
+                </div>
+                <button
+                  className="retro-btn"
+                  style={{ width: '100%', padding: '12px 0', fontSize: '0.8rem' }}
+                  onClick={() => {
+                    retroAudio.playUiBeep(600, 0.05)
+                    navigate('/gamelobby')
+                  }}
+                >
+                  &gt;_ RETURN TO GAME LOBBY
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </>
     )
   }
 
   const isMyTurn = view.currentTurn === view.myColor
   const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece
   const turnLabel = view.status === 'waiting'
-    ? t('game.waitingRoomTitle')
-    : isMyTurn ? t('game.yourTurnShort') : `${view.currentTurn.toUpperCase()}'s turn`
+    ? t('game.waitingRoomTitle').toUpperCase()
+    : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 30px', borderBottom: '1px solid #2e2115' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div
-            onClick={leaveGame}
-            style={{
-              cursor: 'pointer', padding: '9px 16px', borderRadius: 10, border: '1px solid #3a2c1d',
-              background: '#1a130d', fontSize: 13, fontWeight: 700, color: '#c9bda3',
-            }}
-          >
-            ← {t('game.goToLobby')}
-          </div>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>
-            {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#a99a83' }}>
-            {activeMatch.inviteCode && (
-              <>
-                <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#c9bda3' }}>
-                  {t('game.roomCode')} {activeMatch.inviteCode}
-                </span>
-                <div
-                  onClick={copyRoomCode}
-                  title={t('game.copyRoomCode')}
-                  style={{
-                    cursor: 'pointer', padding: '3px 9px', borderRadius: 7, border: '1px solid #3a2c1d',
-                    background: codeCopied ? '#22432f' : '#140e0b', fontSize: 11, fontWeight: 700,
-                    color: codeCopied ? '#5fd08a' : '#c9bda3',
-                  }}
-                >
-                  {codeCopied ? t('game.copiedBtn') : t('game.copyBtn')}
-                </div>
-              </>
-            )}
-            <span style={{ fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
-              {connected ? '● Live' : '● Connecting…'}
-            </span>
-          </div>
-        </div>
+    <>
+      {/* Animated 3D Synthwave Grid & Sun Background */}
+      <div className="grid-background">
+        <div className="synthwave-sun" />
+        <div className="grid-horizon" />
+        <div className="perspective-grid" />
+        <div className="win95-starfield" />
+        <div className="terminal-vector-core" />
+      </div>
+
+      {/* CRT Monitor Overlay FX Container */}
+      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
         <div
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderRadius: 999,
-            background: '#22432f', border: '1px solid #2e4a38', fontWeight: 700, fontSize: '13.5px', color: '#dff0e0',
-          }}
-        >
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#5fd08a' }} />
-          {turnLabel}
-        </div>
-      </header>
+          className="crt-scanlines"
+          id="crtOverlay"
+          style={{ display: crtEnabled ? 'block' : 'none' }}
+        />
+        <div className="crt-flicker" />
 
-      <div
-        style={{
-          flex: 1, display: 'grid', gridTemplateColumns: '320px 1fr 280px', gap: 24, padding: '26px 30px',
-          alignItems: 'start', maxWidth: 1300, margin: '0 auto', width: '100%',
-        }}
-      >
-        {/* Players sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Sidebar header: Players label + "Last Rolled" column header, aligned over the dice column */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12 }}>
-            <div style={{ ...sectionLabel, color: '#a99a83' }}>{t('lobby.players')}</div>
-            <div style={{ ...sectionLabel, color: '#a99a83', fontSize: 10 }}>{t('game.lastRolled')}</div>
-          </div>
-          {SEAT_COLORS.map((ck) => {
-            const col = COL[ck]
-            const playerMeta = view.players.find((p) => p.color === ck)
-            const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
-            const isActive = view.currentTurn === ck
-
-            if (view.status === 'waiting') {
-              const isYou = ck === view.myColor
-              const isReady = view.readyPlayers.includes(ck)
-              return (
-                <div
-                  key={ck}
+        {/* Main Content Wrapper */}
+        <div className="app-wrapper">
+          {/* Navigation Header */}
+          <nav className="navbar" id="mainNav">
+            <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                className="retro-btn"
+                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                onClick={leaveGame}
+                title="Return to Lobby (Game state preserved)"
+              >
+                ← LOBBY
+              </button>
+              <div
+                className="brand-42-logo"
+                style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => {
+                  retroAudio.playUiBeep(440, 0.05)
+                  navigate('/home')
+                }}
+                title="Return to 42 Hub"
+              >
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 13,
-                    border: '1px solid ' + (isYou ? col.base : '#3a2c1d'),
-                    background: occupied ? 'linear-gradient(180deg,#241b13,#1a130d)' : 'rgba(255,255,255,.02)',
-                    opacity: occupied ? 1 : 0.55,
+                    fill: 'var(--accent-cyan)',
+                    filter: 'drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 14px var(--accent-pink))',
                   }}
                 >
-                  {occupied && playerMeta?.username ? (
-                    <UserAvatar
-                      username={playerMeta.username}
-                      size={38}
-                      fallbackStyle={{
-                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                        fontWeight: 800, fontSize: 13, color: '#12100a',
-                        background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                      }}
-                      style={{ borderRadius: 10 }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                        fontWeight: 800, fontSize: 13, color: '#12100a',
-                        background: 'transparent',
-                        border: `1.5px dashed ${col.base}88`,
-                      }}
-                    />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: occupied ? '#f0e2c4' : '#8a7c66' }}>
-                      {occupied ? playerMeta!.username : t('game.emptySeat')}
-                    </div>
-                    <div style={{ color: '#a99a83', fontSize: 12 }}>{isYou ? t('common.you') : ck}</div>
-                  </div>
-                  {occupied && (
-                    <span style={{ fontSize: 11, fontWeight: 800, color: isReady ? '#5fd08a' : '#a99a83' }}>
-                      {isReady ? `✓ ${t('game.readyBadge')}` : t('game.notReadyBadge')}
-                    </span>
-                  )}
-                </div>
-              )
-            }
+                  <path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
+                </svg>
+              </div>
+            </div>
 
-            // active = full row, disconnected = dimmed "Reconnecting…", exited =
-            // removed from the roster (matches the board, whose pieces are gone).
-            if (!playerMeta || playerMeta.status === 'exited') return null
-            const isDisconnected = playerMeta.status === 'disconnected'
-            const isHotseat = activeMatch.mode === 'hotseat'
-            // Hotseat: every seat is controlled by the same device, so "isYou"
-            // means "whoever's turn this device is currently authorized to
-            // play" (view.myColor) rather than a username match — the other
-            // local seat has its own typed-in name (see localNames) but still
-            // isn't a separate real account.
-            const isYou = isHotseat ? ck === view.myColor : !playerMeta.isBot && playerMeta.username === user?.username
-            const name = playerMeta.username
-            const sub = isDisconnected ? t('game.reconnecting') : playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : isHotseat ? t('game.localPlayer') : 'Player'
-            const goalCount = playerMeta.piecesInGoal ?? 0
-            const lastRoll = view.lastRolls[ck]
-
-            return (
-              <div
-                key={ck}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 13,
-                  border: '1px solid ' + (isActive ? col.base : '#3a2c1d'),
-                  background: isActive ? `linear-gradient(180deg,${col.base}22,#1a130d)` : 'linear-gradient(180deg,#241b13,#1a130d)',
-                  boxShadow: isActive ? `0 0 0 1px ${col.base}55` : 'none',
-                  opacity: isDisconnected ? 0.55 : 1,
+            <div className="nav-controls">
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/home')
                 }}
               >
-                {!playerMeta.isBot && !isHotseat ? (
-                  <UserAvatar
-                    username={name}
-                    size={38}
-                    fallbackStyle={{
-                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                    }}
-                    style={{ borderRadius: 10 }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                    }}
-                  >
-                    {name.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4' }}>{name}</div>
-                  <div style={{ color: '#a99a83', fontSize: 12 }}>{sub}</div>
-                </div>
-                <Pips count={goalCount} color={col.base} />
-                {/* Last Rolled column — fixed right edge, aligns under the sidebar header */}
-                <div style={{ flex: 'none' }}>
-                  {lastRoll ? <MiniDie value={lastRoll} /> : <div style={{ width: 44, height: 44, borderRadius: 11, border: '1px dashed #4a3826', display: 'grid', placeItems: 'center', color: '#8a7c66', fontSize: 14, flex: 'none' }}>–</div>}
+                <span className="theme-btn-icon">~/</span>
+                <span className="theme-btn-text">HUB</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/leaderboard')
+                }}
+              >
+                <span className="theme-btn-icon">#_</span>
+                <span className="theme-btn-text">LADDER</span>
+              </button>
+              <button
+                className="retro-btn theme-trigger-btn"
+                style={{ justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  retroAudio.playUiBeep(600, 0.05)
+                  navigate('/profile')
+                }}
+              >
+                <span className="theme-btn-icon">@/</span>
+                <span className="theme-btn-text">PROFILE</span>
+              </button>
+
+              {/* Theme Selector Popover Menu */}
+              <div className="theme-popover-wrapper">
+                <button
+                  className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
+                  id="themeModalBtn"
+                  aria-label="Toggle Theme Menu"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const next = !isThemePopoverOpen
+                    setIsThemePopoverOpen(next)
+                    retroAudio.playUiBeep(next ? 960 : 480, 0.05)
+                  }}
+                >
+                  <span className="theme-btn-icon">&lt;/&gt;</span>
+                  <span className="theme-btn-text">THEME</span>
+                  <span className="theme-chevron">▼</span>
+                </button>
+
+                <div
+                  className={`theme-popover-menu ${isThemePopoverOpen ? 'active' : ''}`}
+                  id="themePopoverMenu"
+                >
+                  <fieldset id="color-scheme">
+                    <legend>THEME SELECTOR</legend>
+                    <label htmlFor="theme-synthwave">
+                      <input
+                        type="radio"
+                        id="theme-synthwave"
+                        name="theme-radio"
+                        value="synthwave"
+                        checked={theme === 'synthwave'}
+                        onChange={() => {
+                          applyTheme('synthwave')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>CYBERPUNK</span>
+                    </label>
+                    <label htmlFor="theme-win95">
+                      <input
+                        type="radio"
+                        id="theme-win95"
+                        name="theme-radio"
+                        value="win95"
+                        checked={theme === 'win95'}
+                        onChange={() => {
+                          applyTheme('win95')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>WIN95</span>
+                    </label>
+                    <label htmlFor="theme-terminal">
+                      <input
+                        type="radio"
+                        id="theme-terminal"
+                        name="theme-radio"
+                        value="terminal"
+                        checked={theme === 'terminal'}
+                        onChange={() => {
+                          applyTheme('terminal')
+                          setIsThemePopoverOpen(false)
+                        }}
+                      />
+                      <span>TERMINAL</span>
+                    </label>
+                  </fieldset>
                 </div>
               </div>
-            )
-          })}
-        </div>
 
-        {/* Board */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div
+              {/* CRT Scanlines Toggle */}
+              <div className="control-group">
+                <label className="retro-toggle" title="Toggle CRT Screen Scanlines">
+                  <span>CRT FX</span>
+                  <input
+                    type="checkbox"
+                    id="crtToggle"
+                    checked={crtEnabled}
+                    onChange={toggleCrt}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+              </div>
+            </div>
+          </nav>
+
+          {/* Hero Telemetry & Badge Bar */}
+          <header className="hero-section" style={{ padding: '16px 0 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 4 }}>
+                  RETROLUDO // COMBAT ARENA
+                </h1>
+                <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+                  TACTICAL DEPLOYMENT // MODE: {activeMatch.mode.toUpperCase()} ({view.players.length || 4}P)
+                </p>
+              </div>
+
+              {/* Live Turn Announcement Pill */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 18px',
+                  borderRadius: 4,
+                  background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : 'rgba(0, 240, 255, 0.15)',
+                  border: isMyTurn ? '2px solid var(--accent-pink)' : '1px solid var(--accent-cyan)',
+                  boxShadow: isMyTurn ? '0 0 15px rgba(255, 0, 127, 0.6)' : 'none',
+                  animation: isMyTurn ? 'pulse 1.6s infinite' : 'none',
+                }}
+              >
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background: isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
+                    boxShadow: isMyTurn ? '0 0 8px #ffe600' : '0 0 6px var(--accent-cyan)',
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontSize: '0.75rem',
+                    color: isMyTurn ? '#ffe600' : '#ffffff',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  {turnLabel}
+                </span>
+              </div>
+            </div>
+
+            {/* Badge Bar with Room Code and Telemetry */}
+            <div className="badge-bar" style={{ marginTop: 12 }}>
+              {activeMatch.inviteCode && (
+                <button
+                  className="retro-badge"
+                  style={{
+                    cursor: 'pointer',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--accent-cyan)',
+                    color: 'var(--accent-cyan)',
+                    fontFamily: 'var(--font-mono)',
+                    outline: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  onClick={copyRoomCode}
+                  title="Click to copy Room Code"
+                >
+                  // ROOM: {activeMatch.inviteCode} [{codeCopied ? 'COPIED ✓' : 'COPY'}]
+                </button>
+              )}
+              <span
+                className="retro-badge"
+                style={{
+                  border: connected ? '1px solid #00ff88' : '1px solid #ff0055',
+                  color: connected ? '#00ff88' : '#ff0055',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                // SIGNAL: {connected ? '● LIVE COMMS' : '○ RECONNECTING...'}
+              </span>
+              <span
+                className="retro-badge"
+                style={{
+                  border: '1px solid var(--accent-yellow)',
+                  color: 'var(--accent-yellow)',
+                }}
+              >
+                // ASSIGNED SEAT: {view.myColor.toUpperCase()}
+              </span>
+              <span
+                className="retro-badge"
+                style={{
+                  border: '1px dashed rgba(255, 255, 255, 0.2)',
+                  color: 'var(--text-muted)',
+                  opacity: 0.7,
+                }}
+              >
+                // PHASE: {view.turnPhase}
+              </span>
+            </div>
+          </header>
+
+          {/* Main Tactical Grid Layout */}
+          <main
+            className="dashboard-grid"
             style={{
-              width: '100%', maxWidth: 540, padding: 16, borderRadius: 20,
-              background: 'linear-gradient(145deg,#3a2a1a,#241811)',
-              boxShadow: '0 34px 66px -26px #000,inset 0 2px 0 rgba(255,255,255,.06)',
-              border: '1px solid #4a3826',
+              display: 'grid',
+              gridTemplateColumns: '310px 1fr 310px',
+              gap: 18,
+              alignItems: 'start',
+              width: '100%',
+              margin: '0 auto',
             }}
           >
-            <Board pieces={view.pieces} players={view.players} legalMoves={view.legalMoves} onPieceClick={movePiece} animating={animatingPiece} fx={captureFx} />
-          </div>
-        </div>
+            {/* COLUMN 1: PILOT ROSTER // TACTICAL STATUS */}
+            <section className="retro-window" id="playersWindow">
+              <div className="window-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>👥 PILOT ROSTER</span>
+                </div>
+                <div className="window-controls">
+                  <span className="window-btn min" />
+                  <span className="window-btn max" />
+                </div>
+              </div>
 
-        {/* Controls sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {view.status === 'waiting' ? (
-            <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={sectionLabel}>{t('game.waitingRoomTitle')}</div>
+              <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                    SEAT // PILOT CALLSIGN
+                  </span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    ROLL / GOALS
+                  </span>
+                </div>
 
-              <div>
-                <div style={{ fontSize: 12.5, color: '#a99a83', marginBottom: 8 }}>{t('game.chooseColor')}</div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {SEAT_COLORS.map((ck) => {
-                    const col = COL[ck]
-                    const takenByOther = view.players.some((p) => p.color === ck && p.status === 'active' && ck !== view.myColor)
+                {SEAT_COLORS.map((ck) => {
+                  const playerMeta = view.players.find((p) => p.color === ck)
+                  const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
+                  const isActive = view.currentTurn === ck
+
+                  // Color neon accent map
+                  const colorAccent =
+                    ck === 'red'
+                      ? '#ff007f'
+                      : ck === 'green'
+                        ? '#00ff88'
+                        : ck === 'yellow'
+                          ? '#ffe600'
+                          : '#00f0ff'
+
+                  if (view.status === 'waiting') {
+                    const isYou = ck === view.myColor
+                    const isReady = view.readyPlayers.includes(ck)
                     return (
                       <div
                         key={ck}
-                        onClick={() => selectColor(ck)}
-                        title={ck}
                         style={{
-                          width: 34, height: 34, borderRadius: 10, cursor: 'pointer',
-                          background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                          border: ck === view.myColor ? '2px solid #f0e2c4' : '2px solid transparent',
-                          boxShadow: ck === view.myColor ? `0 0 0 2px ${col.base}` : 'none',
-                          opacity: takenByOther ? 0.55 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '10px 12px',
+                          borderRadius: 4,
+                          border: isYou
+                            ? `1.5px solid ${colorAccent}`
+                            : occupied
+                              ? `1px solid ${colorAccent}66`
+                              : '1px dashed rgba(255, 255, 255, 0.15)',
+                          background: isYou
+                            ? 'rgba(255, 0, 127, 0.18)'
+                            : occupied
+                              ? 'rgba(25, 10, 56, 0.65)'
+                              : 'rgba(10, 5, 25, 0.35)',
+                          boxShadow: isYou ? `0 0 10px ${colorAccent}44` : 'none',
+                          opacity: occupied ? 1 : 0.5,
+                          transition: 'all 0.2s ease',
                         }}
-                      />
-                    )
-                  })}
-                </div>
-              </div>
-
-              {(() => {
-                const activeCount = view.players.filter((p) => p.status === 'active').length
-                const alreadyReady = view.readyPlayers.includes(view.myColor)
-                const soloRoom = activeCount < 2
-                const disabled = alreadyReady || soloRoom
-                return (
-                  <button
-                    onClick={markReady}
-                    disabled={disabled}
-                    style={{
-                      ...btnGold, width: '100%', padding: 14,
-                      opacity: disabled ? 0.6 : 1,
-                      cursor: disabled ? 'default' : 'pointer',
-                    }}
-                  >
-                    {alreadyReady ? t('game.readyWaitingBtn') : soloRoom ? t('game.readyNeedsOpponent') : t('game.readyBtn')}
-                  </button>
-                )
-              })()}
-
-              <div style={{ fontSize: 13, color: '#5fd08a', textAlign: 'center' }}>
-                {t('game.readyCount', {
-                  ready: view.readyPlayers.length,
-                  total: view.players.filter((p) => p.status === 'active').length,
-                })}
-              </div>
-
-              {activeMatch?.mode === 'pvp' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #3a2c1d', paddingTop: 14 }}>
-                  <div style={{ fontSize: 12.5, color: '#a99a83', fontWeight: 700 }}>{t('game.inviteFriend')}</div>
-                  {friends.length === 0 ? (
-                    <div style={{ fontSize: 12, color: '#8a7c66' }}>{t('game.noFriendsToInvite')}</div>
-                  ) : (
-                    friends.map((f) => {
-                      const st = inviteStates[f.id] ?? 'idle'
-                      return (
-                        <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13.5, color: '#f0e2c4' }}>{f.username}</div>
-                          <button
-                            onClick={() => inviteFriend(f.id)}
-                            disabled={st !== 'idle'}
+                      >
+                        {occupied && playerMeta?.username ? (
+                          <UserAvatar
+                            username={playerMeta.username}
+                            size={34}
+                            fallbackStyle={{
+                              width: 34,
+                              height: 34,
+                              flex: 'none',
+                              borderRadius: 4,
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              color: '#0d0221',
+                              background: colorAccent,
+                              border: `1px solid ${colorAccent}`,
+                            }}
+                            style={{ borderRadius: 4, border: `1px solid ${colorAccent}` }}
+                          />
+                        ) : (
+                          <div
                             style={{
-                              border: '1px solid ' + (st === 'sent' ? '#2e4a38' : '#3a2c1d'),
-                              borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700,
-                              color: st === 'sent' ? '#5fd08a' : '#c9bda3',
-                              background: st === 'sent' ? 'rgba(34,67,47,.3)' : '#1a130d',
-                              cursor: st === 'idle' ? 'pointer' : 'default',
+                              width: 34,
+                              height: 34,
+                              flex: 'none',
+                              borderRadius: 4,
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '0.7rem',
+                              color: colorAccent,
+                              background: 'transparent',
+                              border: `1.5px dashed ${colorAccent}88`,
+                            }}
+                          >
+                            ?
+                          </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontWeight: 'bold',
+                              fontSize: '0.82rem',
+                              color: occupied ? '#ffffff' : 'var(--text-muted)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              fontFamily: 'var(--font-mono)',
+                            }}
+                          >
+                            {occupied ? playerMeta!.username : t('game.emptySeat')}
+                          </div>
+                          <div style={{ color: colorAccent, fontSize: '0.68rem', textTransform: 'uppercase' }}>
+                            {ck} {isYou ? '• (YOU)' : ''}
+                          </div>
+                        </div>
+                        {occupied && (
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 'bold',
+                              color: isReady ? '#00ff88' : 'var(--text-muted)',
+                              fontFamily: 'var(--font-mono)',
+                            }}
+                          >
+                            {isReady ? `✓ READY` : 'STANDBY'}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  }
+
+                  if (!playerMeta || playerMeta.status === 'exited') return null
+                  const isDisconnected = playerMeta.status === 'disconnected'
+                  const isHotseat = activeMatch.mode === 'hotseat'
+                  const isYou = isHotseat
+                    ? ck === view.myColor
+                    : !playerMeta.isBot && playerMeta.username === user?.username
+                  const name = playerMeta.username
+                  const sub = isDisconnected
+                    ? t('game.reconnecting')
+                    : playerMeta.isBot
+                      ? t('common.bot')
+                      : isYou
+                        ? t('common.you')
+                        : isHotseat
+                          ? t('game.localPlayer')
+                          : 'Pilot'
+                  const goalCount = playerMeta.piecesInGoal ?? 0
+                  const lastRoll = view.lastRolls[ck]
+
+                  return (
+                    <div
+                      key={ck}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '10px 12px',
+                        borderRadius: 4,
+                        border: isActive
+                          ? `2px solid ${colorAccent}`
+                          : `1px solid ${colorAccent}44`,
+                        background: isActive
+                          ? `linear-gradient(135deg, ${colorAccent}33, rgba(25, 10, 56, 0.9))`
+                          : 'rgba(25, 10, 56, 0.65)',
+                        boxShadow: isActive ? `0 0 15px ${colorAccent}66, inset 0 0 10px ${colorAccent}22` : 'none',
+                        opacity: isDisconnected ? 0.55 : 1,
+                        position: 'relative',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {!playerMeta.isBot && !isHotseat ? (
+                        <UserAvatar
+                          username={name}
+                          size={36}
+                          fallbackStyle={{
+                            width: 36,
+                            height: 36,
+                            flex: 'none',
+                            borderRadius: 4,
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            color: '#0d0221',
+                            background: colorAccent,
+                          }}
+                          style={{ borderRadius: 4, border: `1.5px solid ${colorAccent}` }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            flex: 'none',
+                            borderRadius: 4,
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '0.75rem',
+                            color: '#0d0221',
+                            background: colorAccent,
+                            border: `1.5px solid ${colorAccent}`,
+                          }}
+                        >
+                          {name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 'bold',
+                            fontSize: '0.84rem',
+                            color: '#ffffff',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'var(--font-mono)',
+                          }}
+                        >
+                          {name}
+                        </div>
+                        <div style={{ color: colorAccent, fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>{ck.toUpperCase()}</span>
+                          <span>// {sub.toUpperCase()}</span>
+                        </div>
+                      </div>
+                      <Pips count={goalCount} color={colorAccent} />
+                      <div style={{ flex: 'none' }}>
+                        {lastRoll ? (
+                          <MiniDie value={lastRoll} />
+                        ) : (
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 8,
+                              border: '1px dashed rgba(255, 255, 255, 0.2)',
+                              display: 'grid',
+                              placeItems: 'center',
+                              color: 'var(--text-muted)',
+                              fontSize: '0.8rem',
                               flex: 'none',
                             }}
                           >
-                            {st === 'busy' ? t('game.invitingBtn') : st === 'sent' ? t('game.inviteSent') : t('game.inviteBtn')}
-                          </button>
+                            –
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+
+            {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
+            <section className="retro-window" id="boardWindow" style={{ width: '100%' }}>
+              <div className="window-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>🎲 QUANTUM LUDO MATRIX</span>
+                </div>
+                <div className="window-controls">
+                  <span className="window-btn min" />
+                  <span className="window-btn max" />
+                </div>
+              </div>
+
+              <div
+                className="window-body"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '16px 14px',
+                  background: 'rgba(10, 2, 28, 0.65)',
+                }}
+              >
+                {/* Tactical Board Status Marquee */}
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: 520,
+                    padding: '8px 12px',
+                    marginBottom: 14,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    border: '1px solid rgba(0, 240, 255, 0.35)',
+                    borderRadius: 4,
+                    textAlign: 'center',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.78rem',
+                    color: isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
+                  }}
+                >
+                  {view.status === 'waiting'
+                    ? '>>> WAITING FOR PILOTS TO READY UP <<<'
+                    : isRolling
+                      ? '>>> 🎲 ROLLING DICE... <<<'
+                      : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
+                        ? '>>> YOUR TURN: PRESS SPACEBAR OR ROLL DICE <<<'
+                        : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
+                          ? '>>> SELECT HIGHLIGHTED PIECE TO ADVANCE <<<'
+                          : `>>> WAITING FOR PILOT ${view.currentTurn.toUpperCase()}... <<<`}
+                </div>
+
+                {/* Cyber Frame Board Container */}
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: 530,
+                    padding: 14,
+                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, rgba(25, 10, 56, 0.95), rgba(13, 2, 33, 0.95))',
+                    border: '2px solid var(--accent-pink)',
+                    boxShadow: '0 0 25px rgba(255, 0, 127, 0.35), inset 0 0 20px rgba(0, 240, 255, 0.2)',
+                  }}
+                >
+                  <Board
+                    pieces={view.pieces}
+                    players={view.players}
+                    legalMoves={isRolling ? [] : view.legalMoves}
+                    onPieceClick={isRolling ? () => {} : movePiece}
+                    animating={animatingPiece}
+                    fx={captureFx}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* COLUMN 3: TACTICAL CONTROLS & LOGS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {view.status === 'waiting' ? (
+                /* WAITING ROOM SETUP WINDOW */
+                <section className="retro-window" id="waitingSetupWindow">
+                  <div className="window-header">
+                    <span>⏳ WAITING BAY SETUP</span>
+                    <div className="window-controls">
+                      <span className="window-btn min" />
+                      <span className="window-btn max" />
+                    </div>
+                  </div>
+
+                  <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                        // SELECT SEAT COLOR:
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+                        {SEAT_COLORS.map((ck) => {
+                          const colAccent =
+                            ck === 'red'
+                              ? '#ff007f'
+                              : ck === 'green'
+                                ? '#00ff88'
+                                : ck === 'yellow'
+                                  ? '#ffe600'
+                                  : '#00f0ff'
+                          const takenByOther = view.players.some(
+                            (p) => p.color === ck && p.status === 'active' && ck !== view.myColor
+                          )
+                          const isSelected = ck === view.myColor
+                          return (
+                            <button
+                              key={ck}
+                              onClick={() => selectColor(ck)}
+                              title={ck.toUpperCase()}
+                              disabled={takenByOther}
+                              style={{
+                                flex: 1,
+                                height: 34,
+                                borderRadius: 4,
+                                cursor: takenByOther ? 'not-allowed' : 'pointer',
+                                background: isSelected ? colAccent : 'rgba(25, 10, 56, 0.8)',
+                                border: isSelected ? `2px solid #ffffff` : `1px solid ${colAccent}`,
+                                boxShadow: isSelected ? `0 0 12px ${colAccent}` : 'none',
+                                color: isSelected ? '#0d0221' : colAccent,
+                                fontWeight: 'bold',
+                                fontSize: '0.65rem',
+                                fontFamily: 'var(--font-mono)',
+                                opacity: takenByOther ? 0.35 : 1,
+                              }}
+                            >
+                              {ck.slice(0, 3).toUpperCase()}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const activeCount = view.players.filter((p) => p.status === 'active').length
+                      const alreadyReady = view.readyPlayers.includes(view.myColor)
+                      const soloRoom = activeCount < 2
+                      const disabled = alreadyReady || soloRoom
+                      return (
+                        <button
+                          className="retro-btn"
+                          onClick={markReady}
+                          disabled={disabled}
+                          style={{
+                            width: '100%',
+                            padding: '12px 0',
+                            fontSize: '0.8rem',
+                            background: alreadyReady ? 'rgba(0, 255, 136, 0.2)' : 'var(--btn-bg)',
+                            borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
+                            color: alreadyReady ? '#00ff88' : '#ffffff',
+                            opacity: disabled ? 0.6 : 1,
+                            cursor: disabled ? 'default' : 'pointer',
+                          }}
+                        >
+                          {alreadyReady
+                            ? '✓ READY (WAITING)'
+                            : soloRoom
+                              ? 'WAITING OPPONENT'
+                              : '▶ READY TO LAUNCH'}
+                        </button>
+                      )
+                    })()}
+
+                    <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+                      // READY PILOTS:{' '}
+                      <span style={{ color: '#ffe600', fontWeight: 'bold' }}>
+                        {view.readyPlayers.length}
+                      </span>{' '}
+                      /{' '}
+                      <span style={{ color: '#ffffff' }}>
+                        {view.players.filter((p) => p.status === 'active').length}
+                      </span>
+                    </div>
+
+                    {activeMatch?.mode === 'pvp' && (
+                      <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                          // INVITE COMMS:
+                        </div>
+                        {friends.length === 0 ? (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            No online friends available to invite.
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 110, overflowY: 'auto' }}>
+                            {friends.map((f) => {
+                              const st = inviteStates[f.id] ?? 'idle'
+                              return (
+                                <div
+                                  key={f.id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '6px 8px',
+                                    background: 'rgba(0, 0, 0, 0.4)',
+                                    borderRadius: 3,
+                                  }}
+                                >
+                                  <span style={{ fontSize: '0.75rem', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                                    {f.username}
+                                  </span>
+                                  <button
+                                    className="retro-btn"
+                                    onClick={() => inviteFriend(f.id)}
+                                    disabled={st !== 'idle'}
+                                    style={{ padding: '3px 8px', fontSize: '0.62rem' }}
+                                  >
+                                    {st === 'busy' ? '...' : st === 'sent' ? 'SENT ✓' : '+ INVITE'}
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              ) : (
+                /* IN-GAME DICE CONTROLS WINDOW */
+                <section className="retro-window" id="diceControlWindow">
+                  <div className="window-header">
+                    <span>⚡ TACTICAL DICE SYSTEM</span>
+                    <div className="window-controls">
+                      <span className="window-btn min" />
+                      <span className="window-btn max" />
+                    </div>
+                  </div>
+
+                  <div
+                    className="window-body"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '16px 14px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.72rem',
+                        color: isMyTurn ? '#ffe600' : 'var(--text-muted)',
+                      }}
+                    >
+                      {isRolling
+                        ? '// ROLLING...'
+                        : canRoll
+                          ? '// PILOT TURN: ROLL NOW'
+                          : view.turnPhase === 'WAITING_FOR_MOVE'
+                            ? '// SELECT HIGHLIGHTED PIECE'
+                            : `// WAITING FOR ${view.currentTurn.toUpperCase()}`}
+                    </div>
+
+                    <div style={{ height: 90, display: 'grid', placeItems: 'center' }}>
+                      <Die value={view.diceValue ?? 0} rolling={isRolling} />
+                    </div>
+
+                    <button
+                      className="retro-btn"
+                      onClick={rollDice}
+                      disabled={!canRoll || isRolling}
+                      style={{
+                        width: '100%',
+                        padding: '12px 0',
+                        fontSize: '0.85rem',
+                        background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
+                        borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
+                        boxShadow: canRoll && !isRolling ? '0 0 15px var(--accent-pink)' : 'none',
+                        cursor: canRoll && !isRolling ? 'pointer' : 'default',
+                        opacity: canRoll && !isRolling ? 1 : 0.5,
+                      }}
+                    >
+                      {isRolling ? 'ROLLING...' : '🎲 ROLL DICE'}
+                    </button>
+
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.68rem',
+                        color: 'var(--accent-cyan)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      [ SHORTCUT: PRESS SPACEBAR ]
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* MISSION TELEMETRY LOG WINDOW */}
+              <section className="retro-window" id="moveLogWindow">
+                <div className="window-header">
+                  <span>📟 MISSION TELEMETRY</span>
+                  <div className="window-controls">
+                    <span className="window-btn min" />
+                    <span className="window-btn max" />
+                  </div>
+                </div>
+
+                <div
+                  className="window-body"
+                  style={{
+                    maxHeight: 180,
+                    minHeight: 140,
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    padding: '10px 12px',
+                    background: 'rgba(5, 2, 15, 0.75)',
+                  }}
+                >
+                  {moveLogs.length === 0 ? (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      Telemetric events will stream here...
+                    </div>
+                  ) : (
+                    moveLogs.map((ml, i) => {
+                      const dotColor =
+                        ml.ck === 'red'
+                          ? '#ff007f'
+                          : ml.ck === 'green'
+                            ? '#00ff88'
+                            : ml.ck === 'yellow'
+                              ? '#ffe600'
+                              : '#00f0ff'
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            display: 'flex',
+                            gap: 8,
+                            fontSize: '0.72rem',
+                            color: '#ffffff',
+                            fontFamily: 'var(--font-mono)',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          <span style={{ color: dotColor, fontWeight: 'bold' }}>●</span>
+                          <span>{ml.text}</span>
                         </div>
                       )
                     })
                   )}
                 </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <div style={sectionLabel}>
-                {isRolling ? t('game.rolling') : canRoll ? t('game.yourRoll') : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
-              </div>
-              <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
-                <Die value={view.diceValue ?? 0} rolling={isRolling} />
-              </div>
+              </section>
+
+              {/* ABORT MISSION / END GAME BUTTON */}
               <button
-                onClick={rollDice}
-                disabled={!canRoll || isRolling}
+                className="retro-btn"
+                onClick={endGame}
                 style={{
-                  ...btnGold, width: '100%', padding: 14,
-                  opacity: canRoll && !isRolling ? 1 : 0.5, cursor: canRoll && !isRolling ? 'pointer' : 'default',
+                  width: '100%',
+                  padding: '10px 0',
+                  fontSize: '0.72rem',
+                  background: 'rgba(255, 0, 85, 0.15)',
+                  border: '1px solid #ff0055',
+                  color: '#ff0055',
+                  letterSpacing: '0.5px',
                 }}
               >
-                {isRolling ? t('game.rolling') : t('game.rollDice')}
+                ⚠️ ABORT MATCH // END GAME
               </button>
-              {view.turnPhase === 'WAITING_FOR_MOVE' && isMyTurn && (
-                <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
-                  Click a highlighted piece to move
-                </div>
-              )}
-              {!isMyTurn && (
-                <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
-                  Waiting for {view.currentTurn}…
-                </div>
-              )}
             </div>
-          )}
-
-          <div style={{ ...card, padding: '18px 20px' }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>{t('game.moveLog')}</div>
-            {moveLogs.length === 0 ? (
-              <div style={{ fontSize: 13, color: '#a99a83' }}>Game events will appear here…</div>
-            ) : (
-              moveLogs.map((ml, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#c9bda3' }}>
-                  <span style={{ color: COL[ml.ck]?.base ?? '#f0d18a', fontWeight: 800 }}>●</span>
-                  <span>{ml.text}</span>
-                </div>
-              ))
-            )}
-          </div>
-
-          <button
-            onClick={endGame}
-            style={{
-              border: '1px solid #2e4a38', borderRadius: 12, padding: 12, font: "700 13.5px 'Hanken Grotesk'",
-              color: '#8fbf9f', cursor: 'pointer', background: 'rgba(34,67,47,.3)',
-            }}
-          >
-            {t('game.endGameDemo')}
-          </button>
+          </main>
         </div>
       </div>
 
@@ -815,6 +1460,6 @@ export function Game() {
           onComplete={clearClash}
         />
       )}
-    </div>
+    </>
   )
 }

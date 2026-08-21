@@ -37,19 +37,19 @@ a:hover {
 @keyframes shake {
   0%,
   100% {
-    transform: rotate(0);
+    transform: rotate(0deg) scale(1);
   }
   20% {
-    transform: rotate(-15deg) translateY(-3px);
+    transform: rotate(-14deg) translateY(-4px) scale(1.04);
   }
   40% {
-    transform: rotate(13deg);
+    transform: rotate(12deg) translateY(2px) scale(1.02);
   }
   60% {
-    transform: rotate(-9deg) translateY(-2px);
+    transform: rotate(-8deg) translateY(-3px) scale(1.03);
   }
   80% {
-    transform: rotate(7deg);
+    transform: rotate(6deg) translateY(1px) scale(1.01);
   }
 }
 
