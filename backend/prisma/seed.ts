@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
+import Redis from 'ioredis';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -145,6 +146,27 @@ async function main() {
   });
 
   console.log(`  ✅ Created global leaderboard snapshot covering ${allPilots.length} total database pilots!`);
+
+  // ── Sync All Pilots directly to Redis Leaderboard ──────────────────────────
+  try {
+    const redisHost = process.env.REDIS_HOST || (process.env.SECRETS_DIR ? 'redis' : 'localhost');
+    const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const redisPassword = secret('REDIS_PASSWORD') || 'password123';
+    const redis = new Redis({ host: redisHost, port: redisPort, password: redisPassword });
+    
+    // Clear old Redis leaderboards
+    await redis.del('leaderboard:global', 'leaderboard:ranked', 'leaderboard:casual');
+
+    for (const u of allPilots) {
+      await redis.zadd('leaderboard:global', u.rating, u.id);
+      await redis.zadd('leaderboard:ranked', u.rating, u.id);
+      await redis.zadd('leaderboard:casual', u.rating, u.id);
+    }
+    await redis.quit();
+    console.log(`  ✅ Successfully synchronized ${allPilots.length} pilots to Redis sorted sets!`);
+  } catch (redisErr) {
+    console.warn('  ⚠️ Redis sync during seed skipped/failed:', redisErr);
+  }
 
   // ── Sample Matches ────────────────────────────────────────────────────────
   if (createdUsers.length >= 4) {

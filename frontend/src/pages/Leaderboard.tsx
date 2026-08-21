@@ -191,11 +191,17 @@ export function Leaderboard() {
               }}
             >
               {/* Inside-Window Podium Showcase (Fixed above the scrollable table) */}
-              {data && data.entries.length >= 3 && (
+              {data && data.entries.length > 0 && (
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gridTemplateColumns:
+                      data.entries.length === 1
+                        ? 'minmax(280px, 460px)'
+                        : data.entries.length === 2
+                          ? 'repeat(auto-fit, minmax(280px, 420px))'
+                          : 'repeat(auto-fit, minmax(280px, 1fr))',
+                    justifyContent: 'center',
                     gap: 18,
                     alignItems: 'end',
                     padding: '18px 20px',

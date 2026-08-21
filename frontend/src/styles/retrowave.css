@@ -795,21 +795,11 @@ body {
   text-shadow: 0 0 6px #ffffff, 0 0 8px #d7a15c !important;
 }
 
-/* Apex Champion Podium Card Levitation */
+/* Apex Champion Podium Card - Steady Constant Glow */
 .apex-champion-floating-card {
-  animation: apex-citadel-float 3.5s ease-in-out infinite alternate;
-}
-
-@keyframes apex-citadel-float {
-  0% {
-    transform: scale(1.02) translateY(0px);
-    box-shadow: 0 0 25px rgba(255, 23, 68, 0.4), inset 0 0 16px rgba(255, 215, 0, 0.1);
-  }
-
-  100% {
-    transform: scale(1.02) translateY(-4px);
-    box-shadow: 0 8px 35px rgba(255, 23, 68, 0.65), 0 0 45px rgba(255, 215, 0, 0.35), inset 0 0 20px rgba(255, 215, 0, 0.2);
-  }
+  transform: scale(1.02);
+  box-shadow: 0 0 28px rgba(255, 23, 68, 0.55), 0 0 45px rgba(255, 215, 0, 0.25), inset 0 0 16px rgba(255, 215, 0, 0.15) !important;
+  animation: none !important;
 }
 
 

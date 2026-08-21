@@ -40,8 +40,20 @@ export class LeaderboardService {
 
     // Try Redis first (fast path)
     try {
-      const redisEntries = await this.redisService.getLeaderboardFromRedis(mode, page, limit);
-      const total = await this.redisService.getLeaderboardCount(mode);
+      let redisEntries = await this.redisService.getLeaderboardFromRedis(mode, page, limit);
+      let total = await this.redisService.getLeaderboardCount(mode);
+
+      // If Redis has no entries or is missing users, auto-populate from PostgreSQL
+      if (redisEntries.length === 0 || total < 5) {
+        const allDbUsers = await this.prisma.db.user.findMany({ select: { id: true, rating: true } });
+        if (allDbUsers.length > 0) {
+          for (const u of allDbUsers) {
+            await this.redisService.updateLeaderboardEntry(u.id, u.rating, (mode as any) || 'global');
+          }
+          redisEntries = await this.redisService.getLeaderboardFromRedis(mode, page, limit);
+          total = await this.redisService.getLeaderboardCount(mode);
+        }
+      }
 
       if (redisEntries.length > 0) {
         const userIds = redisEntries.map(e => e.userId);
