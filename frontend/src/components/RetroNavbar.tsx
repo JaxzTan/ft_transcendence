@@ -441,32 +441,15 @@ export function RetroNavbar({
         style={{
           position: 'relative',
           width: '100%',
-          height: 320,
-          maxHeight: 320,
-          overflow: 'hidden',
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 16%, black 84%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 16%, black 84%, transparent 100%)',
+          justifyContent: 'center',
+          overflow: 'visible',
+          padding: '8px 0',
         }}
       >
-        {/* Fixed Center Target Slot Indicator HUD */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 134,
-            left: 0,
-            right: 0,
-            height: 52,
-            borderRadius: 12,
-            border: '1.5px solid rgba(0, 240, 255, 0.4)',
-            boxShadow: '0 0 20px rgba(255, 0, 127, 0.3), inset 0 0 14px rgba(0, 240, 255, 0.15)',
-            pointerEvents: 'none',
-            zIndex: 1,
-          }}
-        />
-
         {/* Sliding Nav Items Track */}
         <div
           style={{
@@ -474,7 +457,7 @@ export function RetroNavbar({
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
-            transform: `translateY(${134 - (NAV_ITEMS.findIndex((it) => {
+            transform: `translateY(${-( (NAV_ITEMS.findIndex((it) => {
               if (it.path === '/home') return currentPath === '/home' || currentPath === '/'
               if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
               if (it.path === '/profile') return currentPath.startsWith('/profile')
@@ -484,7 +467,7 @@ export function RetroNavbar({
               if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
               if (it.path === '/profile') return currentPath.startsWith('/profile')
               return currentPath === it.path
-            }) : 0) * 62}px)`,
+            }) : 0) - 2.5 ) * 38}px)`,
             transition: 'transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
             zIndex: 2,
           }}
@@ -499,9 +482,9 @@ export function RetroNavbar({
             const safeActiveIdx = activeIdx >= 0 ? activeIdx : 0
             const isDisabled = !!item.disabled
             const isActive = idx === safeActiveIdx
-            const distFromActive = Math.abs(idx - safeActiveIdx)
-            const itemOpacity = isActive ? 1 : distFromActive === 1 ? 0.72 : distFromActive === 2 ? 0.42 : 0.2
-            const itemScale = isActive ? 1.02 : 0.95
+            const dist = Math.abs(idx - safeActiveIdx)
+            const itemOpacity = isDisabled ? 0.25 : isActive ? 1.0 : Math.max(0.35, 0.75 - dist * 0.14)
+            const itemScale = isActive ? 1.02 : Math.max(0.93, 1.0 - dist * 0.02)
 
             return (
               <button
@@ -520,7 +503,7 @@ export function RetroNavbar({
                     ? 'rgba(255, 255, 255, 0.015)'
                     : isActive
                       ? 'linear-gradient(90deg, rgba(255, 0, 127, 0.95), rgba(157, 0, 255, 0.95))'
-                      : 'rgba(255, 255, 255, 0.03)',
+                      : 'rgba(20, 8, 44, 0.85)',
                   color: isDisabled
                     ? 'rgba(255, 255, 255, 0.3)'
                     : isActive
@@ -530,14 +513,14 @@ export function RetroNavbar({
                     ? '1px dashed rgba(255, 255, 255, 0.12)'
                     : isActive
                       ? '1.5px solid #ff007f'
-                      : '1px solid rgba(255, 255, 255, 0.07)',
+                      : '1px solid rgba(0, 240, 255, 0.25)',
                   boxShadow: isActive
                     ? '0 0 20px rgba(255, 0, 127, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
                     : 'none',
                   fontWeight: 900,
                   letterSpacing: '1px',
                   cursor: isDisabled ? 'not-allowed' : 'pointer',
-                  opacity: isDisabled ? 0.35 : itemOpacity,
+                  opacity: itemOpacity,
                   transform: `scale(${itemScale})`,
                   transition: 'all 0.35s ease',
                 }}
@@ -552,20 +535,22 @@ export function RetroNavbar({
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive && !isDisabled) {
-                    e.currentTarget.style.background = 'rgba(0, 240, 255, 0.14)'
+                    e.currentTarget.style.background = 'rgba(0, 240, 255, 0.18)'
                     e.currentTarget.style.borderColor = 'var(--accent-cyan)'
                     e.currentTarget.style.color = '#ffffff'
                     e.currentTarget.style.opacity = '1'
                     e.currentTarget.style.boxShadow = '0 0 14px rgba(0, 240, 255, 0.35)'
+                    e.currentTarget.style.transform = 'translateX(4px)'
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive && !isDisabled) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)'
+                    e.currentTarget.style.background = 'rgba(20, 8, 44, 0.85)'
+                    e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.25)'
                     e.currentTarget.style.color = 'var(--text-main)'
                     e.currentTarget.style.opacity = String(itemOpacity)
                     e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.transform = `scale(${itemScale})`
                   }
                 }}
               >
