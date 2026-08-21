@@ -594,9 +594,6 @@ export function Leaderboard() {
                               >
                                 {entry.username} {isYou && <span style={{ color: 'var(--accent-pink)', fontSize: '0.8rem' }}>[YOU]</span>}
                               </div>
-                              <div style={{ color: 'var(--text-muted)', fontSize: isRankOne ? '0.78rem' : '0.72rem', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                                WINS: <strong style={{ color: '#ffffff' }}>{entry.wins}</strong> • LOSSES: <strong style={{ color: '#ffffff' }}>{entry.losses}</strong>
-                              </div>
                             </div>
                           </div>
 
