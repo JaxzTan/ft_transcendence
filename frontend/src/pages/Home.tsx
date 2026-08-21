@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getApi, postApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
-import { NotificationBell } from '../components/NotificationBell'
 import { RetroNavbar } from '../components/RetroNavbar'
 import { NotificationToasts } from '../components/NotificationToast'
 import { useNotifications } from '../hooks/useNotifications'
@@ -71,16 +70,7 @@ export function Home() {
 	// 3. THEME & CRT CONTROLS
 	// ------------------------------------------------------------------------
 	const [theme, setTheme] = useState<ThemeType>('synthwave')
-	const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
 	const [crtEnabled, setCrtEnabled] = useState(true)
-
-	const applyTheme = (newTheme: ThemeType) => {
-		setTheme(newTheme)
-		document.documentElement.setAttribute('data-theme', newTheme)
-		document.body.setAttribute('data-theme', newTheme)
-		localStorage.setItem('retro_theme', newTheme)
-		retroAudio.playUiBeep(880, 0.05)
-	}
 
 	useEffect(() => {
 		const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'

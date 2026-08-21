@@ -17,6 +17,7 @@ export interface Notification {
   read: boolean
   createdAt: string
 }
+export type InAppNotification = Notification
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 

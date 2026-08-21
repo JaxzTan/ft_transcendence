@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { RetroNavbar } from '../components/RetroNavbar'
 import { UserAvatar } from '../components/UserAvatar'
 import { navigate } from '../router'
@@ -9,8 +8,6 @@ import { getRankTier } from '../utils/ranks'
 import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 
-type ThemeType = 'synthwave' | 'win95' | 'terminal'
-
 type LeaderboardEntry = {
   rank: number
   username: string
@@ -18,9 +15,8 @@ type LeaderboardEntry = {
   gamesPlayed: number
   wins: number
   losses: number
-  draws: number
   winRate: number
-  avatarStyle: string | null
+  avatarStyle?: any
 }
 
 type LeaderboardResponse = {
@@ -32,30 +28,14 @@ type LeaderboardResponse = {
 }
 
 export function Leaderboard() {
-  const { t } = useTranslation()
   const { user } = useApp()
 
   // ------------------------------------------------------------------------
-  // THEME & CRT CONTROLS
+  // CRT CONTROLS
   // ------------------------------------------------------------------------
-  const [theme, setTheme] = useState<ThemeType>('synthwave')
-  const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
   const [crtEnabled, setCrtEnabled] = useState(true)
 
-  const applyTheme = (newTheme: ThemeType) => {
-    setTheme(newTheme)
-    document.documentElement.setAttribute('data-theme', newTheme)
-    document.body.setAttribute('data-theme', newTheme)
-    localStorage.setItem('retro_theme', newTheme)
-    retroAudio.playUiBeep(880, 0.05)
-  }
-
   useEffect(() => {
-    const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
-    setTheme(savedTheme)
-    document.documentElement.setAttribute('data-theme', savedTheme)
-    document.body.setAttribute('data-theme', savedTheme)
-
     const savedCrt = localStorage.getItem('retro_crt')
     if (savedCrt === 'false') {
       setCrtEnabled(false)
@@ -95,7 +75,6 @@ export function Leaderboard() {
   const top1 = data?.entries?.find((e) => e.rank === 1)
   const top2 = data?.entries?.find((e) => e.rank === 2)
   const top3 = data?.entries?.find((e) => e.rank === 3)
-  const myRankInfo = data?.myRank
 
   return (
     <>
