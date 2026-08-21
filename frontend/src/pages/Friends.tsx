@@ -81,7 +81,7 @@ export function Friends() {
   const [requests, setRequests] = useState<FriendRequest[]>([])
   const [blocked, setBlocked] = useState<BlockedUser[]>([])
   const [leaderboardMap, setLeaderboardMap] = useState<Record<string, number>>({})
-  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'blocked'>('friends')
+  const [activeTab, setActiveTab] = useState<'friends' | 'blocked'>('friends')
   const [filterQuery, setFilterQuery] = useState('')
   const [searchUsername, setSearchUsername] = useState('')
   const [loading, setLoading] = useState(true)
@@ -349,13 +349,9 @@ export function Friends() {
                   borderRadius: 4,
                   fontFamily: 'var(--font-display)',
                   fontWeight: 'bold',
-                  cursor: requests.length > 0 ? 'pointer' : 'default',
-                }}
-                onClick={() => {
-                  if (requests.length > 0) setActiveTab('requests')
                 }}
               >
-                ✦ PENDING TRANSMISSIONS: {requests.length}
+                ✦ INCOMING TRANSMISSIONS: {requests.length}
               </span>
               {blocked.length > 0 && (
                 <span
@@ -415,7 +411,7 @@ export function Friends() {
               className="window-body"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.7fr) minmax(320px, 1fr)',
+                gridTemplateColumns: 'minmax(0, 1.65fr) minmax(330px, 1fr)',
                 gap: 16,
                 padding: '14px 18px 16px',
                 flex: 1,
@@ -424,7 +420,7 @@ export function Friends() {
               }}
             >
               {/* ════════════════════════════════════════════════════════════════
-                  LEFT COLUMN: Tabbed Active Friends / Requests / Blocked
+                  LEFT COLUMN: Allied Operatives / Restricted Pilots List
                  ════════════════════════════════════════════════════════════════ */}
               <div
                 style={{
@@ -472,26 +468,6 @@ export function Friends() {
                       }}
                     >
                       ALLIED OPERATIVES ({friends.length})
-                    </button>
-                    <button
-                      className="retro-btn"
-                      onClick={() => {
-                        retroAudio.playUiBeep(520, 0.04)
-                        setActiveTab('requests')
-                      }}
-                      style={{
-                        padding: '5px 14px',
-                        fontSize: '0.76rem',
-                        fontFamily: 'var(--font-display)',
-                        fontWeight: 900,
-                        borderRadius: 4,
-                        color: activeTab === 'requests' ? '#ffffff' : requests.length > 0 ? '#ffe600' : 'var(--text-muted)',
-                        background: activeTab === 'requests' ? 'rgba(255, 230, 0, 0.22)' : 'transparent',
-                        borderColor: activeTab === 'requests' ? '#ffe600' : requests.length > 0 ? '#ffe600' : 'rgba(255, 255, 255, 0.15)',
-                        boxShadow: activeTab === 'requests' || requests.length > 0 ? '0 0 10px rgba(255, 230, 0, 0.35)' : 'none',
-                      }}
-                    >
-                      INCOMING ({requests.length})
                     </button>
                     <button
                       className="retro-btn"
@@ -567,6 +543,10 @@ export function Friends() {
                         return (
                           <div
                             key={f.id}
+                            onClick={() => {
+                              retroAudio.playUiBeep(640, 0.04)
+                              navigate(`/profile?u=${f.username}`)
+                            }}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -578,17 +558,25 @@ export function Friends() {
                               boxShadow: fStatus.status === 'online' || fStatus.status === 'playing' ? '0 0 10px rgba(0, 240, 255, 0.08)' : 'none',
                               transition: 'all 0.18s ease',
                               gap: 12,
+                              cursor: 'pointer',
                             }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(28, 10, 64, 0.95)'
+                              e.currentTarget.style.borderColor = 'var(--accent-cyan)'
+                              e.currentTarget.style.boxShadow = '0 0 14px rgba(0, 240, 255, 0.25)'
+                              e.currentTarget.style.transform = 'translateX(3px)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(18, 6, 42, 0.82)'
+                              e.currentTarget.style.borderColor = fStatus.status === 'online' || fStatus.status === 'playing' ? 'rgba(0, 240, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)'
+                              e.currentTarget.style.boxShadow = fStatus.status === 'online' || fStatus.status === 'playing' ? '0 0 10px rgba(0, 240, 255, 0.08)' : 'none'
+                              e.currentTarget.style.transform = 'translateX(0)'
+                            }}
+                            title={`Click to view ${f.username}'s Pilot Profile`}
                           >
                             {/* Left: Avatar + Callsign + Presence */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
-                              <div
-                                style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
-                                onClick={() => {
-                                  retroAudio.playUiBeep(640, 0.04)
-                                  navigate(`/profile?u=${f.username}`)
-                                }}
-                              >
+                              <div style={{ position: 'relative', flexShrink: 0 }}>
                                 <div
                                   style={{
                                     padding: 2,
@@ -639,14 +627,8 @@ export function Friends() {
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
-                                    cursor: 'pointer',
                                     letterSpacing: '0.02em',
                                   }}
-                                  onClick={() => {
-                                    retroAudio.playUiBeep(640, 0.04)
-                                    navigate(`/profile?u=${f.username}`)
-                                  }}
-                                  title={`Inspect ${f.username}'s Profile`}
                                 >
                                   {f.username}
                                 </div>
@@ -670,7 +652,10 @@ export function Friends() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                               <button
                                 className="retro-btn"
-                                onClick={() => handleInvite(f.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleInvite(f.id)
+                                }}
                                 disabled={invitingId === f.id}
                                 style={{
                                   padding: '5px 12px',
@@ -691,140 +676,52 @@ export function Friends() {
 
                               <button
                                 className="retro-btn"
-                                onClick={() => {
-                                  retroAudio.playUiBeep(640, 0.04)
-                                  navigate(`/profile?u=${f.username}`)
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemove(f.id)
                                 }}
                                 style={{
                                   padding: '5px 10px',
                                   fontSize: '0.72rem',
                                   fontFamily: 'var(--font-display)',
-                                  color: 'var(--accent-cyan)',
-                                  borderColor: 'rgba(0, 240, 255, 0.4)',
-                                  borderRadius: 4,
-                                }}
-                                title="View Profile"
-                              >
-                                DOSSIER
-                              </button>
-
-                              <button
-                                className="retro-btn"
-                                onClick={() => handleRemove(f.id)}
-                                style={{
-                                  padding: '5px 9px',
-                                  fontSize: '0.72rem',
-                                  fontFamily: 'var(--font-display)',
-                                  color: 'var(--text-muted)',
+                                  fontWeight: 900,
+                                  color: '#ffffff',
+                                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                                  background: 'rgba(255, 255, 255, 0.06)',
                                   borderRadius: 4,
                                 }}
                                 title="Remove Comrade"
                               >
-                                ✕
+                                REMOVE
                               </button>
 
                               <button
                                 className="retro-btn"
-                                onClick={() => handleBlock(f.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleBlock(f.id)
+                                }}
                                 style={{
-                                  padding: '5px 9px',
+                                  padding: '5px 10px',
                                   fontSize: '0.72rem',
                                   fontFamily: 'var(--font-display)',
-                                  borderColor: 'rgba(255, 0, 85, 0.4)',
-                                  color: '#ff0055',
+                                  fontWeight: 900,
+                                  color: '#ffffff',
+                                  borderColor: 'rgba(255, 0, 85, 0.5)',
+                                  background: 'rgba(255, 0, 85, 0.14)',
                                   borderRadius: 4,
                                 }}
                                 title="Block Pilot"
                               >
-                                ⊘
+                                BLOCK
                               </button>
                             </div>
                           </div>
                         )
                       })
                     )
-                  ) : activeTab === 'requests' ? (
-                    /* ─── TAB 2: INCOMING REQUESTS ─── */
-                    requests.length === 0 ? (
-                      <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.84rem', fontFamily: 'var(--font-display)' }}>
-                        NO PENDING INCOMING TRANSMISSIONS.
-                      </div>
-                    ) : (
-                      requests.map((r) => (
-                        <div
-                          key={r.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '12px 16px',
-                            borderRadius: 6,
-                            background: 'rgba(255, 230, 0, 0.08)',
-                            border: '1.5px solid rgba(255, 230, 0, 0.35)',
-                            gap: 12,
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <UserAvatar
-                              username={r.username}
-                              avatarStyle={r.avatarStyle}
-                              size={40}
-                              fallbackStyle={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: 4,
-                                background: 'rgba(10, 2, 28, 0.95)',
-                                color: '#ffe600',
-                                display: 'grid',
-                                placeItems: 'center',
-                                fontWeight: 900,
-                              }}
-                            />
-                            <div>
-                              <div style={{ fontWeight: 900, fontSize: '0.92rem', color: '#ffffff', fontFamily: 'var(--font-display)' }}>
-                                {r.username}
-                              </div>
-                              <div style={{ color: '#ffe600', fontSize: '0.68rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
-                                FREQUENCY REQUEST TRANSMITTED {new Date(r.createdAt).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                              className="retro-btn"
-                              onClick={() => handleAccept(r.id)}
-                              style={{
-                                padding: '6px 16px',
-                                fontSize: '0.76rem',
-                                fontFamily: 'var(--font-display)',
-                                fontWeight: 900,
-                                background: '#00ff88',
-                                color: '#0d0221',
-                                borderColor: '#00ff88',
-                                borderRadius: 4,
-                              }}
-                            >
-                              ACCEPT
-                            </button>
-                            <button
-                              className="retro-btn"
-                              onClick={() => handleDecline(r.id)}
-                              style={{
-                                padding: '6px 14px',
-                                fontSize: '0.76rem',
-                                fontFamily: 'var(--font-display)',
-                                borderRadius: 4,
-                              }}
-                            >
-                              IGNORE
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )
                   ) : (
-                    /* ─── TAB 3: BLOCKED LIST ─── */
+                    /* ─── TAB 2: BLOCKED LIST ─── */
                     blocked.length === 0 ? (
                       <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.84rem', fontFamily: 'var(--font-display)' }}>
                         NO RESTRICTED PILOT SIGNALS FOUND.
@@ -888,7 +785,7 @@ export function Friends() {
               </div>
 
               {/* ════════════════════════════════════════════════════════════════
-                  RIGHT COLUMN: Transmit Module + Live Activity Queue
+                  RIGHT COLUMN: Transmit Module + Dedicated Bottom-Right Incoming Panel
                  ════════════════════════════════════════════════════════════════ */}
               <div
                 style={{
@@ -896,10 +793,10 @@ export function Friends() {
                   flexDirection: 'column',
                   gap: 14,
                   minHeight: 0,
-                  overflowY: 'auto',
+                  overflow: 'hidden',
                 }}
               >
-                {/* Module 1: Transmit Frequency Request */}
+                {/* Top Right Card: Transmit Frequency Request (Add Comrade) */}
                 <div
                   style={{
                     background: 'rgba(14, 4, 34, 0.9)',
@@ -975,99 +872,193 @@ export function Friends() {
                   )}
                 </div>
 
-                {/* Module 2: Quick Pending Transmissions Queue */}
-                {requests.length > 0 ? (
+                {/* Bottom Right Card: Dedicated INCOMING FREQUENCY TRANSMISSIONS Card */}
+                <div
+                  style={{
+                    flex: 1,
+                    background: requests.length > 0 ? 'linear-gradient(180deg, rgba(28, 20, 6, 0.92) 0%, rgba(16, 10, 4, 0.95) 100%)' : 'rgba(12, 4, 28, 0.85)',
+                    border: requests.length > 0 ? '1.5px solid #ffe600' : '1.5px solid rgba(255, 255, 255, 0.15)',
+                    boxShadow: requests.length > 0 ? '0 0 20px rgba(255, 230, 0, 0.25)' : 'none',
+                    borderRadius: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    minHeight: 0,
+                  }}
+                >
+                  {/* Card Header */}
                   <div
                     style={{
-                      background: 'rgba(25, 18, 6, 0.9)',
-                      border: '1.5px solid #ffe600',
-                      boxShadow: '0 0 16px rgba(255, 230, 0, 0.25)',
-                      borderRadius: 8,
-                      padding: '14px 16px',
+                      padding: '10px 14px',
+                      background: requests.length > 0 ? 'rgba(255, 230, 0, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                      borderBottom: requests.length > 0 ? '1px solid rgba(255, 230, 0, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: 10,
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
                       flexShrink: 0,
                     }}
                   >
-                    <div style={{ fontSize: '0.76rem', color: '#ffe600', fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1px' }}>
-                      INCOMING FREQUENCY QUEUE ({requests.length})
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: requests.length > 0 ? '#ffe600' : 'var(--text-muted)',
+                          boxShadow: requests.length > 0 ? '0 0 8px #ffe600' : 'none',
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '0.78rem',
+                          color: requests.length > 0 ? '#ffe600' : '#ffffff',
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 900,
+                          letterSpacing: '1px',
+                        }}
+                      >
+                        INCOMING TRANSMISSIONS ({requests.length})
+                      </span>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {requests.map((r) => (
+                    {requests.length > 0 && (
+                      <span
+                        style={{
+                          fontSize: '0.66rem',
+                          padding: '2px 6px',
+                          borderRadius: 3,
+                          background: '#ffe600',
+                          color: '#0d0221',
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 900,
+                        }}
+                      >
+                        ACTION REQUIRED
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Card Scrollable Content */}
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      flex: 1,
+                      overflowY: 'auto',
+                      minHeight: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 9,
+                    }}
+                  >
+                    {requests.length === 0 ? (
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-muted)',
+                          fontSize: '0.76rem',
+                          fontFamily: 'var(--font-display)',
+                          textAlign: 'center',
+                          gap: 6,
+                          padding: '20px 10px',
+                        }}
+                      >
+                        <span style={{ fontSize: '1.2rem', color: 'rgba(255, 255, 255, 0.2)' }}>✦</span>
+                        <span>FREQUENCY CHANNEL CLEAR</span>
+                        <span style={{ fontSize: '0.68rem', color: 'rgba(255, 255, 255, 0.3)' }}>NO PENDING INCOMING SIGNALS</span>
+                      </div>
+                    ) : (
+                      requests.map((r) => (
                         <div
                           key={r.id}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '8px 10px',
-                            background: 'rgba(10, 3, 24, 0.7)',
-                            border: '1px solid rgba(255, 230, 0, 0.3)',
-                            borderRadius: 4,
+                            padding: '9px 12px',
+                            background: 'rgba(12, 4, 30, 0.85)',
+                            border: '1px solid rgba(255, 230, 0, 0.35)',
+                            boxShadow: '0 0 10px rgba(255, 230, 0, 0.12)',
+                            borderRadius: 6,
+                            gap: 10,
                           }}
                         >
-                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)' }}>
-                            {r.username}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                            <UserAvatar
+                              username={r.username}
+                              avatarStyle={r.avatarStyle}
+                              size={34}
+                              fallbackStyle={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: 4,
+                                background: 'rgba(10, 2, 28, 0.95)',
+                                color: '#ffe600',
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontWeight: 900,
+                              }}
+                            />
+                            <div style={{ minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: '0.86rem',
+                                  fontWeight: 900,
+                                  color: '#ffffff',
+                                  fontFamily: 'var(--font-display)',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {r.username}
+                              </div>
+                              <div style={{ color: '#ffe600', fontSize: '0.64rem', fontFamily: 'var(--font-display)', marginTop: 1 }}>
+                                REQUEST RECEIVED
+                              </div>
+                            </div>
                           </div>
-                          <div style={{ display: 'flex', gap: 6 }}>
+
+                          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                             <button
                               className="retro-btn"
                               onClick={() => handleAccept(r.id)}
                               style={{
-                                padding: '3px 9px',
-                                fontSize: '0.68rem',
+                                padding: '4px 10px',
+                                fontSize: '0.7rem',
                                 fontFamily: 'var(--font-display)',
+                                fontWeight: 900,
                                 background: '#00ff88',
                                 color: '#0d0221',
                                 borderColor: '#00ff88',
                                 borderRadius: 3,
                               }}
+                              title="Accept Frequency Request"
                             >
-                              ✓
+                              ACCEPT
                             </button>
                             <button
                               className="retro-btn"
                               onClick={() => handleDecline(r.id)}
                               style={{
-                                padding: '3px 8px',
-                                fontSize: '0.68rem',
+                                padding: '4px 8px',
+                                fontSize: '0.7rem',
                                 fontFamily: 'var(--font-display)',
                                 borderRadius: 3,
                               }}
+                              title="Ignore Request"
                             >
-                              ✕
+                              IGNORE
                             </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      ))
+                    )}
                   </div>
-                ) : (
-                  /* Module 2 fallback: Network Telemetry Overview */
-                  <div
-                    style={{
-                      background: 'rgba(10, 3, 26, 0.75)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: 8,
-                      padding: '14px 16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
-                      CYBER TELEMETRY STATUS
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#ffffff', fontFamily: 'var(--font-display)', lineHeight: 1.4 }}>
-                      • ENCRYPTION: 128-BIT RETRO FREQUENCY<br />
-                      • COMMS GATEWAY: ACTIVE<br />
-                      • BROADCAST RADAR: SYNCHRONIZED
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           </section>
