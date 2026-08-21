@@ -64,15 +64,15 @@ const ACHIEVEMENTS_DEF = [
   { key: 'achOnFire', title: 'ON FIRE', desc: 'Achieve a 3-game win streak', icon: '▲' },
   { key: 'achDiceMaster', title: 'DICE MASTER', desc: 'Reach 50 total match victories', icon: '⚄' },
   { key: 'achBabySteps', title: 'BABY STEPS', desc: 'Win 1st game vs training bots', icon: '⚙' },
-  { key: 'achTheDiceLoveMe', title: 'DICE LOVER', desc: 'Win 10 games vs training bots', icon: '★' },
+  { key: 'achTheDiceLoveMe', title: 'DICE LOVER', desc: 'Win 10 games vs training bots', icon: '✦' },
   { key: 'achTactician', title: 'TACTICIAN', desc: 'Reach 100 combat victories', icon: '♟' },
-  { key: 'achMaster', title: 'MASTER', desc: 'Reach 250 combat victories', icon: '♛' },
-  { key: 'achGrandBotMaster', title: 'GRAND MASTER', desc: 'Reach 500 combat victories', icon: '◆' },
-  { key: 'achWorldChampion', title: 'CHAMPION', desc: 'Reach 1,000 combat victories', icon: '★' },
-  { key: 'achLoveTheMachine', title: 'VETERAN', desc: 'Complete 100 total matches', icon: '⚡' },
-  { key: 'achft_Transcendence', title: 'TRANSCENDENCE', desc: 'Win 100 PvP human matches', icon: '✦' },
+  { key: 'achMaster', title: 'MASTER', desc: 'Reach 250 combat victories', icon: '◆' },
+  { key: 'achGrandBotMaster', title: 'GRAND MASTER', desc: 'Reach 500 combat victories', icon: '❖' },
+  { key: 'achWorldChampion', title: 'CHAMPION', desc: 'Reach 1,000 combat victories', icon: '✦' },
+  { key: 'achLoveTheMachine', title: 'VETERAN', desc: 'Complete 100 total matches', icon: '⬡' },
+  { key: 'achft_Transcendence', title: 'TRANSCENDENCE', desc: 'Win 100 PvP human matches', icon: '◈' },
   { key: 'achSpeedDemon', title: 'SPEED DEMON', desc: 'Win match in under 30 mins', icon: '⏱' },
-  { key: 'achUnstoppable', title: 'UNSTOPPABLE', desc: 'Capture 3 pieces in 1 game', icon: '⚔' },
+  { key: 'achUnstoppable', title: 'UNSTOPPABLE', desc: 'Capture 3 pieces in 1 game', icon: '▲' },
   { key: 'achCleanSweep', title: 'CLEAN SWEEP', desc: 'Win 4 pieces while rivals have 0', icon: '◈' },
   { key: 'achLastLaugh', title: 'LAST LAUGH', desc: 'Win while all rivals have goal pieces', icon: '❖' },
 ]
@@ -211,12 +211,14 @@ export function Profile() {
         if (!cancelled) setAchievements({})
       })
 
-    fetch('/api/friends', { credentials: 'include' })
+    const friendsUrl = username ? `/api/friends?username=${encodeURIComponent(username)}` : '/api/friends'
+    fetch(friendsUrl, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!cancelled && data) {
           const list = Array.isArray(data) ? data : data?.friends || []
-          setFriendsData(list)
+          const sorted = [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0))
+          setFriendsData(sorted)
         }
       })
       .catch(() => {
@@ -599,8 +601,8 @@ export function Profile() {
                       position: 'relative',
                     }}
                   >
-                    <div style={{ fontSize: '0.72rem', color: rankTier.color, fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span>⚡</span> CURRENT COMBAT ELO
+                    <div style={{ fontSize: '0.72rem', color: rankTier.color, fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1.2px' }}>
+                      CURRENT COMBAT ELO
                     </div>
                     <div
                       style={{
@@ -614,7 +616,7 @@ export function Profile() {
                         letterSpacing: '0.03em',
                       }}
                     >
-                      ♛ {profile.rating}
+                      {profile.rating}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <RankBadge tier={rankTier} fontSize="12px" padding="3.5px 12px" />
@@ -637,8 +639,8 @@ export function Profile() {
                       position: 'relative',
                     }}
                   >
-                    <div style={{ fontSize: '0.72rem', color: peakTier.color, fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span>★</span> ALL-TIME PEAK RECORD
+                    <div style={{ fontSize: '0.72rem', color: peakTier.color, fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1.2px' }}>
+                      ALL-TIME PEAK RECORD
                     </div>
                     <div
                       style={{
@@ -652,7 +654,7 @@ export function Profile() {
                         letterSpacing: '0.03em',
                       }}
                     >
-                      ♛ {peakRating}
+                      {peakRating}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                       <RankBadge tier={peakTier} fontSize="12px" padding="3.5px 12px" />
@@ -819,7 +821,7 @@ export function Profile() {
                             boxShadow: mainTab === 'history' ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
                           }}
                         >
-                          ⚔️ FLIGHT LOGS ({gamesData?.total ?? 0})
+                          FLIGHT LOGS ({gamesData?.total ?? 0})
                         </button>
                         <button
                           className="retro-btn"
@@ -839,7 +841,7 @@ export function Profile() {
                             boxShadow: mainTab === 'achievements' ? '0 0 10px rgba(255, 230, 0, 0.35)' : 'none',
                           }}
                         >
-                          🏆 ACHIEVEMENTS ({unlockedCount}/{totalAchievements})
+                          ACHIEVEMENTS ({unlockedCount}/{totalAchievements})
                         </button>
                       </div>
 
@@ -1187,7 +1189,7 @@ export function Profile() {
 
                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                                   <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)' }}>
-                                    ♛ {f.rating}
+                                    {f.rating}
                                   </div>
                                   <div style={{ marginTop: 1 }}>
                                     <RankBadge tier={fTier} fontSize="8.5px" padding="1px 5px" />
@@ -1197,29 +1199,6 @@ export function Profile() {
                             )
                           })
                         )}
-                      </div>
-                    </div>
-
-                    {/* Sidebar Box 2: Apex Combat Standing */}
-                    <div
-                      style={{
-                        background: 'linear-gradient(180deg, rgba(26, 6, 48, 0.95), rgba(12, 2, 28, 0.98))',
-                        border: `1.5px solid ${rankTier.color}`,
-                        boxShadow: `0 0 16px ${rankTier.glow}`,
-                        borderRadius: 8,
-                        padding: '12px 16px',
-                        textAlign: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <div style={{ fontSize: '0.7rem', color: rankTier.color, fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1px' }}>
-                        APEX TIER RECOGNITION
-                      </div>
-                      <div style={{ margin: '6px 0' }}>
-                        <RankBadge tier={rankTier} fontSize="12px" padding="3px 12px" />
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>
-                        PEAK RATING RECORD: <strong style={{ color: peakTier.color }}>♛ {peakRating}</strong>
                       </div>
                     </div>
                   </div>
