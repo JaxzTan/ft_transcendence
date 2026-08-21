@@ -1,19 +1,26 @@
 import { useEffect, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
-import { Board } from '../components/Board'
+import { UserAvatar } from '../components/UserAvatar'
 import type { PlayerColor } from '../game/types'
 import { navigate, useRoute } from '../router'
 import { useApp, type PlayerCount } from '../store'
-import { COL, SEAT_COLORS, card, feltPanel, sectionLabel, type ColorKey } from '../theme'
-import { UserAvatar } from '../components/UserAvatar'
+import { SEAT_COLORS, type ColorKey } from '../theme'
+import { retroAudio } from '../utils/audio'
+import '../styles/retrowave.css'
 
 const COLOR_KEYS: Record<ColorKey, string> = {
   red: 'lobby.colorRed',
   green: 'lobby.colorGreen',
   yellow: 'lobby.colorYellow',
   blue: 'lobby.colorBlue',
+}
+
+const SEAT_HUES: Record<ColorKey, string> = {
+  red: '#ff007f',
+  green: '#00ff88',
+  yellow: '#ffe600',
+  blue: '#00f0ff',
 }
 
 export function Lobby() {
@@ -25,64 +32,51 @@ export function Lobby() {
   const [editingSeat, setEditingSeat] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
 
-  // A fresh room must never inherit bots/players seated during a previous
-  // visit — seats live in the app-wide store, not scoped to this page.
+  const [crtEnabled] = useState(() => {
+    return localStorage.getItem('crt_enabled') !== 'false'
+  })
+
   useEffect(() => {
     resetSeats()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [resetSeats])
 
-  // Route-derived lobby configuration (single source of truth)
   const playerCount = (Number(query.get('mode')) as PlayerCount) || 4
   const allowAddPlayers = query.get('bots') !== '0'
-  // Local (hotseat) pass-and-play — same seat-setup UI as PvP/PvE, but a
-  // single device joins every filled seat itself (see Game.tsx), so the
-  // backend must be told exactly how many seats were actually filled, not
-  // the route's max (mode=4 gives up to 4 slots; fewer is fine).
   const isLocal = query.get('local') === '1'
-
   const isSolo = playerCount === 1
+
   const visible = seats.slice(0, playerCount)
   const botCount = visible.filter((s) => s.type === 'bot').length
   const emptyCount = visible.filter((s) => s.type === 'empty').length
-  // Solo (Test Your Luck) needs nobody else — it's just you and the dice.
-  // Hotseat/Multiplayer can start when at least the host + 1 other is seated.
-  // Vs Bots can start once at least 1 bot is seated.
+
   const canStart = isSolo
     ? true
     : allowAddPlayers
       ? botCount >= 1
       : visible.filter((s) => s.type === 'you' || s.type === 'player').length >= 2
 
-  const startBtnStyle: CSSProperties = canStart
-    ? {
-      border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'", color: '#2a1c07',
-      cursor: 'pointer', background: 'linear-gradient(180deg,#f0d18a,#c99b45)',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,.55),0 12px 22px -12px rgba(190,140,55,.8)', marginTop: 4,
-    }
-    : {
-      border: '1px solid #3a2c1d', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
-      color: '#6b5d49', cursor: 'not-allowed', background: '#1a130d', marginTop: 4,
-    }
-
   const onStart = async () => {
     if (!canStart || starting) return
+    retroAudio.playUiBeep(880, 0.1)
     setStartError(null)
     setStarting(true)
     try {
       const gameMode = allowAddPlayers ? 'pve' : (isLocal || isSolo || playerCount === 2) ? 'hotseat' : 'pvp'
-      // Hotseat has no separate accounts to fill unfilled seats with — send
-      // the actual number of occupied seats, not the route's max slot count.
       const filledCount = visible.filter((s) => s.type === 'you' || s.type === 'player').length
-      const res = await postApi<{ gameId: string; token: string; engineUrl: string; color: PlayerColor; inviteCode?: string; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>(
-        '/api/match/create',
-        {
-          mode: gameMode,
-          playerCount: gameMode === 'hotseat' ? filledCount : playerCount,
-          botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
-          clashEnabled: true,
-        },
-      )
+      const res = await postApi<{
+        gameId: string
+        token: string
+        engineUrl: string
+        color: PlayerColor
+        inviteCode?: string
+        mode: 'pvp' | 'pve' | 'hotseat'
+        playerCount: number
+      }>('/api/match/create', {
+        mode: gameMode,
+        playerCount: gameMode === 'hotseat' ? filledCount : playerCount,
+        botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
+        clashEnabled: true,
+      })
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {
@@ -92,217 +86,465 @@ export function Lobby() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 32px', borderBottom: '1px solid #2e2115' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div
-            onClick={() => navigate('/home')}
+    <>
+      {/* Animated 3D Synthwave Background */}
+      <div className="grid-background">
+        <div className="synthwave-sun" />
+        <div className="grid-horizon" />
+        <div className="perspective-grid" />
+        <div className="win95-starfield" />
+        <div className="terminal-vector-core" />
+      </div>
+
+      {/* CRT FX Overlay */}
+      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+        <div
+          className="crt-scanlines"
+          id="crtOverlay"
+          style={{ display: crtEnabled ? 'block' : 'none' }}
+        />
+        <div className="crt-flicker" />
+
+        {/* Main Content Container */}
+        <div
+          className="app-wrapper"
+          style={{
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            maxWidth: 1100,
+            width: '100%',
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            padding: '16px 20px',
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* Hero Header */}
+          <header className="hero-section" style={{ padding: '4px 0 16px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 0 }}>
+                {isSolo ? '// SOLO PRACTICE BAY //' : '// ARENA MATCH CONFIGURATION //'}
+              </h1>
+              <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+                {isSolo
+                  ? 'SOLO RUN // TEST YOUR LUCK AGAINST ARENA HAZARDS'
+                  : 'CONFIGURE PILOT SEATS, BOTS & TACTICAL PARAMETERS'}
+              </p>
+            </div>
+          </header>
+
+          {/* Main Grid */}
+          <main
+            className="dashboard-grid"
             style={{
-              cursor: 'pointer', width: 38, height: 38, borderRadius: 10, display: 'grid', placeItems: 'center',
-              border: '1px solid #3a2c1d', background: '#1a130d', fontSize: 16, color: '#c9bda3',
+              display: 'grid',
+              gridTemplateColumns: '1.25fr 0.85fr',
+              gap: 20,
+              alignItems: 'stretch',
+              width: '100%',
+              margin: '0 auto',
             }}
           >
-            ←
-          </div>
-          <div>
-            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, color: '#f4e9cf' }}>
-              {isSolo ? t('lobby.soloRoomTitle') : t('lobby.roomSetup')}
-            </div>
-            <div style={{ color: '#a99a83', fontSize: 13 }}>
-              {isSolo ? t('lobby.soloRoomDesc') : t('lobby.privateMatchDesc')}
-            </div>
-          </div>
-        </div>
-      </header>
+            {/* LEFT COLUMN: SEAT ASSIGNMENT WINDOW & BACK BUTTON */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <section className="retro-window" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div className="window-header">
+                  <span>// SEAT ROSTER & PILOT ASSIGNMENTS ({playerCount - emptyCount}/{playerCount})</span>
+                  <div className="window-controls">
+                    <span className="window-btn min" />
+                    <span className="window-btn max" />
+                  </div>
+                </div>
 
-      <div
-        style={{
-          flex: 1, display: 'grid', gridTemplateColumns: '1.35fr .9fr', gap: 26, padding: '30px 34px',
-          alignItems: 'start', maxWidth: 1200, margin: '0 auto', width: '100%',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={sectionLabel}>{t('lobby.seatsCount', { count: playerCount })}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: playerCount === 2 ? '1fr 1fr' : '1fr 1fr', gap: 16 }}>
-            {visible.map((seat, i) => {
-              const ck = SEAT_COLORS[i]
-              const col = COL[ck]
-              const colorName = t(COLOR_KEYS[ck])
-              const avStyle: CSSProperties = {
-                width: 42, height: 42, flex: 'none', borderRadius: 11, display: 'grid', placeItems: 'center',
-                fontWeight: 800, fontSize: 14, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
-              }
-              return (
-                <div key={i} style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, background: 'linear-gradient(180deg,#241b13,#1a130d)', border: '1px solid #3a2c1d' }}>
-                  <div style={{ height: 4, background: col.base }} />
-                  <div style={{ padding: '18px 18px 20px', minHeight: 150, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {seat.type === 'you' && (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <UserAvatar
-                            username={user?.username || ''}
-                            size={42}
-                            fallbackStyle={avStyle}
-                            style={{ borderRadius: 11 }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>
-                              {t('common.you')} <span style={{ color: '#c99b45', fontSize: 11, fontWeight: 700 }}>{t('lobby.hostBadge')}</span>
-                            </div>
-                            <div style={{ color: '#a99a83', fontSize: '12.5px' }}>{colorName}</div>
-                          </div>
-                        </div>
-                        <div style={{ marginTop: 'auto', fontSize: '12.5px', color: '#7fae91', fontWeight: 700 }}>✓ {t('lobby.readyBadge')}</div>
-                      </>
-                    )}
-                    {seat.type === 'bot' && (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={avStyle}>{seat.name.slice(0, 2).toUpperCase()}</div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4' }}>
-                              {seat.name} <span style={{ color: '#a99a83', fontSize: 11, fontWeight: 700 }}>{t('lobby.botBadge')}</span>
-                            </div>
-                            <div style={{ color: '#a99a83', fontSize: '12.5px' }}>{t('lobby.colorPiece', { color: colorName })}</div>
-                          </div>
-                          <div
-                            onClick={() => removeBot(i)}
-                            style={{
-                              cursor: 'pointer', color: '#a99a83', fontSize: 15, width: 26, height: 26,
-                              display: 'grid', placeItems: 'center', borderRadius: 7, border: '1px solid #3a2c1d',
-                            }}
-                          >
-                            ✕
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {seat.type === 'player' && (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={avStyle}>{seat.name.slice(0, 2).toUpperCase()}</div>
-                          <div style={{ flex: 1 }}>
-                            {editingSeat === i ? (
-                              <input
-                                autoFocus
-                                value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
-                                onBlur={() => { renamePlayer(i, editName.trim() || seat.name); setEditingSeat(null) }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { renamePlayer(i, editName.trim() || seat.name); setEditingSeat(null) } }}
-                                style={{
-                                  width: '100%', background: '#1a130d', border: '1px solid #c99b45', borderRadius: 6,
-                                  color: '#f0e2c4', padding: '4px 8px', fontSize: 14, fontWeight: 800,
-                                }}
-                              />
-                            ) : (
-                              <div
-                                onClick={() => { setEditingSeat(i); setEditName(seat.name) }}
-                                style={{ fontWeight: 800, fontSize: 15, color: '#f0e2c4', cursor: 'pointer' }}
-                              >
-                                {seat.name} <span style={{ color: '#a99a83', fontSize: 11, fontWeight: 700 }}>{t('lobby.playerBadge')}</span>
-                              </div>
-                            )}
-                            <div style={{ color: '#a99a83', fontSize: '12.5px' }}>{t('lobby.colorPiece', { color: colorName })}</div>
-                          </div>
-                          <div
-                            onClick={() => removePlayer(i)}
-                            style={{
-                              cursor: 'pointer', color: '#a99a83', fontSize: 15, width: 26, height: 26,
-                              display: 'grid', placeItems: 'center', borderRadius: 7, border: '1px solid #3a2c1d',
-                            }}
-                          >
-                            ✕
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {seat.type === 'empty' && allowAddPlayers && (
+                <div className="window-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: 14, flex: 1 }}>
+                  {visible.map((seat, i) => {
+                    const ck = SEAT_COLORS[i]
+                    const hue = SEAT_HUES[ck]
+                    const colorName = t(COLOR_KEYS[ck]).toUpperCase()
+
+                    return (
                       <div
-                        onClick={() => addBot(i)}
+                        key={i}
                         style={{
-                          cursor: 'pointer', flex: 1, border: '1.5px dashed #4a3826', borderRadius: 12, display: 'flex',
-                          flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          color: '#a99a83', minHeight: 120,
+                          position: 'relative',
+                          borderRadius: 6,
+                          background: 'rgba(10, 2, 28, 0.85)',
+                          border: `1.5px solid ${hue}`,
+                          boxShadow: `0 0 10px ${hue}25`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          height: 138,
+                          overflow: 'hidden',
+                          boxSizing: 'border-box',
                         }}
                       >
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '1.5px dashed #4a3826', display: 'grid', placeItems: 'center', fontSize: 22, color: '#c99b45' }}>
-                          +
+                        {/* Color Header Stripe */}
+                        <div style={{ height: 3, background: hue }} />
+
+                        <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          {/* SEAT BADGE HEADER */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: hue, fontWeight: 'bold' }}>
+                              // SEAT 0{i + 1}: {colorName}
+                            </span>
+                          </div>
+
+                          {/* SEAT CONTENT */}
+                          {seat.type === 'you' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, justifyContent: 'space-between', marginTop: 4 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <UserAvatar
+                                  username={user?.username || ''}
+                                  size={36}
+                                  fallbackStyle={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 6,
+                                    background: hue,
+                                    color: '#0d0221',
+                                    fontWeight: 'bold',
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                  }}
+                                  style={{ borderRadius: 6, border: `1px solid ${hue}` }}
+                                />
+                                <div>
+                                  <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
+                                    {user?.username.toUpperCase() || t('common.you')}
+                                  </div>
+                                  <div style={{ color: hue, fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                                    [HOST / PILOT 01]
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ fontSize: '0.65rem', color: '#00ff88', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                                &gt;&gt; STATE: READY // HOST
+                              </div>
+                            </div>
+                          )}
+
+                          {seat.type === 'bot' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, justifyContent: 'space-between', marginTop: 4 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  <div
+                                    style={{
+                                      width: 34,
+                                      height: 34,
+                                      borderRadius: 6,
+                                      background: `${hue}25`,
+                                      border: `1px solid ${hue}`,
+                                      color: hue,
+                                      fontWeight: 'bold',
+                                      display: 'grid',
+                                      placeItems: 'center',
+                                      fontFamily: 'var(--font-mono)',
+                                      fontSize: '0.72rem',
+                                    }}
+                                  >
+                                    AI
+                                  </div>
+                                  <div>
+                                    <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
+                                      {seat.name}
+                                    </div>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                                      [AI BOT]
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={() => {
+                                    retroAudio.playUiBeep(320, 0.05)
+                                    removeBot(i)
+                                  }}
+                                  style={{
+                                    cursor: 'pointer',
+                                    background: 'rgba(255, 0, 85, 0.15)',
+                                    border: '1px solid #ff0055',
+                                    color: '#ff0055',
+                                    borderRadius: 4,
+                                    width: 24,
+                                    height: 24,
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    fontSize: '0.72rem',
+                                  }}
+                                  title="Remove Bot"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                              <div style={{ fontSize: '0.65rem', color: hue, fontFamily: 'var(--font-mono)' }}>
+                                &gt;&gt; STATE: AI READY
+                              </div>
+                            </div>
+                          )}
+
+                          {seat.type === 'player' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, justifyContent: 'space-between', marginTop: 4 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                                  <div
+                                    style={{
+                                      width: 34,
+                                      height: 34,
+                                      borderRadius: 6,
+                                      background: `${hue}25`,
+                                      border: `1px solid ${hue}`,
+                                      color: hue,
+                                      fontWeight: 'bold',
+                                      display: 'grid',
+                                      placeItems: 'center',
+                                      fontFamily: 'var(--font-mono)',
+                                      fontSize: '0.72rem',
+                                    }}
+                                  >
+                                    P{i + 1}
+                                  </div>
+                                  <div style={{ flex: 1 }}>
+                                    {editingSeat === i ? (
+                                      <input
+                                        autoFocus
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        onBlur={() => {
+                                          renamePlayer(i, editName.trim() || seat.name)
+                                          setEditingSeat(null)
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            renamePlayer(i, editName.trim() || seat.name)
+                                            setEditingSeat(null)
+                                          }
+                                        }}
+                                        style={{
+                                          width: '90%',
+                                          background: 'rgba(0,0,0,0.8)',
+                                          border: `1px solid ${hue}`,
+                                          borderRadius: 4,
+                                          color: '#ffffff',
+                                          padding: '2px 6px',
+                                          fontSize: '0.78rem',
+                                          fontFamily: 'var(--font-mono)',
+                                        }}
+                                      />
+                                    ) : (
+                                      <div
+                                        onClick={() => {
+                                          setEditingSeat(i)
+                                          setEditName(seat.name)
+                                        }}
+                                        style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ffffff', fontFamily: 'var(--font-heading)', cursor: 'pointer' }}
+                                        title="Click to rename pilot"
+                                      >
+                                        {seat.name} ✎
+                                      </div>
+                                    )}
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                                      [HOTSEAT PILOT]
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={() => {
+                                    retroAudio.playUiBeep(320, 0.05)
+                                    removePlayer(i)
+                                  }}
+                                  style={{
+                                    cursor: 'pointer',
+                                    background: 'rgba(255, 0, 85, 0.15)',
+                                    border: '1px solid #ff0055',
+                                    color: '#ff0055',
+                                    borderRadius: 4,
+                                    width: 24,
+                                    height: 24,
+                                    display: 'grid',
+                                    placeItems: 'center',
+                                    fontSize: '0.72rem',
+                                  }}
+                                  title="Remove Player"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                              <div style={{ fontSize: '0.65rem', color: '#00ff88', fontFamily: 'var(--font-mono)' }}>
+                                &gt;&gt; STATE: STANDBY
+                              </div>
+                            </div>
+                          )}
+
+                          {seat.type === 'empty' && (
+                            <div
+                              onClick={() => {
+                                retroAudio.playUiBeep(520, 0.05)
+                                if (allowAddPlayers) addBot(i)
+                                else addPlayer(i)
+                              }}
+                              style={{
+                                flex: 1,
+                                border: `1.5px dashed ${hue}66`,
+                                borderRadius: 4,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4,
+                                cursor: 'pointer',
+                                background: 'rgba(0,0,0,0.4)',
+                                transition: 'all 0.2s ease',
+                                marginTop: 4,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: 26,
+                                  height: 26,
+                                  borderRadius: '50%',
+                                  border: `1.5px dashed ${hue}`,
+                                  color: hue,
+                                  display: 'grid',
+                                  placeItems: 'center',
+                                  fontSize: '1rem',
+                                  fontWeight: 'bold',
+                                }}
+                              >
+                                +
+                              </div>
+                              <div style={{ fontSize: '0.68rem', color: hue, fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                                {allowAddPlayers ? '+ ADD AI BOT' : '+ ADD HUMAN PILOT'}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{t('lobby.addABot')}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+
+              {/* RETURN TO GAME LOBBY BUTTON */}
+              <button
+                className="retro-btn"
+                style={{
+                  width: '100%',
+                  padding: '10px 0',
+                  fontSize: '0.75rem',
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '0.5px',
+                  background: 'rgba(0, 240, 255, 0.12)',
+                  border: '1px solid var(--accent-cyan)',
+                  color: 'var(--accent-cyan)',
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  retroAudio.playUiBeep(440, 0.05)
+                  navigate('/gamelobby')
+                }}
+              >
+                &lt; RETURN TO GAME LOBBY
+              </button>
+            </div>
+
+            {/* RIGHT COLUMN: LAUNCH CONTROL WINDOW */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* LAUNCH CONTROL WINDOW */}
+              <section className="retro-window" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div className="window-header">
+                  <span>// ARENA LAUNCH CONTROL</span>
+                  <div className="window-controls">
+                    <span className="window-btn min" />
+                    <span className="window-btn max" />
+                  </div>
+                </div>
+
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 20, flex: 1, justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>// ACTIVE PILOTS:</span>
+                      <span style={{ color: '#ffffff', fontWeight: 'bold' }}>
+                        {playerCount - emptyCount} / {playerCount}
+                      </span>
+                    </div>
+
+                    {!isSolo && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>// BOT UNITS:</span>
+                        <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
+                          {botCount} UNIT{botCount === 1 ? '' : 'S'}
+                        </span>
                       </div>
                     )}
-                    {seat.type === 'empty' && !allowAddPlayers && (
-                      <div
-                        onClick={() => addPlayer(i)}
-                        style={{
-                          cursor: 'pointer', flex: 1, border: '1.5px dashed #4a3826', borderRadius: 12, display: 'flex',
-                          flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          color: '#a99a83', minHeight: 120,
-                        }}
-                      >
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', border: '1.5px dashed #4a3826', display: 'grid', placeItems: 'center', fontSize: 22, color: '#c99b45' }}>
-                          +
-                        </div>
-                        <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{t('lobby.addAPlayer')}</div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>// ARENA MODE:</span>
+                      <span style={{ color: '#ffe600', fontWeight: 'bold' }}>
+                        {isSolo ? 'SOLO PRACTICE' : isLocal ? 'LOCAL HOTSEAT' : 'PVE ARENA'}
+                      </span>
+                    </div>
+
+                    {/* Status Info Box */}
+                    <div
+                      style={{
+                        padding: '12px 14px',
+                        background: 'rgba(0, 0, 0, 0.5)',
+                        border: '1px solid rgba(0, 240, 255, 0.3)',
+                        borderRadius: 4,
+                        textAlign: 'center',
+                        fontSize: '0.72rem',
+                        fontFamily: 'var(--font-mono)',
+                        color: canStart ? '#00ff88' : '#ffe600',
+                        marginTop: 6,
+                      }}
+                    >
+                      {canStart
+                        ? '>>> ALL SYSTEM CHECKS PASSED. ARENA READY FOR LAUNCH <<<'
+                        : '>>> ASSIGN AT LEAST 1 BOT/PILOT TO INITIALIZE MATCH <<<'}
+                    </div>
+                  </div>
+
+                  <div>
+                    {/* LAUNCH BUTTON */}
+                    <button
+                      onClick={onStart}
+                      disabled={!canStart || starting}
+                      className="retro-btn"
+                      style={{
+                        width: '100%',
+                        padding: '14px 0',
+                        fontSize: '0.88rem',
+                        fontFamily: 'var(--font-heading)',
+                        letterSpacing: '1px',
+                        background: canStart ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        border: canStart ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.2)',
+                        color: canStart ? '#00ff88' : 'var(--text-muted)',
+                        cursor: canStart ? 'pointer' : 'not-allowed',
+                        boxShadow: canStart ? '0 0 15px rgba(0, 255, 136, 0.4)' : 'none',
+                      }}
+                    >
+                      {starting
+                        ? '// INITIALIZING ARENA...'
+                        : canStart
+                          ? (isSolo ? '// START SOLO PRACTICE //' : '// LAUNCH ARENA MATCH //')
+                          : '// ADD BOT TO START //'}
+                    </button>
+
+                    {startError && (
+                      <div style={{ textAlign: 'center', color: '#ff0055', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', marginTop: 8 }}>
+                        {startError}
                       </div>
                     )}
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'sticky', top: 20 }}>
-          <div style={{ ...feltPanel, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 190 }}>
-              <Board />
+              </section>
             </div>
-            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 15, color: '#dff0e0', letterSpacing: '.04em' }}>
-              {t('lobby.classicCrossBoard')}
-            </div>
-          </div>
-          <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-              <span style={{ color: '#a99a83' }}>{t('lobby.players')}</span>
-              <span style={{ fontWeight: 700 }}>{playerCount - emptyCount} / {playerCount}</span>
-            </div>
-            {!isSolo && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                <span style={{ color: '#a99a83' }}>{t('lobby.botsLabel')}</span>
-                <span style={{ fontWeight: 700 }}>
-                  {botCount === 1 ? t('lobby.botSingular', { count: botCount }) : t('lobby.botPlural', { count: botCount })}
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-              <span style={{ color: '#a99a83' }}>{t('lobby.mode')}</span>
-              <span style={{ fontWeight: 700 }}>{isSolo ? t('lobby.soloModeLabel') : isLocal ? t('lobby.hotseatModeLabel') : t('lobby.casualUnranked')}</span>
-            </div>
-            <button
-              onClick={onStart}
-              disabled={!canStart || starting}
-              style={{ ...startBtnStyle, opacity: starting ? 0.7 : 1 }}
-            >
-              {starting
-                ? t('lobby.creatingMatchBtn')
-                : canStart
-                  ? (isSolo ? t('lobby.startSoloBtn') : t('lobby.startGameBtn'))
-                  : t('lobby.addBotToStartBtn')}
-            </button>
-            {startError && (
-              <div style={{ textAlign: 'center', color: '#e05050', fontSize: 12 }}>{startError}</div>
-            )}
-            <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 12 }}>
-              {isSolo
-                ? t('lobby.soloHint')
-                : canStart
-                  ? (botCount > 1 ? t('lobby.youPlusBots', { count: botCount }) : t('lobby.youPlusBot', { count: botCount }))
-                  : t('lobby.atLeastOneOpponent')}
-            </div>
-          </div>
+          </main>
         </div>
       </div>
-    </div>
+    </>
   )
 }
