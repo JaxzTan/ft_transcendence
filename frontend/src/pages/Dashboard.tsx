@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useApp } from '../store'
 import { avatarBlue, card } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
+import { getRankTier } from '../utils/ranks'
 
 type Profile = {
   username: string
@@ -56,6 +57,7 @@ export function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [games, setGames] = useState<GamesResponse | null>(null)
   const [achievements, setAchievements] = useState<Record<string, boolean> | null>(null)
+  const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null)
 
   useEffect(() => {
     if (!user?.username) return
@@ -75,6 +77,11 @@ export function Dashboard() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (!cancelled) setAchievements(data ?? {}) })
       .catch(() => { if (!cancelled) setAchievements({}) })
+
+    fetch('/api/leaderboard?mode=global&limit=1', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (!cancelled && data?.myRank?.rank) setLeaderboardRank(data.myRank.rank) })
+      .catch(() => { if (!cancelled) setLeaderboardRank(null) })
 
     return () => { cancelled = true }
   }, [user?.username])
@@ -102,12 +109,33 @@ export function Dashboard() {
           style={{ boxShadow: '0 0 0 3px #f0d18a55' }}
         />
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 26, color: '#f4e9cf' }}>
-            {profile?.username ?? user?.username ?? t('common.you')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontFamily: "'Cinzel',serif", fontSize: 26, color: '#f4e9cf' }}>
+              {profile?.username ?? user?.username ?? t('common.you')}
+            </div>
+            {profile && (() => {
+              const tier = getRankTier(profile.rating, leaderboardRank)
+              return (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    padding: '3px 8px',
+                    borderRadius: 4,
+                    background: tier.bg,
+                    color: tier.color,
+                    border: `1px solid ${tier.border}`,
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  {tier.name}
+                </span>
+              )
+            })()}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 30, fontWeight: 800, color: '#f0c24e' }}>♛ {profile?.rating ?? '—'}</div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: profile ? getRankTier(profile.rating, leaderboardRank).color : '#f0c24e' }}>♛ {profile?.rating ?? '—'}</div>
         </div>
       </div>
 

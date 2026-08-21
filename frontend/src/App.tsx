@@ -15,8 +15,6 @@ import { Profile } from './pages/Profile'
 import { TwoFactor } from './pages/TwoFactor'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
-// MultiplayerLobby is intentionally UNWIRED (file kept for reference):
-// all multiplayer create/join/quick routes through /gamelobby (LudoLobby) now.
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 

@@ -5,6 +5,7 @@ import { MEDAL_COLORS } from '../data'
 import { avatarDim, card } from '../theme'
 import { useApp } from '../store'
 import { UserAvatar } from '../components/UserAvatar'
+import { getRankTier } from '../utils/ranks'
 
 type LeaderboardEntry = {
   rank: number
@@ -28,7 +29,7 @@ type LeaderboardResponse = {
 
 const ROW_BASE: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '64px 1fr 120px 120px 90px',
+  gridTemplateColumns: '175px 1fr 110px 100px 80px',
   gap: 8,
   padding: '12px 20px',
   borderBottom: '1px solid #241a10',
@@ -138,7 +139,7 @@ export function Leaderboard() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '64px 1fr 120px 120px 90px',
+            gridTemplateColumns: '175px 1fr 110px 100px 80px',
             gap: 8,
             padding: '14px 20px',
             borderBottom: '1px solid #2e2115',
@@ -164,6 +165,7 @@ export function Leaderboard() {
         ) : (
           entries.map((e) => {
             const isMe = e.username === myRank?.username
+            const tier = getRankTier(e.rating, e.rank)
             return (
               <div
                 key={e.username}
@@ -173,8 +175,23 @@ export function Leaderboard() {
                     : ROW_BASE
                 }
               >
-                <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Medal rank={e.rank} />
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      background: tier.bg,
+                      color: tier.color,
+                      border: `1px solid ${tier.border}`,
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {tier.name}
+                  </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <UserAvatar
@@ -184,7 +201,7 @@ export function Leaderboard() {
                   />
                   <span style={{ fontWeight: 700, fontSize: '14.5px' }}>{isMe ? t('common.you') : e.username}</span>
                 </div>
-                <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>{e.rating}</div>
+                <div style={{ textAlign: 'right', fontWeight: 800, color: tier.color }}>{e.rating}</div>
                 <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>{e.wins}</div>
                 <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>{e.winRate}%</div>
               </div>
@@ -192,34 +209,52 @@ export function Leaderboard() {
           })
         )}
 
-        {tab === 'global' && user && myRank && !mineOnPage && (
-          <div
-            style={{
-              ...ROW_BASE,
-              background: 'linear-gradient(90deg,rgba(74,146,224,.14),transparent)',
-              borderTop: '1px solid #4a92e055',
-              borderBottom: 'none',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#4a92e0' }}>{myRank.rank}</span>
+        {tab === 'global' && user && myRank && !mineOnPage && (() => {
+          const myTier = getRankTier(myRank.rating, myRank.rank)
+          return (
+            <div
+              style={{
+                ...ROW_BASE,
+                background: 'linear-gradient(90deg,rgba(74,146,224,.14),transparent)',
+                borderTop: '1px solid #4a92e055',
+                borderBottom: 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ ...MEDAL_BASE, background: 'transparent', color: '#4a92e0' }}>{myRank.rank}</span>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    background: myTier.bg,
+                    color: myTier.color,
+                    border: `1px solid ${myTier.border}`,
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {myTier.name}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <UserAvatar
+                  username={user.username}
+                  size={34}
+                  fallbackStyle={{
+                    width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                    fontWeight: 800, fontSize: 12, background: 'linear-gradient(180deg,#4a92e0,#2c66ad)', color: '#0d1b28',
+                  }}
+                />
+                <span style={{ fontWeight: 800, fontSize: '14.5px' }}>{t('common.you')}</span>
+              </div>
+              <div style={{ textAlign: 'right', fontWeight: 800, color: myTier.color }}>{myRank.rating.toLocaleString()}</div>
+              <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>
+              <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <UserAvatar
-                username={user.username}
-                size={34}
-                fallbackStyle={{
-                  width: 34, height: 34, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                  fontWeight: 800, fontSize: 12, background: 'linear-gradient(180deg,#4a92e0,#2c66ad)', color: '#0d1b28',
-                }}
-              />
-              <span style={{ fontWeight: 800, fontSize: '14.5px' }}>{t('common.you')}</span>
-            </div>
-            <div style={{ textAlign: 'right', fontWeight: 800, color: '#f0c24e' }}>{myRank.rating.toLocaleString()}</div>
-            <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>
-            <div style={{ textAlign: 'right', fontWeight: 600, color: '#c9bda3' }}>—</div>
-          </div>
-        )}
+          )
+        })()}
       </div>
     </div>
   )

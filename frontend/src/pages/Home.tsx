@@ -2,9 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getApi, postApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
+import { NotificationBell } from '../components/NotificationBell'
+import { NotificationToasts } from '../components/NotificationToast'
+import { useNotifications } from '../hooks/useNotifications'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
+import { getRankTier } from '../utils/ranks'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
@@ -20,11 +24,14 @@ type Friend = {
 export function Home() {
 	const { t } = useTranslation()
 	const { user, setActiveMatch } = useApp()
+	const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } = useNotifications()
 
 	// ------------------------------------------------------------------------
 	// 2. LIVE PLAYER CAREER STATS API
 	// ------------------------------------------------------------------------
 	type PlayerStats = {
+		rating?: number
+		highestRating?: number
 		totalGames: number
 		wins: number
 		losses: number
@@ -33,14 +40,21 @@ export function Home() {
 		avgCapturesPerGame: number
 	}
 	const [stats, setStats] = useState<PlayerStats | null>(null)
+	const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null)
 	const [isStatsLoading, setIsStatsLoading] = useState(false)
 
 	useEffect(() => {
 		setIsStatsLoading(true)
-		getApi<PlayerStats>('/api/stats')
-			.then((body) => {
-				if (body && typeof body.totalGames === 'number') {
-					setStats(body)
+		Promise.all([
+			getApi<PlayerStats>('/api/stats').catch(() => null),
+			getApi<{ myRank?: { rank: number } }>('/api/leaderboard?mode=global&limit=1').catch(() => null),
+		])
+			.then(([statsBody, lbBody]) => {
+				if (statsBody && typeof statsBody.totalGames === 'number') {
+					setStats(statsBody)
+				}
+				if (lbBody?.myRank?.rank) {
+					setLeaderboardRank(lbBody.myRank.rank)
 				}
 			})
 			.catch((e) => {
@@ -613,52 +627,58 @@ export function Home() {
 						</div>
 
 						<div className="nav-controls">
-								<>
-									<button
-										className="retro-btn theme-trigger-btn"
-										style={{ justifyContent: 'center', gap: 8 }}
-										onClick={() => {
-											retroAudio.playUiBeep(600, 0.05)
-											navigate('/gamelobby')
-										}}
-									>
-										<span className="theme-btn-icon">&gt;_</span>
-										<span className="theme-btn-text">LOBBY</span>
-									</button>
-									<button
-										className="retro-btn theme-trigger-btn"
-										style={{ justifyContent: 'center', gap: 8 }}
-										onClick={() => {
-											retroAudio.playUiBeep(600, 0.05)
-											navigate('/game')
-										}}
-									>
-										<span className="theme-btn-icon">&#123;&#125;</span>
-										<span className="theme-btn-text">GAME</span>
-									</button>
-									<button
-										className="retro-btn theme-trigger-btn"
-										style={{ justifyContent: 'center', gap: 8 }}
-										onClick={() => {
-											retroAudio.playUiBeep(600, 0.05)
-											navigate('/leaderboard')
-										}}
-									>
-										<span className="theme-btn-icon">#_</span>
-										<span className="theme-btn-text">LADDER</span>
-									</button>
-									<button
-										className="retro-btn theme-trigger-btn"
-										style={{ justifyContent: 'center', gap: 8 }}
-										onClick={() => {
-											retroAudio.playUiBeep(600, 0.05)
-											navigate('/profile')
-										}}
-									>
-										<span className="theme-btn-icon">@/</span>
-										<span className="theme-btn-text">PROFILE</span>
-									</button>
-								</>
+							<button
+								className="retro-btn theme-trigger-btn"
+								style={{ justifyContent: 'center', gap: 8 }}
+								onClick={() => {
+									retroAudio.playUiBeep(600, 0.05)
+									navigate('/gamelobby')
+								}}
+							>
+								<span className="theme-btn-icon">&gt;_</span>
+								<span className="theme-btn-text">LOBBY</span>
+							</button>
+							<button
+								className="retro-btn theme-trigger-btn"
+								style={{ justifyContent: 'center', gap: 8 }}
+								onClick={() => {
+									retroAudio.playUiBeep(600, 0.05)
+									navigate('/game')
+								}}
+							>
+								<span className="theme-btn-icon">&#123;&#125;</span>
+								<span className="theme-btn-text">GAME</span>
+							</button>
+							<button
+								className="retro-btn theme-trigger-btn"
+								style={{ justifyContent: 'center', gap: 8 }}
+								onClick={() => {
+									retroAudio.playUiBeep(600, 0.05)
+									navigate('/leaderboard')
+								}}
+							>
+								<span className="theme-btn-icon">#_</span>
+								<span className="theme-btn-text">LADDER</span>
+							</button>
+							<button
+								className="retro-btn theme-trigger-btn"
+								style={{ justifyContent: 'center', gap: 8 }}
+								onClick={() => {
+									retroAudio.playUiBeep(600, 0.05)
+									navigate('/profile')
+								}}
+							>
+								<span className="theme-btn-icon">@/</span>
+								<span className="theme-btn-text">PROFILE</span>
+							</button>
+
+							{/* Old-School Cyber Comm Receiver Bell */}
+							<NotificationBell
+								notifications={notifications}
+								unreadCount={unreadCount}
+								onMarkRead={markRead}
+								onMarkAllRead={markAllRead}
+							/>
 
 							{/* Theme Selector Popover Menu */}
 							<div className="theme-popover-wrapper">
@@ -878,8 +898,8 @@ export function Home() {
 								{/* Widget 2: Comrades & Friend List */}
 								<section className="retro-window col-4" id="friendsWindow">
 									<div className="window-header">
-										<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-											<span>FRIENDS</span>
+										<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, lineHeight: 1 }}>
+											<span style={{ display: 'inline-flex', alignItems: 'center' }}>FRIENDS</span>
 											{pendingRequestsCount > 0 && (
 												<button
 													style={{
@@ -896,6 +916,7 @@ export function Home() {
 														fontFamily: 'inherit',
 														display: 'inline-flex',
 														alignItems: 'center',
+														lineHeight: 1,
 													}}
 													onClick={(e) => {
 														e.stopPropagation()
@@ -1144,14 +1165,17 @@ export function Home() {
 														<span
 															style={{
 																fontSize: '0.65rem',
-																background: 'var(--accent-pink)',
-																color: '#fff',
+																background: getRankTier(stats?.rating ?? 1200, leaderboardRank).bg,
+																color: getRankTier(stats?.rating ?? 1200, leaderboardRank).color,
+																border: `1px solid ${getRankTier(stats?.rating ?? 1200, leaderboardRank).border}`,
+																boxShadow: `0 0 8px ${getRankTier(stats?.rating ?? 1200, leaderboardRank).glow}`,
 																padding: '2px 8px',
 																borderRadius: 3,
 																fontWeight: 'bold',
+																letterSpacing: '0.05em',
 															}}
 														>
-															{stats && stats.wins >= 10 ? 'CYBER MASTER' : stats && stats.wins >= 5 ? 'CYBER ACE' : stats && stats.wins >= 1 ? 'CYBER VETERAN' : 'CYBER RECRUIT'}
+															{getRankTier(stats?.rating ?? 1200, leaderboardRank).name}
 														</span>
 													</div>
 													<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
@@ -1240,25 +1264,61 @@ export function Home() {
 												</span>
 											</div>
 
-											{/* Stat 4: Total Captures */}
-											<div
-												style={{
-													padding: '12px 14px',
-													background: 'rgba(25, 10, 56, 0.5)',
-													border: '1px solid rgba(0, 255, 102, 0.3)',
-													borderRadius: 4,
-													display: 'flex',
-													flexDirection: 'column',
-													gap: 4,
-												}}
-											>
-												<span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-													PAWNS CAPTURED
-												</span>
-												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: '#00ff88' }}>
-													{isStatsLoading ? '...' : stats ? stats.totalCaptures : 0}
-												</span>
-											</div>
+											{/* Stat 4: Dynamic Tier ELO Rating (Clickable -> Leaderboard) */}
+											{(() => {
+												const currentRating = stats?.rating ?? 1200
+												const tier = getRankTier(currentRating, leaderboardRank)
+
+												return (
+													<div
+														onClick={() => {
+															retroAudio.playUiBeep(720, 0.05)
+															navigate('/leaderboard')
+														}}
+														title="Click to view Global Leaderboard Ladder"
+														style={{
+															padding: '12px 14px',
+															background: 'rgba(25, 10, 56, 0.5)',
+															border: `1px solid ${tier.border}`,
+															borderRadius: 4,
+															display: 'flex',
+															flexDirection: 'column',
+															gap: 4,
+															cursor: 'pointer',
+															transition: 'all 0.2s ease',
+														}}
+														onMouseEnter={(e) => {
+															e.currentTarget.style.background = tier.bg
+															e.currentTarget.style.borderColor = tier.color
+															e.currentTarget.style.boxShadow = `0 0 14px ${tier.glow}`
+														}}
+														onMouseLeave={(e) => {
+															e.currentTarget.style.background = 'rgba(25, 10, 56, 0.5)'
+															e.currentTarget.style.borderColor = tier.border
+															e.currentTarget.style.boxShadow = 'none'
+														}}
+													>
+														<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+															<span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+																ELO RATING
+															</span>
+															<span style={{ fontSize: '0.62rem', color: tier.color, fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+																{tier.badge}
+															</span>
+														</div>
+														<span
+															style={{
+																fontFamily: 'var(--font-heading)',
+																fontSize: '1.2rem',
+																color: tier.color,
+																textShadow: `0 0 10px ${tier.glow}`,
+															}}
+														>
+															{isStatsLoading ? '...' : currentRating}
+														</span>
+													</div>
+												)
+											})()}
 										</div>
 									</div>
 								</section>
@@ -1391,6 +1451,9 @@ export function Home() {
 							</footer>
 				</div>
 			</div>
+
+			{/* Emergency Dispatch Toast Alerts */}
+			<NotificationToasts toasts={toasts} onDismiss={dismissToast} />
 		</>
 	)
 }

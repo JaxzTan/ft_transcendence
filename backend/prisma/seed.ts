@@ -5,8 +5,6 @@ import * as bcrypt from 'bcrypt';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-// Inlined rather than imported from src/secrets.ts: the seed runs via ts-node
-// in the runtime image, which ships prisma/ but not src/. Mirrors prisma.config.ts.
 function secret(name: string): string | undefined {
   const dir = process.env.SECRETS_DIR ?? '/secrets';
   for (const base of [dir, join(process.cwd(), '..', 'secrets')]) {
@@ -34,20 +32,24 @@ function getDatabaseUrl(): string {
   return secret('DATABASE_URL') || '';
 }
 
-// Prisma 7 requires a driver adapter — mirrors src/prisma.service.ts.
-// env-first for the same reason as prisma.config.ts / prisma.service.ts.
 const adapter = new PrismaPg({ connectionString: getDatabaseUrl() });
 const prisma = new PrismaClient({ adapter });
 
-// Fixture rows get real randomUUID() ids, exactly like rows created through
-// auth.service.ts / match.service.ts — nothing downstream may assume a seeded
-// id is recognisable. Re-runs stay idempotent through the reset below, which
-// keys off username rather than id.
-const SEED_USERNAMES = ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'];
+const SEED_USERNAMES = [
+  'Viper_X',
+  'NeonKnight',
+  'Alice',
+  'ShadowFox',
+  'CyberSamurai',
+  'StarLord',
+  'Bob',
+  'CheeseRing',
+  'Carol',
+  'ChocoRookie',
+  'Dave',
+  'Eve',
+];
 
-// Hashed at seed time with the same algorithm and cost as registration
-// (auth.service.ts), so every fixture login goes through the real bcrypt.compare
-// path. Each user gets its own salt, as a real signup would.
 const SALT_ROUNDS = 10;
 const SEED_PASSWORD = 'password';
 
@@ -58,56 +60,163 @@ const MINUTE = 60_000;
 const now = Date.now();
 
 async function main() {
-  console.log('🌱 Seeding Ludo database...');
+  console.log('🌱 Seeding Ludo database with Malaysian Snack Ranks...');
 
   // ── Reset previous seed data ──────────────────────────────────────────────
-  // Deleting the fixture users cascades their Account, GameParticipant and
-  // Friendship rows (onDelete: Cascade on all three), which leaves the fixture
-  // games with no participants at all; the second delete sweeps those. A real
-  // match always has at least one participant that outlives this reset, so
-  // genuine game history is never touched.
   await prisma.user.deleteMany({ where: { username: { in: SEED_USERNAMES } } });
   await prisma.game.deleteMany({ where: { participants: { none: {} } } });
-  // LeaderboardSnapshot.userId isn't a Prisma relation (see schema.prisma),
-  // so deleting the users above doesn't cascade here — the old rows would
-  // point at now-deleted ids. Reset by username instead, same as the
-  // rest of this block.
   await prisma.leaderboardSnapshot.deleteMany({ where: { username: { in: SEED_USERNAMES } } });
 
-  // ── Users ─────────────────────────────────────────────────────────────────
-  // Counters below are derived from the games seeded further down, using the
-  // same rules as match.service.ts (+10 rating per win, -5 per loss; ABANDONED
-  // games count for nothing) and achievements.service.ts. Every fixture game is
-  // PVP, so humanWins/botWins stay at their defaults.
+  const pwd = await hashPassword();
+
+  // ── 1. MAMEE MONSTER (Top 3 Players) ──────────────────────────────────────
+  const viper = await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      username: 'Viper_X',
+      email: 'viper@example.com',
+      emailVerified: new Date(now - 45 * 24 * HOUR),
+      password_hash: pwd,
+      twoFactorEnabled: false,
+      rating: 1650, // Rank #1
+      highestRating: 1680,
+      wins: 28,
+      losses: 5,
+      humanWins: 24,
+      botWins: 4,
+      winStreak: 8,
+      bestWinStreak: 12,
+      avatarStyle: 'bottts',
+      status: 'online',
+      gamesWithFourPieces: 20,
+      achFirstBlood: true,
+      achUnstoppable: true,
+      achMaster: true,
+      achWorldChampion: true,
+      achOnFire: true,
+    },
+  });
+
+  const neonKnight = await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      username: 'NeonKnight',
+      email: 'neon@example.com',
+      emailVerified: new Date(now - 40 * 24 * HOUR),
+      password_hash: pwd,
+      twoFactorEnabled: false,
+      rating: 1540, // Rank #2
+      highestRating: 1560,
+      wins: 22,
+      losses: 7,
+      humanWins: 19,
+      botWins: 3,
+      winStreak: 5,
+      bestWinStreak: 9,
+      avatarStyle: 'avataaars',
+      status: 'playing',
+      gamesWithFourPieces: 15,
+      achFirstBlood: true,
+      achTactician: true,
+      achSpeedDemon: true,
+    },
+  });
+
   const alice = await prisma.user.create({
     data: {
       id: randomUUID(),
       username: 'Alice',
       email: 'alice@example.com',
       emailVerified: new Date(now - 30 * 24 * HOUR),
-      password_hash: await hashPassword(),
-      // 2FA off so `Alice` / `password` logs straight in locally (no emailed
-      // code). Bob keeps it on to exercise the twoFactorRequired path.
+      password_hash: pwd,
       twoFactorEnabled: false,
-      rating: 1220,          // 1200 + 10 + 10
-      highestRating: 1220,
-      wins: 2,
-      losses: 0,
-      humanWins: 2,
-      botWins: 0,
-      winStreak: 2,
-      bestWinStreak: 2,
+      rating: 1420, // Rank #3
+      highestRating: 1440,
+      wins: 18,
+      losses: 6,
+      humanWins: 15,
+      botWins: 3,
+      winStreak: 4,
+      bestWinStreak: 6,
       avatarStyle: 'bottts',
       status: 'online',
-      disconnectCount: 1,
-      reconnectCount: 1,
-      gamesWithFourPieces: 2,
-      // First win; 3 captures in one game; won with 4 home while every
-      // opponent had >= 1 home; the 25-minute win clears Speed Demon.
+      gamesWithFourPieces: 12,
       achFirstBlood: true,
       achUnstoppable: true,
       achLastLaugh: true,
       achSpeedDemon: true,
+    },
+  });
+
+  // ── 2. MILO DINOSAUR (Rating >= 1350, Rank 4+) ─────────────────────────────
+  const shadowFox = await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      username: 'ShadowFox',
+      email: 'shadow@example.com',
+      emailVerified: new Date(now - 28 * 24 * HOUR),
+      password_hash: pwd,
+      twoFactorEnabled: false,
+      rating: 1390, // Rank #4
+      highestRating: 1400,
+      wins: 15,
+      losses: 8,
+      humanWins: 13,
+      botWins: 2,
+      winStreak: 3,
+      bestWinStreak: 5,
+      avatarStyle: 'identicon',
+      status: 'online',
+      gamesWithFourPieces: 10,
+      achFirstBlood: true,
+      achTactician: true,
+    },
+  });
+
+  const cyberSamurai = await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      username: 'CyberSamurai',
+      email: 'samurai@example.com',
+      emailVerified: new Date(now - 25 * 24 * HOUR),
+      password_hash: pwd,
+      twoFactorEnabled: false,
+      rating: 1360, // Rank #5
+      highestRating: 1380,
+      wins: 14,
+      losses: 9,
+      humanWins: 12,
+      botWins: 2,
+      winStreak: 2,
+      bestWinStreak: 4,
+      avatarStyle: 'avataaars',
+      status: 'offline',
+      gamesWithFourPieces: 9,
+      achFirstBlood: true,
+    },
+  });
+
+  // ── 3. HONEY STARS (Rating 1200 - 1349) ───────────────────────────────────
+  const starLord = await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      username: 'StarLord',
+      email: 'starlord@example.com',
+      emailVerified: new Date(now - 20 * 24 * HOUR),
+      password_hash: pwd,
+      twoFactorEnabled: false,
+      rating: 1290, // Rank #6
+      highestRating: 1310,
+      wins: 11,
+      losses: 8,
+      humanWins: 10,
+      botWins: 1,
+      winStreak: 2,
+      bestWinStreak: 3,
+      avatarStyle: 'bottts',
+      status: 'online',
+      gamesWithFourPieces: 7,
+      achFirstBlood: true,
     },
   });
 
@@ -117,23 +226,40 @@ async function main() {
       username: 'Bob',
       email: 'bob@example.com',
       emailVerified: new Date(now - 25 * 24 * HOUR),
-      password_hash: await hashPassword(),
-      // Left ON: logging in as Bob exercises the emailed-code 2FA flow.
+      password_hash: pwd,
       twoFactorEnabled: true,
-      rating: 1095,          // 1100 - 5
-      highestRating: 1100,
-      wins: 0,
-      losses: 1,
-      winStreak: 0,
-      bestWinStreak: 0,
+      rating: 1230, // Rank #7
+      highestRating: 1250,
+      wins: 9,
+      losses: 7,
+      winStreak: 1,
+      bestWinStreak: 3,
       avatarStyle: 'avataaars',
       status: 'playing',
-      disconnectCount: 2,
-      reconnectCount: 2,
-      gamesWithTwoPieces: 1,
-      // 3 captures in the 4-player game. The win-gated achievements are all
-      // false now that Bob has no completed win.
+      gamesWithFourPieces: 5,
       achUnstoppable: true,
+    },
+  });
+
+  // ── 4. SUPER RING (Rating 1000 - 1199) ────────────────────────────────────
+  const cheeseRing = await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      username: 'CheeseRing',
+      email: 'cheese@example.com',
+      emailVerified: new Date(now - 15 * 24 * HOUR),
+      password_hash: pwd,
+      twoFactorEnabled: false,
+      rating: 1140, // Rank #8
+      highestRating: 1160,
+      wins: 6,
+      losses: 7,
+      winStreak: 1,
+      bestWinStreak: 2,
+      avatarStyle: 'identicon',
+      status: 'online',
+      gamesWithFourPieces: 3,
+      achFirstBlood: true,
     },
   });
 
@@ -143,15 +269,34 @@ async function main() {
       username: 'Carol',
       email: 'carol@example.com',
       emailVerified: new Date(now - 10 * 24 * HOUR),
-      password_hash: await hashPassword(),
+      password_hash: pwd,
       twoFactorEnabled: false,
-      rating: 1045,          // 1050 - 5
-      highestRating: 1050,
-      wins: 0,
-      losses: 1,
+      rating: 1070, // Rank #9
+      highestRating: 1100,
+      wins: 4,
+      losses: 6,
       avatarStyle: 'identicon',
       status: 'offline',
-      gamesWithOnePiece: 1,
+      gamesWithFourPieces: 2,
+    },
+  });
+
+  // ── 5. CHOKI CHOKI (Rating < 1000) ────────────────────────────────────────
+  const chocoRookie = await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      username: 'ChocoRookie',
+      email: 'choco@example.com',
+      emailVerified: new Date(now - 7 * 24 * HOUR),
+      password_hash: pwd,
+      twoFactorEnabled: false,
+      rating: 950, // Rank #10
+      highestRating: 980,
+      wins: 2,
+      losses: 5,
+      avatarStyle: 'bottts',
+      status: 'online',
+      gamesWithFourPieces: 1,
     },
   });
 
@@ -160,38 +305,32 @@ async function main() {
       id: randomUUID(),
       username: 'Dave',
       email: 'dave@example.com',
-      // Unverified: exercises the "signed up but never confirmed" path.
-      password_hash: await hashPassword(),
+      password_hash: pwd,
       twoFactorEnabled: false,
-      rating: 990,           // 1000 - 5 - 5
-      highestRating: 1000,
-      wins: 0,
-      losses: 2,
+      rating: 880, // Rank #11
+      highestRating: 920,
+      wins: 1,
+      losses: 6,
       avatarStyle: 'bottts',
       status: 'offline',
-      disconnectCount: 3,
-      reconnectCount: 1,
-      gamesWithZeroPieces: 1,
-      gamesWithOnePiece: 1,
+      gamesWithFourPieces: 1,
     },
   });
 
-  // OAuth-only user: no password_hash, identity lives in Account.
   const eve = await prisma.user.create({
     data: {
       id: randomUUID(),
       username: 'Eve',
       email: 'eve@example.com',
       emailVerified: new Date(now - 5 * 24 * HOUR),
-      // OAuth-only, but finishOAuth still honours this flag, so keep it off.
+      password_hash: pwd,
       twoFactorEnabled: false,
-      rating: 995,           // 1000 - 5
-      highestRating: 1000,
+      rating: 780, // Rank #12
+      highestRating: 820,
       wins: 0,
-      losses: 1,
+      losses: 5,
       avatarStyle: 'avataaars',
       status: 'online',
-      gamesWithThreePieces: 1,
       accounts: {
         create: [
           {
@@ -204,89 +343,59 @@ async function main() {
     },
   });
 
-  console.log('  Created users: Alice, Bob, Carol, Dave, Eve');
+  const allUsers = [
+    viper,
+    neonKnight,
+    alice,
+    shadowFox,
+    cyberSamurai,
+    starLord,
+    bob,
+    cheeseRing,
+    carol,
+    chocoRookie,
+    dave,
+    eve,
+  ];
 
-  // ── Leaderboard snapshot (global) ───────────────────────────────────────
-  // Mirrors what LeaderboardRedisService.pushSnapshotToPostgres writes after
-  // a real game ends — seeded directly here since Redis starts empty on a
-  // fresh stack, and LeaderboardService only reads this table as a fallback
-  // when Redis has no entries for the mode.
-  const globalStandings = [alice, bob, carol, dave, eve].sort((a, b) => b.rating - a.rating);
+  console.log(`  Created ${allUsers.length} users across all 5 snack ranks!`);
+
+  // ── Leaderboard Snapshot (All Users in Database) ──────────────────────────
+  await prisma.leaderboardSnapshot.deleteMany({});
+  const allPilots = await prisma.user.findMany({ orderBy: { rating: 'desc' } });
   await prisma.leaderboardSnapshot.createMany({
-    data: globalStandings.map((user, i) => ({
+    data: allPilots.map((u, i) => ({
       id: randomUUID(),
       mode: 'global',
-      userId: user.id,
-      username: user.username,
-      rating: user.rating,
+      userId: u.id,
+      username: u.username,
+      rating: u.rating,
       rank: i + 1,
     })),
   });
 
-  console.log('  Created global leaderboard snapshot');
+  console.log(`  Created global leaderboard snapshot covering all ${allPilots.length} pilots!`);
 
-  // ── A completed 4-player game (Alice 1st with all 4 pieces home) ───────────
+  // ── Sample Matches ────────────────────────────────────────────────────────
   await prisma.game.create({
     data: {
       id: randomUUID(),
-      startedAt: new Date(now - 4 * HOUR),
-      endedAt: new Date(now - 3 * HOUR),
+      startedAt: new Date(now - 2 * HOUR),
+      endedAt: new Date(now - 90 * MINUTE),
       status: 'COMPLETED',
       gameType: 'PVP',
       participants: {
         create: [
-          { id: randomUUID(), user_id: alice.id, color: 'RED', rank: 1, piecesCaptured: 5, piecesInGoal: 4 },
-          { id: randomUUID(), user_id: bob.id, color: 'GREEN', rank: 2, piecesCaptured: 3, piecesInGoal: 2 },
-          { id: randomUUID(), user_id: carol.id, color: 'YELLOW', rank: 3, piecesCaptured: 1, piecesInGoal: 1 },
-          { id: randomUUID(), user_id: dave.id, color: 'BLUE', rank: 4, piecesCaptured: 0, piecesInGoal: 0 },
+          { id: randomUUID(), user_id: viper.id, color: 'RED', rank: 1, piecesCaptured: 6, piecesInGoal: 4 },
+          { id: randomUUID(), user_id: neonKnight.id, color: 'GREEN', rank: 2, piecesCaptured: 3, piecesInGoal: 3 },
+          { id: randomUUID(), user_id: alice.id, color: 'YELLOW', rank: 3, piecesCaptured: 2, piecesInGoal: 2 },
+          { id: randomUUID(), user_id: shadowFox.id, color: 'BLUE', rank: 4, piecesCaptured: 1, piecesInGoal: 1 },
         ],
       },
     },
   });
 
-  console.log('  Created completed 4-player game');
-
-  // ── A completed 3-player game — 25 min, so Alice clears Speed Demon ────────
-  await prisma.game.create({
-    data: {
-      id: randomUUID(),
-      startedAt: new Date(now - 90 * MINUTE),
-      endedAt: new Date(now - 65 * MINUTE),
-      status: 'COMPLETED',
-      gameType: 'PVP',
-      participants: {
-        create: [
-          { id: randomUUID(), user_id: alice.id, color: 'RED', rank: 1, piecesCaptured: 4, piecesInGoal: 4 },
-          { id: randomUUID(), user_id: eve.id, color: 'GREEN', rank: 2, piecesCaptured: 2, piecesInGoal: 3 },
-          { id: randomUUID(), user_id: dave.id, color: 'YELLOW', rank: 3, piecesCaptured: 0, piecesInGoal: 1 },
-        ],
-      },
-    },
-  });
-
-  console.log('  Created completed 3-player game');
-
-  // ── An abandoned invite game (counts toward no stats) ─────────────────────
-  await prisma.game.create({
-    data: {
-      id: randomUUID(),
-      startedAt: new Date(now - 30 * MINUTE),
-      endedAt: new Date(now - 25 * MINUTE),
-      status: 'ABANDONED',
-      gameType: 'PVP',
-      inviteCode: 'LUDO42',
-      participants: {
-        create: [
-          { id: randomUUID(), user_id: alice.id, color: 'GREEN', rank: 1, piecesCaptured: 0, piecesInGoal: 0 },
-          { id: randomUUID(), user_id: dave.id, color: 'YELLOW', rank: 2, piecesCaptured: 0, piecesInGoal: 0 },
-        ],
-      },
-    },
-  });
-
-  console.log('  Created abandoned game');
-
-  // ── Friendships (for fixture users & all registered users) ───────────────
+  // ── Friendships ───────────────────────────────────────────────────────────
   const otherUsers = await prisma.user.findMany({
     where: { username: { notIn: SEED_USERNAMES } },
     select: { id: true, username: true },
@@ -294,17 +403,19 @@ async function main() {
 
   const friendshipsToCreate: Array<{ id: string; userId: string; friendId: string; status: 'accepted' | 'pending' | 'blocked' }> = [
     { id: randomUUID(), userId: alice.id, friendId: bob.id, status: 'accepted' },
-    { id: randomUUID(), userId: alice.id, friendId: eve.id, status: 'accepted' },
+    { id: randomUUID(), userId: alice.id, friendId: viper.id, status: 'accepted' },
+    { id: randomUUID(), userId: alice.id, friendId: neonKnight.id, status: 'accepted' },
+    { id: randomUUID(), userId: bob.id, friendId: shadowFox.id, status: 'accepted' },
     { id: randomUUID(), userId: carol.id, friendId: alice.id, status: 'pending' },
-    { id: randomUUID(), userId: bob.id, friendId: dave.id, status: 'blocked' },
+    { id: randomUUID(), userId: chocoRookie.id, friendId: dave.id, status: 'accepted' },
   ];
 
   for (const other of otherUsers) {
     friendshipsToCreate.push(
       { id: randomUUID(), userId: other.id, friendId: alice.id, status: 'accepted' },
-      { id: randomUUID(), userId: other.id, friendId: bob.id, status: 'accepted' },
-      { id: randomUUID(), userId: other.id, friendId: eve.id, status: 'accepted' },
-      { id: randomUUID(), userId: carol.id, friendId: other.id, status: 'pending' },
+      { id: randomUUID(), userId: other.id, friendId: viper.id, status: 'accepted' },
+      { id: randomUUID(), userId: other.id, friendId: neonKnight.id, status: 'accepted' },
+      { id: randomUUID(), userId: other.id, friendId: shadowFox.id, status: 'accepted' },
     );
   }
 
@@ -312,8 +423,7 @@ async function main() {
     data: friendshipsToCreate,
   });
 
-  console.log(`  Created friendships (including links for ${otherUsers.length} existing user(s))`);
-  console.log('✅ Seeding complete!');
+  console.log('✅ Seeding complete with all 5 Snack Rank Tiers represented!');
 }
 
 main()

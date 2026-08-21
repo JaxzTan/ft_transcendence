@@ -3,6 +3,7 @@ import { UserAvatar } from '../components/UserAvatar'
 import { useRoute, navigate } from '../router'
 import { useApp } from '../store'
 import { card, goldText, avatarBlue, STATUS_STYLE, type PresenceStatus } from '../theme'
+import { getRankTier } from '../utils/ranks'
 
 type UserProfile = {
   id: string
@@ -255,10 +256,22 @@ export function Profile() {
             )}
           </div>
 
-          <div style={{ textAlign: 'center', background: 'linear-gradient(180deg,#241b13,#17110b)', padding: '16px 28px', borderRadius: 20, border: '1px solid #3a2c1d', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.05)' }}>
-            <div style={{ fontSize: 12, color: '#a99a83', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700 }}>Rating</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: '#f0e2c4', marginTop: 4 }}>{profile.rating}</div>
-          </div>
+          {(() => {
+            const tier = getRankTier(profile.rating)
+            return (
+              <div style={{ textAlign: 'center', background: 'linear-gradient(180deg,#241b13,#17110b)', padding: '16px 28px', borderRadius: 20, border: `1px solid ${tier.border}`, boxShadow: `inset 0 1px 0 rgba(255,255,255,.05), 0 0 12px ${tier.glow}` }}>
+                <div style={{ fontSize: 12, color: '#a99a83', textTransform: 'uppercase', letterSpacing: 1.5, fontWeight: 700 }}>
+                  Rating
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 800, color: tier.color, marginTop: 4 }}>
+                  {profile.rating}
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 800, color: tier.color, background: tier.bg, padding: '2px 8px', borderRadius: 4, marginTop: 6, display: 'inline-block', letterSpacing: '0.04em' }}>
+                  {tier.name}
+                </div>
+              </div>
+            )
+          })()}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
