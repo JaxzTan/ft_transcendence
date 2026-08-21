@@ -14,6 +14,13 @@ import { UserAvatar } from '../components/UserAvatar'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
+const SEAT_HUES: Record<PlayerColor, string> = {
+  red: '#ff007f',
+  green: '#00ff88',
+  yellow: '#ffe600',
+  blue: '#00f0ff',
+}
+
 /** Pip indexes (3x3 grid, row-major) lit per face value - mirrors Die.tsx. */
 const MINI_PIP_MAP: Record<number, number[]> = {
   1: [4],
@@ -33,7 +40,7 @@ function MiniDie({ value }: { value: number }) {
         width: 38,
         height: 38,
         borderRadius: 8,
-        background: 'linear-gradient(135deg, #1f0d3d, #0d0221)',
+        background: '#190a38',
         boxShadow: '0 0 8px rgba(0, 240, 255, 0.3), inset 0 0 4px rgba(255, 0, 127, 0.3)',
         border: '1.5px solid var(--accent-cyan)',
         display: 'grid',
@@ -116,6 +123,29 @@ export function Game() {
   const isRollingRef = useRef(false)
   const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
   const [codeCopied, setCodeCopied] = useState(false)
+  const [turnSwapNotice, setTurnSwapNotice] = useState<string | null>(null)
+  const prevTurnRef = useRef<PlayerColor | null>(null)
+
+  useEffect(() => {
+    if (!view) return
+    if (prevTurnRef.current && prevTurnRef.current !== view.currentTurn) {
+      const nextTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+      const isNextBot = nextTurnPlayer?.isBot ?? false
+      const nextName = nextTurnPlayer?.username?.toUpperCase() || (isNextBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+      const colorName = view.currentTurn.toUpperCase()
+
+      retroAudio.playUiBeep(640, 0.08, 'sine')
+      setTurnSwapNotice(`▶ TURN SWAP // ${nextName} [${colorName}] IS NOW IN CONTROL ◀`)
+
+      const timer = setTimeout(() => {
+        setTurnSwapNotice(null)
+      }, 700)
+
+      prevTurnRef.current = view.currentTurn
+      return () => clearTimeout(timer)
+    }
+    prevTurnRef.current = view.currentTurn
+  }, [view?.currentTurn, view?.players])
 
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
@@ -524,7 +554,7 @@ export function Game() {
   }
 
   const isMyTurn = view.currentTurn === view.myColor
-  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece
+  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
     : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
@@ -550,7 +580,7 @@ export function Game() {
         <div className="crt-flicker" />
 
         {/* Main Content Wrapper */}
-        <div className="app-wrapper" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
+        <div className="app-wrapper game-page" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
           {/* Hero Telemetry & Badge Bar */}
           <header className="hero-section" style={{ padding: '16px 0 14px', textAlign: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
@@ -597,26 +627,43 @@ export function Game() {
               <div
                 style={{
                   width: '100%',
-                  maxWidth: 680,
-                  padding: '8px 12px',
-                  background: 'rgba(0, 0, 0, 0.6)',
-                  border: '1px solid rgba(0, 240, 255, 0.35)',
+                  maxWidth: 740,
+                  padding: '8px 14px',
+                  background: turnSwapNotice
+                    ? 'rgba(255, 230, 0, 0.25)'
+                    : isMyTurn
+                      ? 'rgba(255, 0, 127, 0.2)'
+                      : 'rgba(0, 0, 0, 0.6)',
+                  border: turnSwapNotice
+                    ? '2px solid #ffe600'
+                    : isMyTurn
+                      ? '1px solid var(--accent-pink)'
+                      : '1px solid rgba(0, 240, 255, 0.35)',
+                  boxShadow: turnSwapNotice
+                    ? '0 0 20px #ffe600'
+                    : isMyTurn
+                      ? '0 0 12px rgba(255, 0, 127, 0.4)'
+                      : 'none',
                   borderRadius: 4,
                   textAlign: 'center',
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '0.78rem',
-                  color: isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
+                  fontSize: '0.82rem',
+                  fontWeight: 'bold',
+                  color: turnSwapNotice ? '#ffe600' : isMyTurn ? '#ff007f' : 'var(--accent-cyan)',
+                  transition: 'all 0.2s ease',
                 }}
               >
-                {view.status === 'waiting'
-                  ? '>>> WAITING FOR PILOTS TO READY UP <<<'
-                  : isRolling
-                    ? '>>> ROLLING DICE... <<<'
-                    : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
-                      ? '>>> YOUR TURN: PRESS SPACEBAR OR ROLL DICE <<<'
-                      : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
-                        ? '>>> SELECT HIGHLIGHTED PIECE TO ADVANCE <<<'
-                        : `>>> WAITING FOR PILOT ${view.currentTurn.toUpperCase()}... <<<`}
+                {turnSwapNotice || (
+                  view.status === 'waiting'
+                    ? '>>> WAITING FOR PILOTS TO READY UP <<<'
+                    : isRolling
+                      ? '>>> ROLLING DICE... <<<'
+                      : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
+                        ? '>>> YOUR TURN: PRESS SPACEBAR OR ROLL DICE <<<'
+                        : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
+                          ? '>>> SELECT HIGHLIGHTED PIECE TO ADVANCE <<<'
+                          : `>>> WAITING FOR PILOT ${view.currentTurn.toUpperCase()}... <<<`
+                )}
               </div>
             </div>
 
@@ -650,8 +697,8 @@ export function Game() {
             className="dashboard-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: '290px 1fr 290px',
-              gap: 20,
+              gridTemplateColumns: '275px 1fr 275px',
+              gap: 18,
               alignItems: 'start',
               width: '100%',
               margin: '0 auto',
@@ -832,14 +879,38 @@ export function Game() {
                               ? `1px solid ${colorAccent}44`
                               : '1px dashed rgba(255, 255, 255, 0.12)',
                           background: isActive
-                            ? `linear-gradient(135deg, ${colorAccent}33, rgba(25, 10, 56, 0.9))`
+                            ? `rgba(35, 12, 70, 0.95)`
                             : 'rgba(25, 10, 56, 0.65)',
-                          boxShadow: isActive ? `0 0 15px ${colorAccent}66, inset 0 0 10px ${colorAccent}22` : 'none',
+                          boxShadow: isActive
+                            ? `0 0 20px ${colorAccent}aa, inset 0 0 12px ${colorAccent}44`
+                            : 'none',
                           opacity: isDisconnected ? 0.55 : 1,
                           position: 'relative',
                           transition: 'all 0.2s ease',
                         }}
                       >
+                        {/* Active Turn Top-Right Badge */}
+                        {isActive && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: -7,
+                              right: 8,
+                              background: colorAccent,
+                              color: '#0d0221',
+                              fontSize: '0.55rem',
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 900,
+                              padding: '1px 6px',
+                              borderRadius: 3,
+                              letterSpacing: '0.5px',
+                              boxShadow: `0 0 10px ${colorAccent}`,
+                            }}
+                          >
+                            ▶ IN CONTROL ◀
+                          </span>
+                        )}
+
                         {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
                             username={name}
@@ -888,6 +959,9 @@ export function Game() {
                               gap: 6,
                             }}
                           >
+                            {isActive && (
+                              <span style={{ color: colorAccent, fontWeight: 'bold', fontSize: '0.75rem' }}>▶</span>
+                            )}
                             <span style={{ color: colorAccent, textTransform: 'uppercase' }}>[{ck}]</span>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {name}
@@ -1000,7 +1074,7 @@ export function Game() {
             </div>
 
             {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 680, justifySelf: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 740, justifySelf: 'center' }}>
               {(() => {
                 const currentTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                 const isBotTurn = currentTurnPlayer?.isBot ?? false
@@ -1188,6 +1262,37 @@ export function Game() {
                       padding: '16px 14px',
                     }}
                   >
+                    {/* Active Turn Pilot Banner */}
+                    {(() => {
+                      const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+                      const isBot = activeTurnPlayer?.isBot ?? false
+                      const activeName = activeTurnPlayer?.username?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+                      const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
+
+                      return (
+                        <div
+                          style={{
+                            width: '100%',
+                            padding: '6px 10px',
+                            background: isMyTurn ? 'rgba(255, 0, 127, 0.2)' : `${turnColorHex}18`,
+                            border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
+                            boxShadow: isMyTurn ? '0 0 12px rgba(255, 0, 127, 0.5)' : `0 0 8px ${turnColorHex}44`,
+                            borderRadius: 4,
+                            textAlign: 'center',
+                            fontSize: '0.74rem',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 'bold',
+                            color: '#ffffff',
+                            letterSpacing: '0.5px',
+                          }}
+                        >
+                          {isMyTurn
+                            ? '▶ YOUR TURN IN CONTROL ◀'
+                            : `▶ ACTIVE PILOT: ${activeName} ◀`}
+                        </div>
+                      )
+                    })()}
+
                     <div
                       style={{
                         fontFamily: 'var(--font-mono)',
@@ -1216,11 +1321,18 @@ export function Game() {
                         width: '100%',
                         padding: '12px 0',
                         fontSize: '0.85rem',
+                        fontFamily: 'var(--font-heading)',
+                        letterSpacing: '1px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
                         background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
                         borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
                         boxShadow: canRoll && !isRolling ? '0 0 15px var(--accent-pink)' : 'none',
                         cursor: canRoll && !isRolling ? 'pointer' : 'default',
                         opacity: canRoll && !isRolling ? 1 : 0.5,
+                        boxSizing: 'border-box',
                       }}
                     >
                       {isRolling ? 'ROLLING...' : 'ROLL DICE'}
@@ -1307,12 +1419,18 @@ export function Game() {
                 }}
                 style={{
                   width: '100%',
-                  padding: '10px 0',
-                  fontSize: '0.72rem',
+                  padding: '12px 14px',
+                  fontSize: '0.78rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 'bold',
+                  letterSpacing: '1px',
+                  lineHeight: '1.4',
                   background: 'rgba(0, 240, 255, 0.12)',
                   border: '1px solid var(--accent-cyan)',
                   color: 'var(--accent-cyan)',
-                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  boxSizing: 'border-box',
                 }}
                 title="Return to Ludo Lobby"
               >
@@ -1325,12 +1443,18 @@ export function Game() {
                 onClick={endGame}
                 style={{
                   width: '100%',
-                  padding: '10px 0',
-                  fontSize: '0.72rem',
+                  padding: '12px 14px',
+                  fontSize: '0.78rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 'bold',
+                  letterSpacing: '1px',
+                  lineHeight: '1.4',
                   background: 'rgba(255, 0, 85, 0.15)',
                   border: '1px solid #ff0055',
                   color: '#ff0055',
-                  letterSpacing: '0.5px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  boxSizing: 'border-box',
                 }}
               >
                 // ABORT MATCH // END GAME

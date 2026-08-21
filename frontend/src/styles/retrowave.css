@@ -835,6 +835,14 @@ body {
   flex-direction: column;
 }
 
+/* Pac-Man Arcade Maze Outline Styling for Game Page */
+.game-page .retro-window {
+  background: rgba(15, 6, 38, 0.95);
+  border: 2px solid #2121ff;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(33, 33, 255, 0.6), inset 0 0 15px rgba(0, 240, 255, 0.25);
+}
+
 .window-header {
   background: var(--window-header-bg);
   color: var(--window-header-text);
@@ -845,6 +853,12 @@ body {
   justify-content: space-between;
   align-items: center;
   user-select: none;
+}
+
+.game-page .window-header {
+  background: #140a35;
+  border-bottom: 2px solid #2121ff;
+  color: #ffffff;
 }
 
 .window-controls {

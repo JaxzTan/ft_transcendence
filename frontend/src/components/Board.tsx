@@ -2,8 +2,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef } from 'react'
 import { COL, type ColorKey } from '../theme'
 
-const CELL_BG = '#03030c'
-const LINE = '#2121ff'
+const CELL_BG = '#050515'
+const LINE = '#00f0ff'
 
 // ─── Track geometry ─────────────────────────────────────────────────────────
 // The engine works purely in logical steps (0-57, see board-mapper.ts) and has
@@ -58,88 +58,77 @@ function stepToCell(color: ColorKey, step: number): Cell | null {
   return null
 }
 
-function Sphere({ ck }: { ck: ColorKey }) {
+const PATH_MAP: Record<ColorKey, string> = {
+  yellow: `
+    M2,0 h1 v1 h-1 z  M8,0 h1 v1 h-1 z
+    M3,1 h1 v1 h-1 z  M7,1 h1 v1 h-1 z
+    M2,2 h7 v1 h-7 z
+    M1,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M8,3 h2 v1 h-2 z
+    M0,4 h11 v1 h-11 z
+    M0,5 h1 v1 h-1 z  M2,5 h7 v1 h-7 z  M10,5 h1 v1 h-1 z
+    M0,6 h1 v1 h-1 z  M2,6 h1 v1 h-1 z  M8,6 h1 v1 h-1 z  M10,6 h1 v1 h-1 z
+    M3,7 h2 v1 h-2 z  M6,7 h2 v1 h-2 z
+  `,
+  red: `
+    M0,0 h1 v2 h-1 z  M10,0 h1 v2 h-1 z
+    M2,1 h7 v1 h-7 z
+    M1,2 h2 v1 h-2 z  M4,2 h3 v1 h-3 z  M8,2 h2 v1 h-2 z
+    M0,3 h11 v1 h-11 z
+    M0,4 h1 v1 h-1 z  M2,4 h7 v1 h-7 z  M10,4 h1 v1 h-1 z
+    M0,5 h1 v1 h-1 z  M2,5 h1 v1 h-1 z  M8,5 h1 v1 h-1 z  M10,5 h1 v1 h-1 z
+    M3,6 h2 v1 h-2 z  M6,6 h2 v1 h-2 z
+    M2,7 h1 v1 h-1 z  M8,7 h1 v1 h-1 z
+  `,
+  green: `
+    M4,0 h3 v1 h-3 z
+    M3,1 h5 v1 h-5 z
+    M2,2 h7 v1 h-7 z
+    M1,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M8,3 h2 v1 h-2 z
+    M0,4 h11 v1 h-11 z
+    M1,5 h1 v1 h-1 z  M3,5 h5 v1 h-5 z  M9,5 h1 v1 h-1 z
+    M0,6 h1 v1 h-1 z  M10,6 h1 v1 h-1 z
+    M1,7 h1 v1 h-1 z  M9,7 h1 v1 h-1 z
+  `,
+  blue: `
+    M3,0 h5 v1 h-5 z
+    M1,1 h9 v1 h-9 z
+    M0,2 h11 v1 h-11 z
+    M0,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M9,3 h2 v1 h-2 z
+    M0,4 h11 v1 h-11 z
+    M2,5 h2 v1 h-2 z  M7,5 h2 v1 h-2 z
+    M1,6 h1 v1 h-1 z  M4,6 h1 v1 h-1 z  M6,6 h1 v1 h-1 z  M9,6 h1 v1 h-1 z
+    M0,7 h1 v1 h-1 z  M10,7 h1 v1 h-1 z
+  `,
+}
+
+function Sphere({ ck, isLegal }: { ck: ColorKey; isLegal?: boolean }) {
   const c = COL[ck]
+  const d = PATH_MAP[ck]
 
-  if (ck === 'yellow') {
-    // Yellow Crab Invader (Leftmost in reference image)
-    return (
-      <svg viewBox="0 0 11 8" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.85))' }} shapeRendering="crispEdges">
-        <path
-          fill={c.base}
-          d="
-            M2,0 h1 v1 h-1 z  M8,0 h1 v1 h-1 z
-            M3,1 h1 v1 h-1 z  M7,1 h1 v1 h-1 z
-            M2,2 h7 v1 h-7 z
-            M1,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M8,3 h2 v1 h-2 z
-            M0,4 h11 v1 h-11 z
-            M0,5 h1 v1 h-1 z  M2,5 h7 v1 h-7 z  M10,5 h1 v1 h-1 z
-            M0,6 h1 v1 h-1 z  M2,6 h1 v1 h-1 z  M8,6 h1 v1 h-1 z  M10,6 h1 v1 h-1 z
-            M3,7 h2 v1 h-2 z  M6,7 h2 v1 h-2 z
-          "
-        />
-      </svg>
-    )
-  }
-
-  if (ck === 'red') {
-    // Red / Pink Horned Crab Invader (Middle in reference image)
-    return (
-      <svg viewBox="0 0 11 8" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.85))' }} shapeRendering="crispEdges">
-        <path
-          fill={c.base}
-          d="
-            M0,0 h1 v2 h-1 z  M10,0 h1 v2 h-1 z
-            M2,1 h7 v1 h-7 z
-            M1,2 h2 v1 h-2 z  M4,2 h3 v1 h-3 z  M8,2 h2 v1 h-2 z
-            M0,3 h11 v1 h-11 z
-            M0,4 h1 v1 h-1 z  M2,4 h7 v1 h-7 z  M10,4 h1 v1 h-1 z
-            M0,5 h1 v1 h-1 z  M2,5 h1 v1 h-1 z  M8,5 h1 v1 h-1 z  M10,5 h1 v1 h-1 z
-            M3,6 h2 v1 h-2 z  M6,6 h2 v1 h-2 z
-            M2,7 h1 v1 h-1 z  M8,7 h1 v1 h-1 z
-          "
-        />
-      </svg>
-    )
-  }
-
-  if (ck === 'green') {
-    // Green Arrowhead Invader (Rightmost in reference image)
-    return (
-      <svg viewBox="0 0 11 8" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.85))' }} shapeRendering="crispEdges">
-        <path
-          fill={c.base}
-          d="
-            M4,0 h3 v1 h-3 z
-            M3,1 h5 v1 h-5 z
-            M2,2 h7 v1 h-7 z
-            M1,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M8,3 h2 v1 h-2 z
-            M0,4 h11 v1 h-11 z
-            M1,5 h1 v1 h-1 z  M3,5 h5 v1 h-5 z  M9,5 h1 v1 h-1 z
-            M0,6 h1 v1 h-1 z  M10,6 h1 v1 h-1 z
-            M1,7 h1 v1 h-1 z  M9,7 h1 v1 h-1 z
-          "
-        />
-      </svg>
-    )
-  }
-
-  // Blue Dome / Squid Invader (4th in reference image)
   return (
-    <svg viewBox="0 0 11 8" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.85))' }} shapeRendering="crispEdges">
+    <svg
+      viewBox="-1 -1 13 10"
+      style={{
+        width: '100%',
+        height: '100%',
+        overflow: 'visible',
+        filter: isLegal
+          ? 'drop-shadow(0 0 4px #ffe600) drop-shadow(0 0 8px #ffe600)'
+          : 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.95))',
+      }}
+      shapeRendering="crispEdges"
+    >
+      {/* High-contrast solid black outline tracing the Invader's exact pixel shape */}
       <path
-        fill={c.base}
-        d="
-          M3,0 h5 v1 h-5 z
-          M1,1 h9 v1 h-9 z
-          M0,2 h11 v1 h-11 z
-          M0,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M9,3 h2 v1 h-2 z
-          M0,4 h11 v1 h-11 z
-          M2,5 h2 v1 h-2 z  M7,5 h2 v1 h-2 z
-          M1,6 h1 v1 h-1 z  M4,6 h1 v1 h-1 z  M6,6 h1 v1 h-1 z  M9,6 h1 v1 h-1 z
-          M0,7 h1 v1 h-1 z  M10,7 h1 v1 h-1 z
-        "
+        d={d}
+        fill="none"
+        stroke="#000000"
+        strokeWidth="1"
+        strokeLinejoin="miter"
+        strokeLinecap="square"
       />
+      {/* Original Invader color fill */}
+      <path fill={c.base} d={d} />
     </svg>
   )
 }
@@ -176,10 +165,10 @@ function Yard({
         gridRow: `${r + 1} / span 6`,
         gridColumn: `${c + 1} / span 6`,
         padding: '6% 8%',
-        background: '#03030c',
-        border: '3px double #2121ff',
-        borderRadius: 10,
-        boxShadow: '0 0 16px rgba(33, 33, 255, 0.4), inset 0 0 12px rgba(33, 33, 255, 0.2)',
+        background: 'rgba(10, 2, 28, 0.95)',
+        border: '1.5px solid #2121ff',
+        borderRadius: 8,
+        boxShadow: '0 0 14px rgba(33, 33, 255, 0.45), inset 0 0 10px rgba(0, 240, 255, 0.15)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -229,16 +218,11 @@ function Yard({
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: isLegal ? 'pointer' : 'default',
-                border: isLegal ? '3px solid #ffffff' : 'none',
-                boxShadow: isLegal
-                  ? '0 0 0 5px #ffe600, 0 0 16px #ffe600, 0 0 26px rgba(255,230,0,0.95)'
-                  : 'none',
-                animation: isLegal ? 'haloPulse 1.2s ease-in-out infinite' : 'none',
-                borderRadius: '50%',
+                animation: isLegal ? 'piecePulse 1.2s ease-in-out infinite' : 'none',
                 zIndex: isLegal ? 30 : 1,
               }}
             >
-              <Sphere ck={ck} />
+              <Sphere ck={ck} isLegal={isLegal} />
             </div>
           )
         })}
@@ -390,10 +374,10 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
     const style = document.createElement('style')
     style.id = id
     style.textContent = `
-      @keyframes haloPulse {
-        0%   { box-shadow: 0 0 0 4px #ffe600, 0 0 12px #ffe600, 0 0 20px rgba(255,230,0,0.85); transform: scale(1); }
-        50%  { box-shadow: 0 0 0 8px #ffffff, 0 0 25px #ffe600, 0 0 38px rgba(255,255,255,0.98); transform: scale(1.24); }
-        100% { box-shadow: 0 0 0 4px #ffe600, 0 0 12px #ffe600, 0 0 20px rgba(255,230,0,0.85); transform: scale(1); }
+      @keyframes piecePulse {
+        0%   { transform: scale(1); }
+        50%  { transform: scale(1.24); }
+        100% { transform: scale(1); }
       }
       @keyframes captureRing {
         from { transform: scale(.2); opacity: .9; }
@@ -480,25 +464,20 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
           style={{
             gridRow: r + 1,
             gridColumn: c + 1,
-            width: p.isLegal ? 36 : 32,
-            height: p.isLegal ? 36 : 32,
+            width: p.isLegal ? 36 : 30,
+            height: p.isLegal ? 36 : 30,
             alignSelf: 'center',
             justifySelf: 'center',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: '50%',
-            border: p.isLegal ? '3px solid #ffffff' : 'none',
-            boxShadow: p.isLegal
-              ? '0 0 0 5px #ffe600, 0 0 16px #ffe600, 0 0 26px rgba(255,230,0,0.95)'
-              : '0 2px 6px rgba(0,0,0,.75)',
-            animation: p.isLegal ? 'haloPulse 1.2s ease-in-out infinite' : 'none',
+            animation: p.isLegal ? 'piecePulse 1.2s ease-in-out infinite' : 'none',
             cursor: p.isLegal ? 'pointer' : 'default',
             zIndex: p.isLegal ? 30 : 10,
             transform: `translate(${offset.x}%, ${offset.y}%)`,
           }}
         >
-          <Sphere ck={p.ck} />
+          <Sphere ck={p.ck} isLegal={p.isLegal} />
         </div>,
       )
     })
@@ -515,10 +494,10 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
           gridTemplateRows: 'repeat(15,1fr)',
           gap: 1,
           padding: '2.5%',
-          borderRadius: 12,
-          background: '#03030c',
-          border: '3px double #2121ff',
-          boxShadow: '0 0 30px rgba(33, 33, 255, 0.4), inset 0 0 25px rgba(33, 33, 255, 0.25)',
+          borderRadius: 10,
+          background: 'rgba(15, 6, 38, 0.95)',
+          border: '2px solid #2121ff',
+          boxShadow: '0 0 25px rgba(33, 33, 255, 0.6), inset 0 0 20px rgba(0, 240, 255, 0.25)',
         }}
       >
         <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
@@ -531,7 +510,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
             gridColumn: '7 / span 3',
             background: `conic-gradient(from 45deg, ${COL.yellow.base} 0 90deg, ${COL.blue.base} 90deg 180deg, ${COL.red.base} 180deg 270deg, ${COL.green.base} 270deg 360deg)`,
             border: '2px solid #2121ff',
-            boxShadow: '0 0 15px rgba(33, 33, 255, 0.5), inset 0 0 10px rgba(0,0,0,.6)',
+            boxShadow: '0 0 18px rgba(33, 33, 255, 0.6), inset 0 0 12px rgba(0,0,0,.7)',
           }}
         />
         {cells}
