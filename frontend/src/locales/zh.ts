@@ -304,7 +304,7 @@ export const zh = {
     reconnecting: '重新连接…',
     rolledValue: '掷出 {{value}}',
     bonusSuffix: ' (奖励)',
-    capturedPiece: '吃掉棋子！→ 第 {{to}} 格',
+    capturedPiece: '吃掉了 {{color}} 棋子！',
     movedPiece: '移动到第 {{to}} 格',
     inviteFriend: '邀请好友',
     inviteBtn: '邀请',

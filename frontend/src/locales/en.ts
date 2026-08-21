@@ -304,7 +304,7 @@ export const en = {
     reconnecting: 'Reconnecting…',
     rolledValue: 'Rolled a {{value}}',
     bonusSuffix: ' (bonus)',
-    capturedPiece: 'Captured a piece! → step {{to}}',
+    capturedPiece: 'Captured a {{color}} piece!',
     movedPiece: 'Moved to box {{to}}',
     inviteFriend: 'Invite a friend',
     inviteBtn: 'Invite',

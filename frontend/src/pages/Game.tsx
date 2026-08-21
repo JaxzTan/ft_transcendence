@@ -11,30 +11,8 @@ import { getApi, postApi } from '../api'
 import { useApp } from '../store'
 import { SEAT_COLORS } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
-import { RetroNavbar } from '../components/RetroNavbar'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
-
-function Pips({ count, color }: { count: number; color: string }) {
-  return (
-    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-      {Array.from({ length: 4 }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            width: 9,
-            height: 9,
-            borderRadius: '50%',
-            background: i < count ? color : 'rgba(255, 255, 255, 0.05)',
-            border: `1.5px solid ${i < count ? color : 'rgba(255, 255, 255, 0.2)'}`,
-            boxShadow: i < count ? `0 0 6px ${color}` : 'none',
-            transition: 'all 0.2s ease',
-          }}
-        />
-      ))}
-    </div>
-  )
-}
 
 /** Pip indexes (3x3 grid, row-major) lit per face value - mirrors Die.tsx. */
 const MINI_PIP_MAP: Record<number, number[]> = {
@@ -94,9 +72,10 @@ export function Game() {
   const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
 
   // ------------------------------------------------------------------------
-  // CRT CONTROLS
+  // CRT & AUDIO CONTROLS
   // ------------------------------------------------------------------------
   const [crtEnabled, setCrtEnabled] = useState(true)
+  const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
 
   useEffect(() => {
     const savedCrt = localStorage.getItem('retro_crt')
@@ -110,6 +89,14 @@ export function Game() {
     setCrtEnabled(next)
     localStorage.setItem('retro_crt', next ? 'true' : 'false')
     retroAudio.playUiBeep(440, 0.05)
+  }
+
+  const toggleSound = () => {
+    retroAudio.muted = !retroAudio.muted
+    setSoundMuted(retroAudio.muted)
+    if (!retroAudio.muted) {
+      retroAudio.playUiBeep(520, 0.06)
+    }
   }
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
@@ -128,6 +115,7 @@ export function Game() {
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const [isRolling, setIsRolling] = useState(false)
   const isRollingRef = useRef(false)
+  const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
   const [codeCopied, setCodeCopied] = useState(false)
 
   // Box-by-box move animation: while set, Board renders this piece at `step`
@@ -227,26 +215,47 @@ export function Game() {
 
       if (type === 'dice_rolled') {
         const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
-        const roller = viewRef.current.players.find((p) => p.color === viewRef.current.currentTurn)
+        const rollerColor = viewRef.current.currentTurn
+        const roller = viewRef.current.players.find((p) => p.color === rollerColor)
+        const rollerName = roller?.username || rollerColor
         retroAudio.playLaserSound()
         setIsRolling(true)
         setTimeout(() => {
           setIsRolling(false)
           isRollingRef.current = false
+          setDisplayedLastRolls((prev) => ({ ...prev, [rollerColor]: e.value }))
+          setMoveLogs((prev) => [
+            {
+              ck: rollerColor,
+              text: e.forfeited
+                ? t('game.thirdSixForfeit', { name: rollerName })
+                : `${t('game.rolledValue', { value: e.value })}${e.bonusRoll ? t('game.bonusSuffix') : ''}`,
+            },
+            ...prev.slice(0, 11),
+          ])
         }, 750)
-
-        setMoveLogs((prev) => [
-          {
-            ck: viewRef.current.currentTurn,
-            text: e.forfeited
-              ? t('game.thirdSixForfeit', { name: roller?.username || viewRef.current.currentTurn })
-              : `${t('game.rolledValue', { value: e.value })}${e.bonusRoll ? t('game.bonusSuffix') : ''}`,
-          },
-          ...prev.slice(0, 11),
-        ])
       } else if (type === 'piece_moved') {
-        const e = state as unknown as { pieceId: string; color: PlayerColor; captured: boolean; to: number; path: number[] }
+        const e = state as unknown as {
+          pieceId: string
+          color: PlayerColor
+          captured: boolean
+          capturedPieceIds?: string[]
+          to: number
+          path: number[]
+        }
         const path = e.path ?? []
+
+        // Extract color of captured piece if a capture occurred
+        let victimColor = ''
+        if (e.captured) {
+          if (e.capturedPieceIds && e.capturedPieceIds.length > 0) {
+            victimColor = e.capturedPieceIds[0].split('-')[0].toUpperCase()
+          } else {
+            const victim = viewRef.current.pieces.find((p) => p.color !== e.color && p.step === e.to)
+            if (victim) victimColor = victim.color.toUpperCase()
+          }
+          if (!victimColor) victimColor = 'OPPONENT'
+        }
 
         // Set animatingPiece SYNCHRONOUSLY to path[0] so React batches this with dispatch({ type: 'state_update' })
         // This prevents the piece from flickering at e.to on frame 1.
@@ -256,10 +265,12 @@ export function Game() {
 
         const runStepAnimation = () => {
           retroAudio.playUiBeep(580, 0.06, 'sine')
-          setMoveLogs((prev) => [
-            ck: e.color, text: e.captured ? t('game.capturedPiece', { to: e.to }), ,
-            ...prev.slice(0, 11),
-          ])
+          if (e.captured) {
+            setMoveLogs((prev) => [
+              { ck: e.color, text: t('game.capturedPiece', { color: victimColor }) },
+              ...prev.slice(0, 11),
+            ])
+          }
 
           if (path.length > 1) {
             if (animTimerRef.current) clearInterval(animTimerRef.current)
@@ -543,38 +554,30 @@ export function Game() {
         <div className="crt-flicker" />
 
         {/* Main Content Wrapper */}
-        <div className="app-wrapper">
-          {/* Navigation Header */}
-          <RetroNavbar
-            activeRoute="/game"
-            crtEnabled={crtEnabled}
-            toggleCrt={toggleCrt}
-          />
-
+        <div className="app-wrapper" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
           {/* Hero Telemetry & Badge Bar */}
-          <header className="hero-section" style={{ padding: '16px 0 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 4 }}>
-                  RETROLUDO // COMBAT ARENA
-                </h1>
-                <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
-                  TACTICAL DEPLOYMENT // MODE: {activeMatch.mode.toUpperCase()} ({view.players.length || 4}P)
-                </p>
-              </div>
+          <header className="hero-section" style={{ padding: '16px 0 14px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <h1 className="hero-title" style={{ fontSize: '1.6rem', marginBottom: 4, textAlign: 'center' }}>
+                RETROLUDO // COMBAT ARENA
+              </h1>
+              <p className="hero-subtitle" style={{ fontSize: '0.78rem', marginBottom: 0, textAlign: 'center' }}>
+                TACTICAL DEPLOYMENT // MODE: {activeMatch.mode.toUpperCase()} ({view.players.length || 4}P)
+              </p>
 
               {/* Live Turn Announcement Pill */}
               <div
                 style={{
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   gap: 10,
-                  padding: '8px 18px',
+                  padding: '8px 20px',
                   borderRadius: 4,
                   background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : 'rgba(0, 240, 255, 0.15)',
                   border: isMyTurn ? '2px solid var(--accent-pink)' : '1px solid var(--accent-cyan)',
                   boxShadow: isMyTurn ? '0 0 15px rgba(255, 0, 127, 0.6)' : 'none',
                   animation: isMyTurn ? 'pulse 1.6s infinite' : 'none',
+                  marginTop: 4,
                 }}
               >
                 <span
@@ -600,7 +603,26 @@ export function Game() {
             </div>
 
             {/* Badge Bar with Room Code and Telemetry */}
-            <div className="badge-bar" style={{ marginTop: 12 }}>
+            <div className="badge-bar" style={{ marginTop: 14, justifyContent: 'center' }}>
+              <button
+                className="retro-badge"
+                style={{
+                  cursor: 'pointer',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--accent-cyan)',
+                  color: 'var(--accent-cyan)',
+                  fontFamily: 'var(--font-mono)',
+                  outline: 'none',
+                }}
+                onClick={() => {
+                  retroAudio.playUiBeep(440, 0.05)
+                  navigate('/gamelobby')
+                }}
+                title="Return to Ludo Lobby"
+              >
+                ← RETURN TO LOBBY
+              </button>
+
               {activeMatch.inviteCode && (
                 <button
                   className="retro-badge"
@@ -660,53 +682,176 @@ export function Game() {
             className="dashboard-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: '310px 1fr 310px',
-              gap: 18,
+              gridTemplateColumns: '330px 1fr 330px',
+              gap: 20,
               alignItems: 'start',
               width: '100%',
               margin: '0 auto',
             }}
           >
-            {/* COLUMN 1: PILOT ROSTER // TACTICAL STATUS */}
-            <section className="retro-window" id="playersWindow">
-              <div className="window-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>👥 PILOT ROSTER</span>
-                </div>
-                <div className="window-controls">
-                  <span className="window-btn min" />
-                  <span className="window-btn max" />
-                </div>
-              </div>
-
-              <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                    SEAT // PILOT CALLSIGN
-                  </span>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    ROLL / GOALS
-                  </span>
+            {/* COLUMN 1: PILOT ROSTER // TACTICAL STATUS & SYSTEM CONTROL */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Pilot Roster Window */}
+              <section className="retro-window" id="playersWindow">
+                <div className="window-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>👥 PILOT ROSTER</span>
+                  </div>
+                  <div className="window-controls">
+                    <span className="window-btn min" />
+                    <span className="window-btn max" />
+                  </div>
                 </div>
 
-                {SEAT_COLORS.map((ck) => {
-                  const playerMeta = view.players.find((p) => p.color === ck)
-                  const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
-                  const isActive = view.currentTurn === ck
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                      SEAT // PILOT CALLSIGN
+                    </span>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      ROLL / GOALS
+                    </span>
+                  </div>
 
-                  // Color neon accent map
-                  const colorAccent =
-                    ck === 'red'
-                      ? '#ff007f'
-                      : ck === 'green'
-                        ? '#00ff88'
-                        : ck === 'yellow'
-                          ? '#ffe600'
-                          : '#00f0ff'
+                  {SEAT_COLORS.map((ck) => {
+                    const playerMeta = view.players.find((p) => p.color === ck)
+                    const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
+                    const isActive = view.currentTurn === ck
 
-                  if (view.status === 'waiting') {
-                    const isYou = ck === view.myColor
-                    const isReady = view.readyPlayers.includes(ck)
+                    // Color neon accent map
+                    const colorAccent =
+                      ck === 'red'
+                        ? '#ff007f'
+                        : ck === 'green'
+                          ? '#00ff88'
+                          : ck === 'yellow'
+                            ? '#ffe600'
+                            : '#00f0ff'
+
+                    if (view.status === 'waiting') {
+                      const isYou = ck === view.myColor
+                      const isReady = view.readyPlayers.includes(ck)
+                      return (
+                        <div
+                          key={ck}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '10px 12px',
+                            borderRadius: 4,
+                            border: isYou
+                              ? `1.5px solid ${colorAccent}`
+                              : occupied
+                                ? `1px solid ${colorAccent}66`
+                                : '1px dashed rgba(255, 255, 255, 0.15)',
+                            background: isYou
+                              ? 'rgba(255, 0, 127, 0.18)'
+                              : occupied
+                                ? 'rgba(25, 10, 56, 0.65)'
+                                : 'rgba(10, 5, 25, 0.35)',
+                            boxShadow: isYou ? `0 0 10px ${colorAccent}44` : 'none',
+                            opacity: occupied ? 1 : 0.5,
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          {occupied && playerMeta?.username ? (
+                            <UserAvatar
+                              username={playerMeta.username}
+                              size={34}
+                              fallbackStyle={{
+                                width: 34,
+                                height: 34,
+                                flex: 'none',
+                                borderRadius: 4,
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontWeight: 'bold',
+                                fontSize: '0.75rem',
+                                color: '#0d0221',
+                                background: colorAccent,
+                                border: `1px solid ${colorAccent}`,
+                              }}
+                              style={{ borderRadius: 4, border: `1px solid ${colorAccent}` }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: 34,
+                                height: 34,
+                                flex: 'none',
+                                borderRadius: 4,
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontWeight: 'bold',
+                                fontSize: '0.7rem',
+                                color: colorAccent,
+                                background: 'transparent',
+                                border: `1.5px dashed ${colorAccent}88`,
+                              }}
+                            >
+                              {ck.slice(0, 1).toUpperCase()}
+                            </div>
+                          )}
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontWeight: 'bold',
+                                fontSize: '0.82rem',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                              }}
+                            >
+                              <span style={{ color: colorAccent, textTransform: 'uppercase' }}>[{ck}]</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {occupied && playerMeta?.username ? playerMeta.username : t('game.emptySeat')}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                              {occupied ? (isReady ? t('game.statusReady') : t('game.statusNotReady')) : t('game.statusOpenSlot')}
+                            </div>
+                          </div>
+
+                          {occupied && (
+                            <span
+                              className="retro-badge"
+                              style={{
+                                padding: '2px 6px',
+                                fontSize: '0.62rem',
+                                border: isReady ? '1px solid #00ff88' : '1px solid #ff0055',
+                                color: isReady ? '#00ff88' : '#ff0055',
+                              }}
+                            >
+                              {isReady ? 'READY ✓' : 'WAITING'}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    // Active game pilot card
+                    if (!playerMeta) return null
+                    const isDisconnected = playerMeta.status === 'disconnected'
+                    const isHotseat = activeMatch.mode === 'hotseat'
+                    const isYou = isHotseat
+                      ? ck === view.myColor
+                      : !playerMeta.isBot && playerMeta.username === user?.username
+                    const name =
+                      localNames[ck] ||
+                      playerMeta.username ||
+                      (playerMeta.isBot
+                        ? t('common.bot')
+                        : isYou
+                          ? t('common.you')
+                          : isHotseat
+                            ? t('game.localPlayer')
+                            : 'Pilot')
+                    const goalCount = playerMeta.piecesInGoal ?? 0
+                    const lastRoll = (isRolling && view.currentTurn === ck) ? displayedLastRolls[ck] : (displayedLastRolls[ck] ?? view.lastRolls[ck])
+
                     return (
                       <div
                         key={ck}
@@ -716,28 +861,43 @@ export function Game() {
                           gap: 10,
                           padding: '10px 12px',
                           borderRadius: 4,
-                          border: isYou
-                            ? `1.5px solid ${colorAccent}`
+                          border: isActive
+                            ? `2px solid ${colorAccent}`
                             : occupied
-                              ? `1px solid ${colorAccent}66`
-                              : '1px dashed rgba(255, 255, 255, 0.15)',
-                          background: isYou
-                            ? 'rgba(255, 0, 127, 0.18)'
-                            : occupied
-                              ? 'rgba(25, 10, 56, 0.65)'
-                              : 'rgba(10, 5, 25, 0.35)',
-                          boxShadow: isYou ? `0 0 10px ${colorAccent}44` : 'none',
-                          opacity: occupied ? 1 : 0.5,
+                              ? `1px solid ${colorAccent}44`
+                              : '1px dashed rgba(255, 255, 255, 0.12)',
+                          background: isActive
+                            ? `linear-gradient(135deg, ${colorAccent}33, rgba(25, 10, 56, 0.9))`
+                            : 'rgba(25, 10, 56, 0.65)',
+                          boxShadow: isActive ? `0 0 15px ${colorAccent}66, inset 0 0 10px ${colorAccent}22` : 'none',
+                          opacity: isDisconnected ? 0.55 : 1,
+                          position: 'relative',
                           transition: 'all 0.2s ease',
                         }}
                       >
-                        {occupied && playerMeta?.username ? (
+                        {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
-                            username={playerMeta.username}
-                            size={34}
+                            username={name}
+                            size={36}
                             fallbackStyle={{
-                              width: 34,
-                              height: 34,
+                              width: 36,
+                              height: 36,
+                              flex: 'none',
+                              borderRadius: 4,
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '0.8rem',
+                              color: '#0d0221',
+                              background: colorAccent,
+                            }}
+                            style={{ borderRadius: 4, border: `1.5px solid ${colorAccent}` }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
                               flex: 'none',
                               borderRadius: 4,
                               display: 'grid',
@@ -746,186 +906,140 @@ export function Game() {
                               fontSize: '0.75rem',
                               color: '#0d0221',
                               background: colorAccent,
-                              border: `1px solid ${colorAccent}`,
-                            }}
-                            style={{ borderRadius: 4, border: `1px solid ${colorAccent}` }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: 34,
-                              height: 34,
-                              flex: 'none',
-                              borderRadius: 4,
-                              display: 'grid',
-                              placeItems: 'center',
-                              fontWeight: 'bold',
-                              fontSize: '0.7rem',
-                              color: colorAccent,
-                              background: 'transparent',
-                              border: `1.5px dashed ${colorAccent}88`,
+                              border: `1.5px solid ${colorAccent}`,
                             }}
                           >
-                            ?
+                            {name.slice(0, 2).toUpperCase()}
                           </div>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div
                             style={{
                               fontWeight: 'bold',
-                              fontSize: '0.82rem',
-                              color: occupied ? '#ffffff' : 'var(--text-muted)',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.84rem',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
                             }}
                           >
-                            {occupied ? playerMeta!.username : t('game.emptySeat')}
+                            <span style={{ color: colorAccent, textTransform: 'uppercase' }}>[{ck}]</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {name}
+                            </span>
                           </div>
-                          <div style={{ color: colorAccent, fontSize: '0.68rem', textTransform: 'uppercase' }}>
-                            {ck} {isYou ? '• (YOU)' : ''}
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                            {isDisconnected
+                              ? t('game.pilotDisconnected')
+                              : isActive
+                                ? t('game.pilotTurnActive')
+                                : t('game.pilotStandingBy')}
                           </div>
                         </div>
-                        {occupied && (
-                          <span
-                            style={{
-                              fontSize: '0.68rem',
-                              fontWeight: 'bold',
-                              color: isReady ? '#00ff88' : 'var(--text-muted)',
-                              fontFamily: 'var(--font-mono)',
-                            }}
-                          >
-                            {isReady ? `✓ READY` : 'STANDBY'}
-                          </span>
-                        )}
-                      </div>
-                    )
-                  }
 
-                  if (!playerMeta || playerMeta.status === 'exited') return null
-                  const isDisconnected = playerMeta.status === 'disconnected'
-                  const isHotseat = activeMatch.mode === 'hotseat'
-                  const isYou = isHotseat
-                    ? ck === view.myColor
-                    : !playerMeta.isBot && playerMeta.username === user?.username
-                  const name = playerMeta.username
-                  const sub = isDisconnected
-                    ? t('game.reconnecting')
-                    : playerMeta.isBot
-                      ? t('common.bot')
-                      : isYou
-                        ? t('common.you')
-                        : isHotseat
-                          ? t('game.localPlayer')
-                          : 'Pilot'
-                  const goalCount = playerMeta.piecesInGoal ?? 0
-                  const lastRoll = view.lastRolls[ck]
-
-                  return (
-                    <div
-                      key={ck}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: '10px 12px',
-                        borderRadius: 4,
-                        border: isActive
-                          ? `2px solid ${colorAccent}`
-                          : `1px solid ${colorAccent}44`,
-                        background: isActive
-                          ? `linear-gradient(135deg, ${colorAccent}33, rgba(25, 10, 56, 0.9))`
-                          : 'rgba(25, 10, 56, 0.65)',
-                        boxShadow: isActive ? `0 0 15px ${colorAccent}66, inset 0 0 10px ${colorAccent}22` : 'none',
-                        opacity: isDisconnected ? 0.55 : 1,
-                        position: 'relative',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      {!playerMeta.isBot && !isHotseat ? (
-                        <UserAvatar
-                          username={name}
-                          size={36}
-                          fallbackStyle={{
-                            width: 36,
-                            height: 36,
-                            flex: 'none',
-                            borderRadius: 4,
-                            display: 'grid',
-                            placeItems: 'center',
-                            fontWeight: 'bold',
-                            fontSize: '0.8rem',
-                            color: '#0d0221',
-                            background: colorAccent,
-                          }}
-                          style={{ borderRadius: 4, border: `1.5px solid ${colorAccent}` }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: 36,
-                            height: 36,
-                            flex: 'none',
-                            borderRadius: 4,
-                            display: 'grid',
-                            placeItems: 'center',
-                            fontWeight: 'bold',
-                            fontSize: '0.75rem',
-                            color: '#0d0221',
-                            background: colorAccent,
-                            border: `1.5px solid ${colorAccent}`,
-                          }}
-                        >
-                          {name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: 'bold',
-                            fontSize: '0.84rem',
-                            color: '#ffffff',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            fontFamily: 'var(--font-mono)',
-                          }}
-                        >
-                          {name}
-                        </div>
-                        <div style={{ color: colorAccent, fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>{ck.toUpperCase()}</span>
-                          <span>// {sub.toUpperCase()}</span>
-                        </div>
-                      </div>
-                      <Pips count={goalCount} color={colorAccent} />
-                      <div style={{ flex: 'none' }}>
-                        {lastRoll ? (
-                          <MiniDie value={lastRoll} />
-                        ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {lastRoll !== undefined && lastRoll > 0 && (
+                            <MiniDie value={lastRoll} />
+                          )}
                           <div
                             style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: 8,
-                              border: '1px dashed rgba(255, 255, 255, 0.2)',
-                              display: 'grid',
-                              placeItems: 'center',
-                              color: 'var(--text-muted)',
-                              fontSize: '0.8rem',
-                              flex: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              fontSize: '0.75rem',
+                              fontFamily: 'var(--font-mono)',
+                              color: colorAccent,
+                              fontWeight: 'bold',
                             }}
                           >
-                            –
+                            <span>🎯</span>
+                            <span>{goalCount}/4</span>
                           </div>
-                        )}
+                        </div>
                       </div>
+                    )
+                  })}
+                </div>
+              </section>
+
+              {/* Arena System Control & Sector Specs */}
+              <section className="retro-window" id="sectorControlWindow">
+                <div className="window-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>⚙️ ARENA SYSTEM CONTROL</span>
+                  </div>
+                  <div className="window-controls">
+                    <span className="window-btn min" />
+                    <span className="window-btn max" />
+                  </div>
+                </div>
+
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                    // COMBAT KEYBINDS & RULES
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>DICE ROLL:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR / CLICK</span>
                     </div>
-                  )
-                })}
-              </div>
-            </section>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>SELECT PIECE:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>VICTORY GOAL:</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES IN GOAL</span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
+
+                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                    // DISPLAY & AUDIO PREFERENCES
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <button
+                      className="retro-badge"
+                      style={{
+                        cursor: 'pointer',
+                        padding: '8px 10px',
+                        background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
+                        border: soundMuted ? '1px solid #ff0055' : '1px solid #00ff88',
+                        color: soundMuted ? '#ff0055' : '#00ff88',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.7rem',
+                        textAlign: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onClick={toggleSound}
+                    >
+                      {soundMuted ? '🔇 AUDIO: OFF' : '🔊 AUDIO: ON'}
+                    </button>
+
+                    <button
+                      className="retro-badge"
+                      style={{
+                        cursor: 'pointer',
+                        padding: '8px 10px',
+                        background: crtEnabled ? 'rgba(0, 240, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
+                        border: crtEnabled ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.2)',
+                        color: crtEnabled ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.7rem',
+                        textAlign: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onClick={toggleCrt}
+                    >
+                      {crtEnabled ? '📺 CRT: ON' : '📺 CRT: OFF'}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
 
             {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
             <section className="retro-window" id="boardWindow" style={{ width: '100%' }}>
@@ -989,14 +1103,22 @@ export function Game() {
                     boxShadow: '0 0 25px rgba(255, 0, 127, 0.35), inset 0 0 20px rgba(0, 240, 255, 0.2)',
                   }}
                 >
-                  <Board
-                    pieces={view.pieces}
-                    players={view.players}
-                    legalMoves={isRolling ? [] : view.legalMoves}
-                    onPieceClick={isRolling ? () => { } : movePiece}
-                    animating={animatingPiece}
-                    fx={captureFx}
-                  />
+                  {(() => {
+                    const currentTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+                    const isBotTurn = currentTurnPlayer?.isBot ?? false
+                    const activeLegalMoves = isRolling || isBotTurn ? [] : view.legalMoves
+
+                    return (
+                      <Board
+                        pieces={view.pieces}
+                        players={view.players}
+                        legalMoves={activeLegalMoves}
+                        onPieceClick={isRolling || isBotTurn ? () => {} : movePiece}
+                        animating={animatingPiece}
+                        fx={captureFx}
+                      />
+                    )
+                  })()}
                 </div>
               </div>
             </section>

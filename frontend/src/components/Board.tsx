@@ -135,10 +135,13 @@ function Yard({
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: isLegal ? 'pointer' : 'default',
-                border: isLegal ? '2.5px solid #9aa4ad' : 'none',
-                boxShadow: isLegal ? '0 0 0 4px rgba(160,165,170,.35), 0 0 10px rgba(0,0,0,.45)' : 'none',
-                animation: isLegal ? 'haloPulse 1.8s ease-in-out infinite' : 'none',
+                border: isLegal ? '3px solid #ffffff' : 'none',
+                boxShadow: isLegal
+                  ? '0 0 0 5px #ffe600, 0 0 16px #ffe600, 0 0 26px rgba(255,230,0,0.95)'
+                  : 'none',
+                animation: isLegal ? 'haloPulse 1.2s ease-in-out infinite' : 'none',
                 borderRadius: '50%',
+                zIndex: isLegal ? 30 : 1,
               }}
             >
               <Sphere ck={ck} />
@@ -279,9 +282,9 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
     style.id = id
     style.textContent = `
       @keyframes haloPulse {
-        0% { box-shadow: 0 0 0 4px rgba(160,165,170,.35), 0 0 6px rgba(0,0,0,.45); }
-        50% { box-shadow: 0 0 0 7px rgba(160,165,170,.55), 0 0 14px rgba(0,0,0,.55); }
-        100% { box-shadow: 0 0 0 4px rgba(160,165,170,.35), 0 0 6px rgba(0,0,0,.45); }
+        0%   { box-shadow: 0 0 0 4px #ffe600, 0 0 12px #ffe600, 0 0 20px rgba(255,230,0,0.85); transform: scale(1); }
+        50%  { box-shadow: 0 0 0 8px #ffffff, 0 0 25px #ffe600, 0 0 38px rgba(255,255,255,0.98); transform: scale(1.24); }
+        100% { box-shadow: 0 0 0 4px #ffe600, 0 0 12px #ffe600, 0 0 20px rgba(255,230,0,0.85); transform: scale(1); }
       }
       @keyframes captureRing {
         from { transform: scale(.2); opacity: .9; }
@@ -369,17 +372,19 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
           style={{
             gridRow: r + 1,
             gridColumn: c + 1,
-            width: 20,
-            height: 20,
+            width: p.isLegal ? 24 : 20,
+            height: p.isLegal ? 24 : 20,
             alignSelf: 'center',
             justifySelf: 'center',
             borderRadius: '50%',
             background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${col.base} 52%, ${col.dark})`,
-            border: p.isLegal ? '2.5px solid #9aa4ad' : '2px solid rgba(0,0,0,.28)',
-            boxShadow: p.isLegal ? '0 0 0 4px rgba(160,165,170,.35), 0 0 10px rgba(0,0,0,.45)' : '0 2px 4px rgba(0,0,0,.45)',
-            animation: p.isLegal ? 'haloPulse 1.8s ease-in-out infinite' : 'none',
+            border: p.isLegal ? '3px solid #ffffff' : '2px solid rgba(0,0,0,.28)',
+            boxShadow: p.isLegal
+              ? '0 0 0 5px #ffe600, 0 0 16px #ffe600, 0 0 26px rgba(255,230,0,0.95)'
+              : '0 2px 4px rgba(0,0,0,.45)',
+            animation: p.isLegal ? 'haloPulse 1.2s ease-in-out infinite' : 'none',
             cursor: p.isLegal ? 'pointer' : 'default',
-            zIndex: 10,
+            zIndex: p.isLegal ? 30 : 10,
             transform: `translate(${offset.x}%, ${offset.y}%)`,
           }}
         />,
@@ -413,7 +418,6 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
             gridColumn: '7 / span 3',
             background: `conic-gradient(from 45deg, ${COL.yellow.base} 0 90deg, ${COL.blue.base} 90deg 180deg, ${COL.red.base} 180deg 270deg, ${COL.green.base} 270deg 360deg)`,
             boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
-            transform: 'rotate(-90deg)',
           }}
         />
         {cells}

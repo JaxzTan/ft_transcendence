@@ -304,7 +304,7 @@ export const ms = {
     reconnecting: 'Menyambung semula…',
     rolledValue: 'Membaling {{value}}',
     bonusSuffix: ' (bonus)',
-    capturedPiece: 'Menangkap buah! → langkah {{to}}',
+    capturedPiece: 'Menangkap buah {{color}}!',
     movedPiece: 'Bergerak ke kotak {{to}}',
     inviteFriend: 'Jemput rakan',
     inviteBtn: 'Jemput',
