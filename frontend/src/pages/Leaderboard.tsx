@@ -120,27 +120,23 @@ export function Leaderboard() {
         />
         <div className="crt-flicker" />
 
-        {/* Main Content Wrapper (Fixed full viewport, no outer scroll) */}
+        {/* Global Floating Navigation Dock (Left Side, Centered along Y Axis) */}
+        <RetroNavbar
+          activeRoute="/leaderboard"
+          crtEnabled={crtEnabled}
+          toggleCrt={toggleCrt}
+        />
+
+        {/* Main Content Wrapper (Fixed full viewport, positioned beside the left dock) */}
         <div
           className="app-wrapper"
           style={{
-            maxWidth: 1380,
-            width: '100%',
-            margin: '0 auto',
-            padding: '12px 20px 14px',
             height: '100vh',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
           }}
         >
-          {/* Navigation Header */}
-          <RetroNavbar
-            activeRoute="/leaderboard"
-            crtEnabled={crtEnabled}
-            toggleCrt={toggleCrt}
-            style={{ marginBottom: 8, flexShrink: 0 }}
-          />
 
           {/* Hero Title (Clean, no sub-header or tags) */}
           <header className="hero-section" style={{ padding: '4px 0 6px', marginBottom: 8, flexShrink: 0 }}>
@@ -553,10 +549,10 @@ export function Leaderboard() {
                         entry.rank === 1
                           ? '🥇'
                           : entry.rank === 2
-                          ? '🥈'
-                          : entry.rank === 3
-                          ? '🥉'
-                          : `#${entry.rank}`
+                            ? '🥈'
+                            : entry.rank === 3
+                              ? '🥉'
+                              : `#${entry.rank}`
 
                       return (
                         <div
@@ -575,13 +571,13 @@ export function Leaderboard() {
                                 ? 'linear-gradient(90deg, rgba(255, 0, 127, 0.3), rgba(255, 23, 68, 0.2))'
                                 : 'linear-gradient(90deg, rgba(255, 23, 68, 0.18), rgba(255, 215, 0, 0.08))'
                               : isYou
-                              ? 'rgba(255, 0, 127, 0.18)'
-                              : 'transparent',
+                                ? 'rgba(255, 0, 127, 0.18)'
+                                : 'transparent',
                             boxShadow: isRankOne
                               ? '0 0 22px rgba(255, 23, 68, 0.25)'
                               : isYou
-                              ? 'inset 0 0 15px rgba(255, 0, 127, 0.15)'
-                              : 'none',
+                                ? 'inset 0 0 15px rgba(255, 0, 127, 0.15)'
+                                : 'none',
                             transition: 'all 0.2s ease',
                             cursor: 'pointer',
                           }}
