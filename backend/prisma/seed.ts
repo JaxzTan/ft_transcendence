@@ -87,7 +87,6 @@ async function main() {
       status: 'online',
       disconnectCount: 1,
       reconnectCount: 1,
-      gamesWithFourPieces: 2,
       // First win; 3 captures in one game; won with 4 home while every
       // opponent had >= 1 home; the 25-minute win clears Speed Demon.
       achFirstBlood: true,
@@ -116,7 +115,6 @@ async function main() {
       status: 'playing',
       disconnectCount: 2,
       reconnectCount: 2,
-      gamesWithTwoPieces: 1,
       // 3 captures in the 4-player game. The win-gated achievements are all
       // false now that Bob has no completed win.
       achUnstoppable: true,
@@ -137,7 +135,6 @@ async function main() {
       losses: 1,
       avatarStyle: 'identicon',
       status: 'offline',
-      gamesWithOnePiece: 1,
     },
   });
 
@@ -157,8 +154,6 @@ async function main() {
       status: 'offline',
       disconnectCount: 3,
       reconnectCount: 1,
-      gamesWithZeroPieces: 1,
-      gamesWithOnePiece: 1,
     },
   });
 
@@ -177,7 +172,6 @@ async function main() {
       losses: 1,
       avatarStyle: 'avataaars',
       status: 'online',
-      gamesWithThreePieces: 1,
       accounts: {
         create: [
           {
