@@ -169,8 +169,8 @@ export function Leaderboard() {
                 flexShrink: 0,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold' }}>
-                <span>// LEADERBOARD ({data?.total ?? 0} ACTIVE OPERATIVES)</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
+                <span>// LEADERBOARD ({data?.total ?? 0} ACTIVE PLAYERS)</span>
               </div>
               <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="window-btn min" />
@@ -196,10 +196,10 @@ export function Leaderboard() {
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                    gap: 16,
+                    gap: 18,
                     alignItems: 'end',
-                    padding: '12px 16px',
-                    borderRadius: 8,
+                    padding: '18px 20px',
+                    borderRadius: 10,
                     background: 'rgba(10, 3, 24, 0.65)',
                     border: '1px solid rgba(0, 240, 255, 0.25)',
                     flexShrink: 0,
@@ -213,9 +213,9 @@ export function Leaderboard() {
                         style={{
                           background: 'rgba(25, 10, 56, 0.85)',
                           border: '1.5px solid rgba(0, 240, 255, 0.45)',
-                          borderRadius: 6,
-                          boxShadow: '0 0 16px rgba(0, 240, 255, 0.2)',
-                          padding: '14px 18px',
+                          borderRadius: 8,
+                          boxShadow: '0 0 18px rgba(0, 240, 255, 0.22)',
+                          padding: '20px 22px',
                           cursor: 'pointer',
                           transition: 'transform 0.2s, box-shadow 0.2s',
                         }}
@@ -226,32 +226,32 @@ export function Leaderboard() {
                         onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
                         onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                          <span style={{ fontSize: '1.3rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: 'var(--accent-cyan)' }}>#2</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                          <span style={{ fontSize: '1.35rem', fontFamily: 'var(--font-display)', fontWeight: 900, color: 'var(--accent-cyan)' }}>#2</span>
                           <RankBadge tier={tier2} fontSize="12px" padding="4px 10px" />
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                           <UserAvatar
                             username={top2.username}
-                            size={48}
+                            size={52}
                             fallbackStyle={{
-                              width: 48,
-                              height: 48,
-                              borderRadius: 6,
+                              width: 52,
+                              height: 52,
+                              borderRadius: 8,
                               background: 'rgba(10, 2, 28, 0.9)',
                               color: 'var(--accent-cyan)',
                               display: 'grid',
                               placeItems: 'center',
                               fontWeight: 'bold',
-                              fontSize: '1rem',
+                              fontSize: '1.05rem',
                             }}
                           />
                           <div>
-                            <div style={{ fontSize: '1.05rem', fontWeight: 'bold', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
                               {top2.username}
                             </div>
-                            <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#ffffff', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em', marginTop: 2 }}>
                               ♛ {top2.rating}
                             </div>
                           </div>
@@ -261,12 +261,13 @@ export function Leaderboard() {
                           style={{
                             display: 'flex',
                             justifyContent: 'space-between',
-                            marginTop: 10,
-                            paddingTop: 8,
+                            marginTop: 16,
+                            paddingTop: 12,
                             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                            fontSize: '0.75rem',
+                            fontSize: '0.78rem',
                             color: 'var(--text-muted)',
-                            fontFamily: 'var(--font-mono)',
+                            fontFamily: 'var(--font-display)',
+                            letterSpacing: '0.03em',
                           }}
                         >
                           <span>MATCHES: <strong style={{ color: '#ffffff' }}>{top2.gamesPlayed}</strong></span>
@@ -285,8 +286,8 @@ export function Leaderboard() {
                         style={{
                           background: 'linear-gradient(180deg, rgba(48, 12, 38, 0.95), rgba(20, 5, 28, 0.98))',
                           border: '2px solid #ff1744',
-                          borderRadius: 6,
-                          padding: '16px 20px',
+                          borderRadius: 8,
+                          padding: '24px 26px',
                           cursor: 'pointer',
                           transition: 'transform 0.2s, box-shadow 0.2s',
                         }}
@@ -295,46 +296,46 @@ export function Leaderboard() {
                           navigate(`/profile?u=${top1.username}`)
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: '1.45rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: '#ffe600', textShadow: '0 0 10px rgba(255, 230, 0, 0.6)' }}>#1</span>
-                            <span style={{ fontSize: '0.68rem', color: '#ffe600', fontFamily: 'var(--font-mono)', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                            <span style={{ fontSize: '1.5rem', fontFamily: 'var(--font-display)', fontWeight: 900, color: '#ffe600', textShadow: '0 0 10px rgba(255, 230, 0, 0.6)' }}>#1</span>
+                            <span style={{ fontSize: '0.72rem', color: '#ffe600', fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '0.5px' }}>
                               ★ APEX CHAMPION
                             </span>
                           </div>
                           <RankBadge tier={tier1} fontSize="13px" padding="4px 12px" />
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                           <div
                             style={{
                               padding: 2.5,
-                              borderRadius: 7,
+                              borderRadius: 8,
                               background: 'linear-gradient(135deg, #ff1744, #ffe600)',
-                              boxShadow: '0 0 14px rgba(255, 23, 68, 0.5)',
+                              boxShadow: '0 0 16px rgba(255, 23, 68, 0.55)',
                             }}
                           >
                             <UserAvatar
                               username={top1.username}
-                              size={58}
+                              size={62}
                               fallbackStyle={{
-                                width: 58,
-                                height: 58,
-                                borderRadius: 5,
+                                width: 62,
+                                height: 62,
+                                borderRadius: 6,
                                 background: 'rgba(10, 2, 28, 0.95)',
                                 color: '#ffe600',
                                 display: 'grid',
                                 placeItems: 'center',
                                 fontWeight: 'bold',
-                                fontSize: '1.3rem',
+                                fontSize: '1.4rem',
                               }}
                             />
                           </div>
                           <div>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
+                            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
                               {top1.username}
                             </div>
-                            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                            <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em', marginTop: 2 }}>
                               ♛ {top1.rating}
                             </div>
                           </div>
@@ -344,16 +345,17 @@ export function Leaderboard() {
                           style={{
                             display: 'flex',
                             justifyContent: 'space-between',
-                            marginTop: 12,
-                            paddingTop: 8,
+                            marginTop: 18,
+                            paddingTop: 12,
                             borderTop: '1px solid rgba(255, 23, 68, 0.3)',
-                            fontSize: '0.78rem',
+                            fontSize: '0.8rem',
                             color: '#ffcad4',
-                            fontFamily: 'var(--font-mono)',
+                            fontFamily: 'var(--font-display)',
+                            letterSpacing: '0.03em',
                           }}
                         >
-                          <span>MATCHES: <strong style={{ color: '#ffffff', fontSize: '0.85rem' }}>{top1.gamesPlayed}</strong></span>
-                          <span>WIN RATE: <strong style={{ color: '#00ff88', fontSize: '0.85rem' }}>{top1.winRate}%</strong></span>
+                          <span>MATCHES: <strong style={{ color: '#ffffff', fontSize: '0.88rem' }}>{top1.gamesPlayed}</strong></span>
+                          <span>WIN RATE: <strong style={{ color: '#00ff88', fontSize: '0.88rem' }}>{top1.winRate}%</strong></span>
                         </div>
                       </div>
                     )
@@ -367,9 +369,9 @@ export function Leaderboard() {
                         style={{
                           background: 'rgba(25, 10, 56, 0.85)',
                           border: '1.5px solid rgba(255, 0, 127, 0.45)',
-                          borderRadius: 6,
-                          boxShadow: '0 0 16px rgba(255, 0, 127, 0.2)',
-                          padding: '14px 18px',
+                          borderRadius: 8,
+                          boxShadow: '0 0 18px rgba(255, 0, 127, 0.22)',
+                          padding: '20px 22px',
                           cursor: 'pointer',
                           transition: 'transform 0.2s, box-shadow 0.2s',
                         }}
@@ -380,32 +382,32 @@ export function Leaderboard() {
                         onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
                         onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                          <span style={{ fontSize: '1.3rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: 'var(--accent-pink)' }}>#3</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                          <span style={{ fontSize: '1.35rem', fontFamily: 'var(--font-display)', fontWeight: 900, color: 'var(--accent-pink)' }}>#3</span>
                           <RankBadge tier={tier3} fontSize="12px" padding="4px 10px" />
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                           <UserAvatar
                             username={top3.username}
-                            size={48}
+                            size={52}
                             fallbackStyle={{
-                              width: 48,
-                              height: 48,
-                              borderRadius: 6,
+                              width: 52,
+                              height: 52,
+                              borderRadius: 8,
                               background: 'rgba(10, 2, 28, 0.9)',
                               color: 'var(--accent-pink)',
                               display: 'grid',
                               placeItems: 'center',
                               fontWeight: 'bold',
-                              fontSize: '1rem',
+                              fontSize: '1.05rem',
                             }}
                           />
                           <div>
-                            <div style={{ fontSize: '1.05rem', fontWeight: 'bold', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
                               {top3.username}
                             </div>
-                            <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#ffffff', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em', marginTop: 2 }}>
                               ♛ {top3.rating}
                             </div>
                           </div>
@@ -415,12 +417,13 @@ export function Leaderboard() {
                           style={{
                             display: 'flex',
                             justifyContent: 'space-between',
-                            marginTop: 10,
-                            paddingTop: 8,
+                            marginTop: 16,
+                            paddingTop: 12,
                             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                            fontSize: '0.75rem',
+                            fontSize: '0.78rem',
                             color: 'var(--text-muted)',
-                            fontFamily: 'var(--font-mono)',
+                            fontFamily: 'var(--font-display)',
+                            letterSpacing: '0.03em',
                           }}
                         >
                           <span>MATCHES: <strong style={{ color: '#ffffff' }}>{top3.gamesPlayed}</strong></span>
@@ -456,17 +459,17 @@ export function Leaderboard() {
                     background: 'rgba(25, 10, 56, 0.98)',
                     borderBottom: '1.5px solid rgba(0, 240, 255, 0.3)',
                     fontSize: '0.82rem',
-                    fontWeight: 'bold',
+                    fontWeight: 900,
                     color: 'var(--accent-cyan)',
-                    fontFamily: 'var(--font-mono)',
+                    fontFamily: 'var(--font-display)',
                     textTransform: 'uppercase',
-                    letterSpacing: '1px',
+                    letterSpacing: '1.2px',
                     flexShrink: 0,
                     zIndex: 3,
                   }}
                 >
                   <div>RANK & TIER</div>
-                  <div>PILOT / CALLSIGN</div>
+                  <div>PLAYER</div>
                   <div>RATING</div>
                   <div>MATCHES</div>
                   <div style={{ textAlign: 'right' }}>WIN RATE</div>
@@ -538,10 +541,11 @@ export function Leaderboard() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: isRankOne ? 14 : 12 }}>
                             <span
                               style={{
-                                fontWeight: 'bold',
-                                fontSize: isRankOne ? '2rem' : entry.rank <= 3 ? '1.45rem' : '1.05rem',
+                                fontWeight: 900,
+                                fontSize: isRankOne ? '1.8rem' : entry.rank <= 3 ? '1.35rem' : '1rem',
                                 color: '#ffffff',
-                                fontFamily: 'var(--font-mono)',
+                                fontFamily: 'var(--font-display)',
+                                letterSpacing: '0.03em',
                                 minWidth: isRankOne ? 44 : 36,
                                 textAlign: 'center',
                               }}
@@ -575,16 +579,17 @@ export function Leaderboard() {
                             <div style={{ minWidth: 0 }}>
                               <div
                                 style={{
-                                  fontWeight: 'bold',
-                                  fontSize: isRankOne ? '1.2rem' : isTopThree ? '1.05rem' : '0.98rem',
+                                  fontWeight: isRankOne ? 900 : 700,
+                                  fontSize: isRankOne ? '1.15rem' : isTopThree ? '1.02rem' : '0.95rem',
                                   color: '#ffffff',
-                                  fontFamily: 'var(--font-mono)',
+                                  fontFamily: 'var(--font-display)',
+                                  letterSpacing: '0.04em',
                                   whiteSpace: 'nowrap',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                 }}
                               >
-                                {entry.username} {isYou && <span style={{ color: 'var(--accent-pink)', fontSize: '0.8rem' }}>[YOU]</span>}
+                                {entry.username} {isYou && <span style={{ color: 'var(--accent-pink)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>[YOU]</span>}
                               </div>
                             </div>
                           </div>
@@ -592,17 +597,18 @@ export function Leaderboard() {
                           {/* Rating */}
                           <div
                             style={{
-                              fontWeight: 'bold',
-                              fontSize: isRankOne ? '1.45rem' : isTopThree ? '1.2rem' : '1.1rem',
+                              fontWeight: 900,
+                              fontSize: isRankOne ? '1.45rem' : isTopThree ? '1.2rem' : '1.05rem',
                               color: '#ffffff',
-                              fontFamily: 'var(--font-mono)',
+                              fontFamily: 'var(--font-display)',
+                              letterSpacing: '0.04em',
                             }}
                           >
                             ♛ {entry.rating}
                           </div>
 
                           {/* Games Played */}
-                          <div style={{ color: '#ffffff', fontSize: isRankOne ? '1rem' : '0.88rem', fontFamily: 'var(--font-mono)' }}>
+                          <div style={{ color: '#ffffff', fontSize: isRankOne ? '0.98rem' : '0.88rem', fontFamily: 'var(--font-display)', letterSpacing: '0.03em' }}>
                             {entry.gamesPlayed} MATCHES
                           </div>
 
@@ -610,10 +616,11 @@ export function Leaderboard() {
                           <div
                             style={{
                               textAlign: 'right',
-                              fontWeight: 'bold',
-                              fontSize: isRankOne ? '1.15rem' : '1rem',
+                              fontWeight: 900,
+                              fontSize: isRankOne ? '1.15rem' : '0.98rem',
                               color: '#ffffff',
-                              fontFamily: 'var(--font-mono)',
+                              fontFamily: 'var(--font-display)',
+                              letterSpacing: '0.03em',
                             }}
                           >
                             {entry.winRate}%
