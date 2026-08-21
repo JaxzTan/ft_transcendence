@@ -124,7 +124,7 @@ export function RetroNavbar({
             border: '1px solid rgba(0, 240, 255, 0.45)',
             borderRadius: 14,
             outline: 'none',
-            padding: '10px 0',
+            padding: '12px 0',
             width: '100%',
             boxShadow:
               '0 0 20px rgba(0, 240, 255, 0.25), inset 0 0 12px rgba(255, 0, 127, 0.15)',
@@ -149,12 +149,14 @@ export function RetroNavbar({
           title="Return to Mainframe (Home)"
         >
           <svg
-            width="32"
-            height="32"
-            viewBox="0 0 24 24"
+            width="54"
+            height="30"
+            viewBox="0 0 54 30"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
             style={{
               fill: 'var(--accent-cyan)',
-              filter: 'drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 12px var(--accent-pink))',
+              filter: 'drop-shadow(0 0 10px rgba(0, 240, 255, 0.8))',
             }}
           >
             <path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
@@ -235,14 +237,14 @@ export function RetroNavbar({
         )}
       </div>
 
-      {/* Navigation Buttons (Clean, Big, Polished Monospace) */}
+      {/* Navigation Buttons (Taller Y-Axis & Sized-Up Typography) */}
       <div
         className="nav-controls"
         style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 6,
+          gap: 8,
           width: '100%',
         }}
       >
@@ -258,12 +260,12 @@ export function RetroNavbar({
               className={`retro-btn theme-trigger-btn ${isActive ? 'active' : ''}`}
               style={{
                 width: '100%',
-                height: 44,
+                height: 52,
                 justifyContent: 'flex-start',
                 gap: 12,
                 padding: '0 14px',
-                fontSize: '0.85rem',
-                borderRadius: 10,
+                fontSize: '0.94rem',
+                borderRadius: 12,
                 background: isActive
                   ? 'linear-gradient(90deg, rgba(255, 0, 127, 0.95), rgba(157, 0, 255, 0.95))'
                   : 'rgba(255, 255, 255, 0.03)',
@@ -272,10 +274,10 @@ export function RetroNavbar({
                   ? '1.5px solid #ff007f'
                   : '1px solid rgba(255, 255, 255, 0.07)',
                 boxShadow: isActive
-                  ? '0 0 18px rgba(255, 0, 127, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                  ? '0 0 20px rgba(255, 0, 127, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
                   : 'none',
                 fontWeight: isActive ? 900 : 'bold',
-                letterSpacing: '0.8px',
+                letterSpacing: '1px',
                 transition: 'all 0.18s ease',
               }}
               onClick={() => {
@@ -303,14 +305,14 @@ export function RetroNavbar({
             >
               <div
                 style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 6,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 7,
                   background: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 240, 255, 0.08)',
                   display: 'grid',
                   placeItems: 'center',
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '1rem',
+                  fontSize: '1.12rem',
                   color: isActive ? '#ffffff' : 'var(--accent-cyan)',
                   flexShrink: 0,
                   filter: isActive ? 'drop-shadow(0 0 6px #ffffff)' : 'none',
@@ -321,8 +323,9 @@ export function RetroNavbar({
               <span
                 style={{
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '0.82rem',
-                  letterSpacing: '0.8px',
+                  fontSize: '0.92rem',
+                  letterSpacing: '1px',
+                  fontWeight: isActive ? 900 : 'bold',
                   flex: 1,
                   textAlign: 'left',
                 }}
@@ -333,7 +336,7 @@ export function RetroNavbar({
                 <span
                   style={{
                     color: '#ffffff',
-                    fontSize: '0.85rem',
+                    fontSize: '0.92rem',
                     fontWeight: 900,
                     textShadow: '0 0 6px #ffffff',
                   }}
@@ -365,10 +368,10 @@ export function RetroNavbar({
             aria-label="Toggle Theme Menu"
             style={{
               width: '100%',
-              height: 40,
+              height: 46,
               justifyContent: 'space-between',
               padding: '0 14px',
-              fontSize: '0.78rem',
+              fontSize: '0.86rem',
               borderRadius: 10,
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(0, 240, 255, 0.3)',
@@ -390,14 +393,14 @@ export function RetroNavbar({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: 'var(--accent-yellow)', fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>
+              <span style={{ color: 'var(--accent-yellow)', fontFamily: 'var(--font-mono)', fontSize: '0.96rem', fontWeight: 'bold' }}>
                 &lt;/&gt;
               </span>
-              <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.8px', fontWeight: 'bold' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: '1px', fontWeight: 'bold', fontSize: '0.88rem' }}>
                 THEME
               </span>
             </div>
-            <span style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
               ▼
             </span>
           </button>
@@ -539,7 +542,7 @@ export function RetroNavbar({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '6px 10px',
+                padding: '8px 12px',
                 borderRadius: 10,
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -548,10 +551,10 @@ export function RetroNavbar({
             >
               <span
                 style={{
-                  fontSize: '0.72rem',
+                  fontSize: '0.78rem',
                   fontFamily: 'var(--font-mono)',
                   color: 'var(--text-muted)',
-                  letterSpacing: '0.6px',
+                  letterSpacing: '0.8px',
                   fontWeight: 'bold',
                 }}
               >
