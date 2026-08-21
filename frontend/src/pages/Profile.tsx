@@ -114,6 +114,7 @@ export function Profile() {
   const [achievements, setAchievements] = useState<Record<string, boolean>>({})
   const [mainTab, setMainTab] = useState<'history' | 'achievements'>('history')
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null)
+  const [leaderboardMap, setLeaderboardMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -229,11 +230,19 @@ export function Profile() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled) return
-        if (isOwnProfile && data?.myRank?.rank) {
-          setLeaderboardRank(data.myRank.rank)
-        } else if (data?.entries) {
-          const match = data.entries.find((e: { username: string; rank: number }) => e.username === username)
-          setLeaderboardRank(match ? match.rank : null)
+        if (data?.entries) {
+          const map: Record<string, number> = {}
+          data.entries.forEach((e: { username: string; rank: number }) => {
+            map[e.username] = e.rank
+          })
+          setLeaderboardMap(map)
+
+          if (isOwnProfile && data?.myRank?.rank) {
+            setLeaderboardRank(data.myRank.rank)
+          } else {
+            const match = data.entries.find((e: { username: string; rank: number }) => e.username === username)
+            setLeaderboardRank(match ? match.rank : null)
+          }
         }
       })
       .catch(() => {
@@ -250,7 +259,9 @@ export function Profile() {
   const statusStyle = profile ? STATUS_STYLE[profile.status] || STATUS_STYLE.offline : STATUS_STYLE.offline
   const rankTier = profile ? getRankTier(profile.rating, leaderboardRank) : getRankTier(1200)
   const peakRating = profile ? profile.highestRating || profile.rating : 1200
-  const peakTier = getRankTier(peakRating)
+  const peakTier = profile && leaderboardRank && leaderboardRank <= 3 && peakRating >= profile.rating
+    ? getRankTier(peakRating, leaderboardRank)
+    : getRankTier(peakRating)
 
   const unlockedCount = ACHIEVEMENTS_DEF.filter((a) => !!achievements[a.key]).length
   const totalAchievements = ACHIEVEMENTS_DEF.length
@@ -1117,7 +1128,8 @@ export function Profile() {
                           </div>
                         ) : (
                           friendsData.map((f) => {
-                            const fTier = getRankTier(f.rating)
+                            const fRank = leaderboardMap[f.username]
+                            const fTier = getRankTier(f.rating, fRank)
                             const fStatus = STATUS_STYLE[f.status] || STATUS_STYLE.offline
                             return (
                               <div

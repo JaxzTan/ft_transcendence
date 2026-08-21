@@ -74,15 +74,15 @@ export const RANKS: RankTier[] = [
 
 /**
  * Derives player rank tier based consistently on rating and leaderboard standing.
- * - MAMEE MONSTER: Exclusively Top 3 on leaderboard OR rating >= 1400 (Apex tier with fire aura).
+ * - MAMEE MONSTER: Exclusively Top 3 on leaderboard (#1, #2, #3 podium).
  * - MILO DINOSAUR: rating >= 1350 (Dark matter plasma with aura & particles).
  * - PADDLE POP: rating 1200 - 1349 (Cyber cyan laser & rainbow prism).
  * - HONEY STARS: rating 1000 - 1199 (Cosmic starlight gold).
  * - CHOKI CHOKI: rating < 1000 (Cyber bronze wireframe).
  */
 export function getRankTier(rating: number = 0, rank?: number | null): RankTier {
-  // Strictly Top 3 on leaderboard OR rating >= 1400 -> MAMEE MONSTER
-  if ((typeof rank === 'number' && rank > 0 && rank <= 3) || rating >= 1400) {
+  // Strictly Top 3 on leaderboard -> MAMEE MONSTER
+  if (typeof rank === 'number' && rank > 0 && rank <= 3) {
     return RANK_MAMEE
   }
   if (rating >= 1350) {

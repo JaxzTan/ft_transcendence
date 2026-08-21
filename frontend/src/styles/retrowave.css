@@ -879,23 +879,84 @@ body {
 .badge-tier-paddle,
 .badge-tier-super {
   position: relative;
-  background: linear-gradient(135deg, rgba(4, 28, 42, 0.95), rgba(2, 14, 24, 0.98)) !important;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(6, 32, 54, 0.98), rgba(2, 16, 32, 0.99)) !important;
   border: 1.5px solid #00f0ff !important;
   color: #ffffff !important;
-  box-shadow: 0 0 14px rgba(0, 240, 255, 0.7), inset 0 0 8px rgba(0, 240, 255, 0.35) !important;
-  text-shadow: 0 0 6px #ffffff, 0 0 10px #00f0ff !important;
-  animation: paddle-laser-pulse 2.2s infinite alternate !important;
+  box-shadow:
+    0 0 16px rgba(0, 240, 255, 0.8),
+    0 -4px 18px rgba(255, 0, 234, 0.65),
+    0 4px 18px rgba(255, 230, 0, 0.45),
+    inset 0 0 10px rgba(0, 240, 255, 0.45) !important;
+  text-shadow: 0 0 6px #ffffff, 0 0 14px #00f0ff, 0 0 22px #ff00ea !important;
+  animation: paddle-rainbow-border 2.4s linear infinite alternate !important;
 }
 
-@keyframes paddle-laser-pulse {
+/* High-Definition Rainbow Laser Prism Sheen */
+.paddle-prism-sheen {
+  position: absolute;
+  top: 0;
+  left: -130%;
+  width: 75%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 240, 255, 0.45) 15%,
+    rgba(255, 0, 234, 0.7) 35%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 230, 0, 0.75) 65%,
+    rgba(0, 255, 136, 0.5) 85%,
+    transparent
+  );
+  transform: skewX(-24deg);
+  pointer-events: none;
+  animation: paddle-prism-sweep 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  z-index: 1;
+}
+
+@keyframes paddle-prism-sweep {
+  0% {
+    left: -130%;
+  }
+
+  40%,
+  100% {
+    left: 170%;
+  }
+}
+
+@keyframes paddle-rainbow-border {
   0% {
     border-color: #00f0ff;
-    box-shadow: 0 0 12px rgba(0, 240, 255, 0.6), inset 0 0 8px rgba(0, 240, 255, 0.3);
+    box-shadow:
+      0 0 16px rgba(0, 240, 255, 0.85),
+      0 -4px 18px rgba(255, 0, 234, 0.65),
+      inset 0 0 10px rgba(0, 240, 255, 0.45);
+  }
+
+  33% {
+    border-color: #ff00ea;
+    box-shadow:
+      0 0 20px rgba(255, 0, 234, 0.9),
+      0 -6px 22px rgba(255, 230, 0, 0.7),
+      inset 0 0 12px rgba(255, 0, 234, 0.5);
+  }
+
+  66% {
+    border-color: #ffe600;
+    box-shadow:
+      0 0 20px rgba(255, 230, 0, 0.9),
+      0 -5px 20px rgba(0, 255, 136, 0.7),
+      inset 0 0 12px rgba(255, 230, 0, 0.5);
   }
 
   100% {
-    border-color: #00ffff;
-    box-shadow: 0 0 18px rgba(0, 240, 255, 0.85), 0 0 28px rgba(0, 255, 230, 0.4), inset 0 0 12px rgba(0, 240, 255, 0.5);
+    border-color: #00ff88;
+    box-shadow:
+      0 0 18px rgba(0, 255, 136, 0.85),
+      0 -5px 20px rgba(0, 240, 255, 0.75),
+      inset 0 0 10px rgba(0, 255, 136, 0.45);
   }
 }
 

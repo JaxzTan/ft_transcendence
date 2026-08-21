@@ -204,6 +204,11 @@ export function RankBadge({
         </>
       )}
 
+      {/* Subtle Rainbow Prism Sheen (PADDLE POP ONLY) */}
+      {isPaddle && showParticles && (
+        <span className="paddle-prism-sheen" />
+      )}
+
       {/* Absolute Symmetrical 4-Corner HUD Crosshairs */}
       {showCrosshairs && (
         <>
