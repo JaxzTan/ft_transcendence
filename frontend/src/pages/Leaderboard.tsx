@@ -139,14 +139,14 @@ export function Leaderboard() {
           }}
         >
 
-          {/* Hero Title (Clean, no sub-header or tags) */}
-          <header className="hero-section" style={{ padding: '4px 0 6px', marginBottom: 8, flexShrink: 0 }}>
+          {/* Hero Title (Clean, original font & color, taller Y-axis) */}
+          <header className="hero-section" style={{ padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className="hero-title" style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
-              GLOBAL RANKINGS // CYBER LADDER
+              GLOBAL RANKING // LEADERBOARD
             </h1>
           </header>
 
-          {/* Unified Leaderboard Window Container */}
+          {/* Unified Leaderboard Window Container (Slightly shorter in Y-axis to balance page) */}
           <section
             className="retro-window"
             style={{
@@ -170,8 +170,7 @@ export function Leaderboard() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold' }}>
-                <span style={{ fontSize: '1rem' }}>🏆</span>
-                <span>CYBER LADDER // COMBAT TELEMETRY ({data?.total ?? 0} ACTIVE OPERATIVES)</span>
+                <span>// LEADERBOARD ({data?.total ?? 0} ACTIVE OPERATIVES)</span>
               </div>
               <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="window-btn min" />
@@ -228,7 +227,7 @@ export function Leaderboard() {
                         onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                          <span style={{ fontSize: '1.75rem' }}>🥈</span>
+                          <span style={{ fontSize: '1.3rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: 'var(--accent-cyan)' }}>#2</span>
                           <RankBadge tier={tier2} fontSize="12px" padding="4px 10px" />
                         </div>
 
@@ -297,8 +296,8 @@ export function Leaderboard() {
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: '2.1rem', filter: 'drop-shadow(0 0 8px #ffe600)' }}>🥇</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: '1.45rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: '#ffe600', textShadow: '0 0 10px rgba(255, 230, 0, 0.6)' }}>#1</span>
                             <span style={{ fontSize: '0.68rem', color: '#ffe600', fontFamily: 'var(--font-mono)', fontWeight: 'bold', letterSpacing: '0.5px' }}>
                               ★ APEX CHAMPION
                             </span>
@@ -382,7 +381,7 @@ export function Leaderboard() {
                         onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                          <span style={{ fontSize: '1.75rem' }}>🥉</span>
+                          <span style={{ fontSize: '1.3rem', fontFamily: 'var(--font-mono)', fontWeight: 900, color: 'var(--accent-pink)' }}>#3</span>
                           <RankBadge tier={tier3} fontSize="12px" padding="4px 10px" />
                         </div>
 
@@ -466,11 +465,11 @@ export function Leaderboard() {
                     zIndex: 3,
                   }}
                 >
-                  <div>🏷️ RANK & TIER</div>
-                  <div>👤 PILOT / CALLSIGN</div>
-                  <div>♛ RATING</div>
-                  <div>⚔️ MATCHES</div>
-                  <div style={{ textAlign: 'right' }}>📊 WIN RATE</div>
+                  <div>RANK & TIER</div>
+                  <div>PILOT / CALLSIGN</div>
+                  <div>RATING</div>
+                  <div>MATCHES</div>
+                  <div style={{ textAlign: 'right' }}>WIN RATE</div>
                 </div>
 
                 {/* Scrollable Table Rows */}
@@ -495,14 +494,7 @@ export function Leaderboard() {
                       const isRankOne = entry.rank === 1
                       const isTopThree = entry.rank <= 3
                       const tier = getRankTier(entry.rating, entry.rank)
-                      const rankMedal =
-                        entry.rank === 1
-                          ? '🥇'
-                          : entry.rank === 2
-                            ? '🥈'
-                            : entry.rank === 3
-                              ? '🥉'
-                              : `#${entry.rank}`
+                      const rankMedal = `#${entry.rank}`
 
                       return (
                         <div
