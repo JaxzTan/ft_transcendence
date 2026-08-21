@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { RetroNavbar } from '../components/RetroNavbar'
 import { UserAvatar } from '../components/UserAvatar'
 import { navigate } from '../router'
 import { useApp } from '../store'
@@ -134,185 +135,12 @@ export function Leaderboard() {
           }}
         >
           {/* Navigation Header */}
-          <nav className="navbar" id="mainNav" style={{ marginBottom: 8, flexShrink: 0 }}>
-            <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button
-                className="retro-btn"
-                style={{ padding: '6px 14px', fontSize: '0.75rem', fontWeight: 'bold' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(440, 0.05)
-                  navigate('/home')
-                }}
-                title="Return to Hub"
-              >
-                ← HUB
-              </button>
-              <div
-                className="brand-42-logo"
-                style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(440, 0.05)
-                  navigate('/home')
-                }}
-                title="42 Hub"
-              >
-                <svg
-                  width="34"
-                  height="34"
-                  viewBox="0 0 24 24"
-                  style={{
-                    fill: 'var(--accent-cyan)',
-                    filter: 'drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 14px var(--accent-pink))',
-                  }}
-                >
-                  <path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="nav-controls">
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6, padding: '6px 12px', fontSize: '0.75rem' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/gamelobby')
-                }}
-              >
-                <span className="theme-btn-icon">&gt;_</span>
-                <span className="theme-btn-text">LOBBY</span>
-              </button>
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6, padding: '6px 12px', fontSize: '0.75rem' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/game')
-                }}
-              >
-                <span className="theme-btn-icon">&#123;&#125;</span>
-                <span className="theme-btn-text">GAME</span>
-              </button>
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6, padding: '6px 12px', fontSize: '0.75rem' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/dashboard')
-                }}
-              >
-                <span className="theme-btn-icon">▦</span>
-                <span className="theme-btn-text">DASHBOARD</span>
-              </button>
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6, padding: '6px 12px', fontSize: '0.75rem' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/friends')
-                }}
-              >
-                <span className="theme-btn-icon">♟</span>
-                <span className="theme-btn-text">FRIENDS</span>
-              </button>
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6, padding: '6px 12px', fontSize: '0.75rem' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/profile')
-                }}
-              >
-                <span className="theme-btn-icon">@/</span>
-                <span className="theme-btn-text">PROFILE</span>
-              </button>
-
-              {/* Theme Selector Popover Menu */}
-              <div className="theme-popover-wrapper">
-                <button
-                  className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
-                  id="themeModalBtn"
-                  aria-label="Toggle Theme Menu"
-                  style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const next = !isThemePopoverOpen
-                    setIsThemePopoverOpen(next)
-                    retroAudio.playUiBeep(next ? 960 : 480, 0.05)
-                  }}
-                >
-                  <span className="theme-btn-icon">&lt;/&gt;</span>
-                  <span className="theme-btn-text">THEME</span>
-                  <span className="theme-chevron">▼</span>
-                </button>
-
-                <div
-                  className={`theme-popover-menu ${isThemePopoverOpen ? 'active' : ''}`}
-                  id="themePopoverMenu"
-                >
-                  <fieldset id="color-scheme">
-                    <legend>THEME SELECTOR</legend>
-                    <label htmlFor="theme-synthwave">
-                      <input
-                        type="radio"
-                        id="theme-synthwave"
-                        name="theme-radio"
-                        value="synthwave"
-                        checked={theme === 'synthwave'}
-                        onChange={() => {
-                          applyTheme('synthwave')
-                          setIsThemePopoverOpen(false)
-                        }}
-                      />
-                      <span>CYBERPUNK</span>
-                    </label>
-                    <label htmlFor="theme-win95">
-                      <input
-                        type="radio"
-                        id="theme-win95"
-                        name="theme-radio"
-                        value="win95"
-                        checked={theme === 'win95'}
-                        onChange={() => {
-                          applyTheme('win95')
-                          setIsThemePopoverOpen(false)
-                        }}
-                      />
-                      <span>WIN95</span>
-                    </label>
-                    <label htmlFor="theme-terminal">
-                      <input
-                        type="radio"
-                        id="theme-terminal"
-                        name="theme-radio"
-                        value="terminal"
-                        checked={theme === 'terminal'}
-                        onChange={() => {
-                          applyTheme('terminal')
-                          setIsThemePopoverOpen(false)
-                        }}
-                      />
-                      <span>TERMINAL</span>
-                    </label>
-                  </fieldset>
-                </div>
-              </div>
-
-              {/* CRT Scanlines Toggle */}
-              <div className="control-group">
-                <label className="retro-toggle" title="Toggle CRT Screen Scanlines">
-                  <span>CRT FX</span>
-                  <input
-                    type="checkbox"
-                    id="crtToggle"
-                    checked={crtEnabled}
-                    onChange={toggleCrt}
-                  />
-                  <span className="toggle-slider" />
-                </label>
-              </div>
-            </div>
-          </nav>
+          <RetroNavbar
+            activeRoute="/leaderboard"
+            crtEnabled={crtEnabled}
+            toggleCrt={toggleCrt}
+            style={{ marginBottom: 8, flexShrink: 0 }}
+          />
 
           {/* Hero Title (Clean, no sub-header or tags) */}
           <header className="hero-section" style={{ padding: '4px 0 6px', marginBottom: 8, flexShrink: 0 }}>
@@ -406,13 +234,17 @@ export function Leaderboard() {
                           <span style={{ fontSize: '1.75rem' }}>🥈</span>
                           <span
                             style={{
-                              fontSize: '10.5px',
-                              padding: '3px 8px',
+                              fontFamily: 'var(--font-display)',
+                              fontSize: '12px',
+                              padding: '4px 10px',
                               borderRadius: 4,
                               background: tier2.bg,
                               color: tier2.color,
-                              border: `1px solid ${tier2.border}`,
-                              fontWeight: 800,
+                              border: `1.5px solid ${tier2.border}`,
+                              fontWeight: 900,
+                              letterSpacing: '0.08em',
+                              boxShadow: `0 0 12px ${tier2.glow}`,
+                              textShadow: `0 0 6px ${tier2.color}`,
                             }}
                           >
                             {tier2.name}
@@ -495,14 +327,17 @@ export function Leaderboard() {
                           </div>
                           <span
                             style={{
-                              fontSize: '11px',
-                              padding: '4px 10px',
+                              fontFamily: 'var(--font-display)',
+                              fontSize: '13px',
+                              padding: '4px 12px',
                               borderRadius: 4,
                               background: tier1.bg,
                               color: tier1.color,
                               border: `1.5px solid ${tier1.border}`,
                               fontWeight: 900,
-                              boxShadow: `0 0 12px ${tier1.glow}`,
+                              letterSpacing: '0.08em',
+                              boxShadow: `0 0 14px ${tier1.glow}`,
+                              textShadow: `0 0 8px ${tier1.color}`,
                             }}
                           >
                             {tier1.name}
@@ -588,13 +423,17 @@ export function Leaderboard() {
                           <span style={{ fontSize: '1.75rem' }}>🥉</span>
                           <span
                             style={{
-                              fontSize: '10.5px',
-                              padding: '3px 8px',
+                              fontFamily: 'var(--font-display)',
+                              fontSize: '12px',
+                              padding: '4px 10px',
                               borderRadius: 4,
                               background: tier3.bg,
                               color: tier3.color,
                               border: `1px solid ${tier3.border}`,
-                              fontWeight: 800,
+                              fontWeight: 900,
+                              letterSpacing: '0.08em',
+                              boxShadow: `0 0 12px ${tier3.glow}`,
+                              textShadow: `0 0 6px ${tier3.color}`,
                             }}
                           >
                             {tier3.name}
@@ -773,16 +612,18 @@ export function Leaderboard() {
                             </span>
                             <span
                               style={{
-                                fontSize: isRankOne ? '12.5px' : '11px',
-                                padding: isRankOne ? '4px 10px' : '3px 8px',
+                                fontFamily: 'var(--font-display)',
+                                fontSize: isRankOne ? '13px' : '11.5px',
+                                padding: isRankOne ? '5px 12px' : '4px 10px',
                                 borderRadius: 5,
                                 background: tier.bg,
                                 color: tier.color,
                                 border: `1.5px solid ${tier.border}`,
-                                fontWeight: 800,
-                                letterSpacing: '0.04em',
+                                fontWeight: 900,
+                                letterSpacing: '0.08em',
                                 whiteSpace: 'nowrap',
-                                boxShadow: `0 0 10px ${tier.glow}`,
+                                boxShadow: `0 0 12px ${tier.glow}`,
+                                textShadow: `0 0 6px ${tier.color}`,
                               }}
                             >
                               {tier.name}

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { getApi, postApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
 import { NotificationBell } from '../components/NotificationBell'
+import { RetroNavbar } from '../components/RetroNavbar'
 import { NotificationToasts } from '../components/NotificationToast'
 import { useNotifications } from '../hooks/useNotifications'
 import { navigate } from '../router'
@@ -600,171 +601,15 @@ export function Home() {
 				{/* Main Content Wrapper */}
 				<div className="app-wrapper">
 					{/* Navigation Header */}
-					<nav className="navbar" id="mainNav">
-						<div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-							<div
-								className="brand-42-logo"
-								style={{
-									display: 'inline-flex',
-									alignItems: 'center',
-									cursor: 'pointer',
-								}}
-								title="42 Hub"
-							>
-								<svg
-									width="38"
-									height="38"
-									viewBox="0 0 24 24"
-									style={{
-										fill: 'var(--accent-cyan)',
-										filter: 'drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 14px var(--accent-pink))',
-										transition: 'transform 0.2s ease',
-									}}
-								>
-									<path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
-								</svg>
-							</div>
-						</div>
-
-						<div className="nav-controls">
-							<button
-								className="retro-btn theme-trigger-btn"
-								style={{ justifyContent: 'center', gap: 8 }}
-								onClick={() => {
-									retroAudio.playUiBeep(600, 0.05)
-									navigate('/gamelobby')
-								}}
-							>
-								<span className="theme-btn-icon">&gt;_</span>
-								<span className="theme-btn-text">LOBBY</span>
-							</button>
-							<button
-								className="retro-btn theme-trigger-btn"
-								style={{ justifyContent: 'center', gap: 8 }}
-								onClick={() => {
-									retroAudio.playUiBeep(600, 0.05)
-									navigate('/game')
-								}}
-							>
-								<span className="theme-btn-icon">&#123;&#125;</span>
-								<span className="theme-btn-text">GAME</span>
-							</button>
-							<button
-								className="retro-btn theme-trigger-btn"
-								style={{ justifyContent: 'center', gap: 8 }}
-								onClick={() => {
-									retroAudio.playUiBeep(600, 0.05)
-									navigate('/leaderboard')
-								}}
-							>
-								<span className="theme-btn-icon">#_</span>
-								<span className="theme-btn-text">LADDER</span>
-							</button>
-							<button
-								className="retro-btn theme-trigger-btn"
-								style={{ justifyContent: 'center', gap: 8 }}
-								onClick={() => {
-									retroAudio.playUiBeep(600, 0.05)
-									navigate('/profile')
-								}}
-							>
-								<span className="theme-btn-icon">@/</span>
-								<span className="theme-btn-text">PROFILE</span>
-							</button>
-
-							{/* Old-School Cyber Comm Receiver Bell */}
-							<NotificationBell
-								notifications={notifications}
-								unreadCount={unreadCount}
-								onMarkRead={markRead}
-								onMarkAllRead={markAllRead}
-							/>
-
-							{/* Theme Selector Popover Menu */}
-							<div className="theme-popover-wrapper">
-								<button
-									className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
-									id="themeModalBtn"
-									aria-label="Toggle Theme Menu"
-									onClick={(e) => {
-										e.stopPropagation()
-										const next = !isThemePopoverOpen
-										setIsThemePopoverOpen(next)
-										retroAudio.playUiBeep(next ? 960 : 480, 0.05)
-									}}
-								>
-									<span className="theme-btn-icon">&lt;/&gt;</span>
-									<span className="theme-btn-text">THEME</span>
-									<span className="theme-chevron">▼</span>
-								</button>
-
-								<div
-									className={`theme-popover-menu ${isThemePopoverOpen ? 'active' : ''}`}
-									id="themePopoverMenu"
-								>
-									<fieldset id="color-scheme">
-										<legend>THEME SELECTOR</legend>
-										<label htmlFor="theme-synthwave">
-											<input
-												type="radio"
-												id="theme-synthwave"
-												name="theme-radio"
-												value="synthwave"
-												checked={theme === 'synthwave'}
-												onChange={() => {
-													applyTheme('synthwave')
-													setIsThemePopoverOpen(false)
-												}}
-											/>
-											<span>CYBERPUNK</span>
-										</label>
-										<label htmlFor="theme-win95">
-											<input
-												type="radio"
-												id="theme-win95"
-												name="theme-radio"
-												value="win95"
-												checked={theme === 'win95'}
-												onChange={() => {
-													applyTheme('win95')
-													setIsThemePopoverOpen(false)
-												}}
-											/>
-											<span>WIN95</span>
-										</label>
-										<label htmlFor="theme-terminal">
-											<input
-												type="radio"
-												id="theme-terminal"
-												name="theme-radio"
-												value="terminal"
-												checked={theme === 'terminal'}
-												onChange={() => {
-													applyTheme('terminal')
-													setIsThemePopoverOpen(false)
-												}}
-											/>
-											<span>TERMINAL</span>
-										</label>
-									</fieldset>
-								</div>
-							</div>
-
-							{/* CRT Scanlines Toggle */}
-							<div className="control-group">
-								<label className="retro-toggle" title="Toggle CRT Screen Scanlines">
-									<span>CRT FX</span>
-									<input
-										type="checkbox"
-										id="crtToggle"
-										checked={crtEnabled}
-										onChange={toggleCrt}
-									/>
-									<span className="toggle-slider" />
-								</label>
-							</div>
-						</div>
-					</nav>
+					<RetroNavbar
+						activeRoute="/home"
+						crtEnabled={crtEnabled}
+						toggleCrt={toggleCrt}
+						notifications={notifications}
+						unreadCount={unreadCount}
+						onMarkRead={markRead}
+						onMarkAllRead={markAllRead}
+					/>
 
 					{/* Hero Header Banner */}
 					<header className="hero-section">
@@ -1164,15 +1009,17 @@ export function Home() {
 														</span>
 														<span
 															style={{
-																fontSize: '0.65rem',
+																fontFamily: 'var(--font-display)',
+																fontSize: '0.75rem',
 																background: getRankTier(stats?.rating ?? 1200, leaderboardRank).bg,
 																color: getRankTier(stats?.rating ?? 1200, leaderboardRank).color,
-																border: `1px solid ${getRankTier(stats?.rating ?? 1200, leaderboardRank).border}`,
-																boxShadow: `0 0 8px ${getRankTier(stats?.rating ?? 1200, leaderboardRank).glow}`,
-																padding: '2px 8px',
-																borderRadius: 3,
-																fontWeight: 'bold',
-																letterSpacing: '0.05em',
+																border: `1.5px solid ${getRankTier(stats?.rating ?? 1200, leaderboardRank).border}`,
+																boxShadow: `0 0 10px ${getRankTier(stats?.rating ?? 1200, leaderboardRank).glow}`,
+																textShadow: `0 0 6px ${getRankTier(stats?.rating ?? 1200, leaderboardRank).color}`,
+																padding: '3px 10px',
+																borderRadius: 4,
+																fontWeight: 900,
+																letterSpacing: '0.08em',
 															}}
 														>
 															{getRankTier(stats?.rating ?? 1200, leaderboardRank).name}

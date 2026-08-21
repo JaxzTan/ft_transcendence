@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
+import { RetroNavbar } from '../components/RetroNavbar'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
@@ -261,173 +262,11 @@ export function Friends() {
         {/* Main Content Wrapper */}
         <div className="app-wrapper">
           {/* Navigation Header */}
-          <nav className="navbar" id="mainNav">
-            <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button
-                className="retro-btn"
-                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(440, 0.05)
-                  navigate('/home')
-                }}
-                title="Return to Hub"
-              >
-                ← HUB
-              </button>
-              <div
-                className="brand-42-logo"
-                style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}
-                onClick={() => {
-                  retroAudio.playUiBeep(440, 0.05)
-                  navigate('/home')
-                }}
-                title="42 Hub"
-              >
-                <svg
-                  width="36"
-                  height="36"
-                  viewBox="0 0 24 24"
-                  style={{
-                    fill: 'var(--accent-cyan)',
-                    filter: 'drop-shadow(0 0 8px var(--accent-cyan)) drop-shadow(0 0 14px var(--accent-pink))',
-                  }}
-                >
-                  <path d="M19.581 16.851H24v-4.439ZM24 3.574h-4.419v4.42l-4.419 4.418v4.44h4.419v-4.44L24 7.993Zm-4.419 0h-4.419v4.42zm-6.324 8.838H4.419l8.838-8.838H8.838L0 12.412v3.595h8.838v4.419h4.419z" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="nav-controls">
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6 }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/gamelobby')
-                }}
-              >
-                <span className="theme-btn-icon">&gt;_</span>
-                <span className="theme-btn-text">LOBBY</span>
-              </button>
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6 }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/dashboard')
-                }}
-              >
-                <span className="theme-btn-icon">▦</span>
-                <span className="theme-btn-text">DASHBOARD</span>
-              </button>
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6 }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/leaderboard')
-                }}
-              >
-                <span className="theme-btn-icon">#_</span>
-                <span className="theme-btn-text">LADDER</span>
-              </button>
-              <button
-                className="retro-btn theme-trigger-btn"
-                style={{ justifyContent: 'center', gap: 6 }}
-                onClick={() => {
-                  retroAudio.playUiBeep(600, 0.05)
-                  navigate('/profile')
-                }}
-              >
-                <span className="theme-btn-icon">@/</span>
-                <span className="theme-btn-text">PROFILE</span>
-              </button>
-
-              {/* Theme Selector Popover Menu */}
-              <div className="theme-popover-wrapper">
-                <button
-                  className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
-                  id="themeModalBtn"
-                  aria-label="Toggle Theme Menu"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const next = !isThemePopoverOpen
-                    setIsThemePopoverOpen(next)
-                    retroAudio.playUiBeep(next ? 960 : 480, 0.05)
-                  }}
-                >
-                  <span className="theme-btn-icon">&lt;/&gt;</span>
-                  <span className="theme-btn-text">THEME</span>
-                  <span className="theme-chevron">▼</span>
-                </button>
-
-                <div
-                  className={`theme-popover-menu ${isThemePopoverOpen ? 'active' : ''}`}
-                  id="themePopoverMenu"
-                >
-                  <fieldset id="color-scheme">
-                    <legend>THEME SELECTOR</legend>
-                    <label htmlFor="theme-synthwave">
-                      <input
-                        type="radio"
-                        id="theme-synthwave"
-                        name="theme-radio"
-                        value="synthwave"
-                        checked={theme === 'synthwave'}
-                        onChange={() => {
-                          applyTheme('synthwave')
-                          setIsThemePopoverOpen(false)
-                        }}
-                      />
-                      <span>CYBERPUNK</span>
-                    </label>
-                    <label htmlFor="theme-win95">
-                      <input
-                        type="radio"
-                        id="theme-win95"
-                        name="theme-radio"
-                        value="win95"
-                        checked={theme === 'win95'}
-                        onChange={() => {
-                          applyTheme('win95')
-                          setIsThemePopoverOpen(false)
-                        }}
-                      />
-                      <span>WIN95</span>
-                    </label>
-                    <label htmlFor="theme-terminal">
-                      <input
-                        type="radio"
-                        id="theme-terminal"
-                        name="theme-radio"
-                        value="terminal"
-                        checked={theme === 'terminal'}
-                        onChange={() => {
-                          applyTheme('terminal')
-                          setIsThemePopoverOpen(false)
-                        }}
-                      />
-                      <span>TERMINAL</span>
-                    </label>
-                  </fieldset>
-                </div>
-              </div>
-
-              {/* CRT Scanlines Toggle */}
-              <div className="control-group">
-                <label className="retro-toggle" title="Toggle CRT Screen Scanlines">
-                  <span>CRT FX</span>
-                  <input
-                    type="checkbox"
-                    id="crtToggle"
-                    checked={crtEnabled}
-                    onChange={toggleCrt}
-                  />
-                  <span className="toggle-slider" />
-                </label>
-              </div>
-            </div>
-          </nav>
+          <RetroNavbar
+            activeRoute="/friends"
+            crtEnabled={crtEnabled}
+            toggleCrt={toggleCrt}
+          />
 
           {/* Hero Telemetry Banner */}
           <header className="hero-section" style={{ padding: '16px 0 14px' }}>
