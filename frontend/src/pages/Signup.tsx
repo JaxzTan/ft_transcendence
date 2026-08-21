@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AuthLayout, GoldCheck } from '../components/AuthLayout'
-import { OAuthButtons, OrDivider } from '../components/OAuthButtons'
+import { RetroAuthLayout, NeonCheck } from '../components/RetroAuthLayout'
 import { navigate } from '../router'
-import { btnGold, goldText, input, label } from '../theme'
 import { useApp } from '../store'
 import { passwordError } from '../validatePassword'
+import '../styles/retrowave.css'
 
 export function Signup() {
   const { t } = useTranslation()
@@ -43,70 +42,53 @@ export function Signup() {
 
   if (sent) {
     return (
-      <AuthLayout tag={t('auth.oneMoreStep')}>
-        <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div
-            style={{
-              fontFamily: "'Cinzel',serif",
-              fontWeight: 700,
-              letterSpacing: 1.5,
-              fontSize: 30,
-              lineHeight: 1,
-              ...goldText,
-            }}
-          >
+      <RetroAuthLayout tag={t('auth.oneMoreStep')}>
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="retro-auth-title" style={{ fontSize: 24 }}>
             {t('auth.checkInboxTitle')}
           </div>
-          <div style={{ color: '#a99a83', fontSize: '14.5px', lineHeight: 1.5 }}>
-            {t('auth.verificationSentPrefix')} <b style={{ color: '#f0e2c4' }}>{email}</b>.{' '}
+          <div className="retro-auth-muted" style={{ lineHeight: 1.5, fontSize: '14px' }}>
+            {t('auth.verificationSentPrefix')}{' '}
+            <b style={{ color: '#00f0ff' }}>{email}</b>.{' '}
             {t('auth.verificationSentSuffix')}
           </div>
-          <div style={{ color: '#a99a83', fontSize: 14 }}>
+          <div className="retro-auth-muted" style={{ fontSize: '13px' }}>
             {t('auth.doneVerifying')}{' '}
-            <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
+            <a onClick={() => navigate('/login')} className="retro-auth-link">
               {t('auth.signInLink')}
             </a>
           </div>
         </div>
-      </AuthLayout>
+      </RetroAuthLayout>
     )
   }
 
   return (
-    <AuthLayout tag={t('auth.signupTag')}>
+    <RetroAuthLayout tag={t('auth.signupTag')}>
       <form
         onSubmit={onSubmit}
-        style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 16 }}
+        style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}
       >
         <div>
-          <div
-            style={{
-              fontFamily: "'Cinzel',serif",
-              fontWeight: 700,
-              letterSpacing: 1.5,
-              fontSize: 30,
-              lineHeight: 1,
-              ...goldText,
-            }}
-          >
+          <div className="retro-auth-title" style={{ fontSize: 24 }}>
             {t('auth.createSeatTitle')}
           </div>
-          <div style={{ color: '#a99a83', fontSize: '14.5px', marginTop: 8 }}>
+          <div className="retro-auth-subtitle">
             {t('auth.claimSeatDesc')}
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={label}>{t('auth.usernameLabel')}</div>
+          <div className="retro-auth-label">{t('auth.usernameLabel')}</div>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder={t('auth.usernamePlaceholder')}
             autoComplete="username"
-            style={input}
+            className="retro-auth-input"
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={label}>{t('auth.emailLabel')}</div>
+          <div className="retro-auth-label">{t('auth.emailLabel')}</div>
           <input
             type="email"
             value={email}
@@ -114,62 +96,86 @@ export function Signup() {
             placeholder={t('auth.emailPlaceholderSignup')}
             autoComplete="email"
             required
-            style={input}
+            className="retro-auth-input"
           />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={label}>{t('auth.passwordLabel')}</div>
+            <div className="retro-auth-label">{t('auth.passwordLabel')}</div>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t('auth.passwordPlaceholderSignup')}
               autoComplete="new-password"
-              style={input}
+              className="retro-auth-input"
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={label}>{t('auth.confirmLabel')}</div>
+            <div className="retro-auth-label">{t('auth.confirmLabel')}</div>
             <input
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="••••••••"
               autoComplete="new-password"
-              style={input}
+              className="retro-auth-input"
             />
           </div>
         </div>
         {error && (
-          <div style={{ color: '#e4574d', fontSize: '13.5px', lineHeight: 1.4 }}>{error}</div>
+          <div className="retro-auth-error">{error}</div>
         )}
         <label
+          className="retro-auth-muted"
           style={{
             display: 'flex',
             alignItems: 'flex-start',
             gap: 9,
             cursor: 'pointer',
-            color: '#a99a83',
-            fontSize: 13,
             lineHeight: 1.4,
           }}
         >
-          <GoldCheck offsetTop />
+          <NeonCheck offsetTop />
           {t('auth.agreeTerms')}
         </label>
-        <button type="submit" disabled={submitting} style={{ ...btnGold, opacity: submitting ? 0.6 : 1 }}>
+        <button type="submit" disabled={submitting} className="retro-auth-btn">
           {submitting ? t('auth.creatingBtn') : t('auth.createAccountBtn')}
         </button>
-        <OrDivider text={t('auth.orSignUpWith')} />
-        <OAuthButtons />
-        <div style={{ textAlign: 'center', color: '#a99a83', fontSize: 14 }}>
+
+        {/* OR divider */}
+        <div className="retro-auth-divider">
+          <span />
+          {t('auth.orSignUpWith')}
+          <span />
+        </div>
+
+        {/* OAuth buttons */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          {[
+            { name: '42', icon: '/forty_two.png', path: '/api/auth/42' },
+            { name: 'GitHub', icon: '/github.png', path: '/api/auth/github' },
+            { name: 'Google', icon: '/google.png', path: '/api/auth/google' },
+          ].map((p) => (
+            <button
+              key={p.name}
+              type="button"
+              onClick={() => { window.location.href = p.path }}
+              className="retro-auth-btn-outline"
+            >
+              <img src={p.icon} alt={p.name} style={{ width: 18, height: 18, objectFit: 'contain' }} />
+              {p.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="retro-auth-muted" style={{ textAlign: 'center' }}>
           {t('auth.alreadyHaveSeat')}{' '}
-          <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', fontWeight: 700 }}>
+          <a onClick={() => navigate('/login')} className="retro-auth-link">
             {t('auth.signInLink')}
           </a>
         </div>
       </form>
-    </AuthLayout>
+    </RetroAuthLayout>
   )
 }
