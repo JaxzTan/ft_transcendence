@@ -127,6 +127,12 @@ export class LeaderboardService {
     const modeFilter = mode || 'global';
     const snapshotEntries = await this.prisma.db.leaderboardSnapshot.findMany({
       where: { mode: modeFilter },
+      select: {
+        rank: true,
+        username: true,
+        rating: true,
+        userId: true,
+      },
       orderBy: { rank: 'asc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -136,17 +142,37 @@ export class LeaderboardService {
       where: { mode: modeFilter },
     });
 
-    const entries: LeaderboardEntry[] = snapshotEntries.map(entry => ({
-      rank: entry.rank,
-      username: entry.username,
-      rating: entry.rating,
-      gamesPlayed: 0,
-      wins: 0,
-      losses: 0,
-      draws: 0,
-      winRate: 0,
-      avatarStyle: null,
-    }));
+    const userUsernames = snapshotEntries.map(e => e.username);
+    const users = await this.prisma.db.user.findMany({
+      where: { username: { in: userUsernames } },
+      select: {
+        username: true,
+        wins: true,
+        losses: true,
+        avatarStyle: true,
+      },
+    });
+    const userMap = new Map(users.map(u => [u.username, u]));
+
+    const entries: LeaderboardEntry[] = snapshotEntries.map(entry => {
+      const u = userMap.get(entry.username);
+      const wins = u?.wins ?? 0;
+      const losses = u?.losses ?? 0;
+      const gamesPlayed = wins + losses;
+      const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+
+      return {
+        rank: entry.rank,
+        username: entry.username,
+        rating: entry.rating,
+        gamesPlayed,
+        wins,
+        losses,
+        draws: 0,
+        winRate,
+        avatarStyle: u?.avatarStyle ?? null,
+      };
+    });
 
     const response: LeaderboardResponse = {
       entries,

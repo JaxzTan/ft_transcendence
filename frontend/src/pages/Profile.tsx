@@ -1093,21 +1093,22 @@ export function Profile() {
                         }}
                       >
                         <span style={{ fontSize: '0.82rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: '#ffffff' }}>
-                          ALLIED OPERATIVES ({friendsData?.length ?? 0})
+                          FRIENDS ({friendsData?.length ?? 0})
                         </span>
                         <button
                           className="retro-btn"
                           onClick={() => navigate('/friends')}
                           style={{
-                            padding: '2px 8px',
-                            fontSize: '0.65rem',
+                            padding: '3px 9px',
+                            fontSize: '0.68rem',
                             fontFamily: 'var(--font-display)',
+                            fontWeight: 900,
                             color: 'var(--accent-cyan)',
                             borderColor: 'rgba(0, 240, 255, 0.4)',
-                            borderRadius: 3,
+                            borderRadius: 4,
                           }}
                         >
-                          VIEW ALL
+                          MANAGE ↗
                         </button>
                       </div>
 
@@ -1123,8 +1124,8 @@ export function Profile() {
                         }}
                       >
                         {!friendsData || friendsData.length === 0 ? (
-                          <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
-                            NO ALLIED OPERATIVES FOUND.
+                          <div style={{ padding: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
+                            NO FRIENDS LINKED YET.
                           </div>
                         ) : (
                           friendsData.map((f) => {
@@ -1140,25 +1141,28 @@ export function Profile() {
                                   justifyContent: 'space-between',
                                   padding: '10px 14px',
                                   borderRadius: 6,
-                                  background: 'rgba(10, 3, 24, 0.75)',
-                                  border: '1.5px solid rgba(0, 240, 255, 0.22)',
+                                  background: 'rgba(10, 3, 26, 0.85)',
+                                  border: '1.5px solid rgba(0, 240, 255, 0.25)',
                                   cursor: 'pointer',
                                   transition: 'all 0.18s ease',
+                                  gap: 12,
                                 }}
                                 onClick={() => {
                                   retroAudio.playUiBeep(640, 0.04)
                                   navigate(`/profile?u=${f.username}`)
                                 }}
                                 onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'rgba(0, 240, 255, 0.14)'
+                                  e.currentTarget.style.background = 'rgba(0, 240, 255, 0.16)'
                                   e.currentTarget.style.borderColor = 'var(--accent-cyan)'
+                                  e.currentTarget.style.transform = 'translateX(2px)'
                                 }}
                                 onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'rgba(10, 3, 24, 0.75)'
-                                  e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.22)'
+                                  e.currentTarget.style.background = 'rgba(10, 3, 26, 0.85)'
+                                  e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.25)'
+                                  e.currentTarget.style.transform = 'translateX(0)'
                                 }}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                                   <div style={{ position: 'relative', flexShrink: 0 }}>
                                     <div
                                       style={{
@@ -1171,17 +1175,17 @@ export function Profile() {
                                       <UserAvatar
                                         username={f.username}
                                         avatarStyle={f.avatarStyle}
-                                        size={40}
+                                        size={38}
                                         fallbackStyle={{
-                                          width: 40,
-                                          height: 40,
+                                          width: 38,
+                                          height: 38,
                                           borderRadius: 4,
                                           background: 'rgba(10, 2, 28, 0.95)',
                                           color: 'var(--accent-cyan)',
                                           display: 'grid',
                                           placeItems: 'center',
                                           fontWeight: 900,
-                                          fontSize: '1rem',
+                                          fontSize: '0.95rem',
                                         }}
                                       />
                                     </div>
@@ -1190,8 +1194,8 @@ export function Profile() {
                                         position: 'absolute',
                                         right: -2,
                                         bottom: -2,
-                                        width: 10,
-                                        height: 10,
+                                        width: 9,
+                                        height: 9,
                                         borderRadius: '50%',
                                         background: fStatus.color,
                                         border: '2px solid #0d0221',
@@ -1199,34 +1203,37 @@ export function Profile() {
                                       }}
                                     />
                                   </div>
-                                  <div style={{ minWidth: 0 }}>
-                                    <div
-                                      style={{
-                                        fontSize: '0.92rem',
-                                        fontWeight: 900,
-                                        color: '#ffffff',
-                                        fontFamily: 'var(--font-display)',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        letterSpacing: '0.02em',
-                                      }}
-                                    >
-                                      {f.username}
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                      <span
+                                        style={{
+                                          fontSize: '0.92rem',
+                                          fontWeight: 900,
+                                          color: '#ffffff',
+                                          fontFamily: 'var(--font-display)',
+                                          whiteSpace: 'nowrap',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          letterSpacing: '0.02em',
+                                        }}
+                                      >
+                                        {f.username}
+                                      </span>
+                                      <RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
                                     </div>
-                                    <div style={{ fontSize: '0.7rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
-                                      ● {fStatus.label.toUpperCase()}
+                                    <div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
+                                      ● {fStatus.label.toUpperCase()} // ALLIED PILOT{f.username.toLowerCase().includes('harleynghx') || f.username.toLowerCase().includes('harleyhx') ? ' // PACE 24' : ''}
                                     </div>
                                   </div>
                                 </div>
 
-                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
+                                <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
                                     {f.rating}
-                                  </div>
-                                  <div style={{ marginTop: 3 }}>
-                                    <RankBadge tier={fTier} fontSize="10px" padding="2px 7px" />
-                                  </div>
+                                  </span>
+                                  <span style={{ fontSize: '0.64rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
+                                    ELO
+                                  </span>
                                 </div>
                               </div>
                             )

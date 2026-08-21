@@ -23,6 +23,12 @@ type Friend = {
 	status?: 'online' | 'playing' | 'offline'
 }
 
+const STATUS_STYLE: Record<string, { label: string; color: string; border: string; bg: string }> = {
+	online: { label: 'Online', color: '#00ff88', border: 'rgba(0, 255, 136, 0.4)', bg: 'rgba(0, 255, 136, 0.12)' },
+	playing: { label: 'In Game', color: '#ffe600', border: 'rgba(255, 230, 0, 0.4)', bg: 'rgba(255, 230, 0, 0.12)' },
+	offline: { label: 'Offline', color: '#7a889b', border: 'rgba(122, 136, 155, 0.3)', bg: 'rgba(122, 136, 155, 0.08)' },
+}
+
 export function Home() {
 	const { t } = useTranslation()
 	const { user, setActiveMatch } = useApp()
@@ -43,13 +49,14 @@ export function Home() {
 	}
 	const [stats, setStats] = useState<PlayerStats | null>(null)
 	const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null)
+	const [leaderboardMap, setLeaderboardMap] = useState<Record<string, number>>({})
 	const [isStatsLoading, setIsStatsLoading] = useState(false)
 
 	useEffect(() => {
 		setIsStatsLoading(true)
 		Promise.all([
 			getApi<PlayerStats>('/api/stats').catch(() => null),
-			getApi<{ myRank?: { rank: number } }>('/api/leaderboard?mode=global&limit=1').catch(() => null),
+			getApi<{ myRank?: { rank: number }; entries?: Array<{ username: string; rank: number }> }>('/api/leaderboard?mode=global&limit=50').catch(() => null),
 		])
 			.then(([statsBody, lbBody]) => {
 				if (statsBody && typeof statsBody.totalGames === 'number') {
@@ -57,6 +64,13 @@ export function Home() {
 				}
 				if (lbBody?.myRank?.rank) {
 					setLeaderboardRank(lbBody.myRank.rank)
+				}
+				if (lbBody?.entries) {
+					const map: Record<string, number> = {}
+					lbBody.entries.forEach((e) => {
+						map[e.username] = e.rank
+					})
+					setLeaderboardMap(map)
 				}
 			})
 			.catch((e) => {
@@ -116,13 +130,8 @@ export function Home() {
 		])
 			.then(([friendsData, reqData]) => {
 				const list = Array.isArray(friendsData) ? friendsData : []
-				// Sort online and playing friends to the top
-				list.sort((a, b) => {
-					const scoreA = a.status === 'playing' ? 2 : a.status === 'online' ? 1 : 0
-					const scoreB = b.status === 'playing' ? 2 : b.status === 'online' ? 1 : 0
-					if (scoreA !== scoreB) return scoreB - scoreA
-					return a.username.localeCompare(b.username)
-				})
+				// Sort friends by rating descending identical to Profile page
+				list.sort((a, b) => (b.rating || 0) - (a.rating || 0))
 				setFriends(list)
 				setPendingRequestsCount(Array.isArray(reqData?.received) ? reqData.received.length : 0)
 			})
@@ -614,61 +623,65 @@ export function Home() {
 
 					{/* Hero Header Banner */}
 					<header className="hero-section">
-								<h1 className="hero-title">RETROLUDO '42</h1>
-								<p className="hero-subtitle">
-									WELCOME BACK, PILOT {username.toUpperCase()} // PACE 24
-								</p>
+						<h1 className="hero-title">RETROLUDO '42</h1>
+						<p className="hero-subtitle">
+							WELCOME BACK, PILOT {username.toUpperCase()} // PACE 24
+						</p>
 
-								<div className="badge-bar">
-									<button
-										className="retro-badge"
-										style={{
-											cursor: 'pointer',
-											background: 'var(--bg-secondary)',
-											border: isPlayingAudio ? '1px solid var(--accent-pink)' : '1px dashed var(--accent-cyan)',
-											color: isPlayingAudio ? 'var(--accent-pink)' : 'var(--accent-cyan)',
-											fontFamily: 'var(--font-mono)',
-											outline: 'none',
-										}}
-										onClick={handleToggleAudio}
-										title="Click to toggle Chiptune Audio"
-									>
-										// AUDIO: {isPlayingAudio ? 'PLAYING [PAUSE]' : 'STANDBY [PLAY]'}
-									</button>
-									<span
-										className="retro-badge"
-										style={{
-											border: '1px solid var(--accent-cyan)',
-											color: 'var(--accent-cyan)',
-											display: 'inline-flex',
-											alignItems: 'center',
-											gap: 6,
-										}}
-									>
-										// ONLINE PLAYERS: 42
-									</span>
-									<span
-										className="retro-badge"
-										style={{
-											border: '1px dashed rgba(255, 255, 255, 0.2)',
-											color: 'var(--text-muted)',
-											opacity: 0.5,
-										}}
-									>
-										// SLOT_03: [EMPTY]
-									</span>
-									<span
-										className="retro-badge"
-										style={{
-											border: '1px dashed rgba(255, 255, 255, 0.2)',
-											color: 'var(--text-muted)',
-											opacity: 0.5,
-										}}
-									>
-										// SLOT_04: [EMPTY]
-									</span>
-								</div>
-							</header>
+						<div className="badge-bar">
+							<button
+								className="retro-badge"
+								style={{
+									cursor: 'pointer',
+									background: 'var(--bg-secondary)',
+									border: isPlayingAudio ? '1px solid var(--accent-pink)' : '1px dashed var(--accent-cyan)',
+									color: isPlayingAudio ? 'var(--accent-pink)' : 'var(--accent-cyan)',
+									fontFamily: 'var(--font-mono)',
+									outline: 'none',
+								}}
+								onClick={handleToggleAudio}
+								title="Click to toggle Chiptune Audio"
+							>
+								// AUDIO: {isPlayingAudio ? 'ACTIVE [MUTE]' : 'STANDBY [PLAY]'}
+							</button>
+							<span
+								className="retro-badge"
+								style={{
+									border: '1px solid var(--accent-cyan)',
+									color: 'var(--accent-cyan)',
+									display: 'inline-flex',
+									alignItems: 'center',
+									fontFamily: 'var(--font-mono)',
+								}}
+							>
+								// ONLINE PLAYERS: 42
+							</span>
+							<span
+								className="retro-badge"
+								style={{
+									border: '1px dashed rgba(255, 255, 255, 0.25)',
+									color: 'var(--text-muted)',
+									display: 'inline-flex',
+									alignItems: 'center',
+									fontFamily: 'var(--font-mono)',
+								}}
+							>
+								// SLOT_03: [EMPTY]
+							</span>
+							<span
+								className="retro-badge"
+								style={{
+									border: '1px dashed rgba(255, 255, 255, 0.25)',
+									color: 'var(--text-muted)',
+									display: 'inline-flex',
+									alignItems: 'center',
+									fontFamily: 'var(--font-mono)',
+								}}
+							>
+								// SLOT_04: [EMPTY]
+							</span>
+						</div>
+					</header>
 
 							{/* Main Interactive Dashboard Grid */}
 							<main className="dashboard-grid">
@@ -676,7 +689,7 @@ export function Home() {
 								<section className="retro-window col-8" id="arcadeWindow">
 									<div className="window-header">
 										<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-											<span>CYBER LUDO '84 // ARCADE CABINET</span>
+											<span>CYBER LUDO '84 // ARCADE ARENA</span>
 										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
@@ -741,11 +754,11 @@ export function Home() {
 									</div>
 								</section>
 
-								{/* Widget 2: Comrades & Friend List */}
+								{/* Widget 2: Friends List */}
 								<section className="retro-window col-4" id="friendsWindow">
 									<div className="window-header">
-										<div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, lineHeight: 1 }}>
-											<span style={{ display: 'inline-flex', alignItems: 'center' }}>FRIENDS</span>
+										<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+											<span>FRIENDS ({friends?.length ?? 0})</span>
 											{pendingRequestsCount > 0 && (
 												<button
 													style={{
@@ -775,208 +788,173 @@ export function Home() {
 												</button>
 											)}
 										</div>
-										<div className="window-controls">
-											<span className="window-btn min" />
-											<span className="window-btn max" />
-										</div>
-									</div>
-									<div
-										className="window-body"
-										style={{
-											display: 'flex',
-											flexDirection: 'column',
-											gap: 10,
-											minHeight: 280,
-											boxSizing: 'border-box',
-										}}
-									>
-										{/* Top Sub-Bar: Online status & Manage button */}
-										<div
-											style={{
-												display: 'flex',
-												justifyContent: 'space-between',
-												alignItems: 'center',
-												padding: '6px 10px',
-												background: 'rgba(0, 0, 0, 0.4)',
-												border: '1px solid rgba(0, 240, 255, 0.25)',
-												borderRadius: 4,
-											}}
-										>
-											<span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-												● {friends ? friends.filter((f) => f.status === 'online' || f.status === 'playing').length : 0} ONLINE // {friends ? friends.length : 0} TOTAL
-											</span>
+										<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 											<button
 												className="retro-btn"
-												style={{ padding: '3px 8px', fontSize: '0.65rem' }}
 												onClick={() => {
 													retroAudio.playUiBeep(600, 0.05)
 													navigate('/friends')
+												}}
+												style={{
+													padding: '2px 8px',
+													fontSize: '0.65rem',
+													fontFamily: 'var(--font-display)',
+													fontWeight: 900,
 												}}
 											>
 												MANAGE ↗
 											</button>
+											<div className="window-controls">
+												<span className="window-btn min" />
+												<span className="window-btn max" />
+											</div>
 										</div>
+									</div>
 
-										{/* Friends List Container */}
-										<div
-											style={{
-												flex: 1,
-												maxHeight: 215,
-												minHeight: 180,
-												overflowY: 'auto',
-												display: 'flex',
-												flexDirection: 'column',
-												gap: 8,
-												paddingRight: 4,
-											}}
-										>
-											{isFriendsLoading && friends === null ? (
-												<div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--accent-yellow)', fontSize: '0.8rem' }}>
-													SCANNING COMMS...
-												</div>
-											) : !friends || friends.length === 0 ? (
-												<div
-													style={{
-														textAlign: 'center',
-														padding: '24px 12px',
-														display: 'flex',
-														flexDirection: 'column',
-														alignItems: 'center',
-														gap: 10,
-														color: 'var(--text-muted)',
-													}}
-												>
-													<div style={{ fontSize: '0.75rem', lineHeight: 1.4 }}>
-														NO COMRADES LINKED YET
-													</div>
-													<button
-														className="retro-btn"
-														style={{ padding: '6px 12px', fontSize: '0.7rem', color: 'var(--accent-cyan)' }}
+									<div
+										style={{
+											padding: '12px 14px',
+											display: 'flex',
+											flexDirection: 'column',
+											gap: 9,
+											flex: 1,
+											overflowY: 'auto',
+											minHeight: 0,
+											maxHeight: 280,
+										}}
+									>
+										{isFriendsLoading && friends === null ? (
+											<div style={{ padding: 28, textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
+												SCANNING COMMS...
+											</div>
+										) : !friends || friends.length === 0 ? (
+											<div style={{ padding: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
+												NO FRIENDS LINKED YET.
+											</div>
+										) : (
+											friends.map((f) => {
+												const fRank = leaderboardMap[f.username]
+												const fTier = getRankTier(f.rating ?? 1200, fRank)
+												const fStatus = STATUS_STYLE[f.status || 'offline'] || STATUS_STYLE.offline
+												const isPace24 =
+													f.username.toLowerCase().includes('harleynghx') ||
+													f.username.toLowerCase().includes('harleyhx')
+
+												return (
+													<div
+														key={f.id}
+														style={{
+															display: 'flex',
+															alignItems: 'center',
+															justifyContent: 'space-between',
+															padding: '10px 14px',
+															borderRadius: 6,
+															background: 'rgba(10, 3, 26, 0.85)',
+															border: '1.5px solid rgba(0, 240, 255, 0.25)',
+															cursor: 'pointer',
+															transition: 'all 0.18s ease',
+															gap: 12,
+														}}
 														onClick={() => {
-															retroAudio.playUiBeep(600, 0.05)
-															navigate('/friends')
+															retroAudio.playUiBeep(640, 0.04)
+															navigate(`/profile?u=${encodeURIComponent(f.username)}`)
+														}}
+														onMouseEnter={(e) => {
+															e.currentTarget.style.background = 'rgba(0, 240, 255, 0.16)'
+															e.currentTarget.style.borderColor = 'var(--accent-cyan)'
+															e.currentTarget.style.transform = 'translateX(2px)'
+														}}
+														onMouseLeave={(e) => {
+															e.currentTarget.style.background = 'rgba(10, 3, 26, 0.85)'
+															e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.25)'
+															e.currentTarget.style.transform = 'translateX(0)'
 														}}
 													>
-														[+] ADD FRIENDS
-													</button>
-												</div>
-											) : (
-												friends.map((friend) => {
-													const isOnline = friend.status === 'online'
-													const isPlaying = friend.status === 'playing'
-													const statusColor = isPlaying
-														? 'var(--accent-yellow)'
-														: isOnline
-														? 'var(--accent-cyan)'
-														: 'var(--text-muted)'
-													const statusLabel = isPlaying ? 'IN GAME' : isOnline ? 'ONLINE' : 'OFFLINE'
-
-													return (
-														<div
-															key={friend.id}
-															style={{
-																display: 'flex',
-																alignItems: 'center',
-																justifyContent: 'space-between',
-																padding: '8px 10px',
-																background: isOnline || isPlaying ? 'rgba(25, 10, 56, 0.7)' : 'rgba(10, 5, 25, 0.5)',
-																border: isOnline ? '1px solid rgba(0, 240, 255, 0.4)' : isPlaying ? '1px solid rgba(255, 230, 0, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
-																borderRadius: 4,
-																gap: 8,
-															}}
-														>
-															<div
-																style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', overflow: 'hidden', flex: 1 }}
-																onClick={() => {
-																	retroAudio.playUiBeep(520, 0.05)
-																	navigate(`/profile/${encodeURIComponent(friend.username)}`)
-																}}
-																title={`View ${friend.username}'s profile`}
-															>
-																<div style={{ position: 'relative', flexShrink: 0 }}>
+														<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+															<div style={{ position: 'relative', flexShrink: 0 }}>
+																<div
+																	style={{
+																		padding: 2,
+																		borderRadius: 5,
+																		background: `linear-gradient(135deg, ${fTier.color}, var(--accent-cyan))`,
+																		boxShadow: `0 0 8px ${fTier.glow}`,
+																	}}
+																>
 																	<UserAvatar
-																		username={friend.username}
-																		size={32}
-																		avatarStyle={friend.avatarStyle}
-																		style={{ border: `1px solid ${statusColor}` }}
-																	/>
-																	<span
-																		style={{
-																			position: 'absolute',
-																			bottom: -1,
-																			right: -1,
-																			width: 8,
-																			height: 8,
-																			borderRadius: '50%',
-																			background: statusColor,
-																			border: '1px solid #000',
+																		username={f.username}
+																		avatarStyle={f.avatarStyle}
+																		size={38}
+																		fallbackStyle={{
+																			width: 38,
+																			height: 38,
+																			borderRadius: 4,
+																			background: 'rgba(10, 2, 28, 0.95)',
+																			color: 'var(--accent-cyan)',
+																			display: 'grid',
+																			placeItems: 'center',
+																			fontWeight: 900,
+																			fontSize: '0.95rem',
 																		}}
 																	/>
 																</div>
-																<div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+																<span
+																	style={{
+																		position: 'absolute',
+																		right: -2,
+																		bottom: -2,
+																		width: 9,
+																		height: 9,
+																		borderRadius: '50%',
+																		background: fStatus.color,
+																		border: '2px solid #0d0221',
+																		boxShadow: `0 0 6px ${fStatus.color}`,
+																	}}
+																/>
+															</div>
+															<div style={{ minWidth: 0, flex: 1 }}>
+																<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
 																	<span
 																		style={{
-																			fontFamily: 'var(--font-mono)',
-																			fontWeight: 'bold',
-																			fontSize: '0.85rem',
+																			fontSize: '0.92rem',
+																			fontWeight: 900,
 																			color: '#ffffff',
+																			fontFamily: 'var(--font-display)',
 																			whiteSpace: 'nowrap',
 																			overflow: 'hidden',
 																			textOverflow: 'ellipsis',
+																			letterSpacing: '0.02em',
 																		}}
 																	>
-																		{friend.username}
+																		{f.username}
 																	</span>
-																	<span style={{ fontSize: '0.65rem', color: statusColor }}>
-																		● {statusLabel} {friend.rating ? `// ${friend.rating} LP` : ''}
-																	</span>
+																	<RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
+																</div>
+																<div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
+																	● {fStatus.label.toUpperCase()} // ALLIED PILOT{isPace24 ? ' // PACE 24' : ''}
 																</div>
 															</div>
-
-															<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-																{isOnline && (
-																	<button
-																		className="retro-btn"
-																		style={{
-																			padding: '4px 8px',
-																			fontSize: '0.65rem',
-																			background: 'var(--accent-pink)',
-																			color: '#fff',
-																		}}
-																		disabled={invitingFriendId === friend.id}
-																		onClick={() => handleInviteFriend(friend.id)}
-																	>
-																		{invitingFriendId === friend.id ? '...' : 'INVITE'}
-																	</button>
-																)}
-															</div>
 														</div>
-													)
-												})
-											)}
-										</div>
 
-										{/* Quick Navigation Footer */}
-										<div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 4 }}>
-											<button
-												className="retro-btn"
-												style={{ width: '100%', padding: '6px 0', fontSize: '0.7rem', textAlign: 'center' }}
-												onClick={() => {
-													retroAudio.playUiBeep(600, 0.05)
-													navigate('/friends')
-												}}
-											>
-												FULL FRIEND TERMINAL
-											</button>
-										</div>
+														<div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+															<span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
+																{f.rating ?? 1200}
+															</span>
+															<span style={{ fontSize: '0.64rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
+																ELO
+															</span>
+														</div>
+													</div>
+												)
+											})
+										)}
 									</div>
 								</section>
 
-								{/* Widget 3: Pilot Career Dossier & Combat Stats */}
+								{/* Widget 3: Pilot Profile & Combat Stats */}
 								<section className="retro-window col-8" id="pilotDossierWindow">
 									<div className="window-header">
 										<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-											<span>PILOT CAREER DOSSIER // COMBAT TELEMETRY</span>
+											<span>PILOT PROFILE // COMBAT STATS</span>
 										</div>
 										<div className="window-controls">
 											<span className="window-btn min" />
@@ -1005,7 +983,7 @@ export function Home() {
 												/>
 												<div>
 													<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-														<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: 'var(--accent-yellow)', letterSpacing: 1 }}>
+														<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: '#ffffff', letterSpacing: 1 }}>
 															{username.toUpperCase()}
 														</span>
 														<RankBadge
@@ -1015,14 +993,14 @@ export function Home() {
 														/>
 													</div>
 													<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-														PILOT ID: #{user?.id ? user.id.slice(0, 8).toUpperCase() : 'UNKNOWN'} // RANKED COMBATANT
+														CALLSIGN: {username.toUpperCase()} // RANKED COMBATANT
 													</span>
 												</div>
 											</div>
 
 											<button
 												className="retro-btn"
-												style={{ padding: '6px 14px', fontSize: '0.72rem' }}
+												style={{ padding: '6px 14px', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}
 												onClick={() => {
 													retroAudio.playUiBeep(600, 0.05)
 													navigate('/profile')
@@ -1162,7 +1140,7 @@ export function Home() {
 								{/* Widget 4: Quick Deploy Arena Modes */}
 								<section className="retro-window col-4" id="quickDeployWindow">
 									<div className="window-header">
-										<span>QUICK DEPLOY // ARENA</span>
+										<span>GAME MODES</span>
 										<div className="window-controls">
 											<span className="window-btn min" />
 											<span className="window-btn max" />
@@ -1196,7 +1174,7 @@ export function Home() {
 										>
 											<div style={{ textAlign: 'left' }}>
 												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-cyan)' }}>
-													1v1 CYBER DUEL
+													1v1 DUEL
 												</div>
 												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
 													Fast 2-Player Head-to-Head
@@ -1224,7 +1202,7 @@ export function Home() {
 										>
 											<div style={{ textAlign: 'left' }}>
 												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-pink)' }}>
-													4-PLAYER ROYALE
+													4-PLAYER MATCH
 												</div>
 												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
 													Full 4-Color Mayhem
@@ -1252,7 +1230,7 @@ export function Home() {
 										>
 											<div style={{ textAlign: 'left' }}>
 												<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-yellow)' }}>
-													BOT SKIRMISH
+													PRACTICE VS BOTS
 												</div>
 												<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
 													Offline Practice Arena
