@@ -301,7 +301,7 @@ export function Friends() {
           {/* Top Hero Banner */}
           <header className="hero-section" style={{ padding: '16px 0 16px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className="hero-title" style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
-              CYBER COMMS // ALLIED PILOT NETWORK
+              FRIENDS NETWORK
             </h1>
 
             {/* Metric Telemetry Strip */}
@@ -320,7 +320,7 @@ export function Friends() {
                   fontWeight: 'bold',
                 }}
               >
-                ● ACTIVE SIGNALS: {onlineFriendsCount} ONLINE
+                ● ONLINE: {onlineFriendsCount}
               </span>
               <span
                 className="retro-badge"
@@ -335,15 +335,15 @@ export function Friends() {
                   fontWeight: 'bold',
                 }}
               >
-                ◈ ALLIED OPERATIVES: {friends.length}
+                ◈ FRIENDS: {friends.length}
               </span>
               <span
                 className="retro-badge"
                 style={{
-                  border: requests.length > 0 ? '1.5px solid #ffe600' : '1px dashed rgba(255,255,255,0.2)',
-                  color: requests.length > 0 ? '#ffe600' : 'var(--text-muted)',
-                  background: requests.length > 0 ? 'rgba(255, 230, 0, 0.18)' : 'transparent',
-                  boxShadow: requests.length > 0 ? '0 0 12px rgba(255, 230, 0, 0.4)' : 'none',
+                  border: requests.length > 0 ? '1.5px solid var(--accent-pink)' : '1px dashed rgba(255,255,255,0.2)',
+                  color: requests.length > 0 ? '#ff007f' : 'var(--text-muted)',
+                  background: requests.length > 0 ? 'rgba(255, 0, 127, 0.18)' : 'transparent',
+                  boxShadow: requests.length > 0 ? '0 0 14px rgba(255, 0, 127, 0.4)' : 'none',
                   fontSize: '0.74rem',
                   padding: '4px 12px',
                   borderRadius: 4,
@@ -351,7 +351,7 @@ export function Friends() {
                   fontWeight: 'bold',
                 }}
               >
-                ✦ INCOMING TRANSMISSIONS: {requests.length}
+                ✦ REQUESTS: {requests.length}
               </span>
               {blocked.length > 0 && (
                 <span
@@ -367,7 +367,7 @@ export function Friends() {
                     fontWeight: 'bold',
                   }}
                 >
-                  ✕ RESTRICTED: {blocked.length}
+                  ✕ BLOCKED: {blocked.length}
                 </span>
               )}
             </div>
@@ -398,7 +398,7 @@ export function Friends() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                <span>// CYBER COMMS • ALLIED PILOT NETWORK CONTROL</span>
+                <span>// FRIENDS LIST</span>
               </div>
               <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="window-btn min" />
@@ -467,7 +467,7 @@ export function Friends() {
                         boxShadow: activeTab === 'friends' ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
                       }}
                     >
-                      ALLIED OPERATIVES ({friends.length})
+                      FRIENDS ({friends.length})
                     </button>
                     <button
                       className="retro-btn"
@@ -487,7 +487,7 @@ export function Friends() {
                         boxShadow: activeTab === 'blocked' ? '0 0 10px rgba(255, 0, 85, 0.35)' : 'none',
                       }}
                     >
-                      RESTRICTED ({blocked.length})
+                      BLOCKED ({blocked.length})
                     </button>
                   </div>
 
@@ -496,7 +496,7 @@ export function Friends() {
                       <input
                         value={filterQuery}
                         onChange={(e) => setFilterQuery(e.target.value)}
-                        placeholder="FILTER OPERATIVES..."
+                        placeholder="SEARCH FRIENDS..."
                         style={{
                           background: 'rgba(5, 2, 18, 0.85)',
                           border: '1px solid rgba(0, 240, 255, 0.35)',
@@ -796,29 +796,29 @@ export function Friends() {
                   overflow: 'hidden',
                 }}
               >
-                {/* Top Right Card: Transmit Frequency Request (Add Comrade) */}
+                {/* Top Right Card: ADD FRIEND */}
                 <div
                   style={{
-                    background: 'rgba(14, 4, 34, 0.9)',
+                    background: 'rgba(14, 4, 34, 0.92)',
                     border: '1.5px solid var(--accent-cyan)',
                     boxShadow: '0 0 16px rgba(0, 240, 255, 0.15)',
                     borderRadius: 8,
-                    padding: '16px',
+                    padding: '16px 18px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 12,
                     flexShrink: 0,
                   }}
                 >
-                  <div style={{ fontSize: '0.78rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1px' }}>
-                    TRANSMIT FREQUENCY REQUEST // ADD COMRADE
+                  <div style={{ fontSize: '0.82rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1px' }}>
+                    ADD FRIEND
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <input
                       value={searchUsername}
                       onChange={(e) => setSearchUsername(e.target.value)}
-                      placeholder="ENTER PILOT CALLSIGN..."
+                      placeholder="ENTER USERNAME..."
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAddFriend()
                       }}
@@ -826,7 +826,7 @@ export function Friends() {
                         background: 'rgba(5, 2, 18, 0.95)',
                         border: '1.5px solid rgba(0, 240, 255, 0.45)',
                         borderRadius: 4,
-                        color: '#ffe600',
+                        color: '#ffffff',
                         padding: '10px 12px',
                         fontSize: '0.85rem',
                         fontFamily: 'var(--font-display)',
@@ -849,7 +849,7 @@ export function Friends() {
                         borderRadius: 4,
                       }}
                     >
-                      + TRANSMIT FREQUENCY REQUEST
+                      + SEND FRIEND REQUEST
                     </button>
                   </div>
 
@@ -872,13 +872,13 @@ export function Friends() {
                   )}
                 </div>
 
-                {/* Bottom Right Card: Dedicated INCOMING FREQUENCY TRANSMISSIONS Card */}
+                {/* Bottom Right Card: Dedicated FRIEND REQUESTS Card */}
                 <div
                   style={{
                     flex: 1,
-                    background: requests.length > 0 ? 'linear-gradient(180deg, rgba(28, 20, 6, 0.92) 0%, rgba(16, 10, 4, 0.95) 100%)' : 'rgba(12, 4, 28, 0.85)',
-                    border: requests.length > 0 ? '1.5px solid #ffe600' : '1.5px solid rgba(255, 255, 255, 0.15)',
-                    boxShadow: requests.length > 0 ? '0 0 20px rgba(255, 230, 0, 0.25)' : 'none',
+                    background: requests.length > 0 ? 'linear-gradient(180deg, rgba(28, 8, 54, 0.95) 0%, rgba(14, 4, 32, 0.98) 100%)' : 'rgba(12, 4, 28, 0.85)',
+                    border: requests.length > 0 ? '1.5px solid var(--accent-pink)' : '1.5px solid rgba(255, 255, 255, 0.15)',
+                    boxShadow: requests.length > 0 ? '0 0 20px rgba(255, 0, 127, 0.25)' : 'none',
                     borderRadius: 8,
                     display: 'flex',
                     flexDirection: 'column',
@@ -890,8 +890,8 @@ export function Friends() {
                   <div
                     style={{
                       padding: '10px 14px',
-                      background: requests.length > 0 ? 'rgba(255, 230, 0, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                      borderBottom: requests.length > 0 ? '1px solid rgba(255, 230, 0, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: requests.length > 0 ? 'rgba(255, 0, 127, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                      borderBottom: requests.length > 0 ? '1px solid rgba(255, 0, 127, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -904,20 +904,20 @@ export function Friends() {
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          background: requests.length > 0 ? '#ffe600' : 'var(--text-muted)',
-                          boxShadow: requests.length > 0 ? '0 0 8px #ffe600' : 'none',
+                          background: requests.length > 0 ? '#ff007f' : 'var(--text-muted)',
+                          boxShadow: requests.length > 0 ? '0 0 8px #ff007f' : 'none',
                         }}
                       />
                       <span
                         style={{
                           fontSize: '0.78rem',
-                          color: requests.length > 0 ? '#ffe600' : '#ffffff',
+                          color: requests.length > 0 ? '#ff007f' : '#ffffff',
                           fontFamily: 'var(--font-display)',
                           fontWeight: 900,
                           letterSpacing: '1px',
                         }}
                       >
-                        INCOMING TRANSMISSIONS ({requests.length})
+                        FRIEND REQUESTS ({requests.length})
                       </span>
                     </div>
 
@@ -925,15 +925,16 @@ export function Friends() {
                       <span
                         style={{
                           fontSize: '0.66rem',
-                          padding: '2px 6px',
+                          padding: '2px 7px',
                           borderRadius: 3,
-                          background: '#ffe600',
-                          color: '#0d0221',
+                          background: 'linear-gradient(90deg, #ff007f, #9d00ff)',
+                          color: '#ffffff',
                           fontFamily: 'var(--font-display)',
                           fontWeight: 900,
+                          boxShadow: '0 0 8px rgba(255, 0, 127, 0.4)',
                         }}
                       >
-                        ACTION REQUIRED
+                        NEW
                       </span>
                     )}
                   </div>
@@ -967,8 +968,7 @@ export function Friends() {
                         }}
                       >
                         <span style={{ fontSize: '1.2rem', color: 'rgba(255, 255, 255, 0.2)' }}>✦</span>
-                        <span>FREQUENCY CHANNEL CLEAR</span>
-                        <span style={{ fontSize: '0.68rem', color: 'rgba(255, 255, 255, 0.3)' }}>NO PENDING INCOMING SIGNALS</span>
+                        <span>NO PENDING REQUESTS</span>
                       </div>
                     ) : (
                       requests.map((r) => (
@@ -979,9 +979,9 @@ export function Friends() {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '9px 12px',
-                            background: 'rgba(12, 4, 30, 0.85)',
-                            border: '1px solid rgba(255, 230, 0, 0.35)',
-                            boxShadow: '0 0 10px rgba(255, 230, 0, 0.12)',
+                            background: 'rgba(18, 6, 42, 0.88)',
+                            border: '1px solid rgba(255, 0, 127, 0.32)',
+                            boxShadow: '0 0 10px rgba(255, 0, 127, 0.12)',
                             borderRadius: 6,
                             gap: 10,
                           }}
@@ -996,7 +996,7 @@ export function Friends() {
                                 height: 34,
                                 borderRadius: 4,
                                 background: 'rgba(10, 2, 28, 0.95)',
-                                color: '#ffe600',
+                                color: 'var(--accent-pink)',
                                 display: 'grid',
                                 placeItems: 'center',
                                 fontWeight: 900,
@@ -1016,8 +1016,8 @@ export function Friends() {
                               >
                                 {r.username}
                               </div>
-                              <div style={{ color: '#ffe600', fontSize: '0.64rem', fontFamily: 'var(--font-display)', marginTop: 1 }}>
-                                REQUEST RECEIVED
+                              <div style={{ color: 'var(--accent-cyan)', fontSize: '0.64rem', fontFamily: 'var(--font-display)', marginTop: 1 }}>
+                                SENT YOU A REQUEST
                               </div>
                             </div>
                           </div>
@@ -1036,7 +1036,7 @@ export function Friends() {
                                 borderColor: '#00ff88',
                                 borderRadius: 3,
                               }}
-                              title="Accept Frequency Request"
+                              title="Accept Friend Request"
                             >
                               ACCEPT
                             </button>
@@ -1067,3 +1067,4 @@ export function Friends() {
     </>
   )
 }
+
