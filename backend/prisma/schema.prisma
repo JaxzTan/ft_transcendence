@@ -83,6 +83,7 @@ model User {
   achLastLaugh         Boolean @default(false)
   achSpeedDemon        Boolean @default(false)
 
+  accounts Account[]
   notifications       Notification[]
 
   gameParticipants GameParticipant[]
