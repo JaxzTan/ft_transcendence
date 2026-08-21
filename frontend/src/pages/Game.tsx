@@ -135,7 +135,7 @@ export function Game() {
   // piece_moved handler below, which steps through the server's `path`.
   const [animatingPiece, setAnimatingPiece] = useState<{ pieceId: string; step: number } | null>(null)
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const STEP_ANIM_MS = 220
+  const STEP_ANIM_MS = 180
   // Capture burst FX: a short cosmetic ring + sparks on the landing square
   // when a piece is captured. Set at the end of the mover's walk, cleared
   // after the burst plays out — purely visual, no game state involved.
@@ -246,34 +246,52 @@ export function Game() {
         ])
       } else if (type === 'piece_moved') {
         const e = state as unknown as { pieceId: string; color: PlayerColor; captured: boolean; to: number; path: number[] }
-        retroAudio.playUiBeep(580, 0.06, 'sine')
-        setMoveLogs((prev) => [
-          { ck: e.color, text: e.captured ? t('game.capturedPiece', { to: e.to }) : t('game.movedPiece', { to: e.to }) },
-          ...prev.slice(0, 11),
-        ])
-        if (animTimerRef.current) clearInterval(animTimerRef.current)
         const path = e.path ?? []
+
+        // Set animatingPiece SYNCHRONOUSLY to path[0] so React batches this with dispatch({ type: 'state_update' })
+        // This prevents the piece from flickering at e.to on frame 1.
         if (path.length > 0) {
-          let i = 0
           setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
-          animTimerRef.current = setInterval(() => {
-            i++
-            if (i >= path.length) {
-              if (animTimerRef.current) clearInterval(animTimerRef.current)
-              animTimerRef.current = null
-              setAnimatingPiece(null)
-              return
-            }
-            setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
-          }, STEP_ANIM_MS)
         }
-        if (e.captured) {
-          retroAudio.playExplosionSound()
-          if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
-          captureFxTimerRef.current = setTimeout(() => {
-            setCaptureFx({ color: e.color, to: e.to })
-            setTimeout(() => setCaptureFx(null), 600)
-          }, path.length * STEP_ANIM_MS)
+
+        const runStepAnimation = () => {
+          retroAudio.playUiBeep(580, 0.06, 'sine')
+          setMoveLogs((prev) => [
+            ck: e.color, text: e.captured ? t('game.capturedPiece', { to: e.to }), ,
+            ...prev.slice(0, 11),
+          ])
+
+          if (path.length > 1) {
+            if (animTimerRef.current) clearInterval(animTimerRef.current)
+            let i = 0
+            animTimerRef.current = setInterval(() => {
+              i++
+              if (i >= path.length) {
+                if (animTimerRef.current) clearInterval(animTimerRef.current)
+                animTimerRef.current = null
+                setAnimatingPiece(null)
+                return
+              }
+              setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
+            }, STEP_ANIM_MS)
+          } else {
+            setAnimatingPiece(null)
+          }
+
+          if (e.captured) {
+            retroAudio.playExplosionSound()
+            if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
+            captureFxTimerRef.current = setTimeout(() => {
+              setCaptureFx({ color: e.color, to: e.to })
+              setTimeout(() => setCaptureFx(null), 600)
+            }, (path.length || 1) * STEP_ANIM_MS)
+          }
+        }
+
+        if (isRollingRef.current) {
+          setTimeout(runStepAnimation, 750)
+        } else {
+          runStepAnimation()
         }
       } else if (type === 'lobby_update') {
         const e = state as unknown as { players: Array<{ username: string; color: PlayerColor }> }
@@ -975,7 +993,7 @@ export function Game() {
                     pieces={view.pieces}
                     players={view.players}
                     legalMoves={isRolling ? [] : view.legalMoves}
-                    onPieceClick={isRolling ? () => {} : movePiece}
+                    onPieceClick={isRolling ? () => { } : movePiece}
                     animating={animatingPiece}
                     fx={captureFx}
                   />

@@ -138,7 +138,10 @@ export class LudoBot {
       // Select best move using heuristics
       const bestMove = this.selectBestMove(legalMoves, afterRoll, diceValue);
       if (!bestMove) return false;
-      
+
+      // Delay piece movement so frontend dice roll animation finishes first and displays the number
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
       // Execute move — engine emits piece_moved and game_ended events via handleEngineEvent
       const { state: finalState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);
 
