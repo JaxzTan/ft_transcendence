@@ -6,6 +6,7 @@ import { navigate } from '../router'
 import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
 import { getRankTier } from '../utils/ranks'
+import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
@@ -228,23 +229,7 @@ export function Leaderboard() {
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <span style={{ fontSize: '1.75rem' }}>🥈</span>
-                          <span
-                            style={{
-                              fontFamily: 'var(--font-display)',
-                              fontSize: '12px',
-                              padding: '4px 10px',
-                              borderRadius: 4,
-                              background: tier2.bg,
-                              color: tier2.color,
-                              border: `1.5px solid ${tier2.border}`,
-                              fontWeight: 900,
-                              letterSpacing: '0.08em',
-                              boxShadow: `0 0 12px ${tier2.glow}`,
-                              textShadow: `0 0 6px ${tier2.color}`,
-                            }}
-                          >
-                            {tier2.name}
-                          </span>
+                          <RankBadge tier={tier2} fontSize="12px" padding="4px 10px" />
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -297,22 +282,19 @@ export function Leaderboard() {
                     const tier1 = getRankTier(top1.rating, 1)
                     return (
                       <div
+                        className="apex-champion-floating-card"
                         style={{
                           background: 'linear-gradient(180deg, rgba(48, 12, 38, 0.95), rgba(20, 5, 28, 0.98))',
                           border: '2px solid #ff1744',
                           borderRadius: 6,
-                          boxShadow: '0 0 25px rgba(255, 23, 68, 0.4), inset 0 0 16px rgba(255, 215, 0, 0.1)',
                           padding: '16px 20px',
                           cursor: 'pointer',
-                          transform: 'scale(1.02)',
                           transition: 'transform 0.2s, box-shadow 0.2s',
                         }}
                         onClick={() => {
                           retroAudio.playUiBeep(750, 0.05)
                           navigate(`/profile?u=${top1.username}`)
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.04) translateY(-3px)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1.02) translateY(0)')}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -321,23 +303,7 @@ export function Leaderboard() {
                               ★ APEX CHAMPION
                             </span>
                           </div>
-                          <span
-                            style={{
-                              fontFamily: 'var(--font-display)',
-                              fontSize: '13px',
-                              padding: '4px 12px',
-                              borderRadius: 4,
-                              background: tier1.bg,
-                              color: tier1.color,
-                              border: `1.5px solid ${tier1.border}`,
-                              fontWeight: 900,
-                              letterSpacing: '0.08em',
-                              boxShadow: `0 0 14px ${tier1.glow}`,
-                              textShadow: `0 0 8px ${tier1.color}`,
-                            }}
-                          >
-                            {tier1.name}
-                          </span>
+                          <RankBadge tier={tier1} fontSize="13px" padding="4px 12px" />
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -417,23 +383,7 @@ export function Leaderboard() {
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <span style={{ fontSize: '1.75rem' }}>🥉</span>
-                          <span
-                            style={{
-                              fontFamily: 'var(--font-display)',
-                              fontSize: '12px',
-                              padding: '4px 10px',
-                              borderRadius: 4,
-                              background: tier3.bg,
-                              color: tier3.color,
-                              border: `1px solid ${tier3.border}`,
-                              fontWeight: 900,
-                              letterSpacing: '0.08em',
-                              boxShadow: `0 0 12px ${tier3.glow}`,
-                              textShadow: `0 0 6px ${tier3.color}`,
-                            }}
-                          >
-                            {tier3.name}
-                          </span>
+                          <RankBadge tier={tier3} fontSize="12px" padding="4px 10px" />
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -606,24 +556,11 @@ export function Leaderboard() {
                             >
                               {rankMedal}
                             </span>
-                            <span
-                              style={{
-                                fontFamily: 'var(--font-display)',
-                                fontSize: isRankOne ? '13px' : '11.5px',
-                                padding: isRankOne ? '5px 12px' : '4px 10px',
-                                borderRadius: 5,
-                                background: tier.bg,
-                                color: tier.color,
-                                border: `1.5px solid ${tier.border}`,
-                                fontWeight: 900,
-                                letterSpacing: '0.08em',
-                                whiteSpace: 'nowrap',
-                                boxShadow: `0 0 12px ${tier.glow}`,
-                                textShadow: `0 0 6px ${tier.color}`,
-                              }}
-                            >
-                              {tier.name}
-                            </span>
+                            <RankBadge
+                              tier={tier}
+                              fontSize={isRankOne ? '13px' : '11.5px'}
+                              padding={isRankOne ? '5px 12px' : '4px 10px'}
+                            />
                           </div>
 
                           {/* Pilot Info */}

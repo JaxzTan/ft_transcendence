@@ -6,6 +6,7 @@ import { navigate } from '../router'
 import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
 import { getRankTier } from '../utils/ranks'
+import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
@@ -290,23 +291,7 @@ export function Dashboard() {
                     >
                       {profile?.username ?? user?.username ?? t('common.you')}
                     </span>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '0.78rem',
-                        padding: '3px 10px',
-                        borderRadius: 4,
-                        background: currentTier.bg,
-                        color: currentTier.color,
-                        border: `1.5px solid ${currentTier.border}`,
-                        boxShadow: `0 0 10px ${currentTier.glow}`,
-                        textShadow: `0 0 6px ${currentTier.color}`,
-                        fontWeight: 900,
-                        letterSpacing: '0.08em',
-                      }}
-                    >
-                      {currentTier.name}
-                    </span>
+                    <RankBadge tier={currentTier} fontSize="0.78rem" padding="3px 10px" />
                   </div>
                   <div style={{ color: 'var(--accent-cyan)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', marginTop: 4 }}>
                     // COMBAT STATUS: ACTIVE PILOT • {currentTier.badge} • ELO {profile?.rating ?? 1200}

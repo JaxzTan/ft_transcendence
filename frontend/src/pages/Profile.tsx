@@ -6,6 +6,7 @@ import { useApp } from '../store'
 import { STATUS_STYLE, type PresenceStatus } from '../theme'
 import { retroAudio } from '../utils/audio'
 import { getRankTier } from '../utils/ranks'
+import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
@@ -437,23 +438,8 @@ export function Profile() {
                       <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: rankTier.color, fontFamily: 'var(--font-mono)' }}>
                         ♛ {profile.rating}
                       </div>
-                      <div
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: '0.75rem',
-                          color: rankTier.color,
-                          background: rankTier.bg,
-                          border: `1px solid ${rankTier.border}`,
-                          padding: '3px 10px',
-                          borderRadius: 4,
-                          marginTop: 6,
-                          fontWeight: 900,
-                          letterSpacing: '0.08em',
-                          boxShadow: `0 0 10px ${rankTier.glow}`,
-                          textShadow: `0 0 6px ${rankTier.color}`,
-                        }}
-                      >
-                        {rankTier.name}
+                      <div style={{ marginTop: 6 }}>
+                        <RankBadge tier={rankTier} fontSize="0.75rem" padding="3px 10px" />
                       </div>
                     </div>
                   </div>

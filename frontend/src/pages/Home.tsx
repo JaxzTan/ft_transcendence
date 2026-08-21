@@ -10,6 +10,7 @@ import { navigate } from '../router'
 import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
 import { getRankTier } from '../utils/ranks'
+import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
@@ -1007,23 +1008,11 @@ export function Home() {
 														<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: 'var(--accent-yellow)', letterSpacing: 1 }}>
 															{username.toUpperCase()}
 														</span>
-														<span
-															style={{
-																fontFamily: 'var(--font-display)',
-																fontSize: '0.75rem',
-																background: getRankTier(stats?.rating ?? 1200, leaderboardRank).bg,
-																color: getRankTier(stats?.rating ?? 1200, leaderboardRank).color,
-																border: `1.5px solid ${getRankTier(stats?.rating ?? 1200, leaderboardRank).border}`,
-																boxShadow: `0 0 10px ${getRankTier(stats?.rating ?? 1200, leaderboardRank).glow}`,
-																textShadow: `0 0 6px ${getRankTier(stats?.rating ?? 1200, leaderboardRank).color}`,
-																padding: '3px 10px',
-																borderRadius: 4,
-																fontWeight: 900,
-																letterSpacing: '0.08em',
-															}}
-														>
-															{getRankTier(stats?.rating ?? 1200, leaderboardRank).name}
-														</span>
+														<RankBadge
+															tier={getRankTier(stats?.rating ?? 1200, leaderboardRank)}
+															fontSize="0.75rem"
+															padding="3px 10px"
+														/>
 													</div>
 													<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
 														PILOT ID: #{user?.id ? user.id.slice(0, 8).toUpperCase() : 'UNKNOWN'} // RANKED COMBATANT

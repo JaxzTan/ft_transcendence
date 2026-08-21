@@ -562,6 +562,231 @@ html, body {
 }
 
 /* --------------------------------------------------------------------------
+   MAMEE MONSTER APEX RANK SPECIAL FX (RISING CYBER FIRE & FLAMES)
+   -------------------------------------------------------------------------- */
+
+.badge-mamee-monster {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1;
+  background: linear-gradient(180deg, rgba(45, 8, 20, 0.96) 0%, rgba(20, 3, 10, 0.98) 100%) !important;
+  color: #ffffff !important;
+  border: 1.5px solid #ff3d00 !important;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 6px #ffffff, 0 -2px 10px #ffdd00, 0 -4px 18px #ff3d00, 0 -8px 24px #ff1744 !important;
+  box-shadow: 
+    0 0 14px rgba(255, 61, 0, 0.9),
+    0 -6px 18px rgba(255, 170, 0, 0.85),
+    0 -14px 28px rgba(255, 23, 68, 0.75),
+    0 -20px 36px rgba(255, 230, 0, 0.5),
+    inset 0 0 12px rgba(255, 170, 0, 0.6),
+    inset 0 -2px 6px rgba(255, 23, 68, 0.7) !important;
+  animation: mamee-flame-steady-glow 2.8s ease-in-out infinite alternate !important;
+  user-select: none;
+  z-index: 1;
+  margin: 6px 8px 3px;
+  box-sizing: border-box;
+}
+
+/* Constant Steady Fire Plasma Aura behind and above the badge */
+.badge-mamee-monster::before {
+  content: '';
+  position: absolute;
+  inset: -8px -4px -2px -4px;
+  border-radius: 45% 45% 8px 8px / 65% 65% 15% 15%;
+  background: radial-gradient(
+    ellipse at 50% 110%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 230, 0, 0.9) 30%,
+    rgba(255, 80, 0, 0.8) 60%,
+    rgba(255, 23, 68, 0.65) 80%,
+    transparent 96%
+  );
+  filter: blur(5px);
+  z-index: -2;
+  opacity: 0.95;
+  animation: mamee-flame-steady-wave 2.4s ease-in-out infinite alternate;
+}
+
+/* Constant Glowing Thermal Halo around perimeter */
+.badge-mamee-monster::after {
+  content: '';
+  position: absolute;
+  inset: -4px -2px -1px -2px;
+  border-radius: 50% 50% 6px 6px / 70% 70% 15% 15%;
+  background: radial-gradient(
+    ellipse at 50% 120%,
+    rgba(255, 230, 0, 0.75) 0%,
+    rgba(255, 23, 68, 0.7) 60%,
+    transparent 85%
+  );
+  filter: blur(4px);
+  z-index: -1;
+  opacity: 0.9;
+  animation: mamee-flame-steady-halo 3.2s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes mamee-flame-steady-glow {
+  0% {
+    border-color: #ff3d00;
+    box-shadow: 
+      0 0 14px rgba(255, 61, 0, 0.85),
+      0 -6px 18px rgba(255, 170, 0, 0.8),
+      0 -14px 26px rgba(255, 23, 68, 0.7),
+      0 -20px 34px rgba(255, 230, 0, 0.48),
+      inset 0 0 12px rgba(255, 170, 0, 0.55);
+  }
+  50% {
+    border-color: #ffd700;
+    box-shadow: 
+      0 0 18px rgba(255, 215, 0, 1),
+      0 -9px 24px rgba(255, 100, 0, 0.95),
+      0 -18px 34px rgba(255, 23, 68, 0.85),
+      0 -26px 44px rgba(255, 230, 0, 0.65),
+      inset 0 0 16px rgba(255, 230, 0, 0.75);
+  }
+  100% {
+    border-color: #ff1744;
+    box-shadow: 
+      0 0 16px rgba(255, 23, 68, 0.95),
+      0 -8px 20px rgba(255, 140, 0, 0.9),
+      0 -16px 30px rgba(255, 23, 68, 0.78),
+      0 -22px 38px rgba(255, 230, 0, 0.55),
+      inset 0 0 14px rgba(255, 100, 0, 0.65);
+  }
+}
+
+@keyframes mamee-flame-steady-wave {
+  0% {
+    transform: scale(0.99, 1.01) translateY(0);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.02, 1.06) translateY(-1.5px);
+    opacity: 1;
+  }
+}
+
+@keyframes mamee-flame-steady-halo {
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.03, 1.04) translateY(-1px);
+    opacity: 0.98;
+  }
+}
+
+/* Floating Rising Flame Ember Particles for MAMEE MONSTER */
+.mamee-ember-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.95;
+  background: radial-gradient(circle, #ffffff 10%, #ffe600 50%, #ff3d00 100%);
+  box-shadow: 0 0 6px #ffe600, 0 0 12px #ff3d00;
+  animation: mamee-spark-rise var(--spark-dur, 2s) infinite ease-out;
+}
+
+@keyframes mamee-spark-rise {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translate(var(--spark-drift, -4px), -12px) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(var(--spark-drift, -4px) * 2), -26px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+/* Elemental Auras for Other Ranks */
+.badge-tier-milo {
+  position: relative;
+  background: linear-gradient(135deg, rgba(30, 5, 45, 0.95), rgba(15, 2, 28, 0.98)) !important;
+  border: 1.5px solid #bd00ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(189, 0, 255, 0.7), inset 0 0 8px rgba(189, 0, 255, 0.35) !important;
+  text-shadow: 0 0 6px #ffffff, 0 0 12px #bd00ff !important;
+  animation: milo-plasma-pulse 2.2s infinite alternate !important;
+}
+
+@keyframes milo-plasma-pulse {
+  0% {
+    border-color: #bd00ff;
+    box-shadow: 0 0 12px rgba(189, 0, 255, 0.6), inset 0 0 8px rgba(189, 0, 255, 0.3);
+  }
+  100% {
+    border-color: #ff00ff;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.85), inset 0 0 12px rgba(189, 0, 255, 0.5);
+  }
+}
+
+.badge-tier-honey {
+  position: relative;
+  background: linear-gradient(135deg, rgba(38, 30, 6, 0.95), rgba(20, 15, 3, 0.98)) !important;
+  border: 1.5px solid #ffd700 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.65), inset 0 0 8px rgba(255, 215, 0, 0.35) !important;
+  text-shadow: 0 0 6px #ffffff, 0 0 10px #ffd700 !important;
+  animation: honey-starlight-pulse 2.4s infinite alternate !important;
+}
+
+@keyframes honey-starlight-pulse {
+  0% {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 18px rgba(255, 215, 0, 0.85), 0 0 28px rgba(255, 230, 0, 0.4);
+  }
+}
+
+.badge-tier-super {
+  position: relative;
+  background: linear-gradient(135deg, rgba(5, 25, 35, 0.95), rgba(2, 12, 18, 0.98)) !important;
+  border: 1.5px solid #00f0ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.6), inset 0 0 8px rgba(0, 240, 255, 0.3) !important;
+  text-shadow: 0 0 6px #ffffff, 0 0 10px #00f0ff !important;
+}
+
+.badge-tier-choki {
+  position: relative;
+  background: linear-gradient(135deg, rgba(28, 18, 10, 0.95), rgba(16, 10, 5, 0.98)) !important;
+  border: 1.5px solid #d7a15c !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 10px rgba(215, 161, 92, 0.5) !important;
+  text-shadow: 0 0 6px #ffffff, 0 0 8px #d7a15c !important;
+}
+
+/* Apex Champion Podium Card Constant Solid Aura */
+.apex-champion-floating-card {
+  box-shadow: 0 0 30px rgba(255, 23, 68, 0.55), 0 0 55px rgba(255, 215, 0, 0.25), inset 0 0 20px rgba(255, 215, 0, 0.15) !important;
+  border: 2px solid #ff1744 !important;
+  transform: scale(1.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apex-champion-floating-card:hover {
+  transform: scale(1.04) translateY(-3px);
+  box-shadow: 0 0 40px rgba(255, 23, 68, 0.75), 0 0 70px rgba(255, 215, 0, 0.4), inset 0 0 25px rgba(255, 215, 0, 0.25) !important;
+}
+
+
+
+/* --------------------------------------------------------------------------
    GRID DASHBOARD BOARDS & WIDGETS
    -------------------------------------------------------------------------- */
 
