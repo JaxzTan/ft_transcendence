@@ -148,12 +148,13 @@ function Ring({ ck }: { ck: ColorKey }) {
 }
 
 function Yard({
-  r, c, ck, basePieces, legalPieceIds, onPieceClick,
+  r, c, ck, basePieces, goalCount, legalPieceIds, onPieceClick,
 }: {
   r: number
   c: number
   ck: ColorKey
   basePieces: Array<{ id: string }>
+  goalCount: number
   legalPieceIds: Set<string>
   onPieceClick?: (pieceId: string) => void
 }) {
@@ -177,15 +178,39 @@ function Yard({
     >
       <div
         style={{
-          fontSize: '0.6rem',
-          fontFamily: 'var(--font-mono)',
-          fontWeight: 'bold',
-          color: col.base,
-          letterSpacing: '1px',
-          textShadow: `0 0 6px ${col.base}`,
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
         }}
       >
-        // {label}
+        <span
+          style={{
+            fontSize: '0.62rem',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 'bold',
+            color: col.base,
+            letterSpacing: '0.5px',
+            textShadow: `0 0 6px ${col.base}`,
+          }}
+        >
+          // {label}
+        </span>
+        <span
+          style={{
+            fontSize: '0.62rem',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 'bold',
+            color: goalCount > 0 ? '#00ff88' : '#ffffff',
+            background: 'rgba(5, 5, 20, 0.9)',
+            border: `1px solid ${col.base}`,
+            padding: '1px 6px',
+            borderRadius: 3,
+            boxShadow: `0 0 6px ${col.base}66`,
+          }}
+        >
+          GOAL: {goalCount}/4
+        </span>
       </div>
       <div
         style={{
@@ -271,6 +296,8 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
   const activeColors = new Set(players.filter((p) => p.status === 'active' || p.status === 'disconnected').map((p) => p.color))
   const basePieces = (ck: ColorKey) =>
     activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase) : []
+  const goalCount = (ck: ColorKey) =>
+    pieces.filter((p) => p.color === ck && p.isInGoal).length
 
   const cells: ReactNode[] = []
   for (let r = 0; r < 15; r++) {
@@ -500,10 +527,10 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
           boxShadow: '0 0 25px rgba(33, 33, 255, 0.6), inset 0 0 20px rgba(0, 240, 255, 0.25)',
         }}
       >
-        <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={0} c={9} ck="green" basePieces={basePieces('green')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={9} c={9} ck="yellow" basePieces={basePieces('yellow')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={9} c={0} ck="blue" basePieces={basePieces('blue')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} goalCount={goalCount('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={0} c={9} ck="green" basePieces={basePieces('green')} goalCount={goalCount('green')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={9} c={9} ck="yellow" basePieces={basePieces('yellow')} goalCount={goalCount('yellow')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={9} c={0} ck="blue" basePieces={basePieces('blue')} goalCount={goalCount('blue')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
         <div
           style={{
             gridRow: '7 / span 3',

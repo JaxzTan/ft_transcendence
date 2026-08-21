@@ -119,12 +119,19 @@ export function Game() {
   const viewRef = useRef(view)
   viewRef.current = view
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
+  const moveLogContainerRef = useRef<HTMLDivElement>(null)
   const [isRolling, setIsRolling] = useState(false)
   const isRollingRef = useRef(false)
   const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
   const [codeCopied, setCodeCopied] = useState(false)
   const [turnSwapNotice, setTurnSwapNotice] = useState<string | null>(null)
   const prevTurnRef = useRef<PlayerColor | null>(null)
+
+  useEffect(() => {
+    if (moveLogContainerRef.current) {
+      moveLogContainerRef.current.scrollTop = moveLogContainerRef.current.scrollHeight
+    }
+  }, [moveLogs.length])
 
   useEffect(() => {
     if (!view) return
@@ -523,10 +530,6 @@ export function Game() {
             <section className="retro-window" style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
               <div className="window-header">
                 <span>// SYSTEM ALERT // NO ACTIVE SESSION</span>
-                <div className="window-controls">
-                  <span className="window-btn min" />
-                  <span className="window-btn max" />
-                </div>
               </div>
               <div className="window-body" style={{ textAlign: 'center', padding: '30px 24px' }}>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', color: 'var(--accent-yellow)', marginBottom: 10 }}>
@@ -712,10 +715,6 @@ export function Game() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>// PILOT ROSTER</span>
                   </div>
-                  <div className="window-controls">
-                    <span className="window-btn min" />
-                    <span className="window-btn max" />
-                  </div>
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -820,7 +819,6 @@ export function Game() {
                                 gap: 6,
                               }}
                             >
-                              <span style={{ color: colorAccent, textTransform: 'uppercase' }}>[{ck}]</span>
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {occupied && playerMeta?.username ? playerMeta.username : t('game.emptySeat')}
                               </span>
@@ -861,7 +859,6 @@ export function Game() {
                           : isHotseat
                             ? t('game.localPlayer')
                             : 'Pilot')
-                    const goalCount = playerMeta.piecesInGoal ?? 0
                     const lastRoll = (isRolling && view.currentTurn === ck) ? displayedLastRolls[ck] : (displayedLastRolls[ck] ?? view.lastRolls[ck])
 
                     return (
@@ -962,32 +959,17 @@ export function Game() {
                             {isActive && (
                               <span style={{ color: colorAccent, fontWeight: 'bold', fontSize: '0.75rem' }}>▶</span>
                             )}
-                            <span style={{ color: colorAccent, textTransform: 'uppercase' }}>[{ck}]</span>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {name}
                             </span>
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {lastRoll !== undefined && lastRoll > 0 && (
+                        {lastRoll !== undefined && lastRoll > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <MiniDie value={lastRoll} />
-                          )}
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 2,
-                              fontSize: '0.75rem',
-                              fontFamily: 'var(--font-mono)',
-                              color: colorAccent,
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            <span>GOAL:</span>
-                            <span>{goalCount}/4</span>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )
                   })}
@@ -998,11 +980,7 @@ export function Game() {
               <section className="retro-window" id="sectorControlWindow">
                 <div className="window-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>// ARENA SYSTEM CONTROL</span>
-                  </div>
-                  <div className="window-controls">
-                    <span className="window-btn min" />
-                    <span className="window-btn max" />
+                    <span>// SYSTEM CONTROL</span>
                   </div>
                 </div>
 
@@ -1086,7 +1064,7 @@ export function Game() {
                       pieces={view.pieces}
                       players={view.players}
                       legalMoves={activeLegalMoves}
-                      onPieceClick={isRolling || isBotTurn ? () => {} : movePiece}
+                      onPieceClick={isRolling || isBotTurn ? () => { } : movePiece}
                       animating={animatingPiece}
                       fx={captureFx}
                     />
@@ -1102,10 +1080,6 @@ export function Game() {
                 <section className="retro-window" id="waitingSetupWindow">
                   <div className="window-header">
                     <span>// WAITING BAY SETUP</span>
-                    <div className="window-controls">
-                      <span className="window-btn min" />
-                      <span className="window-btn max" />
-                    </div>
                   </div>
 
                   <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1245,11 +1219,7 @@ export function Game() {
                 /* IN-GAME DICE CONTROLS WINDOW */
                 <section className="retro-window" id="diceControlWindow">
                   <div className="window-header">
-                    <span>// TACTICAL DICE SYSTEM</span>
-                    <div className="window-controls">
-                      <span className="window-btn min" />
-                      <span className="window-btn max" />
-                    </div>
+                    <span>// DICE SYSTEM</span>
                   </div>
 
                   <div
@@ -1353,26 +1323,25 @@ export function Game() {
               )}
 
               {/* MISSION TELEMETRY LOG WINDOW */}
-              <section className="retro-window" id="moveLogWindow">
-                <div className="window-header">
+              <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className="window-header" style={{ flex: 'none' }}>
                   <span>// MISSION TELEMETRY</span>
-                  <div className="window-controls">
-                    <span className="window-btn min" />
-                    <span className="window-btn max" />
-                  </div>
                 </div>
 
                 <div
+                  ref={moveLogContainerRef}
                   className="window-body"
                   style={{
-                    maxHeight: 180,
-                    minHeight: 140,
+                    flex: 1,
+                    height: '100%',
+                    maxHeight: '100%',
                     overflowY: 'auto',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 6,
                     padding: '10px 12px',
                     background: 'rgba(5, 2, 15, 0.75)',
+                    boxSizing: 'border-box',
                   }}
                 >
                   {moveLogs.length === 0 ? (
