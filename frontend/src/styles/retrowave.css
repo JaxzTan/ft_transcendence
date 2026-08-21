@@ -737,23 +737,142 @@ body {
 /* Elemental Auras for Other Ranks */
 .badge-tier-milo {
   position: relative;
-  background: linear-gradient(135deg, rgba(30, 5, 45, 0.95), rgba(15, 2, 28, 0.98)) !important;
-  border: 1.5px solid #bd00ff !important;
+  background: linear-gradient(135deg, rgba(38, 5, 58, 0.98), rgba(16, 2, 30, 0.99)) !important;
+  border: 1.5px solid #ff00ff !important;
   color: #ffffff !important;
-  box-shadow: 0 0 14px rgba(189, 0, 255, 0.7), inset 0 0 8px rgba(189, 0, 255, 0.35) !important;
-  text-shadow: 0 0 6px #ffffff, 0 0 12px #bd00ff !important;
-  animation: milo-plasma-pulse 2.2s infinite alternate !important;
+  box-shadow:
+    0 0 16px rgba(189, 0, 255, 0.85),
+    0 -5px 20px rgba(255, 0, 255, 0.75),
+    0 -10px 28px rgba(0, 240, 255, 0.5),
+    inset 0 0 12px rgba(255, 0, 255, 0.5) !important;
+  text-shadow: 0 0 6px #ffffff, 0 0 14px #ff00ff, 0 0 24px #bd00ff !important;
+  animation: milo-plasma-pulse 2.4s ease-in-out infinite alternate !important;
+  margin: 6px 8px 3px;
+  z-index: 1;
+}
+
+/* Highly Visible Violet-Cyan Plasma Aura outside the border */
+.badge-tier-milo::before {
+  content: '';
+  position: absolute;
+  inset: -10px -6px -4px -6px;
+  border-radius: 45% 45% 8px 8px / 65% 65% 15% 15%;
+  background: radial-gradient(
+    ellipse at 50% 115%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(0, 240, 255, 0.9) 25%,
+    rgba(255, 0, 255, 0.85) 55%,
+    rgba(189, 0, 255, 0.75) 78%,
+    transparent 96%
+  );
+  filter: blur(5px);
+  z-index: -2;
+  opacity: 0.95;
+  animation: milo-plasma-aura-wave 2.4s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* Ambient Outer Violet Glow Halo */
+.badge-tier-milo::after {
+  content: '';
+  position: absolute;
+  inset: -5px -3px -2px -3px;
+  border-radius: 50% 50% 6px 6px / 70% 70% 15% 15%;
+  background: radial-gradient(
+    ellipse at 50% 120%,
+    rgba(0, 240, 255, 0.8) 0%,
+    rgba(255, 0, 255, 0.75) 50%,
+    rgba(189, 0, 255, 0.65) 75%,
+    transparent 90%
+  );
+  filter: blur(4px);
+  z-index: -1;
+  opacity: 0.92;
+  animation: milo-plasma-aura-halo 3.2s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes milo-plasma-aura-wave {
+  0% {
+    transform: scale(0.98, 1.01) translateY(0);
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: scale(1.04, 1.08) translateY(-2px);
+    opacity: 1;
+  }
+}
+
+@keyframes milo-plasma-aura-halo {
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.03, 1.05) translateY(-1px);
+    opacity: 0.98;
+  }
 }
 
 @keyframes milo-plasma-pulse {
   0% {
     border-color: #bd00ff;
-    box-shadow: 0 0 12px rgba(189, 0, 255, 0.6), inset 0 0 8px rgba(189, 0, 255, 0.3);
+    box-shadow:
+      0 0 14px rgba(189, 0, 255, 0.8),
+      0 -4px 16px rgba(255, 0, 255, 0.65),
+      0 -8px 24px rgba(0, 240, 255, 0.45),
+      inset 0 0 10px rgba(189, 0, 255, 0.4);
+  }
+
+  50% {
+    border-color: #00f0ff;
+    box-shadow:
+      0 0 20px rgba(0, 240, 255, 0.95),
+      0 -8px 26px rgba(255, 0, 255, 0.9),
+      0 -14px 34px rgba(189, 0, 255, 0.7),
+      inset 0 0 14px rgba(0, 240, 255, 0.6);
   }
 
   100% {
     border-color: #ff00ff;
-    box-shadow: 0 0 20px rgba(255, 0, 255, 0.85), inset 0 0 12px rgba(189, 0, 255, 0.5);
+    box-shadow:
+      0 0 18px rgba(255, 0, 255, 0.9),
+      0 -6px 22px rgba(189, 0, 255, 0.8),
+      0 -12px 30px rgba(0, 240, 255, 0.55),
+      inset 0 0 12px rgba(255, 0, 255, 0.5);
+  }
+}
+
+/* Floating Rising Plasma Particles for MILO DINOSAUR */
+.milo-plasma-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.95;
+  background: radial-gradient(circle, #ffffff 15%, #00f0ff 50%, #ff00ff 85%, #bd00ff 100%);
+  box-shadow:
+    0 0 6px #00f0ff,
+    0 0 12px #ff00ff;
+  animation: milo-spark-rise var(--spark-dur, 2.2s) infinite ease-out;
+}
+
+@keyframes milo-spark-rise {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.95;
+  }
+
+  50% {
+    transform: translate(var(--spark-drift, -4px), -12px) scale(1.25);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(calc(var(--spark-drift, -4px) * 2), -26px) scale(0.2);
+    opacity: 0;
   }
 }
 
