@@ -311,13 +311,13 @@ export function Profile() {
           {/* Top Hero Banner */}
           <header className="hero-section" style={{ padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className="hero-title" style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
-              PILOT DOSSIER // CALLSIGN DATABASE
+              PILOT PROFILE // CALLSIGN DATABASE
             </h1>
           </header>
 
           {loading ? (
             <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--accent-yellow)', fontSize: '1rem', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-              INITIALIZING STEAM DOSSIER TELEMETRY...
+              INITIALIZING PILOT PROFILE TELEMETRY...
             </div>
           ) : !profile ? (
             <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: '#ff0055', fontSize: '1rem', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
@@ -349,7 +349,7 @@ export function Profile() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                  <span>// STEAM PILOT DOSSIER • {profile.username.toUpperCase()} (ID: #{profile.id.slice(0, 8).toUpperCase()})</span>
+                  <span>// PILOT PROFILE • {profile.username.toUpperCase()} (ID: #{profile.id.slice(0, 8).toUpperCase()})</span>
                 </div>
                 <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span className="window-btn min" />

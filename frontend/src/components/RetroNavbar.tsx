@@ -22,9 +22,9 @@ interface RetroNavbarProps {
 const NAV_ITEMS = [
   { path: '/leaderboard', label: 'LEADERBOARD', icon: '♛' },
   { path: '/profile', label: 'PROFILE', icon: '@/' },
+  { path: '/friends', label: 'FRIENDS', icon: '♟' },
   { path: '/gamelobby', label: 'LOBBY', icon: '>_' },
   { path: '/game', label: 'ARENA', icon: '{}', disabled: true },
-  { path: '/friends', label: 'FRIENDS', icon: '♟' },
 ]
 
 export function RetroNavbar({
