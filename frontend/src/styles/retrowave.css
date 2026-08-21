@@ -209,46 +209,11 @@ body {
 }
 
 .crt-scanlines {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 999;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%,
-      rgba(0, 0, 0, var(--crt-scanline-opacity)) 50%), linear-gradient(90deg,
-      rgba(255, 0, 0, 0.03),
-      rgba(0, 255, 0, 0.01),
-      rgba(0, 0, 255, 0.03));
-  background-size: 100% 3px, 6px 100%;
-  transition: opacity 0.3s ease;
+  display: none !important;
 }
 
 .crt-flicker {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 998;
-  background: rgba(255, 255, 255, var(--crt-flicker-opacity));
-  animation: crt-flicker-anim 0.15s infinite;
-}
-
-@keyframes crt-flicker-anim {
-  0% {
-    opacity: 0.8;
-  }
-
-  50% {
-    opacity: 1.2;
-  }
-
-  100% {
-    opacity: 0.9;
-  }
+  display: none !important;
 }
 
 .crt-curved {
@@ -256,16 +221,7 @@ body {
 }
 
 .crt-curved::after {
-  content: " ";
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.65) 100%);
-  pointer-events: none;
-  z-index: 997;
+  display: none !important;
 }
 
 /* --------------------------------------------------------------------------
