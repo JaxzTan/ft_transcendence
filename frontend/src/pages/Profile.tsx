@@ -100,6 +100,7 @@ export function Profile() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [gamesData, setGamesData] = useState<MatchHistory | null>(null)
   const [friendsData, setFriendsData] = useState<Friend[] | null>(null)
+  const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -197,15 +198,30 @@ export function Profile() {
         if (!cancelled) setFriendsData([])
       })
 
+    fetch('/api/leaderboard?mode=global&limit=25', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return
+        if (isOwnProfile && data?.myRank?.rank) {
+          setLeaderboardRank(data.myRank.rank)
+        } else if (data?.entries) {
+          const match = data.entries.find((e: { username: string; rank: number }) => e.username === username)
+          setLeaderboardRank(match ? match.rank : null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLeaderboardRank(null)
+      })
+
     return () => {
       cancelled = true
     }
-  }, [username, avatarBuster])
+  }, [username, avatarBuster, isOwnProfile])
 
   const totalGames = profile ? profile.wins + profile.losses : 0
   const winRate = totalGames > 0 ? Math.round((profile!.wins / totalGames) * 100) : 0
   const statusStyle = profile ? STATUS_STYLE[profile.status] || STATUS_STYLE.offline : STATUS_STYLE.offline
-  const rankTier = profile ? getRankTier(profile.rating) : getRankTier(1200)
+  const rankTier = profile ? getRankTier(profile.rating, leaderboardRank) : getRankTier(1200)
 
   return (
     <>

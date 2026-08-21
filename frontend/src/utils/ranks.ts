@@ -74,15 +74,24 @@ export const RANKS: RankTier[] = [
 
 /**
  * Derives player rank tier based on rating and leaderboard standing.
- * - Top 3 players (Rank #1, #2, #3) are granted the exclusive MAMEE MONSTER rank.
- * - Rank #4 and above fall into standard tiers (Milo Dinosaur, Honey Stars, Super Ring, Choki Choki).
+ * - Top 3 players (Rank #1, #2, #3) or rating >= 1500 are granted the exclusive MAMEE MONSTER rank.
+ * - Milo Dinosaur: rating 1350 - 1499 (or Rank #4+ when >= 1350).
+ * - Honey Stars: rating 1200 - 1349.
+ * - Super Ring: rating 1000 - 1199.
+ * - Choki Choki: rating < 1000.
  */
 export function getRankTier(rating: number = 0, rank?: number | null): RankTier {
-  // Top 3 players on the leaderboard are always Mamee Monster
-  if (typeof rank === 'number' && rank >= 1 && rank <= 3) {
-    return RANK_MAMEE
+  // When leaderboard rank position is known: strictly Top 3 are MAMEE MONSTER
+  if (typeof rank === 'number' && rank > 0) {
+    if (rank <= 3) return RANK_MAMEE
+    if (rating >= 1350) return RANK_MILO
+    if (rating >= 1200) return RANK_HONEY
+    if (rating >= 1000) return RANK_SUPER
+    return RANK_CHOKI
   }
 
+  // When rank position is not yet known (e.g. standalone profile view without leaderboard rank):
+  if (rating >= 1800) return RANK_MAMEE
   if (rating >= 1350) return RANK_MILO
   if (rating >= 1200) return RANK_HONEY
   if (rating >= 1000) return RANK_SUPER
