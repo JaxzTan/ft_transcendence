@@ -111,27 +111,75 @@ export function Lobby() {
           style={{
             marginLeft: 'auto',
             marginRight: 'auto',
-            maxWidth: 1100,
+            maxWidth: 1440,
             width: '100%',
             minHeight: '100vh',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
             padding: '16px 20px',
             boxSizing: 'border-box',
           }}
         >
-          {/* Hero Header */}
-          <header className="hero-section" style={{ padding: '4px 0 16px', textAlign: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 0 }}>
+          {/* Hero Header - Identical 1-to-1 design & dimensions as Game.tsx */}
+          <header className="hero-section" style={{ padding: '16px 0 14px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <h1 className="hero-title" style={{ fontSize: '1.6rem', marginBottom: 4, textAlign: 'center' }}>
                 {isSolo ? '// SOLO PRACTICE BAY //' : '// ARENA MATCH CONFIGURATION //'}
               </h1>
-              <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+
+              {/* Live Pill Announcement Bar */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 20px',
+                  borderRadius: 4,
+                  background: 'rgba(0, 240, 255, 0.15)',
+                  border: '1px solid var(--accent-cyan)',
+                }}
+              >
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background: 'var(--accent-cyan)',
+                    boxShadow: '0 0 6px var(--accent-cyan)',
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontSize: '0.75rem',
+                    color: '#ffffff',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  {isSolo ? 'SOLO RUN MODE' : 'ARENA LOBBY READY'}
+                </span>
+              </div>
+
+              {/* Status Marquee Subtitle Bar */}
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: 740,
+                  padding: '8px 14px',
+                  background: 'rgba(0, 0, 0, 0.6)',
+                  border: '1px solid rgba(0, 240, 255, 0.35)',
+                  borderRadius: 4,
+                  textAlign: 'center',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.82rem',
+                  color: 'var(--accent-cyan)',
+                }}
+              >
                 {isSolo
-                  ? 'SOLO RUN // TEST YOUR LUCK AGAINST ARENA HAZARDS'
-                  : 'CONFIGURE PILOT SEATS, BOTS & TACTICAL PARAMETERS'}
-              </p>
+                  ? '>>> TEST YOUR LUCK AGAINST ARENA HAZARDS <<<'
+                  : '>>> CONFIGURE PILOT SEATS, BOTS & TACTICAL PARAMETERS <<<'}
+              </div>
             </div>
           </header>
 
