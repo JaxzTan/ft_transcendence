@@ -483,22 +483,18 @@ export function Profile() {
                       <div
                         style={{
                           fontFamily: 'var(--font-display)',
-                          fontSize: '1.8rem',
+                          fontSize: '2.3rem',
                           fontWeight: 900,
                           color: '#ffffff',
                           letterSpacing: '0.04em',
-                          lineHeight: 1.1,
-                          textShadow: '0 0 16px rgba(0, 240, 255, 0.6)',
+                          lineHeight: 1.05,
+                          textShadow: '0 0 20px rgba(0, 240, 255, 0.65)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                         }}
                       >
                         {profile.username}
-                      </div>
-
-                      <div style={{ color: 'var(--accent-cyan)', fontSize: '0.76rem', fontFamily: 'var(--font-display)', marginTop: 3, letterSpacing: '0.5px' }}>
-                        CYBER LUDO '84 GLADIATOR
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
