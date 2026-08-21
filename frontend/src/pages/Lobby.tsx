@@ -124,7 +124,7 @@ export function Lobby() {
           {/* Hero Header - Identical 1-to-1 design & dimensions as Game.tsx */}
           <header className="hero-section" style={{ padding: '16px 0 14px', textAlign: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <h1 className="hero-title" style={{ fontSize: '1.6rem', marginBottom: 4, textAlign: 'center' }}>
+              <h1 className="hero-title" style={{ fontSize: '1.75rem', marginBottom: 4, textAlign: 'center' }}>
                 {isSolo ? '// SOLO PRACTICE BAY //' : '// ARENA MATCH CONFIGURATION //'}
               </h1>
 
@@ -134,7 +134,7 @@ export function Lobby() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 10,
-                  padding: '8px 20px',
+                  padding: '8px 22px',
                   borderRadius: 4,
                   background: 'rgba(0, 240, 255, 0.15)',
                   border: '1px solid var(--accent-cyan)',
@@ -152,7 +152,7 @@ export function Lobby() {
                 <span
                   style={{
                     fontFamily: 'var(--font-heading)',
-                    fontSize: '0.75rem',
+                    fontSize: '0.82rem',
                     color: '#ffffff',
                     letterSpacing: '0.5px',
                   }}
@@ -166,13 +166,13 @@ export function Lobby() {
                 style={{
                   width: '100%',
                   maxWidth: 740,
-                  padding: '8px 14px',
+                  padding: '10px 16px',
                   background: 'rgba(0, 0, 0, 0.6)',
                   border: '1px solid rgba(0, 240, 255, 0.35)',
                   borderRadius: 4,
                   textAlign: 'center',
                   fontFamily: 'var(--font-mono)',
-                  fontSize: '0.82rem',
+                  fontSize: '0.9rem',
                   color: 'var(--accent-cyan)',
                 }}
               >
@@ -198,7 +198,7 @@ export function Lobby() {
             {/* LEFT COLUMN: SEAT ASSIGNMENT WINDOW & BACK BUTTON */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <section className="retro-window" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div className="window-header">
+                <div className="window-header" style={{ fontSize: '0.84rem' }}>
                   <span>// SEAT ROSTER & PILOT ASSIGNMENTS ({playerCount - emptyCount}/{playerCount})</span>
                   <div className="window-controls">
                     <span className="window-btn min" />
@@ -223,18 +223,18 @@ export function Lobby() {
                           boxShadow: `0 0 10px ${hue}25`,
                           display: 'flex',
                           flexDirection: 'column',
-                          height: 138,
+                          height: 190,
                           overflow: 'hidden',
                           boxSizing: 'border-box',
                         }}
                       >
                         {/* Color Header Stripe */}
-                        <div style={{ height: 3, background: hue }} />
+                        <div style={{ height: 4, background: hue }} />
 
-                        <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                           {/* SEAT BADGE HEADER */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: hue, fontWeight: 'bold' }}>
+                            <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: hue, fontWeight: 'bold' }}>
                               // SEAT 0{i + 1}: {colorName}
                             </span>
                           </div>
@@ -245,10 +245,10 @@ export function Lobby() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <UserAvatar
                                   username={user?.username || ''}
-                                  size={36}
+                                  size={40}
                                   fallbackStyle={{
-                                    width: 36,
-                                    height: 36,
+                                    width: 40,
+                                    height: 40,
                                     borderRadius: 6,
                                     background: hue,
                                     color: '#0d0221',
@@ -259,15 +259,15 @@ export function Lobby() {
                                   style={{ borderRadius: 6, border: `1px solid ${hue}` }}
                                 />
                                 <div>
-                                  <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
+                                  <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
                                     {user?.username.toUpperCase() || t('common.you')}
                                   </div>
-                                  <div style={{ color: hue, fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                                  <div style={{ color: hue, fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
                                     [HOST / PILOT 01]
                                   </div>
                                 </div>
                               </div>
-                              <div style={{ fontSize: '0.65rem', color: '#00ff88', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                              <div style={{ fontSize: '0.74rem', color: '#00ff88', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
                                 &gt;&gt; STATE: READY // HOST
                               </div>
                             </div>
@@ -279,8 +279,8 @@ export function Lobby() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                   <div
                                     style={{
-                                      width: 34,
-                                      height: 34,
+                                      width: 38,
+                                      height: 38,
                                       borderRadius: 6,
                                       background: `${hue}25`,
                                       border: `1px solid ${hue}`,
@@ -289,16 +289,16 @@ export function Lobby() {
                                       display: 'grid',
                                       placeItems: 'center',
                                       fontFamily: 'var(--font-mono)',
-                                      fontSize: '0.72rem',
+                                      fontSize: '0.82rem',
                                     }}
                                   >
                                     AI
                                   </div>
                                   <div>
-                                    <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
+                                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
                                       {seat.name}
                                     </div>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
                                       [AI BOT]
                                     </div>
                                   </div>
@@ -315,18 +315,18 @@ export function Lobby() {
                                     border: '1px solid #ff0055',
                                     color: '#ff0055',
                                     borderRadius: 4,
-                                    width: 24,
-                                    height: 24,
+                                    width: 26,
+                                    height: 26,
                                     display: 'grid',
                                     placeItems: 'center',
-                                    fontSize: '0.72rem',
+                                    fontSize: '0.8rem',
                                   }}
                                   title="Remove Bot"
                                 >
                                   ✕
                                 </button>
                               </div>
-                              <div style={{ fontSize: '0.65rem', color: hue, fontFamily: 'var(--font-mono)' }}>
+                              <div style={{ fontSize: '0.74rem', color: hue, fontFamily: 'var(--font-mono)' }}>
                                 &gt;&gt; STATE: AI READY
                               </div>
                             </div>
@@ -338,8 +338,8 @@ export function Lobby() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                                   <div
                                     style={{
-                                      width: 34,
-                                      height: 34,
+                                      width: 38,
+                                      height: 38,
                                       borderRadius: 6,
                                       background: `${hue}25`,
                                       border: `1px solid ${hue}`,
@@ -348,7 +348,7 @@ export function Lobby() {
                                       display: 'grid',
                                       placeItems: 'center',
                                       fontFamily: 'var(--font-mono)',
-                                      fontSize: '0.72rem',
+                                      fontSize: '0.82rem',
                                     }}
                                   >
                                     P{i + 1}
@@ -375,8 +375,8 @@ export function Lobby() {
                                           border: `1px solid ${hue}`,
                                           borderRadius: 4,
                                           color: '#ffffff',
-                                          padding: '2px 6px',
-                                          fontSize: '0.78rem',
+                                          padding: '3px 8px',
+                                          fontSize: '0.86rem',
                                           fontFamily: 'var(--font-mono)',
                                         }}
                                       />
@@ -386,13 +386,13 @@ export function Lobby() {
                                           setEditingSeat(i)
                                           setEditName(seat.name)
                                         }}
-                                        style={{ fontWeight: 800, fontSize: '0.82rem', color: '#ffffff', fontFamily: 'var(--font-heading)', cursor: 'pointer' }}
+                                        style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff', fontFamily: 'var(--font-heading)', cursor: 'pointer' }}
                                         title="Click to rename pilot"
                                       >
                                         {seat.name} ✎
                                       </div>
                                     )}
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
                                       [HOTSEAT PILOT]
                                     </div>
                                   </div>
@@ -409,18 +409,18 @@ export function Lobby() {
                                     border: '1px solid #ff0055',
                                     color: '#ff0055',
                                     borderRadius: 4,
-                                    width: 24,
-                                    height: 24,
+                                    width: 26,
+                                    height: 26,
                                     display: 'grid',
                                     placeItems: 'center',
-                                    fontSize: '0.72rem',
+                                    fontSize: '0.8rem',
                                   }}
                                   title="Remove Player"
                                 >
                                   ✕
                                 </button>
                               </div>
-                              <div style={{ fontSize: '0.65rem', color: '#00ff88', fontFamily: 'var(--font-mono)' }}>
+                              <div style={{ fontSize: '0.74rem', color: '#00ff88', fontFamily: 'var(--font-mono)' }}>
                                 &gt;&gt; STATE: STANDBY
                               </div>
                             </div>
@@ -441,7 +441,7 @@ export function Lobby() {
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: 4,
+                                gap: 6,
                                 cursor: 'pointer',
                                 background: 'rgba(0,0,0,0.4)',
                                 transition: 'all 0.2s ease',
@@ -450,20 +450,20 @@ export function Lobby() {
                             >
                               <div
                                 style={{
-                                  width: 26,
-                                  height: 26,
+                                  width: 30,
+                                  height: 30,
                                   borderRadius: '50%',
                                   border: `1.5px dashed ${hue}`,
                                   color: hue,
                                   display: 'grid',
                                   placeItems: 'center',
-                                  fontSize: '1rem',
+                                  fontSize: '1.1rem',
                                   fontWeight: 'bold',
                                 }}
                               >
                                 +
                               </div>
-                              <div style={{ fontSize: '0.68rem', color: hue, fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                              <div style={{ fontSize: '0.78rem', color: hue, fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
                                 {allowAddPlayers ? '+ ADD AI BOT' : '+ ADD HUMAN PILOT'}
                               </div>
                             </div>
@@ -480,8 +480,8 @@ export function Lobby() {
                 className="retro-btn"
                 style={{
                   width: '100%',
-                  padding: '10px 0',
-                  fontSize: '0.75rem',
+                  padding: '12px 0',
+                  fontSize: '0.84rem',
                   fontFamily: 'var(--font-mono)',
                   letterSpacing: '0.5px',
                   background: 'rgba(0, 240, 255, 0.12)',
@@ -502,7 +502,7 @@ export function Lobby() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* LAUNCH CONTROL WINDOW */}
               <section className="retro-window" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <div className="window-header">
+                <div className="window-header" style={{ fontSize: '0.84rem' }}>
                   <span>// ARENA LAUNCH CONTROL</span>
                   <div className="window-controls">
                     <span className="window-btn min" />
@@ -510,9 +510,9 @@ export function Lobby() {
                   </div>
                 </div>
 
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 20, flex: 1, justifyContent: 'space-between' }}>
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 22, padding: '28px 24px', flex: 1, justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
                       <span style={{ color: 'var(--text-muted)' }}>// ACTIVE PILOTS:</span>
                       <span style={{ color: '#ffffff', fontWeight: 'bold' }}>
                         {playerCount - emptyCount} / {playerCount}
@@ -520,7 +520,7 @@ export function Lobby() {
                     </div>
 
                     {!isSolo && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
                         <span style={{ color: 'var(--text-muted)' }}>// BOT UNITS:</span>
                         <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
                           {botCount} UNIT{botCount === 1 ? '' : 'S'}
@@ -528,25 +528,47 @@ export function Lobby() {
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
                       <span style={{ color: 'var(--text-muted)' }}>// ARENA MODE:</span>
                       <span style={{ color: '#ffe600', fontWeight: 'bold' }}>
                         {isSolo ? 'SOLO PRACTICE' : isLocal ? 'LOCAL HOTSEAT' : 'PVE ARENA'}
                       </span>
                     </div>
 
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>// SECTOR MATRIX:</span>
+                      <span style={{ color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
+                        15x15 COMBAT CROSS
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>// COMBAT CLASH:</span>
+                      <span style={{ color: '#ff007f', fontWeight: 'bold' }}>
+                        CONTESTED TILE CLASH
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>// WIN CONDITION:</span>
+                      <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
+                        4 PIECES IN GOAL
+                      </span>
+                    </div>
+
                     {/* Status Info Box */}
                     <div
                       style={{
-                        padding: '12px 14px',
+                        padding: '16px 18px',
                         background: 'rgba(0, 0, 0, 0.5)',
                         border: '1px solid rgba(0, 240, 255, 0.3)',
                         borderRadius: 4,
                         textAlign: 'center',
-                        fontSize: '0.72rem',
+                        fontSize: '0.82rem',
                         fontFamily: 'var(--font-mono)',
                         color: canStart ? '#00ff88' : '#ffe600',
-                        marginTop: 6,
+                        marginTop: 12,
+                        lineHeight: 1.5,
                       }}
                     >
                       {canStart
@@ -563,10 +585,10 @@ export function Lobby() {
                       className="retro-btn"
                       style={{
                         width: '100%',
-                        padding: '14px 0',
-                        fontSize: '0.88rem',
+                        padding: '16px 0',
+                        fontSize: '1rem',
                         fontFamily: 'var(--font-heading)',
-                        letterSpacing: '1px',
+                        letterSpacing: '1.2px',
                         background: canStart ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 255, 255, 0.05)',
                         border: canStart ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.2)',
                         color: canStart ? '#00ff88' : 'var(--text-muted)',
