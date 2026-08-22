@@ -95,24 +95,10 @@ export function Game() {
   const { t } = useTranslation()
   const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
 
-  // ------------------------------------------------------------------------
-  // THEME & CRT CONTROLS
-  // ------------------------------------------------------------------------
-  const [theme, setTheme] = useState<ThemeType>('synthwave')
-  const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
   const [crtEnabled, setCrtEnabled] = useState(true)
-
-  const applyTheme = (newTheme: ThemeType) => {
-    setTheme(newTheme)
-    document.documentElement.setAttribute('data-theme', newTheme)
-    document.body.setAttribute('data-theme', newTheme)
-    localStorage.setItem('retro_theme', newTheme)
-    retroAudio.playUiBeep(880, 0.05)
-  }
 
   useEffect(() => {
     const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
-    setTheme(savedTheme)
     document.documentElement.setAttribute('data-theme', savedTheme)
     document.body.setAttribute('data-theme', savedTheme)
 
@@ -447,11 +433,6 @@ export function Game() {
     } catch {
       setInviteStates((prev) => ({ ...prev, [friendId]: 'idle' }))
     }
-  }
-
-  const leaveGame = () => {
-    retroAudio.playUiBeep(440, 0.05)
-    navigate('/gamelobby')
   }
 
   const endGame = () => {

@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { navigate, useRoute } from '../router'
 import { useApp } from '../store'
-import type { Lang } from '../store'
 import { retroAudio } from '../utils/audio'
 import { UserAvatar } from './UserAvatar'
 import { NotificationBell } from './NotificationBell'
@@ -32,8 +30,6 @@ const NAV_ITEMS = [
 
 export function RetroNavbar({
   activeRoute,
-  crtEnabled,
-  toggleCrt,
   notifications,
   unreadCount,
   onMarkRead,
@@ -41,7 +37,6 @@ export function RetroNavbar({
   style,
 }: RetroNavbarProps) {
   const route = useRoute()
-  const { t } = useTranslation()
   const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp()
   const currentPath = activeRoute || route.path
 

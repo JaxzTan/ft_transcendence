@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getApi, postApi } from '../api'
+import { getApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
-import { NotificationBell } from '../components/NotificationBell'
 import { RetroNavbar } from '../components/RetroNavbar'
 import { NotificationToasts } from '../components/NotificationToast'
 import { useNotifications } from '../hooks/useNotifications'
@@ -31,7 +30,7 @@ const STATUS_STYLE: Record<string, { label: string; color: string; border: strin
 
 export function Home() {
 	const { t } = useTranslation()
-	const { user, setActiveMatch } = useApp()
+	const { user } = useApp()
 	const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } = useNotifications()
 
 	// ------------------------------------------------------------------------
@@ -85,16 +84,7 @@ export function Home() {
 	// 3. THEME & CRT CONTROLS
 	// ------------------------------------------------------------------------
 	const [theme, setTheme] = useState<ThemeType>('synthwave')
-	const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
 	const [crtEnabled, setCrtEnabled] = useState(true)
-
-	const applyTheme = (newTheme: ThemeType) => {
-		setTheme(newTheme)
-		document.documentElement.setAttribute('data-theme', newTheme)
-		document.body.setAttribute('data-theme', newTheme)
-		localStorage.setItem('retro_theme', newTheme)
-		retroAudio.playUiBeep(880, 0.05)
-	}
 
 	useEffect(() => {
 		const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
@@ -121,7 +111,6 @@ export function Home() {
 	const [friends, setFriends] = useState<Friend[] | null>(null)
 	const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
 	const [isFriendsLoading, setIsFriendsLoading] = useState(false)
-	const [invitingFriendId, setInvitingFriendId] = useState<string | null>(null)
 
 	const fetchFriendsData = () => {
 		Promise.all([
@@ -130,7 +119,6 @@ export function Home() {
 		])
 			.then(([friendsData, reqData]) => {
 				const list = Array.isArray(friendsData) ? friendsData : []
-				// Sort friends by rating descending identical to Profile page
 				list.sort((a, b) => (b.rating || 0) - (a.rating || 0))
 				setFriends(list)
 				setPendingRequestsCount(Array.isArray(reqData?.received) ? reqData.received.length : 0)
@@ -147,29 +135,6 @@ export function Home() {
 		const iv = setInterval(fetchFriendsData, 12000)
 		return () => clearInterval(iv)
 	}, [])
-
-	const handleInviteFriend = async (friendId: string) => {
-		if (invitingFriendId) return
-		setInvitingFriendId(friendId)
-		retroAudio.playUiBeep(800, 0.08)
-		try {
-			const res = await postApi<{
-				gameId: string
-				token: string
-				engineUrl: string
-				color: any
-				inviteCode?: string
-				mode: 'pvp' | 'pve' | 'hotseat'
-				playerCount: number
-			}>(`/api/friends/${friendId}/invite`, { clashEnabled: true })
-			setActiveMatch(res)
-			navigate(`/game?gameId=${res.gameId}`)
-		} catch (e) {
-			console.error(e)
-		} finally {
-			setInvitingFriendId(null)
-		}
-	}
 
 	const [isPlayingAudio, setIsPlayingAudio] = useState(false)
 	const handleToggleAudio = () => {
@@ -478,17 +443,17 @@ export function Home() {
 			}
 
 			// Sort faces by average Z depth (Painter's algorithm)
-			const faceList = faces.map((face) => {
-				const pts = face.v.map((idx) => transformedVertices[idx])
+			const faceList = faces.map((face: any) => {
+				const pts = face.v.map((idx: number) => transformedVertices[idx])
 				const avgZ = (pts[0].z + pts[1].z + pts[2].z + pts[3].z) / 4
 				const v0 = pts[0], v1 = pts[1], v2 = pts[2]
 				const normalZ = (v1.px - v0.px) * (v2.py - v0.py) - (v1.py - v0.py) * (v2.px - v0.px)
 				return { ...face, pts, avgZ, normalZ }
 			})
 
-			faceList.sort((a, b) => a.avgZ - b.avgZ)
+			faceList.sort((a: any, b: any) => a.avgZ - b.avgZ)
 
-			faceList.forEach((face) => {
+			faceList.forEach((face: any) => {
 				const isBackface = face.normalZ <= 0
 				const alpha = isBackface ? 0.35 : 1.0
 
@@ -518,13 +483,13 @@ export function Home() {
 				const pips = pipPositions[face.pips] || []
 				const p0 = face.pts[0], p1 = face.pts[1], p2 = face.pts[2], p3 = face.pts[3]
 
-				pips.forEach(([u, v]) => {
+				pips.forEach(([u, v]: any) => {
 					const su = u + 0.5
 					const sv = v + 0.5
 					const topX = p0.px + (p1.px - p0.px) * su
 					const topY = p0.py + (p1.py - p0.py) * su
 					const botX = p3.px + (p2.px - p3.px) * su
-					const botY = p3.py + (p2.py - p3.py) * su
+					const botY = p3.py + (p2.py - p3.py) * sv
 					const pipX = topX + (botX - topX) * sv
 					const pipY = topY + (botY - topY) * sv
 
@@ -542,7 +507,7 @@ export function Home() {
 			// 6. 4-Player Army Hologram Nodes
 			const pawns = currentCfg.pawns
 
-			pawns.forEach((p, idx) => {
+			pawns.forEach((p: any, idx: number) => {
 				const pulse = Math.sin(time * 3 + idx * 1.5) * 2.4
 				ctx.save()
 				ctx.fillStyle = p.color

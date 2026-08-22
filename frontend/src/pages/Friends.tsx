@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { postApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
@@ -52,7 +52,6 @@ export function Friends() {
   // ------------------------------------------------------------------------
   // THEME & CRT CONTROLS
   // ------------------------------------------------------------------------
-  const [theme, setTheme] = useState<ThemeType>('synthwave')
   const [crtEnabled, setCrtEnabled] = useState(true)
 
   const toggleCrt = () => {
@@ -64,7 +63,6 @@ export function Friends() {
 
   useEffect(() => {
     const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
-    setTheme(savedTheme)
     document.documentElement.setAttribute('data-theme', savedTheme)
     document.body.setAttribute('data-theme', savedTheme)
 
@@ -554,8 +552,8 @@ export function Friends() {
                               padding: '11px 16px',
                               borderRadius: 6,
                               background: 'rgba(18, 6, 42, 0.82)',
-                              border: `1.5px solid ${fStatus.status === 'online' || fStatus.status === 'playing' ? 'rgba(0, 240, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)'}`,
-                              boxShadow: fStatus.status === 'online' || fStatus.status === 'playing' ? '0 0 10px rgba(0, 240, 255, 0.08)' : 'none',
+                              border: `1.5px solid ${f.status === 'online' || f.status === 'playing' ? 'rgba(0, 240, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)'}`,
+                              boxShadow: f.status === 'online' || f.status === 'playing' ? '0 0 10px rgba(0, 240, 255, 0.08)' : 'none',
                               transition: 'all 0.18s ease',
                               gap: 12,
                               cursor: 'pointer',
@@ -568,8 +566,8 @@ export function Friends() {
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.background = 'rgba(18, 6, 42, 0.82)'
-                              e.currentTarget.style.borderColor = fStatus.status === 'online' || fStatus.status === 'playing' ? 'rgba(0, 240, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)'
-                              e.currentTarget.style.boxShadow = fStatus.status === 'online' || fStatus.status === 'playing' ? '0 0 10px rgba(0, 240, 255, 0.08)' : 'none'
+                              e.currentTarget.style.borderColor = f.status === 'online' || f.status === 'playing' ? 'rgba(0, 240, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)'
+                              e.currentTarget.style.boxShadow = f.status === 'online' || f.status === 'playing' ? '0 0 10px rgba(0, 240, 255, 0.08)' : 'none'
                               e.currentTarget.style.transform = 'translateX(0)'
                             }}
                             title={`Click to view ${f.username}'s Pilot Profile`}

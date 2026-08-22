@@ -38,14 +38,14 @@ export function TwoFactor() {
         style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}
       >
         <div>
-          <div className="retro-auth-title" style={{ fontSize: 24 }}>
-            {t('auth.checkEmailTitle')}
+          <div className="retro-auth-title" style={{ fontSize: 32 }}>
+            TWO-FACTOR AUTH
           </div>
           <div className="retro-auth-subtitle">
             {t('auth.codeSentDesc')}
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className="retro-auth-label">{t('auth.loginCodeLabel')}</div>
           <input
             value={code}
@@ -55,7 +55,15 @@ export function TwoFactor() {
             autoComplete="one-time-code"
             autoFocus
             className="retro-auth-input"
-            style={{ letterSpacing: 8, fontSize: 22, textAlign: 'center' }}
+            style={{
+              letterSpacing: 10,
+              fontSize: 26,
+              fontWeight: 900,
+              textAlign: 'center',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--accent-cyan)',
+              textShadow: '0 0 10px rgba(0, 240, 255, 0.5)',
+            }}
           />
         </div>
         {error && (
@@ -66,7 +74,7 @@ export function TwoFactor() {
           disabled={submitting || code.length !== 6}
           className="retro-auth-btn"
         >
-          {submitting ? t('auth.checkingBtn') : t('auth.enterParlorBtn')}
+          {submitting ? t('auth.checkingBtn') : 'VERIFY & ENTER ARENA'}
         </button>
         <div className="retro-auth-muted" style={{ textAlign: 'center' }}>
           {t('auth.codeExpired')}{' '}
