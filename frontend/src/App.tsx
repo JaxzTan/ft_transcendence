@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Shell } from './components/Shell'
-import { Dashboard } from './pages/Dashboard'
 import { Friends } from './pages/Friends'
 import { Game } from './pages/Game'
 import { Home } from './pages/Home'
@@ -24,7 +23,6 @@ const SHELL_ROUTES: Record<string, () => ReactNode> = {}
 /** Full-bleed screens (no shell). */
 const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/home': () => <Home />,
-  '/dashboard': () => <Dashboard />,
   '/leaderboard': () => <Leaderboard />,
   '/friends': () => <Friends />,
   '/profile': () => <Profile />,

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
+import Redis from 'ioredis';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -48,7 +49,7 @@ const SEED_PLAYERS = [
   { username: 'GhostRunner', rating: 1370, wins: 18, losses: 13, avatar: 'avataaars', status: 'offline' },
   { username: 'AeroBlade', rating: 1355, wins: 17, losses: 12, avatar: 'identicon', status: 'online' },
 
-  // ── HONEY STARS (Rating 1200 - 1349) ────────────────────────────
+  // ── PADDLE POP (Rating 1200 - 1349) ─────────────────────────────
   { username: 'StarLord', rating: 1340, wins: 16, losses: 14, avatar: 'bottts', status: 'online' },
   { username: 'PixelMage', rating: 1320, wins: 15, losses: 13, avatar: 'shapes', status: 'playing' },
   { username: 'QuantumVolt', rating: 1290, wins: 14, losses: 12, avatar: 'avataaars', status: 'offline' },
@@ -57,7 +58,7 @@ const SEED_PLAYERS = [
   { username: 'SolarFlare', rating: 1220, wins: 11, losses: 15, avatar: 'shapes', status: 'online' },
   { username: 'LaserFang', rating: 1205, wins: 10, losses: 14, avatar: 'bottts', status: 'playing' },
 
-  // ── SUPER RING (Rating 1000 - 1199) ─────────────────────────────
+  // ── HONEY STARS (Rating 1000 - 1199) ────────────────────────────
   { username: 'CheeseRing', rating: 1180, wins: 10, losses: 16, avatar: 'avataaars', status: 'online' },
   { username: 'NightOwl', rating: 1150, wins: 9, losses: 16, avatar: 'identicon', status: 'offline' },
   { username: 'Carol', rating: 1120, wins: 8, losses: 15, avatar: 'shapes', status: 'playing' },
@@ -145,6 +146,105 @@ async function main() {
   });
 
   console.log(`  ✅ Created global leaderboard snapshot covering ${allPilots.length} total database pilots!`);
+
+  // ── Sync All Pilots directly to Redis Leaderboard ──────────────────────────
+  try {
+    const redisHost = process.env.REDIS_HOST || (process.env.SECRETS_DIR ? 'redis' : 'localhost');
+    const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const redisPassword = secret('REDIS_PASSWORD') || 'password123';
+    const redis = new Redis({ host: redisHost, port: redisPort, password: redisPassword });
+    
+    // Clear old Redis leaderboards
+    await redis.del('leaderboard:global', 'leaderboard:ranked', 'leaderboard:casual');
+
+    for (const u of allPilots) {
+      await redis.zadd('leaderboard:global', u.rating, u.id);
+      await redis.zadd('leaderboard:ranked', u.rating, u.id);
+      await redis.zadd('leaderboard:casual', u.rating, u.id);
+    }
+    await redis.quit();
+    console.log(`  ✅ Successfully synchronized ${allPilots.length} pilots to Redis sorted sets!`);
+  } catch (redisErr) {
+    console.warn('  ⚠️ Redis sync during seed skipped/failed:', redisErr);
+  }
+
+  // ── Seed Friendships & Incoming Friend Requests ──────────────────────────
+  await prisma.friendship.deleteMany({});
+
+  // Find all non-seed users (e.g. harleyng, admin, or any registered user)
+  const nonSeedUsers = await prisma.user.findMany({
+    where: {
+      username: { notIn: SEED_PLAYERS.map((p) => p.username) },
+    },
+  });
+
+  // Target non-seed user(s) + the first 2 seed players
+  const targetsForRequests = nonSeedUsers.length > 0
+    ? nonSeedUsers
+    : [createdUsers[0], createdUsers[1]];
+
+  for (const target of targetsForRequests) {
+    // 1. Incoming Pending Friend Requests sent TO target
+    const requestSenders = [
+      createdUsers.find((u) => u.username === 'RetroRider'),
+      createdUsers.find((u) => u.username === 'TurboSnack'),
+      createdUsers.find((u) => u.username === 'CyberSamurai'),
+    ].filter(Boolean);
+
+    for (const sender of requestSenders) {
+      if (sender && sender.id !== target.id) {
+        await prisma.friendship.create({
+          data: {
+            id: randomUUID(),
+            userId: sender.id,
+            friendId: target.id,
+            status: 'pending',
+            createdAt: new Date(now - Math.floor(Math.random() * 48) * HOUR),
+          },
+        });
+      }
+    }
+
+    // 2. Active Accepted Comrades for target
+    const friendList = [
+      createdUsers.find((u) => u.username === 'Viper_X'),
+      createdUsers.find((u) => u.username === 'NeonKnight'),
+      createdUsers.find((u) => u.username === 'Alice'),
+      createdUsers.find((u) => u.username === 'StarLord'),
+      createdUsers.find((u) => u.username === 'PixelMage'),
+      createdUsers.find((u) => u.username === 'CircuitBreaker'),
+    ].filter(Boolean);
+
+    for (const f of friendList) {
+      if (f && f.id !== target.id) {
+        await prisma.friendship.create({
+          data: {
+            id: randomUUID(),
+            userId: f.id,
+            friendId: target.id,
+            status: 'accepted',
+            createdAt: new Date(now - (10 + Math.floor(Math.random() * 30)) * 24 * HOUR),
+          },
+        });
+      }
+    }
+
+    // 3. Sample Blocked Pilot
+    const blockedPilot = createdUsers.find((u) => u.username === 'NeonSprout');
+    if (blockedPilot && blockedPilot.id !== target.id) {
+      await prisma.friendship.create({
+        data: {
+          id: randomUUID(),
+          userId: target.id,
+          friendId: blockedPilot.id,
+          status: 'blocked',
+          createdAt: new Date(now - 5 * 24 * HOUR),
+        },
+      });
+    }
+  }
+
+  console.log(`  ✅ Seeded incoming friend requests, active friendships, and restricted lists!`);
 
   // ── Sample Matches ────────────────────────────────────────────────────────
   if (createdUsers.length >= 4) {

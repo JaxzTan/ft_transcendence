@@ -87,15 +87,26 @@ export function NotificationBell({
   unreadCount,
   onMarkRead,
   onMarkAllRead,
+  placement = 'bottom-right',
+  fullWidth = false,
+  containerStyle,
+  buttonStyle,
 }: {
   notifications: Notification[]
   unreadCount: number
   onMarkRead: (id: string) => void
   onMarkAllRead: () => void
+  placement?: 'bottom-right' | 'right'
+  fullWidth?: boolean
+  containerStyle?: CSSProperties
+  buttonStyle?: CSSProperties
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { setActiveMatch } = useApp()
+
+  const list = Array.isArray(notifications) ? notifications : []
+  const count = typeof unreadCount === 'number' ? unreadCount : list.filter((n) => !n?.read).length
 
   // Close dropdown when clicking outside.
   useEffect(() => {
@@ -117,7 +128,9 @@ export function NotificationBell({
   }
 
   const handleItemClick = (n: Notification) => {
-    onMarkRead(n.id)
+    if (onMarkRead && n?.id) {
+      onMarkRead(n.id)
+    }
     try {
       retroAudio.playUiBeep(640, 0.05)
     } catch {}
@@ -129,7 +142,7 @@ export function NotificationBell({
       p = {}
     }
 
-    if (n.type === 'game_invite') {
+    if (n?.type === 'game_invite') {
       setActiveMatch({
         gameId: p.gameId as string,
         token: p.token as string,
@@ -142,7 +155,7 @@ export function NotificationBell({
         navigate(`/game?gameId=${p.gameId}`)
       }
       setOpen(false)
-    } else if (n.type === 'friend_request' || n.type === 'friend_accepted') {
+    } else if (n?.type === 'friend_request' || n?.type === 'friend_accepted') {
       navigate('/friends')
       setOpen(false)
     }
@@ -151,71 +164,146 @@ export function NotificationBell({
   const handleClearAll = (e: React.MouseEvent) => {
     e.stopPropagation()
     retroAudio.playUiBeep(380, 0.06)
-    onMarkAllRead()
+    if (onMarkAllRead) {
+      onMarkAllRead()
+    }
   }
+
+  const isRight = placement === 'right'
 
   const bellContainerStyle: CSSProperties = {
     position: 'relative',
     userSelect: 'none',
-    display: 'inline-flex',
+    display: fullWidth ? 'flex' : 'inline-flex',
     alignItems: 'center',
-    height: 38,
+    width: fullWidth ? '100%' : 'auto',
+    height: fullWidth ? 44 : 38,
+    ...containerStyle,
   }
 
-  const dropdownStyle: CSSProperties = {
-    position: 'absolute',
-    top: 'calc(100% + 8px)',
-    right: 0,
-    width: 380,
-    maxHeight: 460,
-    background: 'rgba(10, 4, 24, 0.96)',
-    border: '1.5px solid var(--accent-cyan, #00f0ff)',
-    boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 16px 40px rgba(0, 0, 0, 0.9)',
-    borderRadius: 4,
-    zIndex: 120,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    backdropFilter: 'blur(10px)',
-    opacity: open ? 1 : 0,
-    transform: open ? 'translateY(0)' : 'translateY(-8px)',
-    pointerEvents: open ? 'auto' : 'none',
-    transition: 'opacity 0.2s ease, transform 0.2s ease',
-  }
+  const dropdownStyle: CSSProperties = isRight
+    ? {
+        position: 'absolute',
+        left: 'calc(100% + 14px)',
+        bottom: 0,
+        top: 'auto',
+        right: 'auto',
+        width: 350,
+        maxHeight: 460,
+        background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.96), rgba(10, 2, 28, 0.98))',
+        border: '1.5px solid var(--accent-cyan, #00f0ff)',
+        boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 20px 60px rgba(0, 0, 0, 0.95)',
+        borderRadius: 14,
+        zIndex: 10005,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        backdropFilter: 'blur(32px) saturate(220%)',
+        opacity: open ? 1 : 0,
+        transform: open ? 'translateX(0)' : 'translateX(-8px)',
+        pointerEvents: open ? 'auto' : 'none',
+        transition: 'opacity 0.2s ease, transform 0.2s ease',
+      }
+    : {
+        position: 'absolute',
+        top: 'calc(100% + 8px)',
+        right: 0,
+        width: 380,
+        maxHeight: 460,
+        background: 'rgba(10, 4, 24, 0.96)',
+        border: '1.5px solid var(--accent-cyan, #00f0ff)',
+        boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 16px 40px rgba(0, 0, 0, 0.9)',
+        borderRadius: 4,
+        zIndex: 120,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        backdropFilter: 'blur(10px)',
+        opacity: open ? 1 : 0,
+        transform: open ? 'translateY(0)' : 'translateY(-8px)',
+        pointerEvents: open ? 'auto' : 'none',
+        transition: 'opacity 0.2s ease, transform 0.2s ease',
+      }
 
   return (
     <div ref={ref} style={bellContainerStyle}>
       {/* Old-School Tactical Receiver Button */}
-      <button
-        className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
-        onClick={toggleOpen}
-        title="Comms Telemetry & Notifications"
-        style={{
-          justifyContent: 'center',
-          gap: 8,
-          height: 38,
-          width: 125,
-          margin: 0,
-        }}
-      >
-        {/* Retro hardware strobe LED dot */}
-        <span
+      {fullWidth ? (
+        <button
+          className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
+          onClick={toggleOpen}
+          title="Comms Telemetry & Notifications"
           style={{
-            width: 7,
-            height: 7,
-            borderRadius: '50%',
-            background: unreadCount > 0 ? 'var(--accent-pink, #ff007f)' : '#33ff88',
-            boxShadow: unreadCount > 0 ? '0 0 8px #ff007f' : '0 0 6px #33ff88',
-            animation: unreadCount > 0 ? 'pulse 1.2s infinite' : 'none',
-            flexShrink: 0,
-            display: 'inline-block',
+            width: '100%',
+            height: 44,
+            justifyContent: 'space-between',
+            padding: '0 14px',
+            fontSize: '0.94rem',
+            borderRadius: 10,
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(0, 240, 255, 0.3)',
+            color: 'var(--text-main)',
+            ...buttonStyle,
           }}
-        />
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
+              NOTIFICATIONS
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 900,
+                padding: '2px 7px',
+                borderRadius: 4,
+                background: count > 0 ? '#ff007f' : 'rgba(255, 255, 255, 0.1)',
+                color: count > 0 ? '#ffffff' : 'var(--text-muted)',
+                boxShadow: count > 0 ? '0 0 8px #ff007f' : 'none',
+              }}
+            >
+              {count > 0 ? count : '0'}
+            </span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
+              {open ? '▼' : '►'}
+            </span>
+          </div>
+        </button>
+      ) : (
+        <button
+          className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
+          onClick={toggleOpen}
+          title="Notifications"
+          style={{
+            justifyContent: 'center',
+            gap: 8,
+            height: 38,
+            width: 140,
+            margin: 0,
+            ...buttonStyle,
+          }}
+        >
+          {/* Retro hardware strobe LED dot */}
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: count > 0 ? 'var(--accent-pink, #ff007f)' : '#33ff88',
+              boxShadow: count > 0 ? '0 0 8px #ff007f' : '0 0 6px #33ff88',
+              animation: count > 0 ? 'pulse 1.2s infinite' : 'none',
+              flexShrink: 0,
+              display: 'inline-block',
+            }}
+          />
 
-        <span className="theme-btn-text" style={{ fontSize: '0.62rem' }}>
-          COMM{unreadCount > 0 ? `[${unreadCount < 10 ? `0${unreadCount}` : unreadCount}]` : ''}
-        </span>
-      </button>
+          <span className="theme-btn-text" style={{ fontSize: '0.62rem' }}>
+            NOTIFICATIONS{count > 0 ? ` [${count < 10 ? `0${count}` : count}]` : ''}
+          </span>
+        </button>
+      )}
 
       {/* Retro Dropdown Window Frame */}
       <div style={dropdownStyle}>
@@ -240,11 +328,11 @@ export function NotificationBell({
                 fontWeight: 'bold',
               }}
             >
-              TRANSMISSION LOG // COMMS
+              TRANSMISSION LOG // NOTIFICATIONS
             </span>
           </div>
 
-          {unreadCount > 0 && (
+          {count > 0 && (
             <button
               onClick={handleClearAll}
               style={{
@@ -278,7 +366,7 @@ export function NotificationBell({
             flexDirection: 'column',
           }}
         >
-          {notifications.length === 0 ? (
+          {list.length === 0 ? (
             <div
               style={{
                 padding: '36px 16px',
@@ -292,7 +380,7 @@ export function NotificationBell({
               [NO TRANSMISSIONS LOGGED IN BUFFER]
             </div>
           ) : (
-            notifications.slice(0, 30).map((n) => {
+            list.slice(0, 30).map((n) => {
               const badge = getNotificationTypeBadge(n.type)
               return (
                 <div

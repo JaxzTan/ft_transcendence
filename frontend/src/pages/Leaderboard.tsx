@@ -36,6 +36,10 @@ export function Leaderboard() {
   const [crtEnabled, setCrtEnabled] = useState(true)
 
   useEffect(() => {
+    const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    document.body.setAttribute('data-theme', savedTheme)
+
     const savedCrt = localStorage.getItem('retro_crt')
     if (savedCrt === 'false') {
       setCrtEnabled(false)
@@ -170,11 +174,17 @@ export function Leaderboard() {
               }}
             >
               {/* Inside-Window Podium Showcase (Fixed above the scrollable table) */}
-              {data && data.entries.length >= 3 && (
+              {data && data.entries.length > 0 && (
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gridTemplateColumns:
+                      data.entries.length === 1
+                        ? 'minmax(280px, 460px)'
+                        : data.entries.length === 2
+                          ? 'repeat(auto-fit, minmax(280px, 420px))'
+                          : 'repeat(auto-fit, minmax(280px, 1fr))',
+                    justifyContent: 'center',
                     gap: 18,
                     alignItems: 'end',
                     padding: '18px 20px',

@@ -12,7 +12,6 @@ import { useApp } from '../store'
 
 const NAV: Array<{ path: string; glyph: string; titleKey: string }> = [
   { path: '/home', glyph: '⌂', titleKey: 'nav.home' },
-  { path: '/dashboard', glyph: '▦', titleKey: 'nav.dashboard' },
   { path: '/friends', glyph: '♟', titleKey: 'nav.friends' },
   { path: '/profile', glyph: '👤', titleKey: 'nav.profile' },
   { path: '/leaderboard', glyph: '♛', titleKey: 'nav.leaderboard' },
@@ -20,7 +19,6 @@ const NAV: Array<{ path: string; glyph: string; titleKey: string }> = [
 
 export const SCREEN_TITLE_KEYS: Record<string, string> = {
   '/home': 'nav.home',
-  '/dashboard': 'nav.playerDashboard',
   '/leaderboard': 'nav.leaderboard',
   '/friends': 'nav.friends',
   '/profile': 'nav.playerProfile',

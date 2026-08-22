@@ -22,18 +22,18 @@ export function RankBadge({
 }: RankBadgeProps) {
   const isMamee = tier.key === 'mamee'
   const isMilo = tier.key === 'milo'
+  const isPaddle = tier.key === 'paddle' || tier.key === 'super'
   const isHoney = tier.key === 'honey'
-  const isSuper = tier.key === 'super'
   const isChoki = tier.key === 'choki'
 
   const tierClass = isMamee
     ? 'badge-mamee-monster'
     : isMilo
       ? 'badge-tier-milo'
-      : isHoney
-        ? 'badge-tier-honey'
-        : isSuper
-          ? 'badge-tier-super'
+      : isPaddle
+        ? 'badge-tier-paddle'
+        : isHoney
+          ? 'badge-tier-honey'
           : isChoki
             ? 'badge-tier-choki'
             : ''
@@ -42,10 +42,10 @@ export function RankBadge({
     ? '#ffe600'
     : isMilo
       ? '#ff00ff'
-      : isHoney
-        ? '#ffd700'
-        : isSuper
-          ? '#00f0ff'
+      : isPaddle
+        ? '#00f0ff'
+        : isHoney
+          ? '#ffd700'
           : '#d7a15c'
 
   return (
@@ -136,6 +136,77 @@ export function RankBadge({
             }}
           />
         </>
+      )}
+
+      {/* Floating Animated Plasma Particles (MILO DINOSAUR ONLY) */}
+      {isMilo && showParticles && (
+        <>
+          <span
+            className="milo-plasma-particle"
+            style={{
+              width: 3,
+              height: 3,
+              left: '14%',
+              top: '2px',
+              animationDelay: '0s',
+              ['--spark-dur' as string]: '2.3s',
+              ['--spark-drift' as string]: '-5px',
+            }}
+          />
+          <span
+            className="milo-plasma-particle"
+            style={{
+              width: 2.5,
+              height: 2.5,
+              left: '35%',
+              top: '1px',
+              animationDelay: '0.6s',
+              ['--spark-dur' as string]: '2.0s',
+              ['--spark-drift' as string]: '4px',
+            }}
+          />
+          <span
+            className="milo-plasma-particle"
+            style={{
+              width: 3.5,
+              height: 3.5,
+              left: '54%',
+              top: '0px',
+              animationDelay: '1.2s',
+              ['--spark-dur' as string]: '2.5s',
+              ['--spark-drift' as string]: '-4px',
+            }}
+          />
+          <span
+            className="milo-plasma-particle"
+            style={{
+              width: 2,
+              height: 2,
+              left: '74%',
+              top: '1px',
+              animationDelay: '0.4s',
+              ['--spark-dur' as string]: '1.9s',
+              ['--spark-drift' as string]: '5px',
+            }}
+          />
+          <span
+            className="milo-plasma-particle"
+            style={{
+              width: 3,
+              height: 3,
+              left: '90%',
+              top: '2px',
+              animationDelay: '1.5s',
+              ['--spark-dur' as string]: '2.2s',
+              ['--spark-drift' as string]: '-6px',
+            }}
+          />
+        </>
+      )}
+
+      {/* Subtle Rainbow Prism Sheen (PADDLE POP ONLY) */}
+      {isPaddle && showParticles && (
+        <span className="paddle-prism-sheen" />
       )}
 
       {/* Absolute Symmetrical 4-Corner HUD Crosshairs */}

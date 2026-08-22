@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Delete, UseGuards, Request, Param, Body } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, UseGuards, Request, Param, Body, Query } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -32,8 +32,8 @@ export class FriendsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('api/friends')
-  getFriends(@Request() req: { user: { id: string } }) {
-    return this.friends.getFriends(req.user.id);
+  getFriends(@Request() req: { user: { id: string } }, @Query('username') username?: string) {
+    return this.friends.getFriends(req.user.id, username);
   }
 
   @UseGuards(JwtAuthGuard)
