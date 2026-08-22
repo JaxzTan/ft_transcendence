@@ -409,7 +409,16 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
       enginePieces.push(
         <div
           key={p.id}
-          onClick={() => p.isLegal && onPieceClick?.(p.id)}
+          onClick={() => {
+            // Cell-aware fallback for overcrowded squares: pieces 5+ wrap
+            // onto the same sub-offset as pieces 1-4, so a buried legal
+            // piece can sit under an opponent's sphere and be unreachable.
+            // Any click on a sphere in this cell moves the first piece that
+            // landed here (stable engine render order) with a legal move; if
+            // nothing is legal the click is a no-op, exactly as before.
+            const first = list.find((x) => x.isLegal)
+            if (first) onPieceClick?.(first.id)
+          }}
           style={{
             gridRow: r + 1,
             gridColumn: c + 1,
