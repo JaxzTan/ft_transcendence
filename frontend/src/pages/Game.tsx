@@ -91,12 +91,6 @@ export function Game() {
     }
   }, [])
 
-  const toggleCrt = () => {
-    const next = !crtEnabled
-    setCrtEnabled(next)
-    localStorage.setItem('retro_crt', next ? 'true' : 'false')
-    retroAudio.playUiBeep(440, 0.05)
-  }
 
   const toggleSound = () => {
     retroAudio.muted = !retroAudio.muted
@@ -1015,10 +1009,10 @@ export function Game() {
                   <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
 
                   <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    // DISPLAY & AUDIO PREFERENCES
+                    // AUDIO PREFERENCES
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
                     <button
                       className="retro-badge"
                       style={{
@@ -1035,24 +1029,6 @@ export function Game() {
                       onClick={toggleSound}
                     >
                       {soundMuted ? '// AUDIO: OFF' : '// AUDIO: ON'}
-                    </button>
-
-                    <button
-                      className="retro-badge"
-                      style={{
-                        cursor: 'pointer',
-                        padding: '8px 10px',
-                        background: crtEnabled ? 'rgba(0, 240, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
-                        border: crtEnabled ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.2)',
-                        color: crtEnabled ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.7rem',
-                        textAlign: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={toggleCrt}
-                    >
-                      {crtEnabled ? '// CRT: ON' : '// CRT: OFF'}
                     </button>
                   </div>
                 </div>
