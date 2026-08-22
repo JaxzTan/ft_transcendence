@@ -272,356 +272,365 @@ export function LudoLobby() {
               margin: '0 auto',
             }}
           >
-            {/* TACTICAL COMBAT PASSES // TICKET TERMINAL */}
-            <section className="retro-window" id="ticketTerminalWindow">
-              <div className="window-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>🎫 ARENA COMBAT PASSES // TICKET TERMINAL</span>
-                </div>
-                <div className="window-controls">
-                  <span className="window-btn min" />
-                  <span className="window-btn max" />
-                </div>
-              </div>
-
+            {/* TACTICAL COMBAT PASSES CONTAINER (BORDERLESS TICKET PASSES) */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+              }}
+            >
+              {/* ════════════════════════════════════════════════════════════════════════════
+                  LEVEL 1: HOST NEW TABLE TICKET
+                 ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="window-body"
+                className="retro-ticket-pass"
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 14,
-                  padding: 16,
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'linear-gradient(90deg, rgba(255, 0, 127, 0.16) 0%, rgba(15, 6, 32, 0.95) 100%)',
+                  border: '1.5px solid #ff007f',
+                  boxShadow: '0 0 16px rgba(255, 0, 127, 0.2), inset 0 0 12px rgba(255, 0, 127, 0.08)',
+                  borderRadius: 8,
+                  padding: '14px 18px',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                  transition: 'all 0.2s ease',
                 }}
               >
-                {/* ════════════════════════════════════════════════════════════════════════════
-                    LEVEL 1: HOST NEW TABLE TICKET
-                   ════════════════════════════════════════════════════════════════════════════ */}
-                <div
-                  className="retro-ticket-pass"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: 'linear-gradient(90deg, rgba(255, 0, 127, 0.16) 0%, rgba(15, 6, 32, 0.95) 100%)',
-                    border: '1.5px solid #ff007f',
-                    boxShadow: '0 0 16px rgba(255, 0, 127, 0.2), inset 0 0 12px rgba(255, 0, 127, 0.08)',
-                    borderRadius: 8,
-                    padding: '14px 18px',
-                    gap: 16,
-                    flexWrap: 'wrap',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
-                    <div
-                      style={{
-                        padding: '6px 12px',
-                        background: 'rgba(255, 0, 127, 0.25)',
-                        border: '1px solid #ff007f',
-                        borderRadius: 4,
-                        fontFamily: 'var(--font-mono)',
-                        fontWeight: 900,
-                        fontSize: '0.82rem',
-                        color: '#ff007f',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '1px',
-                      }}
-                    >
-                      [ LEVEL 01 ]
-                    </div>
-                    <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(255, 0, 127, 0.4)' }} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div
-                        style={{
-                          fontFamily: 'var(--font-heading)',
-                          fontSize: '0.92rem',
-                          fontWeight: 900,
-                          color: '#ffffff',
-                          letterSpacing: '1px',
-                          marginBottom: 3,
-                        }}
-                      >
-                        ⚡ HOST NEW TABLE
-                      </div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                        INITIALIZE A PUBLIC OR PRIVATE MULTIPLAYER ARENA ROOM
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    className="retro-btn"
-                    onClick={createRoom}
-                    disabled={hostBusy}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                  <div
                     style={{
-                      padding: '10px 18px',
-                      fontSize: '0.8rem',
-                      background: 'var(--accent-pink)',
-                      borderColor: '#ff007f',
-                      boxShadow: '0 0 12px rgba(255, 0, 127, 0.4)',
-                      opacity: hostBusy ? 0.6 : 1,
-                      flexShrink: 0,
+                      padding: '6px 12px',
+                      background: 'rgba(255, 0, 127, 0.25)',
+                      border: '1px solid #ff007f',
+                      borderRadius: 4,
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
+                      color: '#ff007f',
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '1px',
                     }}
                   >
-                    {hostBusy ? '// CREATING ARENA...' : '▶ HOST NEW TABLE'}
-                  </button>
-                </div>
-
-                {/* ════════════════════════════════════════════════════════════════════════════
-                    LEVEL 2: HOTSEAT MODE TICKET
-                   ════════════════════════════════════════════════════════════════════════════ */}
-                <div
-                  className="retro-ticket-pass"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: 'linear-gradient(90deg, rgba(255, 230, 0, 0.14) 0%, rgba(15, 6, 32, 0.95) 100%)',
-                    border: '1.5px solid #ffe600',
-                    boxShadow: '0 0 16px rgba(255, 230, 0, 0.18), inset 0 0 12px rgba(255, 230, 0, 0.08)',
-                    borderRadius: 8,
-                    padding: '14px 18px',
-                    gap: 16,
-                    flexWrap: 'wrap',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                    [ LEVEL 01 ]
+                  </div>
+                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(255, 0, 127, 0.4)' }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        padding: '6px 12px',
-                        background: 'rgba(255, 230, 0, 0.2)',
-                        border: '1px solid #ffe600',
-                        borderRadius: 4,
-                        fontFamily: 'var(--font-mono)',
+                        fontFamily: 'var(--font-heading)',
+                        fontSize: '0.92rem',
                         fontWeight: 900,
-                        fontSize: '0.82rem',
-                        color: '#ffe600',
-                        whiteSpace: 'nowrap',
+                        color: '#ffffff',
                         letterSpacing: '1px',
+                        marginBottom: 3,
                       }}
                     >
-                      [ LEVEL 02 ]
+                      HOST NEW TABLE
                     </div>
-                    <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(255, 230, 0, 0.4)' }} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div
-                        style={{
-                          fontFamily: 'var(--font-heading)',
-                          fontSize: '0.92rem',
-                          fontWeight: 900,
-                          color: '#ffffff',
-                          letterSpacing: '1px',
-                          marginBottom: 3,
-                        }}
-                      >
-                        ⚔️ HOTSEAT MODE
-                      </div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                        PLAY MULTIPLAYER LOCALLY WITH FRIENDS ON A SINGLE DEVICE
-                      </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                      INITIALIZE A PUBLIC OR PRIVATE MULTIPLAYER ARENA ROOM
                     </div>
                   </div>
+                </div>
 
-                  <button
-                    className="retro-btn"
-                    onClick={() => {
-                      retroAudio.playUiBeep(640, 0.05)
-                      navigate('/gamelobby/table?mode=4&bots=0&local=1')
-                    }}
+                <button
+                  className="retro-btn"
+                  onClick={createRoom}
+                  disabled={hostBusy}
+                  style={{
+                    width: 175,
+                    height: 42,
+                    padding: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.78rem',
+                    background: 'var(--accent-pink)',
+                    borderColor: '#ff007f',
+                    boxShadow: '0 0 12px rgba(255, 0, 127, 0.4)',
+                    opacity: hostBusy ? 0.6 : 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  {hostBusy ? '▶ CREATING...' : '▶ HOST NEW TABLE'}
+                </button>
+              </div>
+
+              {/* ════════════════════════════════════════════════════════════════════════════
+                  LEVEL 2: HOTSEAT MODE TICKET
+                 ════════════════════════════════════════════════════════════════════════════ */}
+              <div
+                className="retro-ticket-pass"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'linear-gradient(90deg, rgba(255, 230, 0, 0.14) 0%, rgba(15, 6, 32, 0.95) 100%)',
+                  border: '1.5px solid #ffe600',
+                  boxShadow: '0 0 16px rgba(255, 230, 0, 0.18), inset 0 0 12px rgba(255, 230, 0, 0.08)',
+                  borderRadius: 8,
+                  padding: '14px 18px',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                  <div
                     style={{
-                      padding: '10px 18px',
-                      fontSize: '0.8rem',
+                      padding: '6px 12px',
                       background: 'rgba(255, 230, 0, 0.2)',
-                      borderColor: '#ffe600',
+                      border: '1px solid #ffe600',
+                      borderRadius: 4,
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
                       color: '#ffe600',
-                      boxShadow: '0 0 10px rgba(255, 230, 0, 0.3)',
-                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '1px',
                     }}
                   >
-                    LAUNCH HOTSEAT ▶
-                  </button>
-                </div>
-
-                {/* ════════════════════════════════════════════════════════════════════════════
-                    LEVEL 3: BOT MODE TICKET
-                   ════════════════════════════════════════════════════════════════════════════ */}
-                <div
-                  className="retro-ticket-pass"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: 'linear-gradient(90deg, rgba(0, 255, 136, 0.14) 0%, rgba(15, 6, 32, 0.95) 100%)',
-                    border: '1.5px solid #00ff88',
-                    boxShadow: '0 0 16px rgba(0, 255, 136, 0.18), inset 0 0 12px rgba(0, 255, 136, 0.08)',
-                    borderRadius: 8,
-                    padding: '14px 18px',
-                    gap: 16,
-                    flexWrap: 'wrap',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                    [ LEVEL 02 ]
+                  </div>
+                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(255, 230, 0, 0.4)' }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        padding: '6px 12px',
-                        background: 'rgba(0, 255, 136, 0.2)',
-                        border: '1px solid #00ff88',
-                        borderRadius: 4,
-                        fontFamily: 'var(--font-mono)',
+                        fontFamily: 'var(--font-heading)',
+                        fontSize: '0.92rem',
                         fontWeight: 900,
-                        fontSize: '0.82rem',
-                        color: '#00ff88',
-                        whiteSpace: 'nowrap',
+                        color: '#ffffff',
                         letterSpacing: '1px',
+                        marginBottom: 3,
                       }}
                     >
-                      [ LEVEL 03 ]
+                      HOTSEAT MODE
                     </div>
-                    <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(0, 255, 136, 0.4)' }} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div
-                        style={{
-                          fontFamily: 'var(--font-heading)',
-                          fontSize: '0.92rem',
-                          fontWeight: 900,
-                          color: '#ffffff',
-                          letterSpacing: '1px',
-                          marginBottom: 3,
-                        }}
-                      >
-                        ♟ BOT MODE
-                      </div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                        CHALLENGE TACTICAL AI BOTS IN SOLO PRACTICE ARENA
-                      </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                      PLAY MULTIPLAYER LOCALLY WITH FRIENDS ON A SINGLE DEVICE
                     </div>
                   </div>
+                </div>
 
+                <button
+                  className="retro-btn"
+                  onClick={() => {
+                    retroAudio.playUiBeep(640, 0.05)
+                    navigate('/gamelobby/table?mode=4&bots=0&local=1')
+                  }}
+                  style={{
+                    width: 175,
+                    height: 42,
+                    padding: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.78rem',
+                    background: 'rgba(255, 230, 0, 0.2)',
+                    borderColor: '#ffe600',
+                    color: '#ffe600',
+                    boxShadow: '0 0 10px rgba(255, 230, 0, 0.3)',
+                    flexShrink: 0,
+                  }}
+                >
+                  ▶ LAUNCH HOTSEAT
+                </button>
+              </div>
+
+              {/* ════════════════════════════════════════════════════════════════════════════
+                  LEVEL 3: BOT MODE TICKET
+                 ════════════════════════════════════════════════════════════════════════════ */}
+              <div
+                className="retro-ticket-pass"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'linear-gradient(90deg, rgba(0, 255, 136, 0.14) 0%, rgba(15, 6, 32, 0.95) 100%)',
+                  border: '1.5px solid #00ff88',
+                  boxShadow: '0 0 16px rgba(0, 255, 136, 0.18), inset 0 0 12px rgba(0, 255, 136, 0.08)',
+                  borderRadius: 8,
+                  padding: '14px 18px',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                  <div
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(0, 255, 136, 0.2)',
+                      border: '1px solid #00ff88',
+                      borderRadius: 4,
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
+                      color: '#00ff88',
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    [ LEVEL 03 ]
+                  </div>
+                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(0, 255, 136, 0.4)' }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-heading)',
+                        fontSize: '0.92rem',
+                        fontWeight: 900,
+                        color: '#ffffff',
+                        letterSpacing: '1px',
+                        marginBottom: 3,
+                      }}
+                    >
+                      BOT MODE
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                      CHALLENGE TACTICAL AI BOTS IN SOLO PRACTICE ARENA
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  className="retro-btn"
+                  onClick={() => {
+                    retroAudio.playUiBeep(640, 0.05)
+                    navigate('/gamelobby/table?mode=4&bots=1')
+                  }}
+                  style={{
+                    width: 175,
+                    height: 42,
+                    padding: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.78rem',
+                    background: 'rgba(0, 255, 136, 0.2)',
+                    borderColor: '#00ff88',
+                    color: '#00ff88',
+                    boxShadow: '0 0 10px rgba(0, 255, 136, 0.3)',
+                    flexShrink: 0,
+                  }}
+                >
+                  ▶ PLAY VS BOTS
+                </button>
+              </div>
+
+              {/* ════════════════════════════════════════════════════════════════════════════
+                  LEVEL 4 (LAST): ACCESS VIA ROOM CODE TICKET
+                 ════════════════════════════════════════════════════════════════════════════ */}
+              <div
+                className="retro-ticket-pass"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'linear-gradient(90deg, rgba(0, 240, 255, 0.16) 0%, rgba(15, 6, 32, 0.95) 100%)',
+                  border: '1.5px solid var(--accent-cyan)',
+                  boxShadow: '0 0 16px rgba(0, 240, 255, 0.2), inset 0 0 12px rgba(0, 240, 255, 0.08)',
+                  borderRadius: 8,
+                  padding: '14px 18px',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                  <div
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(0, 240, 255, 0.2)',
+                      border: '1px solid var(--accent-cyan)',
+                      borderRadius: 4,
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
+                      color: 'var(--accent-cyan)',
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    [ LEVEL 04 ]
+                  </div>
+                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(0, 240, 255, 0.4)' }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-heading)',
+                        fontSize: '0.92rem',
+                        fontWeight: 900,
+                        color: '#ffffff',
+                        letterSpacing: '1px',
+                        marginBottom: 3,
+                      }}
+                    >
+                      ACCESS VIA ROOM CODE
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                      ENTER A SECRET 6-CHARACTER INVITATION TOKEN TO WARP IN
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
+                  <input
+                    value={roomCodeInput}
+                    onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && roomCodeInput.trim().length > 0 && !joiningByCode) {
+                        joinByCode(roomCodeInput)
+                      }
+                    }}
+                    placeholder="ENTER CODE"
+                    maxLength={8}
+                    style={{
+                      width: 130,
+                      height: 42,
+                      background: 'rgba(5, 2, 18, 0.9)',
+                      border: '1.5px solid var(--accent-cyan)',
+                      borderRadius: 4,
+                      color: '#ffe600',
+                      padding: '0 10px',
+                      fontSize: '0.88rem',
+                      fontWeight: 'bold',
+                      fontFamily: 'var(--font-mono)',
+                      letterSpacing: '2px',
+                      textAlign: 'center',
+                      outline: 'none',
+                      boxShadow: 'inset 0 0 8px rgba(0, 240, 255, 0.2)',
+                      boxSizing: 'border-box',
+                    }}
+                  />
                   <button
                     className="retro-btn"
-                    onClick={() => {
-                      retroAudio.playUiBeep(640, 0.05)
-                      navigate('/gamelobby/table?mode=4&bots=1')
-                    }}
+                    onClick={() => joinByCode(roomCodeInput)}
+                    disabled={!roomCodeInput.trim() || joiningByCode}
                     style={{
-                      padding: '10px 18px',
-                      fontSize: '0.8rem',
-                      background: 'rgba(0, 255, 136, 0.2)',
-                      borderColor: '#00ff88',
-                      color: '#00ff88',
-                      boxShadow: '0 0 10px rgba(0, 255, 136, 0.3)',
+                      width: 175,
+                      height: 42,
+                      padding: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.78rem',
+                      background: 'rgba(0, 240, 255, 0.2)',
+                      borderColor: 'var(--accent-cyan)',
+                      color: 'var(--accent-cyan)',
+                      opacity: !roomCodeInput.trim() || joiningByCode ? 0.5 : 1,
+                      cursor: !roomCodeInput.trim() || joiningByCode ? 'not-allowed' : 'pointer',
                       flexShrink: 0,
                     }}
                   >
-                    PLAY VS BOTS ▶
+                    {joiningByCode ? '▶ WARPING...' : '▶ ACCESS ROOM'}
                   </button>
-                </div>
-
-                {/* ════════════════════════════════════════════════════════════════════════════
-                    LEVEL 4 (LAST): ACCESS VIA ROOM CODE TICKET
-                   ════════════════════════════════════════════════════════════════════════════ */}
-                <div
-                  className="retro-ticket-pass"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: 'linear-gradient(90deg, rgba(0, 240, 255, 0.16) 0%, rgba(15, 6, 32, 0.95) 100%)',
-                    border: '1.5px solid var(--accent-cyan)',
-                    boxShadow: '0 0 16px rgba(0, 240, 255, 0.2), inset 0 0 12px rgba(0, 240, 255, 0.08)',
-                    borderRadius: 8,
-                    padding: '14px 18px',
-                    gap: 16,
-                    flexWrap: 'wrap',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
-                    <div
-                      style={{
-                        padding: '6px 12px',
-                        background: 'rgba(0, 240, 255, 0.2)',
-                        border: '1px solid var(--accent-cyan)',
-                        borderRadius: 4,
-                        fontFamily: 'var(--font-mono)',
-                        fontWeight: 900,
-                        fontSize: '0.82rem',
-                        color: 'var(--accent-cyan)',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '1px',
-                      }}
-                    >
-                      [ LEVEL 04 ]
-                    </div>
-                    <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(0, 240, 255, 0.4)' }} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div
-                        style={{
-                          fontFamily: 'var(--font-heading)',
-                          fontSize: '0.92rem',
-                          fontWeight: 900,
-                          color: '#ffffff',
-                          letterSpacing: '1px',
-                          marginBottom: 3,
-                        }}
-                      >
-                        🔑 ACCESS VIA ROOM CODE
-                      </div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                        ENTER A SECRET 6-CHARACTER INVITATION TOKEN TO WARP IN
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
-                    <input
-                      value={roomCodeInput}
-                      onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && roomCodeInput.trim().length > 0 && !joiningByCode) {
-                          joinByCode(roomCodeInput)
-                        }
-                      }}
-                      placeholder="ENTER CODE"
-                      maxLength={8}
-                      style={{
-                        width: 140,
-                        background: 'rgba(5, 2, 18, 0.9)',
-                        border: '1.5px solid var(--accent-cyan)',
-                        borderRadius: 4,
-                        color: '#ffe600',
-                        padding: '8px 10px',
-                        fontSize: '0.9rem',
-                        fontWeight: 'bold',
-                        fontFamily: 'var(--font-mono)',
-                        letterSpacing: '2px',
-                        textAlign: 'center',
-                        outline: 'none',
-                        boxShadow: 'inset 0 0 8px rgba(0, 240, 255, 0.2)',
-                      }}
-                    />
-                    <button
-                      className="retro-btn"
-                      onClick={() => joinByCode(roomCodeInput)}
-                      disabled={!roomCodeInput.trim() || joiningByCode}
-                      style={{
-                        padding: '9px 16px',
-                        fontSize: '0.8rem',
-                        background: 'rgba(0, 240, 255, 0.2)',
-                        borderColor: 'var(--accent-cyan)',
-                        color: 'var(--accent-cyan)',
-                        opacity: !roomCodeInput.trim() || joiningByCode ? 0.5 : 1,
-                        cursor: !roomCodeInput.trim() || joiningByCode ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {joiningByCode ? '// WARPING...' : 'ACCESS ROOM ▶'}
-                    </button>
-                  </div>
                 </div>
               </div>
-            </section>
+            </div>
 
             {/* Error Alert Box */}
             {error && (
@@ -637,7 +646,7 @@ export function LudoLobby() {
                   fontFamily: 'var(--font-mono)',
                 }}
               >
-                ⚠️ {error}
+                // ERROR: {error}
               </div>
             )}
 
@@ -645,13 +654,9 @@ export function LudoLobby() {
                 BELOW THEM: OPEN QUANTUM ROOMS
                ════════════════════════════════════════════════════════════════════════════ */}
             <section className="retro-window" id="roomsWindow">
-              <div className="window-header">
+              <div className="window-header" style={{ background: '#190a38', borderBottom: '1px solid rgba(0, 240, 255, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>📡 OPEN QUANTUM ROOMS ({filteredRooms.length})</span>
-                </div>
-                <div className="window-controls">
-                  <span className="window-btn min" />
-                  <span className="window-btn max" />
+                  <span>OPEN QUANTUM ROOMS ({filteredRooms.length})</span>
                 </div>
               </div>
 
