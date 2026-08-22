@@ -124,13 +124,12 @@ export function Results() {
           {/* Ticket Dispenser Container */}
           <section className="container ticket-container">
             <section className="invoice-container">
-              {/* Metallic Vending Machine Header */}
-              <div className="invoice-slot">
-                <div className="vending-header-bar"></div>
-                <div className="slot-hole"></div>
+              {/* Bottom part of slot chassis (BEHIND ticket: z-index 2) */}
+              <div className="invoice-slot-bottom">
+                <div className="slot-hole-bottom"></div>
               </div>
 
-              {/* Mask Container - Dispenses directly out of slot hole */}
+              {/* Mask Container - Dispenses directly out of slot (z-index 10) */}
               <div className="ticket-paper-wrapper">
                 {/* Animated Dispensed Invoice Ticket */}
                 <div className="invoice">
@@ -226,6 +225,12 @@ export function Results() {
                     ▶ RETURN TO LOBBY
                   </button>
                 </div>
+              </div>
+
+              {/* Top part of slot chassis (IN FRONT OF ticket: z-index 20) */}
+              <div className="invoice-slot-top">
+                <div className="vending-header-bar"></div>
+                <div className="slot-hole-top"></div>
               </div>
             </section>
           </section>

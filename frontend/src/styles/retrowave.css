@@ -2658,35 +2658,94 @@ canvas#snakeCanvas {
   box-sizing: border-box;
 }
 
-/* Vending Machine Top Header Chassis (Wider than ticket) */
-.invoice-slot {
+/* Vending Machine Bottom Chassis - BEHIND Ticket (z-index: 2) */
+.invoice-slot-bottom {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 115px;
-  margin: 0 auto;
   background-color: var(--bg-secondary);
   border: 2.5px solid var(--accent-pink);
   border-radius: 1.2em 1.2em 0.4em 0.4em;
   box-shadow: 0 0 24px rgba(0, 0, 0, 0.85), 0 0 16px var(--grid-bg-glow);
-  position: relative;
-  z-index: 10;
+  z-index: 2;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 10px 14px 14px;
 }
 
-[data-theme="win95"] .invoice-slot {
+[data-theme="win95"] .invoice-slot-bottom {
   background-color: #c0c0c0;
   border: 2.5px solid #ffffff;
   box-shadow: inset 1.5px 1.5px 0 #ffffff, inset -1.5px -1.5px 0 #000000, 3px 3px 0 #000000;
 }
 
-[data-theme="terminal"] .invoice-slot {
+[data-theme="terminal"] .invoice-slot-bottom {
   background-color: #0a1f0a;
   border: 2.5px solid #33ff33;
   box-shadow: 0 0 20px rgba(51, 255, 51, 0.4);
+}
+
+.slot-hole-bottom {
+  background-color: #020006;
+  border-radius: 100vmax;
+  width: 88%;
+  height: 32px;
+  margin: 0 auto;
+  border: 2.5px solid #ff007f;
+  box-shadow: 0 0 22px #ff007f, inset 0 0 14px #000000;
+  box-sizing: border-box;
+}
+
+[data-theme="win95"] .slot-hole-bottom {
+  background-color: #000000;
+  border: 2px solid #808080;
+  box-shadow: inset 2px 2px 0 #000000, inset -1px -1px 0 #dfdfdf;
+}
+
+[data-theme="terminal"] .slot-hole-bottom {
+  background-color: #000c00;
+  border: 2.5px solid #33ff33;
+  box-shadow: 0 0 20px #33ff33, inset 0 0 14px #000000;
+}
+
+/* Vending Machine Top Chassis - IN FRONT OF Ticket (z-index: 20) */
+.invoice-slot-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 82px;
+  background-color: var(--bg-secondary);
+  border: 2.5px solid var(--accent-pink);
+  border-bottom: none;
+  border-radius: 1.2em 1.2em 0 0;
+  z-index: 20;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 0;
+  pointer-events: none;
+}
+
+[data-theme="win95"] .invoice-slot-top {
+  background-color: #c0c0c0;
+  border: 2.5px solid #ffffff;
+  border-bottom: none;
+  box-shadow: inset 1.5px 1.5px 0 #ffffff, inset -1.5px 0 0 #000000;
+}
+
+[data-theme="terminal"] .invoice-slot-top {
+  background-color: #0a1f0a;
+  border: 2.5px solid #33ff33;
+  border-bottom: none;
+  box-shadow: 0 -4px 15px rgba(51, 255, 51, 0.2);
 }
 
 .vending-header-bar {
@@ -2714,42 +2773,43 @@ canvas#snakeCanvas {
   }
 }
 
-/* Glowing Neon Pill Slot Hole (Slightly wider than ticket width) */
-.slot-hole {
+.slot-hole-top {
   background-color: #020006;
-  border-radius: 100vmax;
+  border-radius: 100vmax 100vmax 0 0;
   width: 88%;
-  height: 32px;
+  height: 16px;
   margin: 0 auto;
   border: 2.5px solid #ff007f;
-  box-shadow: 0 0 22px #ff007f, inset 0 0 14px #000000, 0 0 35px rgba(0, 240, 255, 0.45);
-  position: relative;
-  z-index: 11;
+  border-bottom: none;
+  box-shadow: 0 -4px 15px #ff007f;
+  box-sizing: border-box;
 }
 
-[data-theme="win95"] .slot-hole {
+[data-theme="win95"] .slot-hole-top {
   background-color: #000000;
   border: 2px solid #808080;
-  box-shadow: inset 2px 2px 0 #000000, inset -1px -1px 0 #dfdfdf;
+  border-bottom: none;
 }
 
-[data-theme="terminal"] .slot-hole {
+[data-theme="terminal"] .slot-hole-top {
   background-color: #000c00;
   border: 2.5px solid #33ff33;
-  box-shadow: 0 0 20px #33ff33, inset 0 0 14px #000000;
+  border-bottom: none;
+  box-shadow: 0 -4px 15px #33ff33;
 }
 
-/* Outer Ticket Paper Mask Container (Narrower than slot hole, centered) */
+/* Outer Ticket Paper Mask Container - In the MIDDLE layer (z-index: 10) */
 .ticket-paper-wrapper {
   width: 80%;
-  margin: -32px auto 0 auto;
-  padding-top: 32px;
+  margin: 70px auto 0 auto;
   position: relative;
-  z-index: 5;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
+  -webkit-clip-path: inset(0px -50px -10000px -50px);
+  clip-path: inset(0px -50px -10000px -50px);
 }
 
 /* Dispensed Invoice Ticket Paper (100% width aligned & centered) */
