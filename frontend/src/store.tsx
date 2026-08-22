@@ -22,13 +22,13 @@ export type Seat =
 
 export type PlayerCount = 1 | 2 | 3 | 4
 
-export type Lang = 'en' | 'fr' | 'ms' | 'zh'
+export type Lang = 'en' | 'fr' | 'ms'
 
 /** Languages offered in the account menu. */
 export const LANGUAGES: Array<{ code: Lang; label: string; flag: string }> = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'ms', label: 'Bahasa Melayu', flag: '🇲🇾' },
-  { code: 'zh', label: '中文', flag: '🇨🇳' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
 ]
 
 const LANG_KEY = 'lr.lang'
@@ -319,6 +319,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang
+    i18n.changeLanguage(lang)
   }, [lang])
 
   const addBot = useCallback((i: number) => {

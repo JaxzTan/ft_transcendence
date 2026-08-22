@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { navigate, useRoute } from '../router'
 import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
@@ -19,15 +20,6 @@ interface RetroNavbarProps {
   style?: React.CSSProperties
 }
 
-const NAV_ITEMS = [
-  { path: '/home', label: 'HOME', icon: '⌂' },
-  { path: '/leaderboard', label: 'LEADERBOARD', icon: '♛' },
-  { path: '/profile', label: 'PROFILE', icon: '@/' },
-  { path: '/friends', label: 'FRIENDS', icon: '♟' },
-  { path: '/gamelobby', label: 'LOBBY', icon: '>_' },
-  { path: '/game', label: 'ARENA', icon: '{}', disabled: true },
-]
-
 export function RetroNavbar({
   activeRoute,
   notifications,
@@ -36,9 +28,19 @@ export function RetroNavbar({
   onMarkAllRead,
   style,
 }: RetroNavbarProps) {
+  const { t } = useTranslation()
   const route = useRoute()
   const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp()
   const currentPath = activeRoute || route.path
+
+  const navItems = [
+    { path: '/home', label: t('nav.home').toUpperCase(), icon: '⌂' },
+    { path: '/leaderboard', label: t('nav.leaderboard').toUpperCase(), icon: '♛' },
+    { path: '/profile', label: t('nav.profile').toUpperCase(), icon: '@/' },
+    { path: '/friends', label: t('nav.friends').toUpperCase(), icon: '♟' },
+    { path: '/gamelobby', label: t('multiplayer.title').toUpperCase(), icon: '>_' },
+    { path: '/game', label: 'ARENA', icon: '{}', disabled: true },
+  ]
 
   // Global live notifications fallback so the notification bell works across all pages
   const fallbackNotifs = useNotifications()
@@ -244,7 +246,7 @@ export function RetroNavbar({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.76rem', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
-                    🌐 LANGUAGE // 语言
+                    🌐 LANGUAGE // LANGUE
                   </span>
                 </div>
                 <div
@@ -261,7 +263,7 @@ export function RetroNavbar({
                   {[
                     { code: 'en' as const, label: 'EN', full: 'ENGLISH' },
                     { code: 'ms' as const, label: 'MS', full: 'MELAYU' },
-                    { code: 'zh' as const, label: 'ZH', full: '中文' },
+                    { code: 'fr' as const, label: 'FR', full: 'FRANÇAIS' },
                   ].map((item) => {
                     const isSelected = (lang || 'en') === item.code
                     return (
@@ -401,12 +403,12 @@ export function RetroNavbar({
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
-            transform: `translateY(${-( (NAV_ITEMS.findIndex((it) => {
+            transform: `translateY(${-( (navItems.findIndex((it) => {
               if (it.path === '/home') return currentPath === '/home' || currentPath === '/'
               if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
               if (it.path === '/profile') return currentPath.startsWith('/profile')
               return currentPath === it.path
-            }) >= 0 ? NAV_ITEMS.findIndex((it) => {
+            }) >= 0 ? navItems.findIndex((it) => {
               if (it.path === '/home') return currentPath === '/home' || currentPath === '/'
               if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
               if (it.path === '/profile') return currentPath.startsWith('/profile')
@@ -416,8 +418,8 @@ export function RetroNavbar({
             zIndex: 2,
           }}
         >
-          {NAV_ITEMS.map((item, idx) => {
-            const activeIdx = NAV_ITEMS.findIndex((it) => {
+          {navItems.map((item, idx) => {
+            const activeIdx = navItems.findIndex((it) => {
               if (it.path === '/home') return currentPath === '/home' || currentPath === '/'
               if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
               if (it.path === '/profile') return currentPath.startsWith('/profile')

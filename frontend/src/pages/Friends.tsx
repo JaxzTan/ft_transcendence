@@ -59,6 +59,13 @@ export function Friends() {
     }
   }, [])
 
+  const toggleCrt = () => {
+    const next = !crtEnabled
+    setCrtEnabled(next)
+    localStorage.setItem('retro_crt', next ? 'true' : 'false')
+    retroAudio.playUiBeep(440, 0.05)
+  }
+
   // ------------------------------------------------------------------------
   // STATE MANAGEMENT
   // ------------------------------------------------------------------------

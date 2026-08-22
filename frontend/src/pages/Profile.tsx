@@ -87,7 +87,7 @@ export function Profile() {
   const [crtEnabled, setCrtEnabled] = useState(true)
 
   useEffect(() => {
-    const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
+    const savedTheme = localStorage.getItem('retro_theme') || 'synthwave'
     document.documentElement.setAttribute('data-theme', savedTheme)
     document.body.setAttribute('data-theme', savedTheme)
 
