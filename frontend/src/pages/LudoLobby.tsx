@@ -277,7 +277,7 @@ export function LudoLobby() {
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 14,
+                gap: 18,
               }}
             >
               {/* ════════════════════════════════════════════════════════════════════════════
@@ -292,23 +292,25 @@ export function LudoLobby() {
                   background: 'linear-gradient(90deg, rgba(255, 0, 127, 0.16) 0%, rgba(15, 6, 32, 0.95) 100%)',
                   border: '1.5px solid #ff007f',
                   boxShadow: '0 0 16px rgba(255, 0, 127, 0.2), inset 0 0 12px rgba(255, 0, 127, 0.08)',
-                  borderRadius: 8,
-                  padding: '14px 18px',
-                  gap: 16,
+                  borderRadius: 10,
+                  padding: '22px 24px',
+                  minHeight: 88,
+                  gap: 20,
                   flexWrap: 'wrap',
+                  boxSizing: 'border-box',
                   transition: 'all 0.2s ease',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
-                      padding: '6px 12px',
+                      padding: '8px 16px',
                       background: 'rgba(255, 0, 127, 0.25)',
                       border: '1px solid #ff007f',
-                      borderRadius: 4,
+                      borderRadius: 6,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: '0.88rem',
                       color: '#ff007f',
                       whiteSpace: 'nowrap',
                       letterSpacing: '1px',
@@ -316,21 +318,21 @@ export function LudoLobby() {
                   >
                     [ LEVEL 01 ]
                   </div>
-                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(255, 0, 127, 0.4)' }} />
+                  <div style={{ width: 1, height: 46, borderRight: '2px dashed rgba(255, 0, 127, 0.4)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '0.92rem',
+                        fontSize: '1.02rem',
                         fontWeight: 900,
                         color: '#ffffff',
-                        letterSpacing: '1px',
-                        marginBottom: 3,
+                        letterSpacing: '1.5px',
+                        marginBottom: 5,
                       }}
                     >
                       HOST NEW TABLE
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       INITIALIZE A PUBLIC OR PRIVATE MULTIPLAYER ARENA ROOM
                     </div>
                   </div>
@@ -341,16 +343,16 @@ export function LudoLobby() {
                   onClick={createRoom}
                   disabled={hostBusy}
                   style={{
-                    width: 175,
-                    height: 42,
+                    width: 185,
+                    height: 48,
                     padding: 0,
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '0.78rem',
+                    fontSize: '0.82rem',
                     background: 'var(--accent-pink)',
                     borderColor: '#ff007f',
-                    boxShadow: '0 0 12px rgba(255, 0, 127, 0.4)',
+                    boxShadow: '0 0 14px rgba(255, 0, 127, 0.4)',
                     opacity: hostBusy ? 0.6 : 1,
                     flexShrink: 0,
                   }}
@@ -371,23 +373,25 @@ export function LudoLobby() {
                   background: 'linear-gradient(90deg, rgba(255, 230, 0, 0.14) 0%, rgba(15, 6, 32, 0.95) 100%)',
                   border: '1.5px solid #ffe600',
                   boxShadow: '0 0 16px rgba(255, 230, 0, 0.18), inset 0 0 12px rgba(255, 230, 0, 0.08)',
-                  borderRadius: 8,
-                  padding: '14px 18px',
-                  gap: 16,
+                  borderRadius: 10,
+                  padding: '22px 24px',
+                  minHeight: 88,
+                  gap: 20,
                   flexWrap: 'wrap',
+                  boxSizing: 'border-box',
                   transition: 'all 0.2s ease',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
-                      padding: '6px 12px',
+                      padding: '8px 16px',
                       background: 'rgba(255, 230, 0, 0.2)',
                       border: '1px solid #ffe600',
-                      borderRadius: 4,
+                      borderRadius: 6,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: '0.88rem',
                       color: '#ffe600',
                       whiteSpace: 'nowrap',
                       letterSpacing: '1px',
@@ -395,21 +399,21 @@ export function LudoLobby() {
                   >
                     [ LEVEL 02 ]
                   </div>
-                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(255, 230, 0, 0.4)' }} />
+                  <div style={{ width: 1, height: 46, borderRight: '2px dashed rgba(255, 230, 0, 0.4)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '0.92rem',
+                        fontSize: '1.02rem',
                         fontWeight: 900,
                         color: '#ffffff',
-                        letterSpacing: '1px',
-                        marginBottom: 3,
+                        letterSpacing: '1.5px',
+                        marginBottom: 5,
                       }}
                     >
                       HOTSEAT MODE
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       PLAY MULTIPLAYER LOCALLY WITH FRIENDS ON A SINGLE DEVICE
                     </div>
                   </div>
@@ -422,17 +426,17 @@ export function LudoLobby() {
                     navigate('/gamelobby/table?mode=4&bots=0&local=1')
                   }}
                   style={{
-                    width: 175,
-                    height: 42,
+                    width: 185,
+                    height: 48,
                     padding: 0,
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '0.78rem',
+                    fontSize: '0.82rem',
                     background: 'rgba(255, 230, 0, 0.2)',
                     borderColor: '#ffe600',
                     color: '#ffe600',
-                    boxShadow: '0 0 10px rgba(255, 230, 0, 0.3)',
+                    boxShadow: '0 0 12px rgba(255, 230, 0, 0.3)',
                     flexShrink: 0,
                   }}
                 >
@@ -452,23 +456,25 @@ export function LudoLobby() {
                   background: 'linear-gradient(90deg, rgba(0, 255, 136, 0.14) 0%, rgba(15, 6, 32, 0.95) 100%)',
                   border: '1.5px solid #00ff88',
                   boxShadow: '0 0 16px rgba(0, 255, 136, 0.18), inset 0 0 12px rgba(0, 255, 136, 0.08)',
-                  borderRadius: 8,
-                  padding: '14px 18px',
-                  gap: 16,
+                  borderRadius: 10,
+                  padding: '22px 24px',
+                  minHeight: 88,
+                  gap: 20,
                   flexWrap: 'wrap',
+                  boxSizing: 'border-box',
                   transition: 'all 0.2s ease',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
-                      padding: '6px 12px',
+                      padding: '8px 16px',
                       background: 'rgba(0, 255, 136, 0.2)',
                       border: '1px solid #00ff88',
-                      borderRadius: 4,
+                      borderRadius: 6,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: '0.88rem',
                       color: '#00ff88',
                       whiteSpace: 'nowrap',
                       letterSpacing: '1px',
@@ -476,21 +482,21 @@ export function LudoLobby() {
                   >
                     [ LEVEL 03 ]
                   </div>
-                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(0, 255, 136, 0.4)' }} />
+                  <div style={{ width: 1, height: 46, borderRight: '2px dashed rgba(0, 255, 136, 0.4)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '0.92rem',
+                        fontSize: '1.02rem',
                         fontWeight: 900,
                         color: '#ffffff',
-                        letterSpacing: '1px',
-                        marginBottom: 3,
+                        letterSpacing: '1.5px',
+                        marginBottom: 5,
                       }}
                     >
                       BOT MODE
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       CHALLENGE TACTICAL AI BOTS IN SOLO PRACTICE ARENA
                     </div>
                   </div>
@@ -503,17 +509,17 @@ export function LudoLobby() {
                     navigate('/gamelobby/table?mode=4&bots=1')
                   }}
                   style={{
-                    width: 175,
-                    height: 42,
+                    width: 185,
+                    height: 48,
                     padding: 0,
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '0.78rem',
+                    fontSize: '0.82rem',
                     background: 'rgba(0, 255, 136, 0.2)',
                     borderColor: '#00ff88',
                     color: '#00ff88',
-                    boxShadow: '0 0 10px rgba(0, 255, 136, 0.3)',
+                    boxShadow: '0 0 12px rgba(0, 255, 136, 0.3)',
                     flexShrink: 0,
                   }}
                 >
@@ -533,23 +539,25 @@ export function LudoLobby() {
                   background: 'linear-gradient(90deg, rgba(0, 240, 255, 0.16) 0%, rgba(15, 6, 32, 0.95) 100%)',
                   border: '1.5px solid var(--accent-cyan)',
                   boxShadow: '0 0 16px rgba(0, 240, 255, 0.2), inset 0 0 12px rgba(0, 240, 255, 0.08)',
-                  borderRadius: 8,
-                  padding: '14px 18px',
-                  gap: 16,
+                  borderRadius: 10,
+                  padding: '22px 24px',
+                  minHeight: 88,
+                  gap: 20,
                   flexWrap: 'wrap',
+                  boxSizing: 'border-box',
                   transition: 'all 0.2s ease',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
-                      padding: '6px 12px',
+                      padding: '8px 16px',
                       background: 'rgba(0, 240, 255, 0.2)',
                       border: '1px solid var(--accent-cyan)',
-                      borderRadius: 4,
+                      borderRadius: 6,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: '0.88rem',
                       color: 'var(--accent-cyan)',
                       whiteSpace: 'nowrap',
                       letterSpacing: '1px',
@@ -557,27 +565,27 @@ export function LudoLobby() {
                   >
                     [ LEVEL 04 ]
                   </div>
-                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(0, 240, 255, 0.4)' }} />
+                  <div style={{ width: 1, height: 46, borderRight: '2px dashed rgba(0, 240, 255, 0.4)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '0.92rem',
+                        fontSize: '1.02rem',
                         fontWeight: 900,
                         color: '#ffffff',
-                        letterSpacing: '1px',
-                        marginBottom: 3,
+                        letterSpacing: '1.5px',
+                        marginBottom: 5,
                       }}
                     >
                       ACCESS VIA ROOM CODE
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       ENTER A SECRET 6-CHARACTER INVITATION TOKEN TO WARP IN
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
                   <input
                     value={roomCodeInput}
                     onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
@@ -589,14 +597,14 @@ export function LudoLobby() {
                     placeholder="ENTER CODE"
                     maxLength={8}
                     style={{
-                      width: 130,
-                      height: 42,
+                      width: 140,
+                      height: 48,
                       background: 'rgba(5, 2, 18, 0.9)',
                       border: '1.5px solid var(--accent-cyan)',
-                      borderRadius: 4,
+                      borderRadius: 6,
                       color: '#ffe600',
-                      padding: '0 10px',
-                      fontSize: '0.88rem',
+                      padding: '0 12px',
+                      fontSize: '0.92rem',
                       fontWeight: 'bold',
                       fontFamily: 'var(--font-mono)',
                       letterSpacing: '2px',
@@ -611,13 +619,13 @@ export function LudoLobby() {
                     onClick={() => joinByCode(roomCodeInput)}
                     disabled={!roomCodeInput.trim() || joiningByCode}
                     style={{
-                      width: 175,
-                      height: 42,
+                      width: 185,
+                      height: 48,
                       padding: 0,
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.78rem',
+                      fontSize: '0.82rem',
                       background: 'rgba(0, 240, 255, 0.2)',
                       borderColor: 'var(--accent-cyan)',
                       color: 'var(--accent-cyan)',
