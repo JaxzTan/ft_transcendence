@@ -2617,3 +2617,556 @@ canvas#snakeCanvas {
   font-size: 13px;
   font-family: 'Share Tech Mono', monospace;
 }
+
+/* --------------------------------------------------------------------------
+   INVOICE TICKET DISPENSER COMPONENT (MATCH RESULTS)
+   -------------------------------------------------------------------------- */
+
+.results-page-wrapper {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 15px 16px 30px;
+  box-sizing: border-box;
+}
+
+.ticket-container {
+  width: min(95%, 520px);
+  margin: 0 auto;
+  font-family: var(--font-mono);
+  box-sizing: border-box;
+}
+
+.invoice-container {
+  position: relative;
+  width: 100%;
+  min-height: 680px;
+  margin: 0 auto 2em;
+  box-sizing: border-box;
+}
+
+/* Dispenser Chassis Top Mount Header - Sits in front at z-index 10 */
+.invoice-slot {
+  width: 100%;
+  height: 110px;
+  background-color: var(--bg-secondary);
+  border: 2.5px solid var(--accent-pink);
+  border-radius: 1em;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 15px var(--grid-bg-glow);
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+[data-theme="win95"] .invoice-slot {
+  background-color: #c0c0c0;
+  border: 2.5px solid #ffffff;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #000000, 2px 2px 0 #000000;
+}
+
+[data-theme="terminal"] .invoice-slot {
+  background-color: #0a1f0a;
+  border: 2.5px solid #33ff33;
+  box-shadow: 0 0 18px rgba(51, 255, 51, 0.35);
+}
+
+/* Glowing Neon Pill Slot Hole (Matches user image exactly) */
+.slot-hole {
+  background-color: #020006;
+  border-radius: 100vmax;
+  width: 90%;
+  height: 32px;
+  margin: 1.2em auto;
+  border: 2.5px solid #ff007f;
+  box-shadow: 0 0 20px #ff007f, inset 0 0 12px #000000, 0 0 35px rgba(0, 240, 255, 0.4);
+  position: relative;
+  z-index: 11;
+}
+
+[data-theme="win95"] .slot-hole {
+  background-color: #000000;
+  border: 2px solid #808080;
+  box-shadow: inset 2px 2px 0 #000000, inset -1px -1px 0 #dfdfdf;
+}
+
+[data-theme="terminal"] .slot-hole {
+  background-color: #000c00;
+  border: 2.5px solid #33ff33;
+  box-shadow: 0 0 18px #33ff33, inset 0 0 12px #000000;
+}
+
+/* Dispensed Invoice Ticket Paper - Positioned absolute behind slot chassis at z-index 1 */
+.invoice {
+  position: absolute;
+  width: 86%;
+  left: 50%;
+  top: 2.4em;
+  transform: translateX(-50%);
+  z-index: 1;
+  background-color: rgba(18, 7, 42, 0.97);
+  color: var(--text-muted);
+  padding: 1.8em 1.5em;
+  border-radius: 0.8em;
+  border: 2px solid var(--accent-cyan);
+  border-top: 2px dashed rgba(0, 240, 255, 0.6);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.25);
+  animation: slideTicketDown 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-sizing: border-box;
+}
+
+@keyframes slideTicketDown {
+  0% {
+    top: -12em;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    top: 2.4em;
+    opacity: 1;
+  }
+}
+
+[data-theme="win95"] .invoice {
+  background-color: #dfdfdf;
+  color: #404040;
+  border: 2px solid #ffffff;
+  border-top: 1px dashed #808080;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #000000, 2px 2px 0 #000000;
+}
+
+[data-theme="terminal"] .invoice {
+  background-color: rgba(10, 31, 10, 0.97);
+  color: #22aa22;
+  border: 2px solid #33ff33;
+  border-top: 1px dashed #33ff33;
+  box-shadow: 0 0 20px rgba(51, 255, 51, 0.35);
+}
+
+
+
+[data-theme="win95"] .invoice {
+  background-color: #dfdfdf;
+  color: #404040;
+  border: 2px solid #ffffff;
+  border-top: 1px dashed #808080;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #000000, 2px 2px 0 #000000;
+}
+
+[data-theme="terminal"] .invoice {
+  background-color: rgba(10, 31, 10, 0.97);
+  color: #22aa22;
+  border: 2px solid #33ff33;
+  border-top: 1px dashed #33ff33;
+  box-shadow: 0 0 20px rgba(51, 255, 51, 0.35);
+}
+
+.invoice::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 50px;
+  left: 0;
+  top: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.5) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.invoice .title {
+  position: relative;
+  font-size: 1.12rem;
+  font-family: var(--font-heading);
+  padding: 0.7em 0;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 1.4em;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+}
+
+.invoice .title::before {
+  content: "";
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  top: 0;
+  left: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--accent-pink),
+    var(--accent-pink) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+[data-theme="win95"] .invoice .title::before,
+[data-theme="win95"] .invoice .title::after {
+  background-image: repeating-linear-gradient(
+    90deg,
+    #000000,
+    #000000 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+[data-theme="terminal"] .invoice .title::before,
+[data-theme="terminal"] .invoice .title::after {
+  background-image: repeating-linear-gradient(
+    90deg,
+    #33ff33,
+    #33ff33 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+.invoice .title::after {
+  content: "";
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  bottom: 0;
+  left: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--accent-pink),
+    var(--accent-pink) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+.invoice .amount,
+.invoice .payment-status .heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1.05rem;
+  margin-bottom: 0.6em;
+  font-family: var(--font-display);
+}
+
+.invoice .amount .value {
+  font-weight: 800;
+  color: var(--accent-cyan);
+  font-size: 1.1rem;
+}
+
+[data-theme="win95"] .invoice .amount .value {
+  color: #000080;
+}
+
+[data-theme="terminal"] .invoice .amount .value {
+  color: #33ff33;
+}
+
+.invoice .payment-status {
+  border: 1.5px solid rgba(0, 240, 255, 0.35);
+  padding: 1.1em;
+  border-radius: 14px;
+  margin-top: 1.3em;
+  background: rgba(5, 2, 18, 0.5);
+}
+
+[data-theme="win95"] .invoice .payment-status {
+  border: 2px solid #808080;
+  background: #c0c0c0;
+}
+
+[data-theme="terminal"] .invoice .payment-status {
+  border: 1.5px solid #116611;
+  background: rgba(5, 16, 5, 0.7);
+}
+
+.invoice .payment-status .heading span {
+  text-transform: uppercase;
+  font-weight: 800;
+  color: var(--accent-yellow);
+}
+
+[data-theme="win95"] .invoice .payment-status .heading span {
+  color: #000000;
+}
+
+[data-theme="terminal"] .invoice .payment-status .heading span {
+  color: #33ff33;
+}
+
+.payers-list {
+  list-style-type: none;
+  margin: 0.8em 0;
+}
+
+.payers-list li {
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  padding: 0.2em 0;
+}
+
+[data-theme="win95"] .payers-list li {
+  border-bottom: 1px solid #808080;
+}
+
+[data-theme="terminal"] .payers-list li {
+  border-bottom: 1px solid #116611;
+}
+
+.payers-list li p {
+  flex-grow: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.02rem;
+  padding: 0.6em 0.8em;
+  color: var(--text-main);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+[data-theme="win95"] .payers-list li p {
+  color: #000000;
+}
+
+[data-theme="terminal"] .payers-list li p {
+  color: #33ff33;
+}
+
+.payers-list .payer-image-container {
+  padding: 0.5em 0.8em;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme="win95"] .payers-list .payer-image-container {
+  border-right: 1px solid #808080;
+}
+
+[data-theme="terminal"] .payers-list .payer-image-container {
+  border-right: 1px solid #116611;
+}
+
+.payers-list .pay-tag {
+  border: 1.5px solid rgba(0, 240, 255, 0.4);
+  border-radius: 8px;
+  padding: 0.35em 0.65em;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.payers-list .pay-tag.win {
+  border-color: #ffe600;
+  color: #ffe600;
+  background: rgba(255, 230, 0, 0.15);
+  box-shadow: 0 0 8px rgba(255, 230, 0, 0.3);
+}
+
+.payers-list .pay-tag.runner {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.15);
+}
+
+.payers-list .pay-tag.third {
+  border-color: #ff9900;
+  color: #ff9900;
+  background: rgba(255, 153, 0, 0.15);
+}
+
+.payers-list .pay-tag.fourth {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="win95"] .payers-list .pay-tag {
+  border: 1px solid #000000;
+  background: #ffffff;
+  color: #000000;
+}
+
+[data-theme="terminal"] .payers-list .pay-tag {
+  border: 1px solid #33ff33;
+  color: #33ff33;
+  background: rgba(51, 255, 51, 0.1);
+}
+
+.status-progress {
+  position: relative;
+  margin: 1.8em 0 0.8em 0;
+  height: 8px;
+  background-image: linear-gradient(90deg, var(--accent-pink) 75%, rgba(255, 255, 255, 0.18) 75%);
+  border-radius: 4px;
+}
+
+[data-theme="win95"] .status-progress {
+  background-image: linear-gradient(90deg, #000080 75%, #808080 75%);
+}
+
+[data-theme="terminal"] .status-progress {
+  background-image: linear-gradient(90deg, #33ff33 75%, #116611 75%);
+}
+
+.checkpoint {
+  position: absolute;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--accent-cyan);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  font-size: 0.9rem;
+}
+
+[data-theme="win95"] .checkpoint {
+  background: #c0c0c0;
+  border: 1.5px solid #000000;
+}
+
+[data-theme="terminal"] .checkpoint {
+  background: #051005;
+  border: 1.5px solid #33ff33;
+}
+
+.checkpoint .circle {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--accent-yellow);
+}
+
+.checkpoint:nth-child(1) {
+  left: 0;
+  top: 0;
+  transform: translate(-5%, -38%);
+}
+
+.checkpoint:nth-child(2) {
+  left: 25%;
+  top: 0;
+  transform: translate(-25%, -38%);
+}
+
+.checkpoint:nth-child(3) {
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -38%);
+}
+
+.checkpoint:nth-child(4) {
+  left: 75%;
+  top: 0;
+  transform: translate(-75%, -38%);
+}
+
+.checkpoint:nth-child(5) {
+  right: 0;
+  top: 0;
+  transform: translate(5%, -38%);
+}
+
+.fa-stamp {
+  color: var(--accent-yellow);
+}
+
+.pay-now-btn {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  background-color: var(--accent-pink);
+  color: #ffffff;
+  width: 100%;
+  padding: 1.1em 0;
+  border: 2px solid var(--accent-pink);
+  border-radius: 0.85em;
+  box-shadow: 0 0 20px rgba(255, 0, 127, 0.45);
+  cursor: pointer;
+  letter-spacing: 1.5px;
+  transition: all 0.2s ease;
+  margin-top: 1.2em;
+}
+
+.pay-now-btn:hover {
+  background-color: #00f0ff;
+  border-color: #00f0ff;
+  color: #0d0221;
+  box-shadow: 0 0 28px #00f0ff;
+  transform: translateY(-2px);
+}
+
+[data-theme="win95"] .pay-now-btn {
+  background-color: #c0c0c0;
+  color: #000000;
+  border: 2px solid #ffffff;
+  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #000000, 2px 2px 0 #000000;
+}
+
+[data-theme="win95"] .pay-now-btn:hover {
+  background-color: #000080;
+  color: #ffffff;
+  transform: none;
+}
+
+[data-theme="terminal"] .pay-now-btn {
+  background-color: #0a1f0a;
+  color: #33ff33;
+  border: 1.5px solid #33ff33;
+  box-shadow: 0 0 16px rgba(51, 255, 51, 0.45);
+}
+
+[data-theme="terminal"] .pay-now-btn:hover {
+  background-color: #33ff33;
+  color: #051005;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 520px) {
+  .ticket-container {
+    width: 95%;
+  }
+
+  .invoice {
+    padding: 1.2em 1em;
+  }
+
+  .invoice .title {
+    font-size: 0.9rem;
+    padding: 0.5em 0;
+  }
+
+  .payers-list li p {
+    font-size: 0.88rem;
+  }
+
+  .payers-list .pay-tag {
+    font-size: 0.7rem;
+  }
+
+  .pay-now-btn {
+    font-size: 0.88rem;
+  }
+}
