@@ -2624,67 +2624,105 @@ canvas#snakeCanvas {
 
 .results-page-wrapper {
   position: relative;
-  z-index: 10;
+  z-index: 100;
   width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 15px 16px 30px;
+  padding: 20px 16px 40px;
   box-sizing: border-box;
 }
 
 .ticket-container {
-  width: min(95%, 520px);
+  position: relative;
+  z-index: 100;
+  width: min(95%, 560px);
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-family: var(--font-mono);
   box-sizing: border-box;
 }
 
 .invoice-container {
   position: relative;
+  z-index: 100;
   width: 100%;
-  min-height: 680px;
   margin: 0 auto 2em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   box-sizing: border-box;
 }
 
-/* Dispenser Chassis Top Mount Header - Sits in front at z-index 10 */
+/* Vending Machine Top Header Chassis (Wider than ticket) */
 .invoice-slot {
   width: 100%;
-  height: 110px;
+  height: 115px;
+  margin: 0 auto;
   background-color: var(--bg-secondary);
   border: 2.5px solid var(--accent-pink);
-  border-radius: 1em;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 15px var(--grid-bg-glow);
+  border-radius: 1.2em 1.2em 0.4em 0.4em;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.85), 0 0 16px var(--grid-bg-glow);
   position: relative;
   z-index: 10;
-  overflow: hidden;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 14px;
 }
 
 [data-theme="win95"] .invoice-slot {
   background-color: #c0c0c0;
   border: 2.5px solid #ffffff;
-  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #000000, 2px 2px 0 #000000;
+  box-shadow: inset 1.5px 1.5px 0 #ffffff, inset -1.5px -1.5px 0 #000000, 3px 3px 0 #000000;
 }
 
 [data-theme="terminal"] .invoice-slot {
   background-color: #0a1f0a;
   border: 2.5px solid #33ff33;
-  box-shadow: 0 0 18px rgba(51, 255, 51, 0.35);
+  box-shadow: 0 0 20px rgba(51, 255, 51, 0.4);
 }
 
-/* Glowing Neon Pill Slot Hole (Matches user image exactly) */
+.vending-header-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+  color: var(--accent-yellow);
+  text-transform: uppercase;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+@keyframes ledBlink {
+  0% {
+    opacity: 0.4;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Glowing Neon Pill Slot Hole (Slightly wider than ticket width) */
 .slot-hole {
   background-color: #020006;
   border-radius: 100vmax;
-  width: 90%;
+  width: 88%;
   height: 32px;
-  margin: 1.2em auto;
+  margin: 0 auto;
   border: 2.5px solid #ff007f;
-  box-shadow: 0 0 20px #ff007f, inset 0 0 12px #000000, 0 0 35px rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 22px #ff007f, inset 0 0 14px #000000, 0 0 35px rgba(0, 240, 255, 0.45);
   position: relative;
   z-index: 11;
 }
@@ -2698,59 +2736,90 @@ canvas#snakeCanvas {
 [data-theme="terminal"] .slot-hole {
   background-color: #000c00;
   border: 2.5px solid #33ff33;
-  box-shadow: 0 0 18px #33ff33, inset 0 0 12px #000000;
+  box-shadow: 0 0 20px #33ff33, inset 0 0 14px #000000;
 }
 
-/* Dispensed Invoice Ticket Paper - Positioned absolute behind slot chassis at z-index 1 */
-.invoice {
-  position: absolute;
-  width: 86%;
-  left: 50%;
-  top: 2.4em;
-  transform: translateX(-50%);
-  z-index: 1;
-  background-color: rgba(18, 7, 42, 0.97);
-  color: var(--text-muted);
-  padding: 1.8em 1.5em;
-  border-radius: 0.8em;
-  border: 2px solid var(--accent-cyan);
-  border-top: 2px dashed rgba(0, 240, 255, 0.6);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.25);
-  animation: slideTicketDown 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* Outer Ticket Paper Mask Container (Narrower than slot hole, centered) */
+.ticket-paper-wrapper {
+  width: 80%;
+  margin: -32px auto 0 auto;
+  padding-top: 32px;
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   box-sizing: border-box;
 }
 
-@keyframes slideTicketDown {
+/* Dispensed Invoice Ticket Paper (100% width aligned & centered) */
+.invoice {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
+  background-color: rgba(18, 7, 42, 0.97);
+  color: var(--text-muted);
+  padding: 1.8em 1.5em;
+  border-radius: 0 0 1.2em 1.2em;
+  border: 2.5px solid var(--accent-cyan);
+  border-top: 2px dashed rgba(0, 240, 255, 0.6);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.25);
+  animation: printVendingTicketSteps 1.2s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  transform-origin: top center;
+  box-sizing: border-box;
+}
+
+/* Authentic Step-Ratcheted Vending Machine Dispense Animation */
+@keyframes printVendingTicketSteps {
   0% {
-    top: -12em;
-    opacity: 0;
+    transform: translateY(-105%);
+    opacity: 0.1;
   }
-  20% {
+
+  25% {
+    transform: translateY(-75%);
     opacity: 1;
   }
+
+  50% {
+    transform: translateY(-45%);
+    opacity: 1;
+  }
+
+  75% {
+    transform: translateY(-15%);
+    opacity: 1;
+  }
+
   100% {
-    top: 2.4em;
+    transform: translateY(0%);
     opacity: 1;
   }
 }
 
-[data-theme="win95"] .invoice {
-  background-color: #dfdfdf;
-  color: #404040;
-  border: 2px solid #ffffff;
-  border-top: 1px dashed #808080;
-  box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #000000, 2px 2px 0 #000000;
+/* Side Stub Ticket Cutout Notches */
+.invoice>.ticket-notch-left,
+.invoice>.ticket-notch-right {
+  position: absolute;
+  top: 55px;
+  width: 16px;
+  height: 16px;
+  background-color: var(--bg-primary);
+  border-radius: 50%;
+  z-index: 6;
 }
 
-[data-theme="terminal"] .invoice {
-  background-color: rgba(10, 31, 10, 0.97);
-  color: #22aa22;
-  border: 2px solid #33ff33;
-  border-top: 1px dashed #33ff33;
-  box-shadow: 0 0 20px rgba(51, 255, 51, 0.35);
+.invoice>.ticket-notch-left {
+  left: -9px;
+  box-shadow: inset -2px 0 4px rgba(0, 0, 0, 0.6);
 }
 
-
+.invoice>.ticket-notch-right {
+  right: -9px;
+  box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.6);
+}
 
 [data-theme="win95"] .invoice {
   background-color: #dfdfdf;
@@ -2775,11 +2844,9 @@ canvas#snakeCanvas {
   height: 50px;
   left: 0;
   top: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.5) 0%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(0, 0, 0, 0.5) 0%,
+      transparent 100%);
   pointer-events: none;
 }
 
@@ -2803,35 +2870,29 @@ canvas#snakeCanvas {
   width: 100%;
   top: 0;
   left: 0;
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--accent-pink),
-    var(--accent-pink) 10px,
-    transparent 10px,
-    transparent 20px
-  );
+  background-image: repeating-linear-gradient(90deg,
+      var(--accent-pink),
+      var(--accent-pink) 10px,
+      transparent 10px,
+      transparent 20px);
 }
 
 [data-theme="win95"] .invoice .title::before,
 [data-theme="win95"] .invoice .title::after {
-  background-image: repeating-linear-gradient(
-    90deg,
-    #000000,
-    #000000 10px,
-    transparent 10px,
-    transparent 20px
-  );
+  background-image: repeating-linear-gradient(90deg,
+      #000000,
+      #000000 10px,
+      transparent 10px,
+      transparent 20px);
 }
 
 [data-theme="terminal"] .invoice .title::before,
 [data-theme="terminal"] .invoice .title::after {
-  background-image: repeating-linear-gradient(
-    90deg,
-    #33ff33,
-    #33ff33 10px,
-    transparent 10px,
-    transparent 20px
-  );
+  background-image: repeating-linear-gradient(90deg,
+      #33ff33,
+      #33ff33 10px,
+      transparent 10px,
+      transparent 20px);
 }
 
 .invoice .title::after {
@@ -2841,13 +2902,11 @@ canvas#snakeCanvas {
   width: 100%;
   bottom: 0;
   left: 0;
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--accent-pink),
-    var(--accent-pink) 10px,
-    transparent 10px,
-    transparent 20px
-  );
+  background-image: repeating-linear-gradient(90deg,
+      var(--accent-pink),
+      var(--accent-pink) 10px,
+      transparent 10px,
+      transparent 20px);
 }
 
 .invoice .amount,
