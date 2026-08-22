@@ -90,7 +90,7 @@ export function LudoLobby() {
   const fetchHasActiveGame = () => {
     getApi<Array<{ id: string }>>('/api/games/mine')
       .then((data) => setHasActiveGame(data.length > 0))
-      .catch(() => {})
+      .catch(() => { })
   }
 
   useEffect(() => {
@@ -218,10 +218,10 @@ export function LudoLobby() {
       badge === 'ranked'
         ? '#ffe600'
         : badge === 'semiRanked'
-        ? '#00ff88'
-        : badge === 'casual'
-        ? '#00f0ff'
-        : '#ff007f'
+          ? '#00ff88'
+          : badge === 'casual'
+            ? '#00f0ff'
+            : '#ff007f'
     return {
       fontSize: '0.65rem',
       fontWeight: 'bold',
@@ -240,10 +240,10 @@ export function LudoLobby() {
     badge === 'ranked'
       ? t('lobbyBrowser.ranked')
       : badge === 'semiRanked'
-      ? t('lobbyBrowser.semiRanked')
-      : badge === 'casual'
-      ? t('lobbyBrowser.casual')
-      : t('lobbyBrowser.invite')
+        ? t('lobbyBrowser.semiRanked')
+        : badge === 'casual'
+          ? t('lobbyBrowser.casual')
+          : t('lobbyBrowser.invite')
 
   const filteredRooms = (rooms ?? []).filter((r) => roomFilter === 'all' || r.mode === roomFilter)
 
@@ -623,10 +623,10 @@ export function LudoLobby() {
                                       ? '...'
                                       : 'REJOIN'
                                     : full
-                                    ? 'FULL'
-                                    : joiningRoomId === room.id
-                                    ? '...'
-                                    : 'JOIN'}
+                                      ? 'FULL'
+                                      : joiningRoomId === room.id
+                                        ? '...'
+                                        : 'JOIN'}
                                 </button>
                               </div>
                             </div>

@@ -585,9 +585,9 @@ export function Game() {
         {/* Main Content Wrapper */}
         <div className="app-wrapper game-page" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
           {/* Hero Telemetry & Badge Bar */}
-          <header className="hero-section" style={{ padding: '16px 0 14px', textAlign: 'center' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <h1 className="hero-title" style={{ fontSize: '1.6rem', marginBottom: 4, textAlign: 'center' }}>
+          <header className="hero-section" style={{ padding: '12px 0 10px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <h1 className="hero-title" style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
                 RETROLUDO // COMBAT ARENA
               </h1>
 
@@ -600,9 +600,10 @@ export function Game() {
                   padding: '8px 20px',
                   borderRadius: 4,
                   background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : 'rgba(0, 240, 255, 0.15)',
-                  border: isMyTurn ? '2px solid var(--accent-pink)' : '1px solid var(--accent-cyan)',
+                  border: isMyTurn ? '1.5px solid var(--accent-pink)' : '1.5px solid var(--accent-cyan)',
                   boxShadow: isMyTurn ? '0 0 15px rgba(255, 0, 127, 0.6)' : 'none',
                   animation: isMyTurn ? 'pulse 1.6s infinite' : 'none',
+                  boxSizing: 'border-box',
                 }}
               >
                 <span
@@ -631,6 +632,10 @@ export function Game() {
                 style={{
                   width: '100%',
                   maxWidth: 740,
+                  minHeight: 38,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   padding: '8px 14px',
                   background: turnSwapNotice
                     ? 'rgba(255, 230, 0, 0.25)'
@@ -638,10 +643,10 @@ export function Game() {
                       ? 'rgba(255, 0, 127, 0.2)'
                       : 'rgba(0, 0, 0, 0.6)',
                   border: turnSwapNotice
-                    ? '2px solid #ffe600'
+                    ? '1.5px solid #ffe600'
                     : isMyTurn
-                      ? '1px solid var(--accent-pink)'
-                      : '1px solid rgba(0, 240, 255, 0.35)',
+                      ? '1.5px solid var(--accent-pink)'
+                      : '1.5px solid rgba(0, 240, 255, 0.35)',
                   boxShadow: turnSwapNotice
                     ? '0 0 20px #ffe600'
                     : isMyTurn
@@ -653,7 +658,8 @@ export function Game() {
                   fontSize: '0.82rem',
                   fontWeight: 'bold',
                   color: turnSwapNotice ? '#ffe600' : isMyTurn ? '#ff007f' : 'var(--accent-cyan)',
-                  transition: 'all 0.2s ease',
+                  transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
+                  boxSizing: 'border-box',
                 }}
               >
                 {turnSwapNotice || (
@@ -700,8 +706,8 @@ export function Game() {
             className="dashboard-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: '275px 1fr 275px',
-              gap: 18,
+              gridTemplateColumns: '310px 1fr 310px',
+              gap: 8,
               alignItems: 'start',
               width: '100%',
               margin: '0 auto',
@@ -871,10 +877,10 @@ export function Game() {
                           padding: '10px 12px',
                           borderRadius: 4,
                           border: isActive
-                            ? `2px solid ${colorAccent}`
+                            ? `1.5px solid ${colorAccent}`
                             : occupied
-                              ? `1px solid ${colorAccent}44`
-                              : '1px dashed rgba(255, 255, 255, 0.12)',
+                              ? `1.5px solid ${colorAccent}44`
+                              : '1.5px dashed rgba(255, 255, 255, 0.12)',
                           background: isActive
                             ? `rgba(35, 12, 70, 0.95)`
                             : 'rgba(25, 10, 56, 0.65)',
@@ -883,7 +889,8 @@ export function Game() {
                             : 'none',
                           opacity: isDisconnected ? 0.55 : 1,
                           position: 'relative',
-                          transition: 'all 0.2s ease',
+                          transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease',
+                          boxSizing: 'border-box',
                         }}
                       >
                         {/* Active Turn Top-Right Badge */}
@@ -965,11 +972,12 @@ export function Game() {
                           </div>
                         </div>
 
-                        {lastRoll !== undefined && lastRoll > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {/* Fixed slot for MiniDie to prevent callsign layout jitter */}
+                        <div style={{ width: 36, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                          {lastRoll !== undefined && lastRoll > 0 && (
                             <MiniDie value={lastRoll} />
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     )
                   })}
@@ -1052,7 +1060,7 @@ export function Game() {
             </div>
 
             {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 740, justifySelf: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 'min(650px, 66vh)', justifySelf: 'center' }}>
               {(() => {
                 const currentTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                 const isBotTurn = currentTurnPlayer?.isBot ?? false
