@@ -1,0 +1,201 @@
+import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
+import { getApi, patchApi } from '../api'
+import { useApp } from '../store'
+
+const OTP = { '42': '/forty_two.png', github: '/github.png', google: '/google.png' } as const
+const PROVIDERS = ['google', 'github', '42'] as const
+
+type Providers = string[]
+interface ProfileResp {
+  user?: { id: string; username: string; email?: string | null; providers?: Providers }
+  emailVerificationSent?: boolean
+  oauthRedirectUrl?: string
+  message?: string
+}
+
+function fieldLabel(style: CSSProperties): CSSProperties {
+  return { ...style, display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 4, fontFamily: 'var(--font-display)' }
+}
+function inputStyle(): CSSProperties {
+  return {
+    width: '100%', boxSizing: 'border-box', padding: '7px 9px', marginBottom: 12, borderRadius: 4,
+    background: 'rgba(0,0,0,0.4)', color: 'var(--text-main)',
+    border: '1px solid var(--border-color)', outline: 'none', fontFamily: 'var(--font-mono)', fontSize: '0.78rem',
+  }
+}
+
+export function ProfileEditModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
+  const { user, setUser, logout } = useApp()
+
+  const [username, setUsername] = useState(user?.username ?? '')
+  const [email, setEmail] = useState('')
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [providers, setProviders] = useState<Providers>([])
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+
+  // Load the full profile (linked providers + email) on open.
+  useEffect(() => {
+    let cancelled = false
+    getApi<ProfileResp>('/api/auth/profile').catch(() => null).then((data) => {
+      if (cancelled || !data?.user) return
+      setEmail(data.user.email ?? '')
+      setProviders(data.user.providers ?? [])
+      setTwoFactorEnabled(!!(data.user as { twoFactorEnabled?: boolean }).twoFactorEnabled)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  const handleSave = async () => {
+    setBusy(true); setError(''); setNotice('')
+    const body: Record<string, unknown> = {}
+    if (username.trim() && username.trim() !== user?.username) body.username = username.trim()
+    if (email.trim()) body.email = email.trim()
+    if (currentPassword || newPassword) { body.currentPassword = currentPassword; body.newPassword = newPassword }
+    body.twoFactorEnabled = twoFactorEnabled
+    try {
+      const data = await patchApi<ProfileResp>('/api/auth/profile', body)
+      if (data?.user) {
+        setUser(data.user as never)
+        setProviders(data.user.providers ?? [])
+        setTwoFactorEnabled(!!(data.user as { twoFactorEnabled?: boolean }).twoFactorEnabled)
+        if (!data.user.email && email.trim()) setEmail(email.trim())
+      }
+      if (data?.emailVerificationSent) setNotice(t('profileEdit.emailVerificationSent'))
+      if (data?.message) setNotice(data.message)
+      if (currentPassword || newPassword) {
+        // Backend revoked all sessions — sign out client-side and go to login.
+        await logout()
+        window.location.href = '/login'
+        return
+      }
+      // Clear password fields after a successful non-password save.
+      setCurrentPassword(''); setNewPassword('')
+    } catch (e) {
+      const msg = (e as { message?: string })?.message ?? ''
+      setError(/last sign-in|keep at least one/i.test(msg) ? t('profileEdit.lastMethod')
+        : /linked to another user/i.test(msg) ? t('profileEdit.providerTaken')
+        : t('profileEdit.genericError'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const addOAuth = (provider: string) => {
+    // Open the provider login directly in a new tab (same as the login page).
+    // The oauth-link `state` is auto-signed by the guard from the session cookie.
+    window.open(`/api/auth/${provider}`, '_blank')
+  }
+
+  const removeOAuth = async (provider: string) => {
+    setBusy(true); setError('')
+    try {
+      await patchApi<ProfileResp>('/api/auth/profile', { oauthToRemove: provider })
+      setProviders((p) => p.filter((x) => x !== provider))
+    } catch (e) {
+      const msg = (e as { message?: string })?.message ?? ''
+      setError(/last sign-in|keep at least one/i.test(msg) ? t('profileEdit.lastMethod') : t('profileEdit.genericError'))
+    } finally { setBusy(false) }
+  }
+
+  const overlay: CSSProperties = {
+    position: 'fixed', inset: 0, zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'rgba(5,2,18,0.72)', backdropFilter: 'blur(4px)',
+  }
+  const panel: CSSProperties = {
+    width: 'min(92vw, 460px)', maxHeight: '88vh', overflowY: 'auto', borderRadius: 10,
+    background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+    boxShadow: 'var(--box-shadow)', padding: 22,
+  }
+
+  return (
+    <div style={overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div style={panel}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontWeight: 900, fontSize: '0.95rem', fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>
+            {t('profileEdit.title')}
+          </div>
+          <button className="retro-btn" onClick={onClose} style={{ padding: '3px 9px', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+            {t('profileEdit.close')}
+          </button>
+        </div>
+
+        <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.username')}</label>
+        <input style={inputStyle()} value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t('profileEdit.usernamePlaceholder')} />
+
+        <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.email')}</label>
+        <input style={inputStyle()} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('profileEdit.emailPlaceholder')} />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>{t('profileEdit.twoFactor')}</div>
+            <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>{t('profileEdit.twoFactorDesc')}</div>
+          </div>
+          <button
+            className="retro-btn"
+            onClick={() => setTwoFactorEnabled((v) => !v)}
+            style={{ padding: '2px 9px', fontSize: '0.66rem', color: 'var(--accent-cyan)' }}
+          >
+            {twoFactorEnabled ? 'ON' : 'OFF'}
+          </button>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: 'var(--text-main)', marginBottom: 8 }}>
+            {t('profileEdit.password')}
+          </div>
+          <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.currentPassword')}</label>
+          <input style={inputStyle()} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t('profileEdit.currentPasswordPlaceholder')} />
+          <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.newPassword')}</label>
+          <input style={inputStyle()} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t('profileEdit.newPasswordPlaceholder')} />
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: 'var(--text-main)', marginBottom: 8 }}>
+            {t('profileEdit.oauthMethods')}
+          </div>
+          {PROVIDERS.map((p) => {
+            const linked = providers.includes(p)
+            return (
+              <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <img src={OTP[p]} alt={p} style={{ width: 18, height: 18 }} />
+                <span style={{ flex: 1, fontSize: '0.72rem', color: 'var(--text-main)', fontFamily: 'var(--font-display)', textTransform: 'capitalize' }}>
+                  {p === '42' ? '42' : p}
+                </span>
+                <span style={{ fontSize: '0.62rem', color: linked ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+                  {linked ? t('profileEdit.linked') : t('profileEdit.notLinked')}
+                </span>
+                <button
+                  className="retro-btn"
+                  disabled={busy}
+                  onClick={() => (linked ? removeOAuth(p) : addOAuth(p))}
+                  style={{ padding: '2px 8px', fontSize: '0.62rem', color: linked ? '#ff0055' : 'var(--accent-cyan)' }}
+                >
+                  {linked ? t('profileEdit.remove') : t('profileEdit.add')}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+
+        {notice && <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', margin: '4px 0 8px' }}>{notice}</div>}
+        {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
+
+        <button
+          className="retro-btn"
+          disabled={busy}
+          onClick={handleSave}
+          style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900 }}
+        >
+          {busy ? t('profileEdit.saving') : t('profileEdit.save')}
+        </button>
+      </div>
+    </div>
+  )
+}

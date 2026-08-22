@@ -5,6 +5,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { TwoFactorDto } from './dto/twofactor.dto';
 import { TwoFactorSettingDto } from './dto/two-factor-setting.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -128,6 +130,46 @@ export class AuthController {
     return { user: req.user };
   }
 
+
+  // ---- Get full profile (used by the Edit-Profile card) ----
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@Req() req: Request) {
+    return this.authService.getProfile((req.user as { id: string }).id);
+  }
+
+  // ---- Complete profile update (username / email / 2FA method) ----
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  async updateProfile(
+    @Req() req: Request,
+    @Body() dto: UpdateProfileDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.updateProfile((req.user as { id: string }).id, dto);
+    // A username change re-issues the session — set the fresh cookies so the
+    // JWT/refresh carry the new name.
+    if (result.session) {
+      this.setSessionCookies(res, result.session.accessToken, result.session.refreshToken);
+    }
+    return {
+      user: result.user,
+      emailVerificationSent: result.emailVerificationSent,
+      oauthRedirectUrl: result.oauthRedirectUrl,
+    };
+  }
+
+  // ---- Change password while logged in ----
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile/password')
+  async changePassword(@Req() req: Request, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(
+      (req.user as { id: string }).id,
+      dto.currentPassword,
+      dto.newPassword,
+    );
+  }
+
   // ---- 2FA preference (logged-in user toggles their own) ----
   @UseGuards(JwtAuthGuard)
   @Get('2fa')
@@ -186,6 +228,29 @@ export class AuthController {
       twoFactorEnabled: boolean;
     };
     const frontendUrl = frontendUrlFor(req);
+
+    // "Add a sign-in method" flow: the OAuth `state` carried a signed oauth-link
+    // token (signed by the guard from the user's access-token cookie). The
+    // strategy already linked the provider to that user — just send them back to
+    // /profile. No new session is issued, no login/2FA redirect happens, so the
+    // user is neither signed out nor logged into a different account.
+    const anyReq = req as any;
+    const state = typeof anyReq.query?.state === 'string' ? anyReq.query.state : undefined;
+    const linkUserId = state
+      ? this.authService.resolveOAuthLink(state, this.providerForRoute(req.path))
+      : undefined;
+    // A link round-trip only counts when the BROWSER that opened the provider
+    // login is still authenticated and matches the linked user. On a fresh
+    // login (no valid token cookie) — even if GitHub echoes a stale state —
+    // fall through to the normal login session flow below.
+    const sessionUser = this.authService.verifyAccessToken(
+      typeof req.cookies?.['token'] === 'string' ? req.cookies['token'] : undefined,
+    );
+    if (linkUserId && sessionUser && sessionUser === linkUserId) {
+      res.redirect(`${frontendUrl}/profile`);
+      return;
+    }
+
     if (!user.email) {
       // Strategies only forward provider-verified emails; without one we have
       // nowhere to send login codes, so this account cannot exist here.
@@ -203,6 +268,12 @@ export class AuthController {
     }
     const { pendingToken } = await this.authService.startTwoFactor(user.id, user.email);
     res.redirect(`${frontendUrl}/2fa?token=${pendingToken}`);
+  }
+
+  private providerForRoute(path: string): string {
+    if (path.includes('/github/')) return 'github';
+    if (path.includes('/google/')) return 'google';
+    return '42';
   }
 
   private setSessionCookies(res: Response, accessToken: string, refreshToken: string) {

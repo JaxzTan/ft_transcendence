@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { RetroNavbar } from '../components/RetroNavbar'
 import { UserAvatar } from '../components/UserAvatar'
+import { ProfileEditModal } from '../components/ProfileEditModal'
 import { useRoute, navigate } from '../router'
 import { useApp } from '../store'
 import { STATUS_STYLE, type PresenceStatus } from '../theme'
@@ -117,6 +118,7 @@ export function Profile() {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [avatarBuster, setAvatarBuster] = useState(Date.now())
+  const [showEdit, setShowEdit] = useState(false)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -558,6 +560,20 @@ export function Profile() {
                               }}
                             >
                               RESET
+                            </button>
+                            <button
+                              className="retro-btn"
+                              onClick={() => setShowEdit(true)}
+                              style={{
+                                padding: '3px 9px',
+                                fontSize: '0.68rem',
+                                color: 'var(--accent-yellow)',
+                                borderColor: 'rgba(255, 230, 0, 0.45)',
+                                fontFamily: 'var(--font-display)',
+                                borderRadius: 4,
+                              }}
+                            >
+                              EDIT PROFILE
                             </button>
                             {uploadError && (
                               <span style={{ color: '#ff0055', fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>
@@ -1244,6 +1260,8 @@ export function Profile() {
           )}
         </div>
       </div>
+
+      {showEdit && <ProfileEditModal onClose={() => setShowEdit(false)} />}
     </>
   )
 }
