@@ -38,7 +38,7 @@ export function RetroNavbar({
     { path: '/leaderboard', label: t('nav.leaderboard').toUpperCase(), icon: '♛' },
     { path: '/profile', label: t('nav.profile').toUpperCase(), icon: '@/' },
     { path: '/friends', label: t('nav.friends').toUpperCase(), icon: '♟' },
-    { path: '/gamelobby', label: t('multiplayer.title').toUpperCase(), icon: '>_' },
+    { path: '/gamelobby', label: t('nav.lobby').toUpperCase(), icon: '>_' },
     { path: '/game', label: 'ARENA', icon: '{}', disabled: true },
   ]
 

@@ -11,6 +11,7 @@ export const ms = {
     friends: 'Rakan-rakan',
     profile: 'Profil',
     leaderboard: 'Carta Kedudukan',
+    lobby: 'Lobi',
     playNow: 'Main sekarang',
     gameInviteFrom: '{{name}} menjemput anda ke permainan',
     acceptInvite: 'Terima',

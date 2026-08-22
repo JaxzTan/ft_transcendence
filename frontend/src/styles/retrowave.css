@@ -713,14 +713,12 @@ body {
   position: absolute;
   inset: -10px -6px -4px -6px;
   border-radius: 45% 45% 8px 8px / 65% 65% 15% 15%;
-  background: radial-gradient(
-    ellipse at 50% 115%,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(0, 240, 255, 0.9) 25%,
-    rgba(255, 0, 255, 0.85) 55%,
-    rgba(189, 0, 255, 0.75) 78%,
-    transparent 96%
-  );
+  background: radial-gradient(ellipse at 50% 115%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(0, 240, 255, 0.9) 25%,
+      rgba(255, 0, 255, 0.85) 55%,
+      rgba(189, 0, 255, 0.75) 78%,
+      transparent 96%);
   filter: blur(5px);
   z-index: -2;
   opacity: 0.95;
@@ -734,13 +732,11 @@ body {
   position: absolute;
   inset: -5px -3px -2px -3px;
   border-radius: 50% 50% 6px 6px / 70% 70% 15% 15%;
-  background: radial-gradient(
-    ellipse at 50% 120%,
-    rgba(0, 240, 255, 0.8) 0%,
-    rgba(255, 0, 255, 0.75) 50%,
-    rgba(189, 0, 255, 0.65) 75%,
-    transparent 90%
-  );
+  background: radial-gradient(ellipse at 50% 120%,
+      rgba(0, 240, 255, 0.8) 0%,
+      rgba(255, 0, 255, 0.75) 50%,
+      rgba(189, 0, 255, 0.65) 75%,
+      transparent 90%);
   filter: blur(4px);
   z-index: -1;
   opacity: 0.92;
@@ -855,16 +851,14 @@ body {
   left: -130%;
   width: 75%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(0, 240, 255, 0.45) 15%,
-    rgba(255, 0, 234, 0.7) 35%,
-    rgba(255, 255, 255, 0.95) 50%,
-    rgba(255, 230, 0, 0.75) 65%,
-    rgba(0, 255, 136, 0.5) 85%,
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(0, 240, 255, 0.45) 15%,
+      rgba(255, 0, 234, 0.7) 35%,
+      rgba(255, 255, 255, 0.95) 50%,
+      rgba(255, 230, 0, 0.75) 65%,
+      rgba(0, 255, 136, 0.5) 85%,
+      transparent);
   transform: skewX(-24deg);
   pointer-events: none;
   animation: paddle-prism-sweep 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
@@ -2271,17 +2265,15 @@ canvas#snakeCanvas {
 .retro-auth-sky {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    #0a0118 0%,
-    #1a063a 25%,
-    #3d0d6b 40%,
-    #7b1fa2 52%,
-    #ff4081 62%,
-    #ff8a65 70%,
-    #ffcc02 78%,
-    #0a0118 79%
-  );
+  background: linear-gradient(180deg,
+      #0a0118 0%,
+      #1a063a 25%,
+      #3d0d6b 40%,
+      #7b1fa2 52%,
+      #ff4081 62%,
+      #ff8a65 70%,
+      #ffcc02 78%,
+      #0a0118 79%);
   z-index: 1;
 }
 
@@ -2294,34 +2286,33 @@ canvas#snakeCanvas {
   height: 55%;
   z-index: 2;
   background:
-    linear-gradient(
-      180deg,
+    linear-gradient(180deg,
       transparent 0%,
       rgba(255, 0, 127, 0.08) 2%,
-      rgba(255, 0, 127, 0.02) 100%
-    ),
-    repeating-linear-gradient(
-      90deg,
+      rgba(255, 0, 127, 0.02) 100%),
+    repeating-linear-gradient(90deg,
       transparent,
       transparent 98px,
       rgba(255, 0, 127, 0.3) 98px,
-      rgba(255, 0, 127, 0.3) 100px
-    ),
-    repeating-linear-gradient(
-      0deg,
+      rgba(255, 0, 127, 0.3) 100px),
+    repeating-linear-gradient(0deg,
       transparent,
       transparent 48px,
       rgba(255, 0, 127, 0.25) 48px,
-      rgba(255, 0, 127, 0.25) 50px
-    );
+      rgba(255, 0, 127, 0.25) 50px);
   transform: perspective(400px) rotateX(55deg);
   transform-origin: center top;
   animation: retro-grid-scroll 4s linear infinite;
 }
 
 @keyframes retro-grid-scroll {
-  0% { background-position-y: 0; }
-  100% { background-position-y: 50px; }
+  0% {
+    background-position-y: 0;
+  }
+
+  100% {
+    background-position-y: 50px;
+  }
 }
 
 /* Neon horizon glow line */
@@ -2385,13 +2376,11 @@ canvas#snakeCanvas {
   inset: 0;
   z-index: 8;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.06) 2px,
-    rgba(0, 0, 0, 0.06) 4px
-  );
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.06) 2px,
+      rgba(0, 0, 0, 0.06) 4px);
 }
 
 /* Centered card wrapper */
@@ -2416,21 +2405,26 @@ canvas#snakeCanvas {
 .retro-auth-logo svg {
   fill: #00f0ff;
   filter:
-    drop-shadow(0 0 12px rgba(0, 240, 255, 0.8))
-    drop-shadow(0 0 40px rgba(0, 240, 255, 0.4));
+    drop-shadow(0 0 12px rgba(0, 240, 255, 0.8)) drop-shadow(0 0 40px rgba(0, 240, 255, 0.4));
   transition: fill 0.3s ease;
 }
 
 .retro-auth-logo:hover svg {
   fill: #ff007f;
   filter:
-    drop-shadow(0 0 12px rgba(255, 0, 127, 0.8))
-    drop-shadow(0 0 40px rgba(255, 0, 127, 0.4));
+    drop-shadow(0 0 12px rgba(255, 0, 127, 0.8)) drop-shadow(0 0 40px rgba(255, 0, 127, 0.4));
 }
 
 @keyframes retro-auth-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 /* Glassmorphism card */

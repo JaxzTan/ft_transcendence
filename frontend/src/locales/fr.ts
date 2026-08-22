@@ -11,6 +11,7 @@ export const fr = {
     friends: 'Amis',
     profile: 'Profil',
     leaderboard: 'Classement',
+    lobby: 'Salon',
     playNow: 'Jouer maintenant',
     gameInviteFrom: '{{name}} vous a invité à une partie',
     acceptInvite: 'Accepter',

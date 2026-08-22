@@ -11,6 +11,7 @@ export const en = {
     friends: 'Friends',
     profile: 'Profile',
     leaderboard: 'Leaderboard',
+    lobby: 'Lobby',
     playNow: 'Play now',
     gameInviteFrom: '{{name}} invited you to a game',
     acceptInvite: 'Accept',
