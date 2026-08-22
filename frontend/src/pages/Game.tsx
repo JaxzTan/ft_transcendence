@@ -1387,55 +1387,65 @@ export function Game() {
                 </div>
               </section>
 
-              {/* RETURN TO LOBBY BUTTON */}
-              <button
-                className="retro-btn"
-                onClick={() => {
-                  retroAudio.playUiBeep(440, 0.05)
-                  navigate('/gamelobby')
-                }}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  fontSize: '0.78rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 'bold',
-                  letterSpacing: '1px',
-                  lineHeight: '1.4',
-                  background: 'rgba(0, 240, 255, 0.12)',
-                  border: '1px solid var(--accent-cyan)',
-                  color: 'var(--accent-cyan)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  boxSizing: 'border-box',
-                }}
-                title="Return to Ludo Lobby"
-              >
-                &lt; RETURN TO LOBBY
-              </button>
+              {/* RETURN TO LOBBY BUTTON (Only for online PvP matches) */}
+              {activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat' && (
+                <button
+                  className="retro-btn"
+                  onClick={() => {
+                    retroAudio.playUiBeep(440, 0.05)
+                    navigate('/gamelobby')
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    fontSize: '0.78rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 'bold',
+                    letterSpacing: '1px',
+                    lineHeight: '1.4',
+                    background: 'rgba(0, 240, 255, 0.12)',
+                    border: '1px solid var(--accent-cyan)',
+                    color: 'var(--accent-cyan)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    boxSizing: 'border-box',
+                  }}
+                  title="Return to Ludo Lobby"
+                >
+                  &lt; RETURN TO LOBBY
+                </button>
+              )}
 
               {/* ABORT MISSION / END GAME BUTTON */}
-              <button
-                className="retro-btn"
-                onClick={endGame}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  fontSize: '0.78rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 'bold',
-                  letterSpacing: '1px',
-                  lineHeight: '1.4',
-                  background: 'rgba(255, 0, 85, 0.15)',
-                  border: '1px solid #ff0055',
-                  color: '#ff0055',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  boxSizing: 'border-box',
-                }}
-              >
-                // ABORT MATCH // END GAME
-              </button>
+              {(() => {
+                const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
+                return (
+                  <button
+                    className="retro-btn"
+                    onClick={endGame}
+                    style={{
+                      width: '100%',
+                      padding: isBotOrHotseat ? '18px 20px' : '12px 14px',
+                      fontSize: isBotOrHotseat ? '0.92rem' : '0.78rem',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      letterSpacing: isBotOrHotseat ? '1.5px' : '1px',
+                      lineHeight: '1.4',
+                      background: 'rgba(255, 0, 85, 0.18)',
+                      border: '1.5px solid #ff0055',
+                      color: '#ff0055',
+                      boxShadow: isBotOrHotseat ? '0 0 16px rgba(255, 0, 85, 0.3)' : 'none',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    // ABORT MATCH // END GAME
+                  </button>
+                )
+              })()}
+
             </div>
           </main>
         </div>

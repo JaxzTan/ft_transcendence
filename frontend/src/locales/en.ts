@@ -223,6 +223,8 @@ export const en = {
     startSoloBtn: 'Start solo run',
     creatingMatchBtn: 'Creating match…',
     addBotToStartBtn: 'Add a bot to start',
+    addPlayerToStartBtn: 'Add a player to start',
+
     youPlusBot: 'You + {{count}} bot',
     youPlusBots: 'You + {{count}} bots',
     soloHint: 'Just you and the dice — good luck',

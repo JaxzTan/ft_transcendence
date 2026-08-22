@@ -600,7 +600,8 @@ export function Lobby() {
                         ? '// INITIALIZING ARENA...'
                         : canStart
                           ? (isSolo ? '// START SOLO PRACTICE //' : '// LAUNCH ARENA MATCH //')
-                          : '// ADD BOT TO START //'}
+                          : (isLocal ? '// ADD PLAYER TO START //' : '// ADD BOT TO START //')}
+
                     </button>
 
                     {startError && (
