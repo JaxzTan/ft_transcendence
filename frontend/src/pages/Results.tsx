@@ -43,7 +43,6 @@ export function Results() {
   const myPlayer = activeResult.players.find((p) => !p.isBot && p.username === user?.username) || activeResult.players.find((p) => !p.isBot) || activeResult.players[0]
   const myColor = myPlayer?.color || 'red'
   const won = activeResult.winner === myColor
-  const myPiecesHome = ranked.find((p) => p.color === myColor)?.piecesInGoal ?? 0
   const winnerPlayer = activeResult.players.find((p) => p.color === activeResult.winner)
 
   const COLOR_NAME_KEYS: Record<string, string> = {
@@ -56,22 +55,22 @@ export function Results() {
   const winnerName = winnerPlayer ? (winnerPlayer.color === myColor ? t('common.you') : winnerPlayer.username) : t(winnerColorName)
 
   const modeLabels: Record<string, string> = {
-    pvp: 'PVP ARENA',
-    pve: 'VS BOT',
-    hotseat: 'HOTSEAT LOCAL',
+    pvp: t('results.modePvp'),
+    pve: t('results.modePve'),
+    hotseat: t('results.modeHotseat'),
   }
-  const modeLabel = modeLabels[activeResult.mode] || 'RETROLUDO'
+  const modeLabel = modeLabels[activeResult.mode] || t('results.modeDefault')
 
   // Calculate outcome display title
-  let outcomeTitle = 'COMPLETED'
+  let outcomeTitle = t('results.outcomeCompleted')
   if (activeResult.abandoned) {
-    outcomeTitle = 'ABANDONED'
+    outcomeTitle = t('results.outcomeAbandoned')
   } else if (activeResult.mode === 'hotseat') {
-    outcomeTitle = 'MATCH COMPLETE'
+    outcomeTitle = t('results.outcomeMatchComplete')
   } else if (won) {
-    outcomeTitle = 'VICTORY'
+    outcomeTitle = t('results.outcomeVictory')
   } else {
-    outcomeTitle = 'DEFEAT'
+    outcomeTitle = t('results.outcomeDefeat')
   }
 
   // Render rank badge with correct 1st, 2nd, 3rd, 4th ordinal suffixes
@@ -79,27 +78,27 @@ export function Results() {
     if (isWinner) {
       return (
         <span className="pay-tag win">
-          <i className="fa-solid fa-crown"></i> 1st Place
+          {t('results.firstPlace')}
         </span>
       )
     }
     if (rank === 2) {
       return (
         <span className="pay-tag runner">
-          <i className="fa-solid fa-circle-check"></i> 2nd Place
+          {t('results.secondPlace')}
         </span>
       )
     }
     if (rank === 3) {
       return (
         <span className="pay-tag third">
-          <i className="fa-solid fa-medal"></i> 3rd Place
+          {t('results.thirdPlace')}
         </span>
       )
     }
     return (
       <span className="pay-tag fourth">
-        <i className="fa-solid fa-flag"></i> 4th Place
+        {t('results.fourthPlace')}
       </span>
     )
   }
@@ -135,22 +134,17 @@ export function Results() {
                 <div className="invoice">
                   <span className="ticket-notch-left"></span>
                   <span className="ticket-notch-right"></span>
-                  <h2 className="title">MATCH INVOICE RETROLUDO '42</h2>
+                  <h2 className="title">{t('results.matchInvoiceTitle')}</h2>
 
                   <p className="amount">
-                    Outcome <span className="value">{outcomeTitle}</span>
+                    {t('results.outcomeLabel')} <span className="value">{outcomeTitle}</span>
                   </p>
                   <p className="amount">
-                    Mode <span className="value">{modeLabel}</span>
+                    {t('results.modeLabel')} <span className="value">{modeLabel}</span>
                   </p>
                   <p className="amount">
-                    Champion <span className="value">{winnerName.toUpperCase()}</span>
+                    {t('results.championLabel')} <span className="value">{winnerName.toUpperCase()}</span>
                   </p>
-                  {activeResult.resultDetail && (
-                    <p className="amount">
-                      Detail <span className="value">{activeResult.resultDetail.toUpperCase()}</span>
-                    </p>
-                  )}
 
                   <hr style={{ border: 'none', height: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', margin: '0.75em 0' }} />
 
@@ -189,31 +183,6 @@ export function Results() {
                     })}
                   </ul>
 
-                  {/* Match Goal Progress Checkpoints Bar */}
-                  <div className="payment-status">
-                    <p className="heading">
-                      Goal Progress
-                      <span>{myPiecesHome}/4 Tokens</span>
-                    </p>
-                    <div className="status-progress">
-                      <div className="checkpoint">
-                        {myPiecesHome >= 1 ? <i className="fa-solid fa-circle-check"></i> : <span className="circle" />}
-                      </div>
-                      <div className="checkpoint">
-                        {myPiecesHome >= 2 ? <i className="fa-solid fa-circle-check"></i> : <span className="circle" />}
-                      </div>
-                      <div className="checkpoint">
-                        {myPiecesHome >= 3 ? <i className="fa-solid fa-circle-check"></i> : <span className="circle" />}
-                      </div>
-                      <div className="checkpoint">
-                        {myPiecesHome >= 4 ? <i className="fa-solid fa-circle-check"></i> : <span className="circle" />}
-                      </div>
-                      <div className="checkpoint">
-                        {won ? <i className="fa-solid fa-crown" style={{ color: '#ffe600' }}></i> : <i className="fa-solid fa-stamp"></i>}
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Action Button: Return to Lobby Only */}
                   <button
                     className="pay-now-btn"
@@ -222,7 +191,7 @@ export function Results() {
                       navigate('/gamelobby')
                     }}
                   >
-                    ▶ RETURN TO LOBBY
+                    {t('results.returnToLobbyBtn')}
                   </button>
                 </div>
               </div>
@@ -239,4 +208,3 @@ export function Results() {
     </>
   )
 }
-

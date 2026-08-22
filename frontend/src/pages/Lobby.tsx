@@ -125,7 +125,7 @@ export function Lobby() {
           <header className="hero-section" style={{ padding: '16px 0 14px', textAlign: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
               <h1 className="hero-title" style={{ fontSize: '1.75rem', marginBottom: 4, textAlign: 'center' }}>
-                {isSolo ? '// SOLO PRACTICE BAY //' : '// ARENA MATCH CONFIGURATION //'}
+                {isSolo ? t('lobby.soloPracticeBay') : t('lobby.arenaMatchConfig')}
               </h1>
 
               {/* Live Pill Announcement Bar */}
@@ -157,7 +157,7 @@ export function Lobby() {
                     letterSpacing: '0.5px',
                   }}
                 >
-                  {isSolo ? 'SOLO RUN MODE' : 'ARENA LOBBY READY'}
+                  {isSolo ? t('lobby.soloRunMode') : t('lobby.arenaLobbyReady')}
                 </span>
               </div>
 
@@ -177,8 +177,8 @@ export function Lobby() {
                 }}
               >
                 {isSolo
-                  ? '>>> TEST YOUR LUCK AGAINST ARENA HAZARDS <<<'
-                  : '>>> CONFIGURE PILOT SEATS, BOTS & TACTICAL PARAMETERS <<<'}
+                  ? t('lobby.soloSubtitle')
+                  : t('lobby.arenaSubtitle')}
               </div>
             </div>
           </header>
@@ -199,7 +199,7 @@ export function Lobby() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <section className="retro-window" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div className="window-header" style={{ fontSize: '0.84rem' }}>
-                  <span>// SEAT ROSTER & PILOT ASSIGNMENTS ({playerCount - emptyCount}/{playerCount})</span>
+                  <span>{t('lobby.seatRosterTitle', { assigned: playerCount - emptyCount, total: playerCount })}</span>
                   <div className="window-controls">
                     <span className="window-btn min" />
                     <span className="window-btn max" />
@@ -235,7 +235,7 @@ export function Lobby() {
                           {/* SEAT BADGE HEADER */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: hue, fontWeight: 'bold' }}>
-                              // SEAT 0{i + 1}: {colorName}
+                              {t('lobby.seatBadgeHeader', { number: i + 1, color: colorName })}
                             </span>
                           </div>
 
@@ -263,12 +263,12 @@ export function Lobby() {
                                     {user?.username.toUpperCase() || t('common.you')}
                                   </div>
                                   <div style={{ color: hue, fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
-                                    [HOST / PILOT 01]
+                                    {t('lobby.hostPilotTag')}
                                   </div>
                                 </div>
                               </div>
                               <div style={{ fontSize: '0.74rem', color: '#00ff88', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                                &gt;&gt; STATE: READY // HOST
+                                {t('lobby.stateReadyHost')}
                               </div>
                             </div>
                           )}
@@ -299,7 +299,7 @@ export function Lobby() {
                                       {seat.name}
                                     </div>
                                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
-                                      [AI BOT]
+                                      {t('lobby.aiBotTag')}
                                     </div>
                                   </div>
                                 </div>
@@ -327,7 +327,7 @@ export function Lobby() {
                                 </button>
                               </div>
                               <div style={{ fontSize: '0.74rem', color: hue, fontFamily: 'var(--font-mono)' }}>
-                                &gt;&gt; STATE: AI READY
+                                {t('lobby.stateAiReady')}
                               </div>
                             </div>
                           )}
@@ -387,13 +387,13 @@ export function Lobby() {
                                           setEditName(seat.name)
                                         }}
                                         style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff', fontFamily: 'var(--font-heading)', cursor: 'pointer' }}
-                                        title="Click to rename pilot"
+                                        title={t('lobby.clickToRename')}
                                       >
                                         {seat.name} ✎
                                       </div>
                                     )}
                                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
-                                      [HOTSEAT PILOT]
+                                      {t('lobby.hotseatPilotTag')}
                                     </div>
                                   </div>
                                 </div>
@@ -421,7 +421,7 @@ export function Lobby() {
                                 </button>
                               </div>
                               <div style={{ fontSize: '0.74rem', color: '#00ff88', fontFamily: 'var(--font-mono)' }}>
-                                &gt;&gt; STATE: STANDBY
+                                {t('lobby.stateStandby')}
                               </div>
                             </div>
                           )}
@@ -464,7 +464,7 @@ export function Lobby() {
                                 +
                               </div>
                               <div style={{ fontSize: '0.78rem', color: hue, fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                                {allowAddPlayers ? '+ ADD AI BOT' : '+ ADD HUMAN PILOT'}
+                                {allowAddPlayers ? t('lobby.addAiBot') : t('lobby.addHumanPilot')}
                               </div>
                             </div>
                           )}
@@ -494,7 +494,7 @@ export function Lobby() {
                   navigate('/gamelobby')
                 }}
               >
-                &lt; RETURN TO GAME LOBBY
+                {t('lobby.returnToGameLobby')}
               </button>
             </div>
 
@@ -503,7 +503,7 @@ export function Lobby() {
               {/* LAUNCH CONTROL WINDOW */}
               <section className="retro-window" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <div className="window-header" style={{ fontSize: '0.84rem' }}>
-                  <span>// ARENA LAUNCH CONTROL</span>
+                  <span>{t('lobby.arenaLaunchControlTitle')}</span>
                   <div className="window-controls">
                     <span className="window-btn min" />
                     <span className="window-btn max" />
@@ -513,7 +513,7 @@ export function Lobby() {
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 22, padding: '28px 24px', flex: 1, justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>// ACTIVE PILOTS:</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('lobby.activePilotsLabel')}</span>
                       <span style={{ color: '#ffffff', fontWeight: 'bold' }}>
                         {playerCount - emptyCount} / {playerCount}
                       </span>
@@ -521,38 +521,38 @@ export function Lobby() {
 
                     {!isSolo && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>// BOT UNITS:</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{t('lobby.botUnitsLabel')}</span>
                         <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
-                          {botCount} UNIT{botCount === 1 ? '' : 'S'}
+                          {t('lobby.unitsCount', { count: botCount, plural: botCount === 1 ? '' : 'S' })}
                         </span>
                       </div>
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>// ARENA MODE:</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('lobby.arenaModeLabel')}</span>
                       <span style={{ color: '#ffe600', fontWeight: 'bold' }}>
-                        {isSolo ? 'SOLO PRACTICE' : isLocal ? 'LOCAL HOTSEAT' : 'PVE ARENA'}
+                        {isSolo ? t('lobby.soloSoloPractice') : isLocal ? t('lobby.localHotseat') : t('lobby.pveArena')}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>// SECTOR MATRIX:</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('lobby.sectorMatrixLabel')}</span>
                       <span style={{ color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
-                        15x15 COMBAT CROSS
+                        {t('lobby.combatCross')}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>// COMBAT CLASH:</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('lobby.combatClashLabel')}</span>
                       <span style={{ color: '#ff007f', fontWeight: 'bold' }}>
-                        CONTESTED TILE CLASH
+                        {t('lobby.contestedTileClash')}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>// WIN CONDITION:</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{t('lobby.winConditionLabel')}</span>
                       <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
-                        4 PIECES IN GOAL
+                        {t('lobby.fourPiecesInGoal')}
                       </span>
                     </div>
 
@@ -572,8 +572,8 @@ export function Lobby() {
                       }}
                     >
                       {canStart
-                        ? '>>> ALL SYSTEM CHECKS PASSED. ARENA READY FOR LAUNCH <<<'
-                        : '>>> ASSIGN AT LEAST 1 BOT/PILOT TO INITIALIZE MATCH <<<'}
+                        ? t('lobby.allSystemsPassed')
+                        : t('lobby.assignAtLeastOne')}
                     </div>
                   </div>
 
@@ -597,10 +597,10 @@ export function Lobby() {
                       }}
                     >
                       {starting
-                        ? '// INITIALIZING ARENA...'
+                        ? t('lobby.initializingArena')
                         : canStart
-                          ? (isSolo ? '// START SOLO PRACTICE //' : '// LAUNCH ARENA MATCH //')
-                          : (isLocal ? '// ADD PLAYER TO START //' : '// ADD BOT TO START //')}
+                          ? (isSolo ? t('lobby.startSoloPractice') : t('lobby.launchArenaMatch'))
+                          : (isLocal ? t('lobby.addPlayerToStart') : t('lobby.addBotToStart'))}
 
                     </button>
 

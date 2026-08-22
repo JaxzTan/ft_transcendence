@@ -523,7 +523,7 @@ export function Game() {
           <div className="app-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <section className="retro-window" style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
               <div className="window-header">
-                <span>// SYSTEM ALERT // NO ACTIVE SESSION</span>
+                <span>{t('game.noActiveSessionTitle')}</span>
               </div>
               <div className="window-body" style={{ textAlign: 'center', padding: '30px 24px' }}>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', color: 'var(--accent-yellow)', marginBottom: 10 }}>
@@ -540,7 +540,7 @@ export function Game() {
                     navigate('/gamelobby')
                   }}
                 >
-                  &gt;_ RETURN TO GAME LOBBY
+                  &gt;_ {t('game.returnToLobbyBtn')}
                 </button>
               </div>
             </section>
@@ -582,7 +582,7 @@ export function Game() {
           <header className="hero-section" style={{ padding: '12px 0 10px', textAlign: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <h1 className="hero-title" style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
-                RETROLUDO // COMBAT ARENA
+                {t('game.heroTitle')}
               </h1>
 
               {/* Live Turn Announcement Pill */}
@@ -658,14 +658,14 @@ export function Game() {
               >
                 {turnSwapNotice || (
                   view.status === 'waiting'
-                    ? '>>> WAITING FOR PILOTS TO READY UP <<<'
+                    ? t('game.readyNeedsOpponent')
                     : isRolling
-                      ? '>>> ROLLING DICE... <<<'
+                      ? t('game.statusRolling')
                       : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
-                        ? '>>> YOUR TURN: PRESS SPACEBAR OR ROLL DICE <<<'
+                        ? t('game.statusRollNow')
                         : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
-                          ? '>>> SELECT HIGHLIGHTED PIECE TO ADVANCE <<<'
-                          : `>>> WAITING FOR PILOT ${view.currentTurn.toUpperCase()}... <<<`
+                          ? t('game.statusSelectPiece')
+                          : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })
                 )}
               </div>
             </div>
@@ -689,7 +689,7 @@ export function Game() {
                   onClick={copyRoomCode}
                   title="Click to copy Room Code"
                 >
-                  // ROOM: {activeMatch.inviteCode} [{codeCopied ? 'COPIED OK' : 'COPY'}]
+                  {t('game.roomLabel', { code: activeMatch.inviteCode, status: codeCopied ? t('game.roomCopiedOk') : t('game.roomCopy') })}
                 </button>
               </div>
             )}
@@ -713,17 +713,17 @@ export function Game() {
               <section className="retro-window" id="playersWindow">
                 <div className="window-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>// PILOT ROSTER</span>
+                    <span>{t('game.pilotRosterTitle')}</span>
                   </div>
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                      SEAT // PILOT CALLSIGN
+                      {t('game.seatPilotHeader')}
                     </span>
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      ROLL / GOALS
+                      {t('game.lastRolled').toUpperCase()}
                     </span>
                   </div>
 
@@ -982,34 +982,34 @@ export function Game() {
               <section className="retro-window" id="sectorControlWindow">
                 <div className="window-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>// SYSTEM CONTROL</span>
+                    <span>{t('game.systemControlTitle')}</span>
                   </div>
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    // COMBAT KEYBINDS & RULES
+                    {t('game.combatKeybindsRules')}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>DICE ROLL:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR / CLICK</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('game.spaceToRoll')}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>SELECT PIECE:</span>
                       <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>VICTORY GOAL:</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES IN GOAL</span>
+                      <span>{t('game.victoryGoal')}</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
                     </div>
                   </div>
 
                   <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
 
                   <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    // AUDIO PREFERENCES
+                    {t('game.audioPreferences')}
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
@@ -1028,7 +1028,7 @@ export function Game() {
                       }}
                       onClick={toggleSound}
                     >
-                      {soundMuted ? '// AUDIO: OFF' : '// AUDIO: ON'}
+                      {soundMuted ? t('game.audioOff') : t('game.audioOn')}
                     </button>
                   </div>
                 </div>
@@ -1063,13 +1063,13 @@ export function Game() {
                 /* WAITING ROOM SETUP WINDOW */
                 <section className="retro-window" id="waitingSetupWindow">
                   <div className="window-header">
-                    <span>// WAITING BAY SETUP</span>
+                    <span>{t('game.waitingBayTitle')}</span>
                   </div>
 
                   <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                        // SELECT SEAT COLOR:
+                        {t('game.selectSeatColor')}
                       </div>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
                         {SEAT_COLORS.map((ck) => {
@@ -1135,33 +1135,26 @@ export function Game() {
                           }}
                         >
                           {alreadyReady
-                            ? '[READY] (WAITING)'
+                            ? `[${t('game.readyBadge').toUpperCase()}] (${t('game.waitingForHost')})`
                             : soloRoom
-                              ? 'WAITING OPPONENT'
-                              : 'READY TO LAUNCH'}
+                              ? t('game.readyNeedsOpponent')
+                              : t('game.startMatchBtn')}
                         </button>
                       )
                     })()}
 
                     <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-                      // READY PILOTS:{' '}
-                      <span style={{ color: '#ffe600', fontWeight: 'bold' }}>
-                        {view.readyPlayers.length}
-                      </span>{' '}
-                      /{' '}
-                      <span style={{ color: '#ffffff' }}>
-                        {view.players.filter((p) => p.status === 'active').length}
-                      </span>
+                      {t('game.readyPilots', { current: view.readyPlayers.length, total: view.players.filter((p) => p.status === 'active').length })}
                     </div>
 
                     {activeMatch?.mode === 'pvp' && (
                       <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                          // INVITE COMMS:
+                          {t('game.inviteComms')}
                         </div>
                         {friends.length === 0 ? (
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            No online friends available to invite.
+                            {t('game.noFriendsToInvite')}
                           </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 110, overflowY: 'auto' }}>
@@ -1188,7 +1181,7 @@ export function Game() {
                                     disabled={st !== 'idle'}
                                     style={{ padding: '3px 8px', fontSize: '0.62rem' }}
                                   >
-                                    {st === 'busy' ? '...' : st === 'sent' ? 'SENT OK' : '+ INVITE'}
+                                    {st === 'busy' ? '...' : st === 'sent' ? t('game.inviteSent') : `+ ${t('game.inviteBtn')}`}
                                   </button>
                                 </div>
                               )
@@ -1203,7 +1196,7 @@ export function Game() {
                 /* IN-GAME DICE CONTROLS WINDOW */
                 <section className="retro-window" id="diceControlWindow">
                   <div className="window-header">
-                    <span>// DICE SYSTEM</span>
+                    <span>{t('game.diceSystemTitle')}</span>
                   </div>
 
                   <div
@@ -1241,8 +1234,8 @@ export function Game() {
                           }}
                         >
                           {isMyTurn
-                            ? '▶ YOUR TURN IN CONTROL ◀'
-                            : `▶ ACTIVE PILOT: ${activeName} ◀`}
+                            ? `▶ ${t('game.yourTurn').toUpperCase()} ◀`
+                            : `▶ ${t('game.botTurn', { name: activeName }).toUpperCase()} ◀`}
                         </div>
                       )
                     })()}
@@ -1255,12 +1248,12 @@ export function Game() {
                       }}
                     >
                       {isRolling
-                        ? '// ROLLING...'
+                        ? t('game.statusRolling')
                         : canRoll
-                          ? '// PILOT TURN: ROLL NOW'
+                          ? t('game.statusRollNow')
                           : view.turnPhase === 'WAITING_FOR_MOVE'
-                            ? '// SELECT HIGHLIGHTED PIECE'
-                            : `// WAITING FOR ${view.currentTurn.toUpperCase()}`}
+                            ? t('game.statusSelectPiece')
+                            : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })}
                     </div>
 
                     <div style={{ height: 90, display: 'grid', placeItems: 'center' }}>
@@ -1289,7 +1282,7 @@ export function Game() {
                         boxSizing: 'border-box',
                       }}
                     >
-                      {isRolling ? 'ROLLING...' : 'ROLL DICE'}
+                      {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
                     </button>
 
                     <div
@@ -1300,7 +1293,7 @@ export function Game() {
                         textAlign: 'center',
                       }}
                     >
-                      [ SHORTCUT: PRESS SPACEBAR ]
+                      [ {t('game.spaceToRoll')} ]
                     </div>
                   </div>
                 </section>
@@ -1309,7 +1302,7 @@ export function Game() {
               {/* MISSION TELEMETRY LOG WINDOW */}
               <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div className="window-header" style={{ flex: 'none' }}>
-                  <span>// MISSION TELEMETRY</span>
+                  <span>{t('game.reconLogsTitle')}</span>
                 </div>
 
                 <div
@@ -1330,7 +1323,7 @@ export function Game() {
                 >
                   {moveLogs.length === 0 ? (
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      Telemetric events will stream here...
+                      {t('game.noReconLogged')}
                     </div>
                   ) : (
                     moveLogs.map((ml, i) => {
@@ -1388,7 +1381,7 @@ export function Game() {
                   }}
                   title="Return to Ludo Lobby"
                 >
-                  &lt; RETURN TO LOBBY
+                  &lt; {t('game.returnToLobbyBtn')}
                 </button>
               )}
 
@@ -1417,7 +1410,7 @@ export function Game() {
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    // ABORT MATCH // END GAME
+                    // {t('game.abortMatchBtn')}
                   </button>
                 )
               })()}

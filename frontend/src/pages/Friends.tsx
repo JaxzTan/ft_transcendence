@@ -293,7 +293,7 @@ export function Friends() {
           {/* Top Hero Banner */}
           <header className="hero-section" style={{ padding: '16px 0 16px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className="hero-title" style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
-              FRIENDS NETWORK
+              {t('friends.networkTitle')}
             </h1>
 
             {/* Metric Telemetry Strip */}
@@ -312,7 +312,7 @@ export function Friends() {
                   fontWeight: 'bold',
                 }}
               >
-                ● ONLINE: {onlineFriendsCount}
+                {t('friends.badgeOnline', { count: onlineFriendsCount })}
               </span>
               <span
                 className="retro-badge"
@@ -327,7 +327,7 @@ export function Friends() {
                   fontWeight: 'bold',
                 }}
               >
-                ◈ FRIENDS: {friends.length}
+                {t('friends.badgeFriends', { count: friends.length })}
               </span>
               <span
                 className="retro-badge"
@@ -343,7 +343,7 @@ export function Friends() {
                   fontWeight: 'bold',
                 }}
               >
-                ✦ REQUESTS: {requests.length}
+                {t('friends.badgeRequests', { count: requests.length })}
               </span>
               {blocked.length > 0 && (
                 <span
@@ -359,7 +359,7 @@ export function Friends() {
                     fontWeight: 'bold',
                   }}
                 >
-                  ✕ BLOCKED: {blocked.length}
+                  {t('friends.badgeBlocked', { count: blocked.length })}
                 </span>
               )}
             </div>
@@ -390,7 +390,7 @@ export function Friends() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                <span>// FRIENDS LIST</span>
+                <span>{t('friends.friendsListTitle')}</span>
               </div>
               <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="window-btn min" />
@@ -459,7 +459,7 @@ export function Friends() {
                         boxShadow: activeTab === 'friends' ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
                       }}
                     >
-                      FRIENDS ({friends.length})
+                      {t('friends.tabFriendsCount', { count: friends.length })}
                     </button>
                     <button
                       className="retro-btn"
@@ -479,7 +479,7 @@ export function Friends() {
                         boxShadow: activeTab === 'blocked' ? '0 0 10px rgba(255, 0, 85, 0.35)' : 'none',
                       }}
                     >
-                      BLOCKED ({blocked.length})
+                      {t('friends.tabBlockedCount', { count: blocked.length })}
                     </button>
                   </div>
 
@@ -488,7 +488,7 @@ export function Friends() {
                       <input
                         value={filterQuery}
                         onChange={(e) => setFilterQuery(e.target.value)}
-                        placeholder="SEARCH FRIENDS..."
+                        placeholder={t('friends.searchFriendsInput')}
                         style={{
                           background: 'rgba(5, 2, 18, 0.85)',
                           border: '1px solid rgba(0, 240, 255, 0.35)',
@@ -519,13 +519,13 @@ export function Friends() {
                 >
                   {loading ? (
                     <div style={{ padding: 32, textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.85rem', fontFamily: 'var(--font-display)' }}>
-                      SCANNING FREQUENCIES & LIVE SIGNALS...
+                      {t('friends.scanningFrequencies')}
                     </div>
                   ) : activeTab === 'friends' ? (
                     /* ─── TAB 1: ALLIED FRIENDS STREAM ─── */
                     filteredFriends.length === 0 ? (
                       <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.84rem', fontFamily: 'var(--font-display)' }}>
-                        {filterQuery ? `NO OPERATIVES MATCHING "${filterQuery}".` : 'NO ALLIED OPERATIVES FOUND. TRANSMIT A FREQUENCY REQUEST ON THE RIGHT!'}
+                        {filterQuery ? t('friends.noMatchingFriends', { query: filterQuery }) : t('friends.noFriendsTransmitPrompt')}
                       </div>
                     ) : (
                       filteredFriends.map((f) => {
@@ -663,7 +663,7 @@ export function Friends() {
                                 }}
                                 title="Challenge Operative to Match"
                               >
-                                {invitingId === f.id ? 'INVITING...' : 'CHALLENGE'}
+                                {invitingId === f.id ? t('friends.invitingBtnState') : t('friends.challengeBtn')}
                               </button>
 
                               <button
@@ -684,7 +684,7 @@ export function Friends() {
                                 }}
                                 title="Remove Comrade"
                               >
-                                REMOVE
+                                {t('friends.removeComradeBtn')}
                               </button>
 
                               <button
@@ -705,7 +705,7 @@ export function Friends() {
                                 }}
                                 title="Block Pilot"
                               >
-                                BLOCK
+                                {t('friends.blockPilotBtn')}
                               </button>
                             </div>
                           </div>
@@ -716,7 +716,7 @@ export function Friends() {
                     /* ─── TAB 2: BLOCKED LIST ─── */
                     blocked.length === 0 ? (
                       <div style={{ padding: 36, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.84rem', fontFamily: 'var(--font-display)' }}>
-                        NO RESTRICTED PILOT SIGNALS FOUND.
+                        {t('friends.noRestrictedPilots')}
                       </div>
                     ) : (
                       blocked.map((b) => (
@@ -752,7 +752,7 @@ export function Friends() {
                                 {b.username}
                               </div>
                               <div style={{ color: '#ff0055', fontSize: '0.68rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
-                                RESTRICTED SINCE {new Date(b.blockedSince).toLocaleDateString()}
+                                {t('friends.restrictedSince', { date: new Date(b.blockedSince).toLocaleDateString() })}
                               </div>
                             </div>
                           </div>
@@ -767,7 +767,7 @@ export function Friends() {
                               borderRadius: 4,
                             }}
                           >
-                            UNBLOCK
+                            {t('friends.unblockActionBtn')}
                           </button>
                         </div>
                       ))
@@ -803,14 +803,14 @@ export function Friends() {
                   }}
                 >
                   <div style={{ fontSize: '0.82rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1px' }}>
-                    ADD FRIEND
+                    {t('friends.addFriendTitle')}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <input
                       value={searchUsername}
                       onChange={(e) => setSearchUsername(e.target.value)}
-                      placeholder="ENTER USERNAME..."
+                      placeholder={t('friends.enterUsernamePrompt')}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAddFriend()
                       }}
@@ -841,7 +841,7 @@ export function Friends() {
                         borderRadius: 4,
                       }}
                     >
-                      + SEND FRIEND REQUEST
+                      {t('friends.sendFriendRequestBtn')}
                     </button>
                   </div>
 
@@ -909,7 +909,7 @@ export function Friends() {
                           letterSpacing: '1px',
                         }}
                       >
-                        FRIEND REQUESTS ({requests.length})
+                        {t('friends.friendRequestsBoxTitle', { count: requests.length })}
                       </span>
                     </div>
 
@@ -926,7 +926,7 @@ export function Friends() {
                           boxShadow: '0 0 8px rgba(255, 0, 127, 0.4)',
                         }}
                       >
-                        NEW
+                        {t('friends.badgeNewTag')}
                       </span>
                     )}
                   </div>
@@ -960,7 +960,7 @@ export function Friends() {
                         }}
                       >
                         <span style={{ fontSize: '1.2rem', color: 'rgba(255, 255, 255, 0.2)' }}>✦</span>
-                        <span>NO PENDING REQUESTS</span>
+                        <span>{t('friends.noPendingRequestsPrompt')}</span>
                       </div>
                     ) : (
                       requests.map((r) => (
@@ -1009,7 +1009,7 @@ export function Friends() {
                                 {r.username}
                               </div>
                               <div style={{ color: 'var(--accent-cyan)', fontSize: '0.64rem', fontFamily: 'var(--font-display)', marginTop: 1 }}>
-                                SENT YOU A REQUEST
+                                {t('friends.sentYouRequestText')}
                               </div>
                             </div>
                           </div>
@@ -1030,7 +1030,7 @@ export function Friends() {
                               }}
                               title="Accept Friend Request"
                             >
-                              ACCEPT
+                              {t('friends.acceptActionBtn')}
                             </button>
                             <button
                               className="retro-btn"
@@ -1043,7 +1043,7 @@ export function Friends() {
                               }}
                               title="Ignore Request"
                             >
-                              IGNORE
+                              {t('friends.ignoreActionBtn')}
                             </button>
                           </div>
                         </div>

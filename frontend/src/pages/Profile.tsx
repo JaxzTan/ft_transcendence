@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { RetroNavbar } from '../components/RetroNavbar'
 import { UserAvatar } from '../components/UserAvatar'
 import { useRoute, navigate } from '../router'
@@ -57,25 +58,32 @@ type Friend = {
   status: PresenceStatus
 }
 
+const STATUS_KEYS: Record<PresenceStatus, string> = {
+  online: 'friends.online',
+  playing: 'friends.inGame',
+  offline: 'friends.offline',
+}
+
 const ACHIEVEMENTS_DEF = [
-  { key: 'achFirstBlood', title: 'FIRST BLOOD', desc: 'Secure your 1st match victory', icon: '◈' },
-  { key: 'achOnFire', title: 'ON FIRE', desc: 'Achieve a 3-game win streak', icon: '▲' },
-  { key: 'achDiceMaster', title: 'DICE MASTER', desc: 'Reach 50 total match victories', icon: '⚄' },
-  { key: 'achBabySteps', title: 'BABY STEPS', desc: 'Win 1st game vs training bots', icon: '⚙' },
-  { key: 'achTheDiceLoveMe', title: 'DICE LOVER', desc: 'Win 10 games vs training bots', icon: '✦' },
-  { key: 'achTactician', title: 'TACTICIAN', desc: 'Reach 100 combat victories', icon: '♟' },
-  { key: 'achMaster', title: 'MASTER', desc: 'Reach 250 combat victories', icon: '◆' },
-  { key: 'achGrandBotMaster', title: 'GRAND MASTER', desc: 'Reach 500 combat victories', icon: '❖' },
-  { key: 'achWorldChampion', title: 'CHAMPION', desc: 'Reach 1,000 combat victories', icon: '✦' },
-  { key: 'achLoveTheMachine', title: 'VETERAN', desc: 'Complete 100 total matches', icon: '⬡' },
-  { key: 'achft_Transcendence', title: 'TRANSCENDENCE', desc: 'Win 100 PvP human matches', icon: '◈' },
-  { key: 'achSpeedDemon', title: 'SPEED DEMON', desc: 'Win match in under 30 mins', icon: '⏱' },
-  { key: 'achUnstoppable', title: 'UNSTOPPABLE', desc: 'Capture 3 pieces in 1 game', icon: '▲' },
-  { key: 'achCleanSweep', title: 'CLEAN SWEEP', desc: 'Win 4 pieces while rivals have 0', icon: '◈' },
-  { key: 'achLastLaugh', title: 'LAST LAUGH', desc: 'Win while all rivals have goal pieces', icon: '❖' },
+  { key: 'achFirstBlood', fallbackTitle: 'FIRST BLOOD', desc: 'Secure your 1st match victory', icon: '◈' },
+  { key: 'achOnFire', fallbackTitle: 'ON FIRE', desc: 'Achieve a 3-game win streak', icon: '▲' },
+  { key: 'achDiceMaster', fallbackTitle: 'DICE MASTER', desc: 'Reach 50 total match victories', icon: '⚄' },
+  { key: 'achBabySteps', fallbackTitle: 'BABY STEPS', desc: 'Win 1st game vs training bots', icon: '⚙' },
+  { key: 'achTheDiceLoveMe', fallbackTitle: 'DICE LOVER', desc: 'Win 10 games vs training bots', icon: '✦' },
+  { key: 'achTactician', fallbackTitle: 'TACTICIAN', desc: 'Reach 100 combat victories', icon: '♟' },
+  { key: 'achMaster', fallbackTitle: 'MASTER', desc: 'Reach 250 combat victories', icon: '◆' },
+  { key: 'achGrandBotMaster', fallbackTitle: 'GRAND MASTER', desc: 'Reach 500 combat victories', icon: '❖' },
+  { key: 'achWorldChampion', fallbackTitle: 'CHAMPION', desc: 'Reach 1,000 combat victories', icon: '✦' },
+  { key: 'achLoveTheMachine', fallbackTitle: 'VETERAN', desc: 'Complete 100 total matches', icon: '⬡' },
+  { key: 'achft_Transcendence', fallbackTitle: 'TRANSCENDENCE', desc: 'Win 100 PvP human matches', icon: '◈' },
+  { key: 'achSpeedDemon', fallbackTitle: 'SPEED DEMON', desc: 'Win match in under 30 mins', icon: '⏱' },
+  { key: 'achUnstoppable', fallbackTitle: 'UNSTOPPABLE', desc: 'Capture 3 pieces in 1 game', icon: '▲' },
+  { key: 'achCleanSweep', fallbackTitle: 'CLEAN SWEEP', desc: 'Win 4 pieces while rivals have 0', icon: '◈' },
+  { key: 'achLastLaugh', fallbackTitle: 'LAST LAUGH', desc: 'Win while all rivals have goal pieces', icon: '❖' },
 ]
 
 export function Profile() {
+  const { t } = useTranslation()
   const { query } = useRoute()
   const { user } = useApp()
   const username = query.get('u') || user?.username
@@ -123,13 +131,13 @@ export function Profile() {
     if (!file) return
 
     if (file.size > 2 * 1024 * 1024) {
-      setUploadError('File size must be less than 2MB.')
+      setUploadError(t('profile.fileSizeError'))
       return
     }
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      setUploadError('Invalid file type. Allowed: PNG, JPEG, GIF, WebP.')
+      setUploadError(t('profile.fileTypeError'))
       return
     }
 
@@ -146,13 +154,13 @@ export function Profile() {
       })
       if (!res.ok) {
         const err = await res.json()
-        setUploadError(err.message || 'Failed to upload avatar.')
+        setUploadError(err.message || t('profile.uploadFailed'))
       } else {
         retroAudio.playUiBeep(880, 0.06)
         setAvatarBuster(Date.now())
       }
     } catch (e) {
-      setUploadError('An error occurred during upload.')
+      setUploadError(t('profile.uploadErrorGeneric'))
     } finally {
       setUploading(false)
     }
@@ -307,17 +315,17 @@ export function Profile() {
           {/* Top Hero Banner */}
           <header className="hero-section" style={{ padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className="hero-title" style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
-              PILOT PROFILE // CALLSIGN DATABASE
+              {t('profile.heroTitle')}
             </h1>
           </header>
 
           {loading ? (
             <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--accent-yellow)', fontSize: '1rem', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-              INITIALIZING PILOT PROFILE TELEMETRY...
+              {t('profile.initTelemetry')}
             </div>
           ) : !profile ? (
             <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: '#ff0055', fontSize: '1rem', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-              PLAYER "{username}" NOT FOUND IN ARCHIVES.
+              {t('profile.playerNotFoundArchives', { username })}
             </div>
           ) : (
             /* Full-Width Unified Retro Window Container */
@@ -345,7 +353,7 @@ export function Profile() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                  <span>// PILOT PROFILE • {profile.username.toUpperCase()} (ID: #{profile.id.slice(0, 8).toUpperCase()})</span>
+                  <span>{t('profile.windowHeader', { username: profile.username.toUpperCase(), id: profile.id.slice(0, 8).toUpperCase() })}</span>
                 </div>
                 <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span className="window-btn min" />
@@ -434,7 +442,7 @@ export function Profile() {
 
                       {/* Live Presence Beacon */}
                       <span
-                        title={statusStyle.label}
+                        title={t(STATUS_KEYS[profile.status] ?? STATUS_KEYS.offline)}
                         style={{
                           position: 'absolute',
                           right: 3,
@@ -473,7 +481,7 @@ export function Profile() {
                           onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
                           onMouseOut={(e) => (e.currentTarget.style.opacity = '0')}
                         >
-                          {uploading ? 'SCANNING...' : 'CHANGE AVATAR'}
+                          {uploading ? t('profile.scanningAvatar') : t('profile.changeAvatarOverlay')}
                         </div>
                       )}
                       <input
@@ -520,10 +528,10 @@ export function Profile() {
                             gap: 4,
                           }}
                         >
-                          ● {statusStyle.label.toUpperCase()}
+                          ● {t(STATUS_KEYS[profile.status] ?? STATUS_KEYS.offline).toUpperCase()}
                         </span>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontFamily: 'var(--font-display)' }}>
-                          SINCE {new Date(profile.createdAt).toLocaleDateString()}
+                          {t('profile.sinceDate', { date: new Date(profile.createdAt).toLocaleDateString() })}
                         </span>
                       </div>
 
@@ -543,7 +551,7 @@ export function Profile() {
                                 borderRadius: 4,
                               }}
                             >
-                              EDIT AVATAR
+                              {t('profile.editAvatar')}
                             </button>
                             <button
                               className="retro-btn"
@@ -557,7 +565,7 @@ export function Profile() {
                                 borderRadius: 4,
                               }}
                             >
-                              RESET
+                              {t('profile.resetAvatar')}
                             </button>
                             {uploadError && (
                               <span style={{ color: '#ff0055', fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>
@@ -581,7 +589,7 @@ export function Profile() {
                               borderRadius: 4,
                             }}
                           >
-                            ◄ RETURN TO MY PROFILE
+                            {t('profile.returnToMyProfileBtn')}
                           </button>
                         )}
                       </div>
@@ -605,7 +613,7 @@ export function Profile() {
                     }}
                   >
                     <div style={{ fontSize: '0.72rem', color: rankTier.color, fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1.2px' }}>
-                      CURRENT COMBAT ELO
+                      {t('profile.currentCombatElo')}
                     </div>
                     <div
                       style={{
@@ -643,7 +651,7 @@ export function Profile() {
                     }}
                   >
                     <div style={{ fontSize: '0.72rem', color: peakTier.color, fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '1.2px' }}>
-                      ALL-TIME PEAK RECORD
+                      {t('profile.allTimePeakRecord')}
                     </div>
                     <div
                       style={{
@@ -688,13 +696,13 @@ export function Profile() {
                     }}
                   >
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
-                      VICTORIES
+                      {t('profile.victoriesStat')}
                     </div>
                     <div style={{ color: '#00ff88', fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-display)', marginTop: 2, lineHeight: 1 }}>
                       {profile.wins}
                     </div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
-                      OF {totalGames} MATCHES
+                      {t('profile.ofTotalMatches', { count: totalGames })}
                     </div>
                   </div>
 
@@ -710,13 +718,13 @@ export function Profile() {
                     }}
                   >
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
-                      DEFEATS
+                      {t('profile.defeatsStat')}
                     </div>
                     <div style={{ color: '#ff007f', fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-display)', marginTop: 2, lineHeight: 1 }}>
                       {profile.losses}
                     </div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
-                      OF {totalGames} MATCHES
+                      {t('profile.ofTotalMatches', { count: totalGames })}
                     </div>
                   </div>
 
@@ -732,7 +740,7 @@ export function Profile() {
                     }}
                   >
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
-                      WIN RATIO
+                      {t('profile.winRatioStat')}
                     </div>
                     <div style={{ color: 'var(--accent-cyan)', fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-display)', marginTop: 2, lineHeight: 1 }}>
                       {winRate}%
@@ -754,13 +762,13 @@ export function Profile() {
                     }}
                   >
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
-                      BEST STREAK
+                      {t('profile.bestStreakStat')}
                     </div>
                     <div style={{ color: '#ffe600', fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-display)', marginTop: 2, lineHeight: 1 }}>
                       {profile.bestWinStreak}
                     </div>
                     <div style={{ color: '#ffe600', fontSize: '0.65rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
-                      CURRENT: <strong>{profile.winStreak}</strong>
+                      {t('profile.currentStreakCount', { count: profile.winStreak })}
                     </div>
                   </div>
                 </div>
@@ -824,7 +832,7 @@ export function Profile() {
                             boxShadow: mainTab === 'history' ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
                           }}
                         >
-                          FLIGHT LOGS ({gamesData?.total ?? 0})
+                          {t('profile.flightLogsTab', { count: gamesData?.total ?? 0 })}
                         </button>
                         <button
                           className="retro-btn"
@@ -844,14 +852,14 @@ export function Profile() {
                             boxShadow: mainTab === 'achievements' ? '0 0 10px rgba(255, 230, 0, 0.35)' : 'none',
                           }}
                         >
-                          ACHIEVEMENTS ({unlockedCount}/{totalAchievements})
+                          {t('profile.achievementsTab', { unlocked: unlockedCount, total: totalAchievements })}
                         </button>
                       </div>
 
                       <div style={{ fontSize: '0.72rem', color: mainTab === 'history' ? 'var(--accent-cyan)' : '#ffe600', fontFamily: 'var(--font-display)', fontWeight: 'bold' }}>
                         {mainTab === 'history'
-                          ? `CYBER LUDO '84 TELEMETRY`
-                          : `SYNCHRONIZED ${achievementPercent}%`}
+                          ? t('profile.cyberLudoTelemetry')
+                          : t('profile.synchronizedPercent', { percent: achievementPercent })}
                       </div>
                     </div>
 
@@ -868,7 +876,7 @@ export function Profile() {
                         /* Match Activity Stream */
                         !gamesData || gamesData.games.length === 0 ? (
                           <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.86rem', fontFamily: 'var(--font-display)' }}>
-                            NO COMBAT FLIGHT RECORDS FOUND IN PILOT ARCHIVE.
+                            {t('profile.noCombatFlightRecords')}
                           </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -906,15 +914,15 @@ export function Profile() {
                                         letterSpacing: '0.04em',
                                       }}
                                     >
-                                      {isWin ? '#1 VICTORY' : `RANK #${g.rank ?? '?'}`}
+                                      {isWin ? t('profile.rankVictoryHeader') : t('profile.rankOtherHeader', { rank: g.rank ?? '?' })}
                                     </span>
 
                                     <div>
                                       <div style={{ fontSize: '1rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.03em' }}>
-                                        {isWin ? 'MISSION ACCOMPLISHED' : 'TACTICAL DEFEAT'}
+                                        {isWin ? t('profile.missionAccomplished') : t('profile.tacticalDefeat')}
                                       </div>
                                       <div style={{ color: 'var(--text-muted)', fontSize: '0.74rem', marginTop: 3 }}>
-                                        {g.participants.length} COMBATANTS • {new Date(g.startedAt).toLocaleDateString()} {new Date(g.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {t('profile.combatantsCount', { count: g.participants.length })} • {new Date(g.startedAt).toLocaleDateString()} {new Date(g.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                       </div>
                                     </div>
                                   </div>
@@ -934,7 +942,7 @@ export function Profile() {
                                         {isWin ? '+25 ELO' : '-5 ELO'}
                                       </div>
                                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>
-                                        GOAL: <strong style={{ color: isWin ? '#00ff88' : '#ffffff' }}>{g.piecesInGoal}/4</strong>
+                                        {t('profile.goalProgressText', { count: g.piecesInGoal })}
                                       </div>
                                     </div>
                                     <span
@@ -949,7 +957,7 @@ export function Profile() {
                                         letterSpacing: '0.5px',
                                       }}
                                     >
-                                      {isWin ? 'WIN' : 'LOSS'}
+                                      {isWin ? t('profile.badgeWinText') : t('profile.badgeLossText')}
                                     </span>
                                   </div>
                                 </div>
@@ -985,6 +993,7 @@ export function Profile() {
                           >
                             {ACHIEVEMENTS_DEF.map((ach) => {
                               const isUnlocked = !!achievements[ach.key]
+                              const title = t(`dashboard.${ach.key}`, ach.fallbackTitle)
                               return (
                                 <div
                                   key={ach.key}
@@ -1029,7 +1038,7 @@ export function Profile() {
                                         textOverflow: 'ellipsis',
                                       }}
                                     >
-                                      {ach.title}
+                                      {title}
                                     </div>
                                     <div
                                       style={{
@@ -1089,7 +1098,7 @@ export function Profile() {
                         }}
                       >
                         <span style={{ fontSize: '0.82rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: '#ffffff' }}>
-                          FRIENDS ({friendsData?.length ?? 0})
+                          {t('profile.friendsBoxTitle', { count: friendsData?.length ?? 0 })}
                         </span>
                         <button
                           className="retro-btn"
@@ -1104,7 +1113,7 @@ export function Profile() {
                             borderRadius: 4,
                           }}
                         >
-                          MANAGE ↗
+                          {t('profile.manageBtn')}
                         </button>
                       </div>
 
@@ -1121,7 +1130,7 @@ export function Profile() {
                       >
                         {!friendsData || friendsData.length === 0 ? (
                           <div style={{ padding: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
-                            NO FRIENDS LINKED YET.
+                            {t('profile.noFriendsLinkedText')}
                           </div>
                         ) : (
                           friendsData.map((f) => {
@@ -1218,7 +1227,7 @@ export function Profile() {
                                       <RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
                                     </div>
                                     <div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
-                                      ● {fStatus.label.toUpperCase()} // ALLIED PILOT{f.username.toLowerCase().includes('harleynghx') || f.username.toLowerCase().includes('harleyhx') ? ' // PACE 24' : ''}
+                                      ● {t(STATUS_KEYS[f.status] ?? STATUS_KEYS.offline).toUpperCase()} // {t('profile.alliedPilotTag')}{f.username.toLowerCase().includes('harleynghx') || f.username.toLowerCase().includes('harleyhx') ? ' // PACE 24' : ''}
                                     </div>
                                   </div>
                                 </div>
