@@ -316,7 +316,7 @@ export function LudoLobby() {
                       letterSpacing: '1px',
                     }}
                   >
-                    [ LEVEL 01 ]
+                    {t('ludoLobbyPasses.level1')}
                   </div>
                   <div style={{ width: 1, height: 46, borderRight: '2px dashed rgba(255, 0, 127, 0.4)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -330,10 +330,10 @@ export function LudoLobby() {
                         marginBottom: 5,
                       }}
                     >
-                      HOST NEW TABLE
+                      {t('ludoLobbyPasses.hostNewTable')}
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      INITIALIZE A PUBLIC OR PRIVATE MULTIPLAYER ARENA ROOM
+                      {t('ludoLobbyPasses.hostNewTableDesc')}
                     </div>
                   </div>
                 </div>
@@ -357,7 +357,7 @@ export function LudoLobby() {
                     flexShrink: 0,
                   }}
                 >
-                  {hostBusy ? '▶ CREATING...' : '▶ HOST NEW TABLE'}
+                  {hostBusy ? `▶ ${t('ludoLobbyPasses.creating')}` : `▶ ${t('ludoLobbyPasses.hostNewTable')}`}
                 </button>
               </div>
 
@@ -397,7 +397,7 @@ export function LudoLobby() {
                       letterSpacing: '1px',
                     }}
                   >
-                    [ LEVEL 02 ]
+                    {t('ludoLobbyPasses.level2')}
                   </div>
                   <div style={{ width: 1, height: 46, borderRight: '2px dashed rgba(255, 230, 0, 0.4)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -411,10 +411,10 @@ export function LudoLobby() {
                         marginBottom: 5,
                       }}
                     >
-                      HOTSEAT MODE
+                      {t('ludoLobbyPasses.hotseatMode')}
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      PLAY MULTIPLAYER LOCALLY WITH FRIENDS ON A SINGLE DEVICE
+                      {t('ludoLobbyPasses.hotseatModeDesc')}
                     </div>
                   </div>
                 </div>
@@ -440,7 +440,7 @@ export function LudoLobby() {
                     flexShrink: 0,
                   }}
                 >
-                  ▶ LAUNCH HOTSEAT
+                  ▶ {t('ludoLobbyPasses.launchHotseat')}
                 </button>
               </div>
 
@@ -480,7 +480,7 @@ export function LudoLobby() {
                       letterSpacing: '1px',
                     }}
                   >
-                    [ LEVEL 03 ]
+                    {t('ludoLobbyPasses.level3')}
                   </div>
                   <div style={{ width: 1, height: 46, borderRight: '2px dashed rgba(0, 255, 136, 0.4)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -494,10 +494,10 @@ export function LudoLobby() {
                         marginBottom: 5,
                       }}
                     >
-                      BOT MODE
+                      {t('ludoLobbyPasses.botMode')}
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      CHALLENGE TACTICAL AI BOTS IN SOLO PRACTICE ARENA
+                      {t('ludoLobbyPasses.botModeDesc')}
                     </div>
                   </div>
                 </div>
@@ -523,7 +523,7 @@ export function LudoLobby() {
                     flexShrink: 0,
                   }}
                 >
-                  ▶ PLAY VS BOTS
+                  ▶ {t('ludoLobbyPasses.playVsBots')}
                 </button>
               </div>
 
@@ -563,7 +563,7 @@ export function LudoLobby() {
                       letterSpacing: '1px',
                     }}
                   >
-                    [ LEVEL 04 ]
+                    {t('ludoLobbyPasses.level4')}
                   </div>
                   <div style={{ width: 1, height: 46, borderRight: '2px dashed rgba(0, 240, 255, 0.4)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -577,10 +577,10 @@ export function LudoLobby() {
                         marginBottom: 5,
                       }}
                     >
-                      ACCESS VIA ROOM CODE
+                      {t('ludoLobbyPasses.accessViaCode')}
                     </div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      ENTER A SECRET 6-CHARACTER INVITATION TOKEN TO WARP IN
+                      {t('ludoLobbyPasses.accessViaCodeDesc')}
                     </div>
                   </div>
                 </div>
@@ -594,7 +594,7 @@ export function LudoLobby() {
                         joinByCode(roomCodeInput)
                       }
                     }}
-                    placeholder="ENTER CODE"
+                    placeholder={t('ludoLobbyPasses.enterCodePlaceholder')}
                     maxLength={8}
                     style={{
                       width: 140,
@@ -634,7 +634,7 @@ export function LudoLobby() {
                       flexShrink: 0,
                     }}
                   >
-                    {joiningByCode ? '▶ WARPING...' : '▶ ACCESS ROOM'}
+                    {joiningByCode ? `▶ ${t('ludoLobbyPasses.warping')}` : `▶ ${t('ludoLobbyPasses.accessRoom')}`}
                   </button>
                 </div>
               </div>
@@ -664,7 +664,7 @@ export function LudoLobby() {
             <section className="retro-window" id="roomsWindow">
               <div className="window-header" style={{ background: '#190a38', borderBottom: '1px solid rgba(0, 240, 255, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>OPEN QUANTUM ROOMS ({filteredRooms.length})</span>
+                  <span>{t('ludoLobbyPasses.openQuantumRooms')} ({filteredRooms.length})</span>
                 </div>
               </div>
 
@@ -672,7 +672,7 @@ export function LudoLobby() {
                 {/* Filter Sub-Bar */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 4px' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                    // FILTER SECTOR:
+                    {t('ludoLobbyPasses.filterSector')}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
@@ -687,7 +687,7 @@ export function LudoLobby() {
                         setRoomFilter('all')
                       }}
                     >
-                      ALL
+                      {t('ludoLobbyPasses.filterAll')}
                     </button>
                     <button
                       className="retro-btn"
@@ -701,7 +701,7 @@ export function LudoLobby() {
                         setRoomFilter('classic')
                       }}
                     >
-                      CLASSIC 4P
+                      {t('ludoLobbyPasses.filterClassic4p')}
                     </button>
                     <button
                       className="retro-btn"
@@ -715,7 +715,7 @@ export function LudoLobby() {
                         setRoomFilter('duel')
                       }}
                     >
-                      DUEL 2P
+                      {t('ludoLobbyPasses.filterDuel2p')}
                     </button>
                   </div>
                 </div>
@@ -744,11 +744,11 @@ export function LudoLobby() {
                       fontFamily: 'var(--font-mono)',
                     }}
                   >
-                    <div>SECTOR CODE</div>
-                    <div>HOST CALLSIGN</div>
-                    <div>CAPACITY</div>
-                    <div>STAKES</div>
-                    <div>ACTION</div>
+                    <div>{t('ludoLobbyPasses.colSectorCode')}</div>
+                    <div>{t('ludoLobbyPasses.colHostCallsign')}</div>
+                    <div>{t('ludoLobbyPasses.colCapacity')}</div>
+                    <div>{t('ludoLobbyPasses.colStakes')}</div>
+                    <div>{t('ludoLobbyPasses.colAction')}</div>
                   </div>
 
                   {/* Room Rows */}
@@ -759,9 +759,10 @@ export function LudoLobby() {
                       </div>
                     ) : filteredRooms.length === 0 ? (
                       <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                        NO OPEN COMBAT ROOMS FOUND. INITIALIZE ONE USING PASS #01 ABOVE!
+                        {t('ludoLobbyPasses.noOpenRooms')}
                       </div>
                     ) : (
+
                       filteredRooms.map((room) => {
                         const isOwn = room.host === user?.username
                         const full = room.seats >= room.maxSeats
