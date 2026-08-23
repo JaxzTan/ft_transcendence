@@ -91,6 +91,29 @@ services:
             - dist
             - generated
 
+  # Web UI over the `db` service's data. Reuses the backend image (same
+  # entrypoint assembles DATABASE_URL from secrets/db_credentials.txt,
+  # host "db") so no separate build/config is needed.
+  studio:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: studio
+    restart: unless-stopped
+    command: ["npx", "prisma", "studio", "--port", "5555", "--browser", "none"]
+    environment:
+      SECRETS_DIR: /secrets
+    volumes:
+      - ./secrets:/secrets:ro
+    ports:
+      # Loopback-only: this is a raw DB browser/editor, never expose it beyond the host.
+      - 127.0.0.1:5555:5555
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - transcendence_network
+
   ludo-engine:
     build:
       context: ./backend/app/ludo-engine

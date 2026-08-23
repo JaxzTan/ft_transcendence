@@ -14,6 +14,7 @@ type Room = {
   id: string
   roomCode: string
   host: string
+  hostUsername?: string
   seats: number
   maxSeats: number
   mode: 'classic' | 'duel'
@@ -132,7 +133,7 @@ export function LudoLobby() {
   const joinByCode = async (code: string) => {
     const trimmed = code.trim().toUpperCase()
     if (!trimmed) return
-    const ownRoom = (rooms ?? []).find((r) => r.host === user?.username && r.roomCode === trimmed)
+    const ownRoom = (rooms ?? []).find((r) => r.hostUsername === user?.username && r.roomCode === trimmed)
     if (ownRoom) {
       await rejoinRoom(ownRoom)
       return
@@ -247,7 +248,7 @@ export function LudoLobby() {
                   color: '#00ff88',
                 }}
               >
-                // PILOT: {user?.username?.toUpperCase() ?? 'GUEST'}
+                // PILOT: {(user?.displayName ?? user?.username)?.toUpperCase() ?? 'GUEST'}
               </span>
               <span
                 className="retro-badge"
@@ -729,7 +730,7 @@ export function LudoLobby() {
                     ) : (
 
                       filteredRooms.map((room) => {
-                        const isOwn = room.host === user?.username
+                        const isOwn = room.hostUsername === user?.username
                         const full = room.seats >= room.maxSeats
                         const hue = hueForHost(room.host)
                         return (
@@ -758,7 +759,7 @@ export function LudoLobby() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <UserAvatar
-                                username={room.host}
+                                username={room.hostUsername || room.host}
                                 size={28}
                                 fallbackStyle={{
                                   width: 28,

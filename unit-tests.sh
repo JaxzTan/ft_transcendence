@@ -257,15 +257,15 @@ echo ""
 # ==========================================
 echo "### 10. Leaderboard & Stats Test ###"
 
-echo -n "Testing GET /api/leaderboard... "
-LEADERBOARD_RESPONSE=$(curl -sk --connect-timeout 5 \
+echo -n "Testing GET /api/leaderboard with auth... "
+LEADERBOARD_RESPONSE=$(curl -sk --connect-timeout 5 -b "$COOKIE_JAR" \
     ${BASE_URL}/api/leaderboard 2>/dev/null || echo "")
 
-if [[ -n "$LEADERBOARD_RESPONSE" ]]; then
-    pass "Leaderboard accessible (public endpoint)"
+if [[ "$LEADERBOARD_RESPONSE" == *"entries"* ]]; then
+    pass "Leaderboard accessible with auth"
     echo "   Response: ${LEADERBOARD_RESPONSE:0:100}..."
 else
-    warn "Leaderboard response: ${LEADERBOARD_RESPONSE}"
+    warn "Leaderboard response: ${LEADERBOARD_RESPONSE} (may need valid cookie)"
 fi
 
 echo -n "Testing GET /api/stats with auth... "
@@ -312,29 +312,69 @@ echo ""
 # ==========================================
 echo "### 12. Leaderboard Redis Verification ###"
 
-echo -n "Testing GET /api/leaderboard (Redis backend)... "
-LEADERBOARD_RESPONSE=$(curl -sk --connect-timeout 5 \
+echo -n "Testing GET /api/leaderboard (Redis backend, with auth)... "
+LEADERBOARD_RESPONSE=$(curl -sk --connect-timeout 5 -b "$COOKIE_JAR" \
     ${BASE_URL}/api/leaderboard?limit=5 2>/dev/null || echo "")
 
-if [[ -n "$LEADERBOARD_RESPONSE" ]]; then
-    pass "Leaderboard endpoint reachable"
+if [[ "$LEADERBOARD_RESPONSE" == *"entries"* ]]; then
+    pass "Leaderboard endpoint reachable (with auth)"
     if [[ "$LEADERBOARD_RESPONSE" == *"source"* ]]; then
         SOURCE=$(echo "$LEADERBOARD_RESPONSE" | grep -o '"source":"[^"]*"' | head -1)
         echo "   Source: ${SOURCE}"
     fi
     echo "   Response: ${LEADERBOARD_RESPONSE:0:150}..."
 else
-    warn "Leaderboard response: ${LEADERBOARD_RESPONSE}"
+    warn "Leaderboard response: ${LEADERBOARD_RESPONSE} (may need valid cookie)"
 fi
 
-echo -n "Testing GET /api/leaderboard with mode filter... "
-LEADERBOARD_RANKED=$(curl -sk --connect-timeout 5 \
+echo -n "Testing GET /api/leaderboard with mode filter (with auth)... "
+LEADERBOARD_RANKED=$(curl -sk --connect-timeout 5 -b "$COOKIE_JAR" \
     ${BASE_URL}/api/leaderboard?mode=ranked&limit=10 2>/dev/null || echo "")
 
-if [[ -n "$LEADERBOARD_RANKED" ]]; then
-    pass "Ranked leaderboard accessible"
+if [[ "$LEADERBOARD_RANKED" == *"entries"* ]]; then
+    pass "Ranked leaderboard accessible (with auth)"
 else
-    warn "Ranked leaderboard response: ${LEADERBOARD_RANKED}"
+    warn "Ranked leaderboard response: ${LEADERBOARD_RANKED} (may need valid cookie)"
+fi
+
+echo ""
+
+# ==========================================
+# 12b. Leaderboard Security Tests (4 tests)
+# ==========================================
+echo "### 12b. Leaderboard Security Tests ###"
+
+echo -n "Testing leaderboard without cookie (should be 401)... "
+check_status "${BASE_URL}/api/leaderboard" "401" "GET /api/leaderboard returns 401 without auth"
+
+echo -n "Testing leaderboard with cookie (should be 200 or 401)... "
+LEADERBOARD_AUTH=$(curl -sk --connect-timeout 5 -o /dev/null -w "%{http_code}" \
+    -b "$COOKIE_JAR" \
+    ${BASE_URL}/api/leaderboard 2>/dev/null || echo "")
+if [[ "$LEADERBOARD_AUTH" == "200" ]]; then
+    pass "Leaderboard accessible with auth (HTTP 200)"
+elif [[ "$LEADERBOARD_AUTH" == "401" ]]; then
+    warn "Leaderboard with cookie gave 401 (cookie may be invalid from earlier login)"
+else
+    warn "Leaderboard with cookie gave HTTP $LEADERBOARD_AUTH (expected 200)"
+fi
+
+echo -n "Testing leaderboard with wrong method (should be 405)... "
+check_status "${BASE_URL}/api/leaderboard" "405" "POST /api/leaderboard returns 405 (GET-only)" \
+    "-X POST"
+
+echo -n "Testing leaderboard rate limit (burst 20, then 503)... "
+RATE_STATUS=""
+for i in $(seq 1 22); do
+    RATE_STATUS=$(curl -sk --connect-timeout 5 -o /dev/null -w "%{http_code}" \
+        "$BASE_URL/api/leaderboard?limit=1" 2>/dev/null || echo "")
+    if [[ "$RATE_STATUS" == "503" ]]; then
+        pass "Leaderboard rate-limited (burst exceeded -> HTTP 503)"
+        break
+    fi
+done
+if [[ "$RATE_STATUS" != "503" ]]; then
+    warn "Leaderboard rate limit not triggered after 22 requests (last HTTP $RATE_STATUS)"
 fi
 
 echo ""

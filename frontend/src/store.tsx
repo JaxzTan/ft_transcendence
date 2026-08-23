@@ -5,7 +5,7 @@ import { BOT_POOL } from './theme'
 import { apiFetch } from './api'
 import type { PlayerColor } from './game/types'
 
-export type AuthUser = { id: string; username: string }
+export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean }
 
 /** Pulls a readable message out of nestjs error body  */
 function apiError(body: unknown, fallback: string): string {
@@ -84,6 +84,7 @@ export type LastResult = {
 
 type AppState = {
   user: AuthUser | null
+  setUser: (u: AuthUser | null) => void
   authReady: boolean
   /** Factor one. `identifier` is a username or email. Success = { pendingToken } (code emailed); failure = { error }. */
   login: (identifier: string, password: string) => Promise<{ error?: string; pendingToken?: string }>

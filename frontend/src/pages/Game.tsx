@@ -123,11 +123,16 @@ export function Game() {
     if (prevTurnRef.current && prevTurnRef.current !== view.currentTurn) {
       const nextTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
       const isNextBot = nextTurnPlayer?.isBot ?? false
-      const nextName = nextTurnPlayer?.username?.toUpperCase() || (isNextBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
-      const colorName = view.currentTurn.toUpperCase()
+      const colorKey = `lobby.color${view.currentTurn.charAt(0).toUpperCase() + view.currentTurn.slice(1)}` as 'lobby.colorRed' | 'lobby.colorGreen' | 'lobby.colorYellow' | 'lobby.colorBlue'
+      const translatedColor = t(colorKey).toUpperCase()
+      const nextName = localNames[view.currentTurn]?.toUpperCase() ||
+        nextTurnPlayer?.displayName?.toUpperCase() ||
+        nextTurnPlayer?.username?.toUpperCase() ||
+        nextTurnPlayer?.color?.toUpperCase() ||
+        (isNextBot ? `${t('common.bot').toUpperCase()} (${translatedColor})` : translatedColor)
 
       retroAudio.playUiBeep(640, 0.08, 'sine')
-      setTurnSwapNotice(`▶ TURN SWAP // ${nextName} [${colorName}] IS NOW IN CONTROL ◀`)
+      setTurnSwapNotice(t('game.turnSwapNotice', { name: nextName, color: translatedColor }))
 
       const timer = setTimeout(() => {
         setTurnSwapNotice(null)
@@ -137,7 +142,7 @@ export function Game() {
       return () => clearTimeout(timer)
     }
     prevTurnRef.current = view.currentTurn
-  }, [view?.currentTurn, view?.players])
+  }, [view?.currentTurn, view?.players, localNames, t])
 
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
@@ -253,7 +258,7 @@ export function Game() {
         const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
         const rollerColor = viewRef.current.currentTurn
         const roller = viewRef.current.players.find((p) => p.color === rollerColor)
-        const rollerName = roller?.username || rollerColor
+        const rollerName = roller?.displayName || roller?.username || rollerColor
         retroAudio.playLaserSound()
         setIsRolling(true)
         setTimeout(() => {
@@ -274,7 +279,7 @@ export function Game() {
         return
       }
 
-      dispatch({ type: 'state_update', ...(state as object) })
+      dispatch({ type: type || 'state_update', ...(state as object) })
 
       if (type === 'piece_moved') {
         const e = state as unknown as {
@@ -351,7 +356,7 @@ export function Game() {
         const mine = e.players.find((p) => p.username === user?.username)
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
-          socket.emit('join_game', activeMatch.gameId, mine.color)
+          socket.emit('join_game', activeMatch.gameId, mine.color, user?.id, user?.displayName)
           setActiveMatch({ ...activeMatch, color: mine.color })
         }
       } else if (type === 'game_ended') {
@@ -392,9 +397,9 @@ export function Game() {
     socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
 
-    socket.on('player_aborted', (e: { color: PlayerColor; username: string }) => {
+    socket.on('player_aborted', (e: { color: PlayerColor; username: string; displayName?: string }) => {
       setMoveLogs((prev) => [
-        { ck: e.color, text: t('game.playerAborted', { name: e.username }) },
+        { ck: e.color, text: t('game.playerAborted', { name: e.displayName || e.username }) },
         ...prev.slice(0, 11),
       ])
     })
@@ -474,7 +479,7 @@ export function Game() {
     const seat = viewRef.current.players.find((p) => p.color === view.currentTurn)
     if (!seat || seat.isBot || seat.status !== 'active') return
     dispatch({ type: 'my_color_changed', color: view.currentTurn })
-    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
+    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, user?.id, localNames[view.currentTurn] || user?.displayName)
   }, [view.currentTurn, view.status, activeMatch])
 
   useEffect(() => {
@@ -506,6 +511,12 @@ export function Game() {
     setIsRolling(true)
     retroAudio.playUiBeep(980, 0.08, 'sawtooth')
     socketRef.current?.emit('roll_dice')
+    setTimeout(() => {
+      if (isRollingRef.current) {
+        isRollingRef.current = false
+        setIsRolling(false)
+      }
+    }, 2000)
   }
 
   const movePiece = (pieceId: string) => {
@@ -965,6 +976,7 @@ export function Game() {
                       : !playerMeta.isBot && playerMeta.username === user?.username
                     const name =
                       localNames[ck] ||
+                      playerMeta.displayName ||
                       playerMeta.username ||
                       (playerMeta.isBot
                         ? t('common.bot')
@@ -1019,13 +1031,13 @@ export function Game() {
                               boxShadow: `0 0 10px ${colorAccent}`,
                             }}
                           >
-                            ▶ IN CONTROL ◀
+                            ▶ {t('game.inControl')} ◀
                           </span>
                         )}
 
                         {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
-                            username={name}
+                            username={playerMeta.username}
                             size={36}
                             fallbackStyle={{
                               width: 36,

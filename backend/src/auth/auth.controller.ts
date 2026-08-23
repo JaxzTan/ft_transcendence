@@ -6,6 +6,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { TwoFactorDto } from './dto/twofactor.dto';
 import { TwoFactorSettingDto } from './dto/two-factor-setting.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -152,8 +154,47 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: Request) {
-    return { user: req.user };
+  async me(@Req() req: Request) {
+    // The JWT only carries the immutable username. displayName is editable, so
+    // fetch the live value from the DB each time (cheap single-row lookup).
+    const profile = await this.authService.getProfile((req.user as { id: string }).id);
+    return { user: profile.user };
+  }
+
+
+  // ---- Get full profile (used by the Edit-Profile card) ----
+  @UseGuards(JwtAuthGuard)
+  @Get('profile')
+  async getProfile(@Req() req: Request) {
+    return this.authService.getProfile((req.user as { id: string }).id);
+  }
+
+  // ---- Complete profile update (username / email / 2FA method) ----
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  async updateProfile(
+    @Req() req: Request,
+    @Body() dto: UpdateProfileDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.updateProfile((req.user as { id: string }).id, dto);
+    return {
+      user: result.user,
+      emailVerificationSent: result.emailVerificationSent,
+      oauthRedirectUrl: result.oauthRedirectUrl,
+    };
+  }
+
+  // ---- Change password while logged in ----
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile/password')
+  async changePassword(@Req() req: Request, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(
+      (req.user as { id: string }).id,
+      dto.currentPassword,
+      dto.newPassword,
+      req.cookies?.[REFRESH_COOKIE],
+    );
   }
 
   // ---- 2FA preference (logged-in user toggles their own) ----
@@ -214,10 +255,39 @@ export class AuthController {
       twoFactorEnabled: boolean;
     };
     const frontendUrl = frontendUrlFor(req);
-    if (!user.email) {
-      // Strategies only forward provider-verified emails; without one we have
-      // nowhere to send login codes, so this account cannot exist here.
-      res.redirect(`${frontendUrl}/login?error=no-verified-email`);
+
+    // "Add a sign-in method" flow: the OAuth `state` carried a signed oauth-link
+    // token (signed by the guard from the user's access-token cookie). The
+    // strategy already linked the provider to that user — just send them back to
+    // /profile. No new session is issued, no login/2FA redirect happens, so the
+    // user is neither signed out nor logged into a different account.
+    const anyReq = req as any;
+    const state = typeof anyReq.query?.state === 'string' ? anyReq.query.state : undefined;
+    const linkUserId = state
+      ? this.authService.resolveOAuthLink(state, this.providerForRoute(req.path))
+      : undefined;
+    // A link round-trip only counts when the BROWSER that opened the provider
+    // login is still authenticated and matches the linked user. On a fresh
+    // login (no valid token cookie) — even if GitHub echoes a stale state —
+    // fall through to the normal login session flow below. The final
+    // `user.id === linkUserId` guard also catches a stale session whose user
+    // was wiped by a DB reset: validateOAuthLogin then creates a brand-new
+    // user (different id), so this is NOT a link round-trip and the fresh
+    // account must get a real session instead of a dead redirect to /profile.
+    const sessionUser = this.authService.verifyAccessToken(
+      typeof req.cookies?.['token'] === 'string' ? req.cookies['token'] : undefined,
+    );
+    if (linkUserId && sessionUser && sessionUser === linkUserId && user.id === linkUserId) {
+      res.redirect(`${frontendUrl}/profile`);
+      return;
+    }
+
+    // No-email OAuth (GitHub/42 without a verified address): the account is
+    // still created with an empty email. Without a 2FA code destination the
+    // user can't get past factor two, so block only that edge case and let
+    // everyone else through. They can add an email later via Edit Profile.
+    if (user.twoFactorEnabled && !user.email) {
+      res.redirect(`${frontendUrl}/login?error=add-email-2fa`);
       return;
     }
     if (!user.twoFactorEnabled) {
@@ -229,8 +299,14 @@ export class AuthController {
       res.redirect(`${frontendUrl}/home`);
       return;
     }
-    const { pendingToken } = await this.authService.startTwoFactor(user.id, user.email);
+    const { pendingToken } = await this.authService.startTwoFactor(user.id, user.email!);
     res.redirect(`${frontendUrl}/2fa?token=${pendingToken}`);
+  }
+
+  private providerForRoute(path: string): string {
+    if (path.includes('/github/')) return 'github';
+    if (path.includes('/google/')) return 'google';
+    return '42';
   }
 
   private setSessionCookies(res: Response, accessToken: string, refreshToken: string) {

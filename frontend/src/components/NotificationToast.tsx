@@ -54,15 +54,18 @@ function getToastInfo(n: Notification, t: (key: string, options?: any) => string
         fromUser: from,
         actionMessage: t('notifications.actionMatchChallenge'),
       }
-    case 'achievement':
+    case 'achievement': {
+      const nameKey = payload?.nameKey as string | undefined
+      const name = nameKey ? t(nameKey) : ''
       return {
         tag: t('notifications.achievementTag'),
         badgeLabel: 'ACHV',
         badgeColor: '#00ff88',
         badgeBg: 'rgba(0, 255, 136, 0.18)',
         fromUser: null,
-        actionMessage: t('notifications.actionAchievement'),
+        actionMessage: name ? `${name}!` : t('notifications.achievementUnlocked'),
       }
+    }
     default:
       return {
         tag: t('notifications.sysBroadcastTag'),

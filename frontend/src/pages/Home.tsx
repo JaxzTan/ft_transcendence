@@ -14,6 +14,7 @@ type ThemeType = 'synthwave' | 'win95' | 'terminal'
 type Friend = {
 	id: string
 	username: string
+	displayName?: string
 	avatarStyle?: any
 	rating?: number
 	friendsSince?: string
@@ -595,6 +596,7 @@ export function Home() {
 	}, [theme])
 
 	const username = user?.username ?? t('common.you')
+	const displayName = user?.displayName ?? username
 
 	return (
 		<>
@@ -625,7 +627,7 @@ export function Home() {
 					<header className="hero-section">
 						<h1 className="hero-title">RETROLUDO '42</h1>
 						<p className="hero-subtitle">
-							{t('home.greeting', { name: username.toUpperCase() })} // PACE 24
+							{t('home.greeting', { name: displayName.toUpperCase() })} // PACE 24
 						</p>
 					</header>
 
@@ -972,7 +974,7 @@ export function Home() {
 												/>
 											</div>
 											<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-												{t('homeExtended.callsign')}: {username.toUpperCase()} // {t('homeExtended.rankedCombatant')}
+												{t('homeExtended.callsign')}: {displayName.toUpperCase()} // {t('homeExtended.rankedCombatant')}
 											</span>
 										</div>
 									</div>

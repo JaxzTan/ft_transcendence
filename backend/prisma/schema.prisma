@@ -47,6 +47,7 @@ enum GameType {
 model User {
   id            String       @id
   username      String       @unique
+  displayName   String       @unique
   email         String?      @unique
   password_hash String?      // null for OAuth-only users
   emailVerified DateTime?
@@ -78,10 +79,13 @@ model User {
   achWorldChampion     Boolean @default(false)
   achLoveTheMachine    Boolean @default(false)
   achft_Transcendence  Boolean @default(false)
-  achUnstoppable       Boolean @default(false)
-  achCleanSweep        Boolean @default(false)
-  achLastLaugh         Boolean @default(false)
   achSpeedDemon        Boolean @default(false)
+  achUnstoppable       Boolean @default(false)
+  achSteadyDefender    Boolean @default(false)
+  achMercilessAttacker Boolean @default(false)
+
+  // PvE game streak (any outcome) — drives achLoveTheMachine
+  pveGameStreak        Int      @default(0)
 
   accounts Account[]
   notifications       Notification[]
@@ -129,6 +133,8 @@ model GameParticipant {
   rank            Int         // 1st, 2nd, 3rd, 4th place
   piecesCaptured  Int         @default(0)
   piecesInGoal    Int         @default(0)  // 0-4
+  clashDefends    Int         @default(0)  // clash-mode: times defended a clash
+  clashAttacksWon Int         @default(0)  // clash-mode: times won a clash as attacker
 
   game  Game  @relation(fields: [game_id], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)

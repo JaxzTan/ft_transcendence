@@ -85,6 +85,7 @@ export function RetroNavbar({
   }, [])
 
   const username = user?.username || 'PILOT'
+  const displayName = user?.displayName || username
 
   return (
     <nav
@@ -205,7 +206,7 @@ export function RetroNavbar({
                   textAlign: 'left',
                 }}
               >
-                {username}
+                  {displayName}
               </span>
             </div>
             <span

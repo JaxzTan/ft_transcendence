@@ -47,6 +47,8 @@ export class MatchCreatorService {
 		playerCount: number,
 		botCount: number,
 		clashEnabled: boolean = true,
+		botColors?: string[],
+		seatColors?: string[],
 	) {
 		// playerCount === 1 is the solo "Test Your Luck" run — hotseat with
 		// nobody else seated, just the host racing their own dice.
@@ -111,24 +113,60 @@ export class MatchCreatorService {
 			createdAt: Date.now().toString(),
 		};
 
+		// The slot→seat color mapping is fixed by index (0=blue,1=red,2=green,
+		// 3=yellow). Persist the exact seat order so the engine creates game
+		// state with the same colors — especially hotseat, where players can
+		// skip seats (e.g. blue + green + yellow but no red).
+		const colorSlot = new Map<string, number>(SLOT_COLORS.map((c, i) => [c, i + 1]));
+		const resolvedSeatColors =
+			Array.isArray(seatColors) && seatColors.length > 0
+				? seatColors
+				: SLOT_COLORS.slice(0, playerCount);
+		if (resolvedSeatColors.length !== playerCount) {
+			throw new BadRequestException('seatColors must have exactly playerCount entries');
+		}
+		for (const c of resolvedSeatColors) {
+			if (!colorSlot.has(c)) {
+				throw new BadRequestException(`Invalid seat color: ${c}`);
+			}
+		}
+		if (resolvedSeatColors[0] !== SLOT_COLORS[0]) {
+			throw new BadRequestException('The host (first seat) must be blue');
+		}
+		updates.seatColors = resolvedSeatColors.join(',');
+
 		if (isPvP) {
 			updates.inviteCode = generateInviteCode();
 		} else {
 			updates.startedAt = Date.now().toString();
-			if (totalBots >= 1) updates.player2_id = BOT_PREFIX + SLOT_COLORS[1];
-			if (totalBots >= 2) updates.player3_id = BOT_PREFIX + SLOT_COLORS[2];
-			if (totalBots >= 3) updates.player4_id = BOT_PREFIX + SLOT_COLORS[3];
+			const assignedBotColors =
+				Array.isArray(botColors) && botColors.length > 0
+					? botColors
+					: SLOT_COLORS.slice(1, 1 + totalBots);
+			if (assignedBotColors.length !== totalBots) {
+				throw new BadRequestException('botColors must match botCount');
+			}
+			for (const color of assignedBotColors) {
+				const slot = colorSlot.get(color);
+				if (!slot || slot < 2 || slot > 4) {
+					throw new BadRequestException(`Invalid bot color: ${color}`);
+				}
+				updates[`player${slot}_id`] = BOT_PREFIX + color;
+				updates[`player${slot}_color`] = color;
+			}
 		}
 
 		await this.redis.hset(`match:${gameId}`, updates);
 		await this.redis.expire(`match:${gameId}`, 86400);
 
 		const username = await this.resolveUsername(userId);
+		const displayName = await this.resolveDisplayName(userId);
 		const token = this.jwt.sign(
 			{
 				gameId,
 				playerId: userId,
 				username: username || undefined,
+				displayName,
 				role: 'player1',
 				mode,
 				clashEnabled,
@@ -216,5 +254,11 @@ export class MatchCreatorService {
 		if (isBotUserId(userId)) return null;
 		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
 		return user?.username ?? null;
+	}
+
+	private async resolveDisplayName(userId: string): Promise<string | undefined> {
+		if (isBotUserId(userId)) return undefined;
+		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { displayName: true } });
+		return user?.displayName ?? undefined;
 	}
 }

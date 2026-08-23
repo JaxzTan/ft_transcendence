@@ -17,6 +17,7 @@ export interface PlayerMeta {
   color: PlayerColor
   status: PlayerStatus
   username: string
+  displayName?: string
   isBot: boolean
   isConnected: boolean
   pieces: Piece[]
