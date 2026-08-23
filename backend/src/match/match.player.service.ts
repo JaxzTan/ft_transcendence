@@ -46,8 +46,9 @@ export class MatchPlayerService {
 		await this.redis.hset(`match:${gameId}`, `${slotKey}_id`, userId, `${slotKey}_color`, assignedColor);
 
 		const username = await this.resolveUsername(userId);
+		const displayName = await this.resolveDisplayName(userId);
 		const token = this.jwt.sign(
-			{ gameId, playerId: userId, username: username || undefined, role: 'player', clashEnabled, color: assignedColor },
+			{ gameId, playerId: userId, username: username || undefined, displayName, role: 'player', clashEnabled, color: assignedColor },
 			{ expiresIn: '24h' },
 		);
 
@@ -65,11 +66,13 @@ export class MatchPlayerService {
 		const color = (data[`player${slotIndex + 1}_color`] as string) || SLOT_COLORS[slotIndex];
 		const clashEnabled = data.clashEnabled === 'true';
 		const username = await this.resolveUsername(userId);
+		const displayName = await this.resolveDisplayName(userId);
 		const token = this.jwt.sign(
 			{
 				gameId,
 				playerId: userId,
 				username: username || undefined,
+				displayName,
 				role: slotIndex === 0 ? 'player1' : 'player',
 				clashEnabled,
 				color,
@@ -248,5 +251,11 @@ export class MatchPlayerService {
 		if (isBotUserId(userId)) return null;
 		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
 		return user?.username ?? null;
+	}
+
+	private async resolveDisplayName(userId: string): Promise<string | undefined> {
+		if (isBotUserId(userId)) return undefined;
+		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { displayName: true } });
+		return user?.displayName ?? undefined;
 	}
 }

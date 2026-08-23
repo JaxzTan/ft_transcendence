@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { secret } from '../secrets';
 import Redis from 'ioredis';
 import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
+import { AchievementsService } from '../achievements/achievements.service';
 
 const BOT_PREFIX = 'bot-';
 const WIN_POINTS = 10;
@@ -21,6 +22,7 @@ export class MatchPostgameService {
 		private readonly prisma: PrismaService,
 		private readonly jwt: JwtService,
 		private readonly leaderboardRedis: LeaderboardRedisService,
+		private readonly achievements: AchievementsService,
 	) {
 		const host = process.env.REDIS_HOST || 'redis';
 		const port = parseInt(process.env.REDIS_PORT || '6379', 10);
@@ -32,7 +34,7 @@ export class MatchPostgameService {
 	// Write final game results to Postgres and update player ratings.
 	// Called by the game engine when a match ends. Creates game + participant rows,
 	// updates ratings (points-based: +10 win / -5 loss), and pushes a leaderboard snapshot.
-	async processGameEnd(data: { gameId: string; participants: Array<{ userId: string; color: string; rank: number; piecesCaptured?: number; piecesInGoal?: number }> }) {
+	async processGameEnd(data: { gameId: string; participants: Array<{ userId: string; color: string; rank: number; piecesCaptured?: number; piecesInGoal?: number; clashDefends?: number; clashAttacksWon?: number }> }) {
 		const { gameId, participants } = data;
 		if (!gameId) throw new BadRequestException('gameId is required');
 		if (!participants || !Array.isArray(participants) || participants.length < 2) {
@@ -61,6 +63,25 @@ export class MatchPostgameService {
 			});
 
 			for (const p of participants) {
+				// Bots must exist as real User rows — GameParticipant.user_id has
+				// an FK to User.id. Guarantee the row exists (id "bot-<color>")
+				// so every PvE game-end transaction satisfies the constraint
+				// regardless of seed state. Without this, the FK would roll back
+				// the whole transaction and void the human's PvE results too.
+				if (isBotUserId(p.userId)) {
+					await tx.user.upsert({
+						where: { id: p.userId },
+						update: {},
+						create: {
+							id: p.userId,
+							username: p.userId, // "bot-green" etc. — unique, clearly a bot
+							// displayName is required + unique on User (feature-update-profile
+							// branch); bot rows reuse the same id so it stays unique.
+							displayName: p.userId,
+						},
+					});
+				}
+
 				await tx.gameParticipant.create({
 					data: {
 						id: crypto.randomUUID(),
@@ -70,6 +91,8 @@ export class MatchPostgameService {
 						rank: p.rank,
 						piecesCaptured: p.piecesCaptured || 0,
 						piecesInGoal: p.piecesInGoal || 0,
+						clashDefends: p.clashDefends || 0,
+						clashAttacksWon: p.clashAttacksWon || 0,
 					},
 				});
 
@@ -89,10 +112,14 @@ export class MatchPostgameService {
 						data: {
 							rating: newRating,
 							highestRating: Math.max(user.highestRating, newRating),
+							wins: isWinner ? { increment: 1 } : undefined,
 							humanWins: isWinner ? { increment: 1 } : undefined,
 							botWins: gameType === 'PVE' && isWinner ? { increment: 1 } : undefined,
 							winStreak: isWinner ? { increment: 1 } : 0,
 							bestWinStreak: isWinner ? Math.max(user.winStreak + 1, user.bestWinStreak) : undefined,
+							// pveGameStreak: PVE increments (any rank), PVP resets to 0.
+							// Hotseat never reaches the backend (demo-and-forget).
+							pveGameStreak: gameType === 'PVE' ? { increment: 1 } : 0,
 						},
 					});
 					try {
@@ -108,6 +135,12 @@ export class MatchPostgameService {
 		} catch (err) {
 			console.warn('Failed to push leaderboard snapshot:', err);
 		}
+
+		// Post-game achievements hook — MUST never fail the game-end request.
+		// A failure only logs (see achievement-revamp.md Phase 3 failure contract).
+		await this.achievements.evaluateAfterGame(gameId).catch((err) => {
+			console.warn(`Achievements evaluation failed for game ${gameId}:`, err);
+		});
 
 		await this.redis.del(`match:${gameId}`);
 		return { message: 'Game processed', gameId };
@@ -150,9 +183,9 @@ export class MatchPostgameService {
 		await this.redis.expire(`match:${newGameId}`, 86400);
 		await this.redis.del(pendingKey);
 
-		const username = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+		const username = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true, displayName: true } });
 		const token = this.jwt.sign(
-			{ gameId: newGameId, playerId: userId, username: username?.username || undefined, role: 'player1' },
+			{ gameId: newGameId, playerId: userId, username: username?.username || undefined, displayName: username?.displayName ?? undefined, role: 'player1' },
 			{ expiresIn: '24h' },
 		);
 

@@ -19,6 +19,8 @@ export function Login() {
   const QUERY_ERRORS: Record<string, string> = {
     'no-verified-email': t('auth.errorNoVerifiedEmail'),
     'invalid-verification-link': t('auth.errorInvalidVerificationLink'),
+    'email-in-use': t('auth.errorEmailInUseOAuth'),
+    'add-email-2fa': t('auth.errorAddEmail2FA'),
   }
 
   // One-shot notices arriving via redirect (email verified / password reset / OAuth errors).

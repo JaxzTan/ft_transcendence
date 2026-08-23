@@ -63,6 +63,19 @@ export function Lobby() {
     try {
       const gameMode = allowAddPlayers ? 'pve' : (isLocal || isSolo || playerCount === 2) ? 'hotseat' : 'pvp'
       const filledCount = visible.filter((s) => s.type === 'you' || s.type === 'player').length
+      // The bot seats are fixed by index (0=blue,1=red,2=green,3=yellow). Send
+      // the actual chosen bot colors so the backend places bots on the exact
+      // seats picked here instead of always filling red first.
+      const botColors = visible
+        .map((s, i) => (s.type === 'bot' ? SEAT_COLORS[i] : null))
+        .filter((c): c is ColorKey => c !== null)
+      // Hotseat: the game consists of exactly the occupied seats (host is
+      // always seat 0/blue, then each added local pilot in seat order). Send
+      // the exact color list so skipped seats (e.g. red) aren't resurrected as
+      // dense slots by the engine's playerCount-based default.
+      const seatColors = visible
+        .map((s, i) => (s.type === 'you' || s.type === 'player' ? SEAT_COLORS[i] : null))
+        .filter((c): c is ColorKey => c !== null)
       const res = await postApi<{
         gameId: string
         token: string
@@ -75,6 +88,8 @@ export function Lobby() {
         mode: gameMode,
         playerCount: gameMode === 'hotseat' ? filledCount : playerCount,
         botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
+        botColors: botColors.length > 0 ? botColors : undefined,
+        seatColors: gameMode === 'hotseat' && seatColors.length > 0 ? seatColors : undefined,
         clashEnabled: true,
       })
       setActiveMatch(res)
@@ -260,7 +275,7 @@ export function Lobby() {
                                 />
                                 <div>
                                   <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
-                                    {user?.username.toUpperCase() || t('common.you')}
+                                    {(user?.displayName ?? user?.username ?? '').toUpperCase() || t('common.you')}
                                   </div>
                                   <div style={{ color: hue, fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
                                     {t('lobby.hostPilotTag')}

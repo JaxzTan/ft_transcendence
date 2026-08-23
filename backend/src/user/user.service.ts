@@ -15,6 +15,7 @@ export class UserService {
       select: {
         id: true,
         username: true,
+        displayName: true,
         avatarStyle: true,
         rating: true,
         highestRating: true,
@@ -86,7 +87,7 @@ export class UserService {
           game: {
             include: {
               participants: {
-                include: { user: { select: { username: true, avatarStyle: true } } },
+                include: { user: { select: { username: true, displayName: true, avatarStyle: true } } },
               },
             },
           },
@@ -107,6 +108,7 @@ export class UserService {
         endedAt: p.game.endedAt,
         participants: p.game.participants.map((gp) => ({
           username: gp.user.username,
+          displayName: gp.user.displayName,
           avatarStyle: gp.user.avatarStyle,
           color: gp.color,
           rank: gp.rank,
