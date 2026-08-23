@@ -66,6 +66,30 @@ export class EventPublisher {
           duration: event.duration,
           attacker: event.attacker,
           defender: event.defender,
+          phase: event.phase,
+          startAt: event.startAt,
+          announceDeadline: event.announceDeadline,
+          countdownDeadline: event.countdownDeadline,
+          pressDeadline: event.pressDeadline,
+          attackerPresses: event.attackerPresses,
+          defenderPresses: event.defenderPresses,
+        }));
+        break;
+
+      case 'clash_phase':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'clash_phase',
+          phase: event.phase,
+          countdownDeadline: event.countdownDeadline,
+          pressDeadline: event.pressDeadline,
+        }));
+        break;
+
+      case 'clash_press':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'clash_press',
+          color: event.color,
+          presses: event.presses,
         }));
         break;
 

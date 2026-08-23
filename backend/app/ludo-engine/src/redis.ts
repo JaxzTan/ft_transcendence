@@ -60,7 +60,7 @@ export class RedisGameStore {
       consecutiveSixes: 0,
       bonusRoll: false,
       isFinished: false,
-      stats: { turns: 0, captures: 0, piecesInGoal: 0 }
+      stats: { turns: 0, captures: 0, piecesInGoal: 0, clashDefends: 0, clashAttacksWon: 0 }
     }));
     
     const state: GameState = {
@@ -126,13 +126,15 @@ export class RedisGameStore {
   async recordClashPress(gameId: string, color: PlayerColor): Promise<number> {
     const state = await this.loadGameState(gameId);
     if (!state?.clash) return 0;
-    
+
     const isAttacker = state.clash.attacker === color;
     if (isAttacker) {
       state.clash.attackerPresses++;
     } else {
       state.clash.defenderPresses++;
     }
+    state.clash.lastPressAt = state.clash.lastPressAt || {};
+    state.clash.lastPressAt[color] = Date.now();
     await this.saveGameState(gameId, state);
     return isAttacker ? state.clash.attackerPresses : state.clash.defenderPresses;
   }
@@ -151,6 +153,18 @@ export class RedisGameStore {
    /** Update specific fields in the match metadata hash */
    async updateMatchData(gameId: string, fields: Record<string, string>): Promise<void> {
      await this.client.hmset(this.matchKey(gameId), fields);
+   }
+
+   /** SCAN all game state hashes — used by clash recovery and expiry sweeps. */
+   async scanGameKeys(): Promise<string[]> {
+     const keys: string[] = [];
+     let cursor = '0';
+     do {
+       const [nextCursor, batch] = await this.client.scan(cursor, 'MATCH', 'game:*', 'COUNT', 100);
+       cursor = nextCursor;
+       keys.push(...batch);
+     } while (cursor !== '0');
+     return keys;
    }
 
    /** SCAN all match metadata hashes. */

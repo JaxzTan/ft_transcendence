@@ -267,14 +267,30 @@ export class SocketHandlers {
 
     (async () => {
       try {
-        const success = await this.clashManager.recordPress(gameId, color, key);
-        if (success) {
-          const clash = await this.store.loadClashState(gameId);
-          if (clash) {
-            const presses = color === clash.attacker ? clash.attackerPresses : clash.defenderPresses;
-            socket.emit('clash_press_registered', presses);
-          }
+        const clash = await this.store.loadClashState(gameId);
+        if (!clash) return;
+
+        // The pressed KEY decides which side it belongs to (attacker vs
+        // defender), then we verify the socket's user owns that seat. In PvP
+        // each user owns one seat — only their key works. In hotseat one user
+        // owns both seats — the same socket can mash BOTH keys simultaneously.
+        const userId = socket.data.userId;
+        const attackerUser = this.userIdMap.get(gameId)?.get(clash.attacker);
+        const defenderUser = this.userIdMap.get(gameId)?.get(clash.defender);
+        const ownsAttacker = userId ? attackerUser === userId : clash.attacker === color;
+        const ownsDefender = userId ? defenderUser === userId : clash.defender === color;
+
+        let pressColor: PlayerColor | null = null;
+        if (key === clash.attackerKey && ownsAttacker) {
+          pressColor = clash.attacker;
+        } else if (key === clash.defenderKey && ownsDefender) {
+          pressColor = clash.defender;
         }
+        if (!pressColor) return;
+
+        const count = await this.engine.recordClashPress(gameId, pressColor, key);
+        // Live meter updates flow via the engine's clash_press publish; the
+        // per-player ack is no longer needed (clash_press broadcasts to all).
       } catch (error) {
         console.error('Clash input error:', error);
       }
@@ -373,7 +389,10 @@ export class SocketHandlers {
     (async () => {
       try {
         await this.engine.handlePlayerDisconnect(gameId, color, this.notifyAbort);
-        await this.clashManager.freezeClash(gameId, color);
+        // Option U instant disconnect resolve: settle a mid-clash disconnect
+        // IMMEDIATELY by meters (A>=D → attacker; A<D → defender) instead of
+        // freezing the QTE for the reconnect window.
+        await this.engine.resolveClashOnDisconnect(gameId);
       } catch (error) {
         console.error('Disconnect handler error:', error);
       }

@@ -68,9 +68,8 @@ const STATUS_KEYS: Record<PresenceStatus, string> = {
 }
 
 /**
- * The 13 visible achievements. achSteadyDefender + achMercilessAttacker exist
- * backend-side (clash-mode only) but are hidden until the clash system is
- * wired into the UI — see achievement-revamp.md §1/§4.4.
+ * All 15 achievements. achSteadyDefender + achMercilessAttacker are
+ * clash-mode achievements — they unlock when the clash QTE system is active.
  *
  * Requirements match the revamp thresholds (achievement-revamp.md v3):
  *   achFirstBlood     — 1 win (any PVP/PVE)
@@ -102,6 +101,8 @@ const ACHIEVEMENTS_DEF = [
   { key: 'achLoveTheMachine', fallbackTitle: 'LOVE THE MACHINE', desc: 'Play 3 PvE games in a row (any outcome)', icon: '❤️' },
   { key: 'achSpeedDemon', fallbackTitle: 'SPEED DEMON', desc: 'Win a match in under 30 mins', icon: '⚡' },
   { key: 'achUnstoppable', fallbackTitle: 'UNSTOPPABLE', desc: 'Capture 3 pieces in one game', icon: '⚔️' },
+  { key: 'achSteadyDefender', fallbackTitle: 'STEADY DEFENDER', desc: 'Defend 2 clashes in one clash-mode game', icon: '🛡️' },
+  { key: 'achMercilessAttacker', fallbackTitle: 'MERCILESS ATTACKER', desc: 'Win 2 clashes as attacker in one clash-mode game', icon: '⚔️' },
 ]
 
 export function Profile() {

@@ -68,6 +68,7 @@ export function LudoLobby() {
 
   const [hasActiveGame, setHasActiveGame] = useState(false)
   const [hostBusy, setHostBusy] = useState(false)
+  const [clashOn, setClashOn] = useState(false)
 
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [joiningByCode, setJoiningByCode] = useState(false)
@@ -105,7 +106,7 @@ export function LudoLobby() {
     setError(null)
     retroAudio.playUiBeep(920, 0.08)
     try {
-      const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: true })
+      const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: clashOn })
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {
@@ -332,6 +333,35 @@ export function LudoLobby() {
                       {t('ludoLobbyPasses.hostNewTableDesc')}
                     </div>
                   </div>
+                </div>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: '0.82rem',
+                      fontFamily: 'var(--font-mono)',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      background: 'rgba(0, 0, 0, 0.4)',
+                    }}
+                  >
+                    <span>⚔️ {t('game.clashMode')}</span>
+                    <input
+                      type="checkbox"
+                      checked={clashOn}
+                      onChange={(e) => setClashOn(e.target.checked)}
+                      style={{ accentColor: 'var(--accent-pink)', width: 15, height: 15, cursor: 'pointer' }}
+                    />
+                  </label>
                 </div>
 
                 <div

@@ -2,7 +2,7 @@ import { Server } from 'socket.io';
 import * as http from 'http';
 import { LudoEngine } from '../engine';
 import { RedisGameStore } from '../redis';
-import { ClashManager } from '../clash';
+import { ClashManager, CLASH_RESULT_FREEZE_MS } from '../clash';
 import { getOrCreateBot, isBotPlayer } from '../bot';
 import { EventPublisher } from './event-publisher';
 import { RedisBroadcaster } from './redis-broadcaster';
@@ -47,6 +47,11 @@ export class SocketServer {
   private rematchVotes: Map<string, Set<string>> = new Map();
 	private gameEndedAt: Map<string, number> = new Map();
   private botTurnTimers = new Map<string, NodeJS.Timeout>();
+  /** Hard freeze: while now < clashFreezeUntil[gameId], NO bot turns fire
+   *  (the clash QTE or its 3s result card is showing). Human turns are
+   *  gated server-side by state.resultCardUntil; bots need this map because
+   *  they act outside the human input path. */
+  private clashFreezeUntil = new Map<string, number>();
 
 	constructor() {
 		this.store = new RedisGameStore();
@@ -87,13 +92,23 @@ export class SocketServer {
 				// Wait for the move's box-by-box animation to finish on screen
 				// (path.length steps) plus a short thinking pause before acting again.
 				const animMs = event.result.path.length * BOT_STEP_ANIM_MS;
-				this.triggerBotTurn(event.gameId, animMs + BOT_THINK_MS);
+				// A clash-resolved move keeps the game frozen for the 3s result
+				// card (CLASH_RESULT_FREEZE_MS) — extend the bot delay so the bot
+				// doesn't fire while the victory card is still visible.
+				const clashCardMs = event.result.clashOutcome ? CLASH_RESULT_FREEZE_MS : 0;
+				this.triggerBotTurn(event.gameId, animMs + BOT_THINK_MS + clashCardMs);
 			} else if (event.type === 'dice_rolled') {
 				// Only trigger bot turn if no legal moves (turn auto-advanced)
 				// Wait for the 750ms frontend dice-roll animation plus thinking pause
 				if (event.legalMoves.length === 0) {
 					this.triggerBotTurn(event.gameId, 750 + BOT_THINK_MS);
 				}
+			} else if (event.type === 'clash_start') {
+				// No bot turns while the QTE runs (announce + countdown + press)
+				this.clashFreezeUntil.set(event.gameId, event.announceDeadline);
+			} else if (event.type === 'clash_result') {
+				// Keep bots frozen through the 3s result card
+				this.clashFreezeUntil.set(event.gameId, Date.now() + CLASH_RESULT_FREEZE_MS);
 			}
 		});
 	}
@@ -120,6 +135,9 @@ export class SocketServer {
 
 		this.broadcaster.start(this.io);
 		this.setupSocketHandlers();
+		// Boot-time clash recovery: re-arm phase timers for any persisted
+		// clashes and sweep every 5s for orphaned/stalled QTE states.
+		this.engine.startClashRecoverySweep();
 
 		this.httpServer.listen(port, () => {
 			console.log(`Ludo engine listening on port ${port}`);
@@ -151,6 +169,17 @@ export class SocketServer {
 			this.botTurnTimers.delete(gameId);
 			this.store.loadGameState(gameId).then(state => {
 				if (!state || state.status !== 'active') return;
+				// HARD FREEZE: while inside the clash window (or its 3s result card),
+				// the bot does NOT act — the human is mashing keys / watching the card.
+				const freezeUntil = this.clashFreezeUntil.get(gameId);
+				if (freezeUntil && Date.now() < freezeUntil) {
+					const wait = freezeUntil - Date.now();
+					console.log(`[clash] bot turn BLOCKED ${gameId} for ${wait}ms (freeze until ${freezeUntil})`);
+					// Re-arm a fresh timer so the bot acts as soon as the freeze lifts.
+					this.botTurnTimers.delete(gameId);
+					this.triggerBotTurn(gameId, wait + 50);
+					return;
+				}
 				// Pause-air guard: while a bot-mode game is paused, the IN-FLIGHT
 				// bot (currentTurn === pauseTurnOwner) may finish its action chain,
 				// but as soon as the turn moves to a different color the pause
@@ -170,6 +199,7 @@ export class SocketServer {
     this.userIdMap.delete(gameId);
     this.rematchVotes.delete(gameId);
     this.gameEndedAt.delete(gameId);
+    this.clashFreezeUntil.delete(gameId);
   }
 
 	// ─── Post-game lifecycle ───────────────────────────────────────────────────
