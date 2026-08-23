@@ -33,13 +33,13 @@ export function RetroNavbar({
   const { user, logout, lang, setLang, twoFactor, toggleTwoFactor, avatarBuster } = useApp()
   const currentPath = activeRoute || route.path
 
-  const navItems = [
+  const navItems: Array<{ path: string; label: string; icon: string; disabled?: boolean }> = [
     { path: '/home', label: t('nav.home').toUpperCase(), icon: '⌂' },
     { path: '/leaderboard', label: t('nav.leaderboard').toUpperCase(), icon: '♛' },
     { path: '/profile', label: t('nav.profile').toUpperCase(), icon: '@/' },
     { path: '/friends', label: t('nav.friends').toUpperCase(), icon: '♟' },
     { path: '/gamelobby', label: t('nav.lobby').toUpperCase(), icon: '>_' },
-    { path: '/game', label: 'ARENA', icon: '{}', disabled: true },
+    { path: '/game', label: 'ARENA', icon: '{}' },
   ]
 
   // Global live notifications fallback so the notification bell works across all pages

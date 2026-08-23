@@ -498,7 +498,7 @@ body {
 
 .hero-section {
   text-align: center;
-  padding: 16px 20px;
+  padding: 18px 20px 16px;
   background: var(--bg-card);
   border: var(--card-border-style);
   box-shadow: var(--box-shadow);
@@ -510,20 +510,20 @@ body {
 
 .hero-title {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
-  line-height: 1.2;
+  font-size: 2.2rem;
+  line-height: 1.25;
   color: #ffffff;
-  text-shadow: 2px 2px 0px var(--accent-pink), -1px -1px 0px var(--accent-cyan), 0 0 18px rgba(255, 0, 127, 0.8);
+  text-shadow: 3px 3px 0px var(--accent-pink), -2px -2px 0px var(--accent-cyan), 0 0 22px rgba(255, 0, 127, 0.85);
   margin-bottom: 8px;
   letter-spacing: 2px;
 }
 
 .hero-subtitle {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.35rem;
   color: var(--accent-yellow);
-  text-shadow: 0 0 10px var(--accent-yellow);
-  margin-bottom: 12px;
+  text-shadow: 0 0 12px var(--accent-yellow);
+  margin-bottom: 0;
 }
 
 .badge-bar {
@@ -4345,4 +4345,468 @@ canvas#snakeCanvas {
 [data-theme="terminal"] .cyber-btn {
   color: #33ff33 !important;
   --btn-accent: #33ff33;
+}
+
+/* ==========================================================================
+   CYBERPUNK HI-FI SOUND DECK & CASSETTE PLAYER WIDGET
+   ========================================================================== */
+
+.cyber-deck-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.cyber-cassette-chassis {
+  background: linear-gradient(180deg, #18092e 0%, #0c021a 100%);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 240, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cyber-cassette-chassis::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink), var(--accent-yellow));
+}
+
+.cassette-window {
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.tape-reel {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px dashed var(--accent-pink);
+  background: rgba(255, 0, 127, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--accent-pink);
+  box-shadow: 0 0 8px rgba(255, 0, 127, 0.3);
+  transition: transform 0.1s linear;
+}
+
+.tape-reel.active {
+  animation: reelSpin 2s linear infinite;
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+@keyframes reelSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.tape-bridge {
+  flex: 1;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(255, 0, 127, 0.4), rgba(0, 240, 255, 0.4));
+  margin: 0 8px;
+  border-radius: 2px;
+  position: relative;
+}
+
+.tape-bridge::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 7px;
+  background: #2b0b4a;
+  border: 1px solid var(--accent-yellow);
+  border-radius: 2px;
+}
+
+.oled-screen {
+  background: #020008;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 4px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.oled-title {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  color: var(--accent-yellow);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 8px rgba(255, 230, 0, 0.5);
+}
+
+.oled-meta {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--accent-cyan);
+  display: flex;
+  justify-content: space-between;
+}
+
+.cyber-eq-deck {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 28px;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  gap: 2px;
+}
+
+.cyber-eq-col {
+  flex: 1;
+  background: linear-gradient(0deg, #00f0ff 0%, #ffe600 65%, #ff007f 100%);
+  border-radius: 1px;
+  min-height: 3px;
+  transition: height 0.1s ease;
+}
+
+/* ==========================================================================
+   CYBER TRANSPORT HARDWARE BUTTON CLUSTER
+   ========================================================================== */
+
+.cyber-transport-cluster {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cyber-deck-key {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 4px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgba(35, 15, 70, 0.8) 0%, rgba(15, 5, 35, 0.95) 100%);
+  border: 1.5px solid rgba(0, 240, 255, 0.35);
+  color: var(--text-main);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.cyber-deck-key:hover {
+  border-color: var(--accent-cyan);
+  background: linear-gradient(180deg, rgba(50, 25, 95, 0.9) 0%, rgba(20, 8, 45, 0.95) 100%);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.cyber-deck-key:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.cyber-deck-key-play {
+  background: linear-gradient(180deg, rgba(255, 0, 127, 0.3) 0%, rgba(13, 2, 33, 0.95) 100%);
+  border: 1.5px solid var(--accent-pink);
+  box-shadow: 0 0 12px rgba(255, 0, 127, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.cyber-deck-key-play.active {
+  background: linear-gradient(180deg, rgba(255, 0, 127, 0.6) 0%, rgba(120, 0, 60, 0.95) 100%);
+  border-color: #ffffff;
+  box-shadow: 0 0 18px rgba(255, 0, 127, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.cyber-deck-key-play:hover {
+  border-color: #ffffff;
+  box-shadow: 0 0 18px rgba(255, 0, 127, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.cyber-key-icon {
+  font-size: 0.8rem;
+  line-height: 1;
+  margin-bottom: 1px;
+  text-shadow: 0 0 8px currentColor;
+}
+
+.cyber-key-label {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.6rem;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.cyber-key-sub {
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  opacity: 0.7;
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+
+[data-theme="win95"] .cyber-transport-cluster {
+  background: #c0c0c0 !important;
+  border: 1px solid #808080 !important;
+}
+
+[data-theme="win95"] .cyber-deck-key,
+[data-theme="win95"] .cyber-deck-key-play {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #808080 !important;
+  border-bottom: 2px solid #808080 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .cyber-deck-key:active,
+[data-theme="win95"] .cyber-deck-key-play:active {
+  border-top: 2px solid #808080 !important;
+  border-left: 2px solid #808080 !important;
+  border-right: 2px solid #ffffff !important;
+  border-bottom: 2px solid #ffffff !important;
+}
+
+[data-theme="terminal"] .cyber-transport-cluster {
+  background: #000800 !important;
+  border: 1px solid #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-deck-key,
+[data-theme="terminal"] .cyber-deck-key-play {
+  background: #001200 !important;
+  border: 1px solid #33ff33 !important;
+  color: #33ff33 !important;
+  box-shadow: 0 0 8px rgba(51, 255, 51, 0.3) !important;
+}
+
+.track-matrix-btn {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: rgba(25, 10, 56, 0.5);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.track-matrix-btn:hover {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: var(--accent-cyan);
+  transform: translateX(2px);
+}
+
+.track-matrix-btn.active {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.2), rgba(255, 0, 127, 0.15));
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+}
+
+[data-theme="win95"] .cyber-cassette-chassis {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #808080 !important;
+  border-bottom: 2px solid #808080 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="win95"] .oled-screen {
+  background: #000000 !important;
+  border: 1px solid #808080 !important;
+}
+
+[data-theme="win95"] .cyber-eq-col {
+  background: #00ff00 !important;
+}
+
+[data-theme="terminal"] .cyber-cassette-chassis {
+  background: #000500 !important;
+  border: 1px solid #33ff33 !important;
+  box-shadow: 0 0 12px rgba(51, 255, 51, 0.25) !important;
+}
+
+[data-theme="terminal"] .oled-screen {
+  background: #000a00 !important;
+  border: 1px solid #33ff33 !important;
+}
+
+[data-theme="terminal"] .oled-title,
+[data-theme="terminal"] .oled-meta {
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-eq-col {
+  background: #33ff33 !important;
+  box-shadow: 0 0 4px #33ff33 !important;
+}
+
+/* ==========================================================================
+   CYBER VOLUME MASTER CONSOLE & 10-SEGMENT LED FADER
+   ========================================================================== */
+
+.cyber-vol-console {
+  background: rgba(10, 2, 28, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.7);
+}
+
+.cyber-vol-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cyber-vol-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.cyber-vol-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: var(--accent-yellow);
+  text-shadow: 0 0 6px var(--accent-yellow);
+}
+
+.cyber-fader-track-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cyber-vol-step-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.cyber-vol-step-btn:hover {
+  background: var(--accent-cyan);
+  color: #0d0221;
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+/* 10-Segment Interactive VU LED Bar */
+.cyber-vol-led-bar {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 3px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.cyber-vol-led-segment {
+  flex: 1;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.12s ease;
+}
+
+.cyber-vol-led-segment.lit-cyan {
+  background: #00f0ff;
+  box-shadow: 0 0 6px #00f0ff;
+}
+
+.cyber-vol-led-segment.lit-amber {
+  background: #ffe600;
+  box-shadow: 0 0 6px #ffe600;
+}
+
+.cyber-vol-led-segment.lit-pink {
+  background: #ff007f;
+  box-shadow: 0 0 8px #ff007f;
+}
+
+.cyber-mute-btn {
+  padding: 3px 8px;
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme="win95"] .cyber-vol-console {
+  background: #c0c0c0 !important;
+  border: 1px solid #808080 !important;
+}
+
+[data-theme="win95"] .cyber-vol-led-segment.lit-cyan,
+[data-theme="win95"] .cyber-vol-led-segment.lit-amber,
+[data-theme="win95"] .cyber-vol-led-segment.lit-pink {
+  background: #00ff00 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="terminal"] .cyber-vol-console {
+  background: #000a00 !important;
+  border: 1px solid #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-vol-led-segment.lit-cyan,
+[data-theme="terminal"] .cyber-vol-led-segment.lit-amber,
+[data-theme="terminal"] .cyber-vol-led-segment.lit-pink {
+  background: #33ff33 !important;
+  box-shadow: 0 0 4px #33ff33 !important;
 }

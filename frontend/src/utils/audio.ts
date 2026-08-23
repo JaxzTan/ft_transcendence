@@ -304,6 +304,27 @@ export class RetroAudioEngine {
     return this.tracks[this.currentTrackIndex].name
   }
 
+  prevTrack(): string {
+    this.currentTrackIndex = (this.currentTrackIndex - 1 + this.tracks.length) % this.tracks.length
+    this.noteStep = 0
+    return this.tracks[this.currentTrackIndex].name
+  }
+
+  selectTrack(index: number): string {
+    this.currentTrackIndex = Math.max(0, Math.min(this.tracks.length - 1, index))
+    this.noteStep = 0
+    return this.tracks[this.currentTrackIndex].name
+  }
+
+  setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(1, vol))
+  }
+
+  toggleMute(): boolean {
+    this.muted = !this.muted
+    return this.muted
+  }
+
   scheduleNextNote() {
     if (!this.isPlaying) return
 
