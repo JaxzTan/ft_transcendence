@@ -125,6 +125,9 @@ type AppState = {
   setActiveMatch: (match: ActiveMatch) => void
   lastResult: LastResult
   setLastResult: (result: LastResult) => void
+  avatarBuster: number
+  refreshAvatar: () => void
+  refreshUser: () => Promise<void>
 }
 
 const Ctx = createContext<AppState | null>(null)
@@ -132,6 +135,19 @@ const Ctx = createContext<AppState | null>(null)
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [authReady, setAuthReady] = useState(false)
+  const [avatarBuster, setAvatarBuster] = useState<number>(Date.now())
+
+  const refreshAvatar = useCallback(() => {
+    setAvatarBuster(Date.now())
+  }, [])
+
+  const refreshUser = useCallback(async () => {
+    const res = await apiFetch('/api/auth/me').catch(() => null)
+    if (res && res.ok) {
+      const data = await res.json()
+      setUser(data.user)
+    }
+  }, [])
 
   useEffect(() => {
     // apiFetch: if the access token has expired but the refresh token is still
@@ -430,11 +446,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
-    playerCount, seats, dice, rolling, turn, settings,
-    setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting,
+      playerCount, seats, dice, rolling, turn, settings,
+      setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting,
       lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch, lastResult, setLastResult,
+      avatarBuster, refreshAvatar, refreshUser,
     }),
-    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
+    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult, avatarBuster, refreshAvatar, refreshUser],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

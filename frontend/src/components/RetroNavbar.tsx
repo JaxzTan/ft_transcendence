@@ -30,7 +30,7 @@ export function RetroNavbar({
 }: RetroNavbarProps) {
   const { t } = useTranslation()
   const route = useRoute()
-  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp()
+  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor, avatarBuster } = useApp()
   const currentPath = activeRoute || route.path
 
   const navItems = [
@@ -179,6 +179,7 @@ export function RetroNavbar({
               <UserAvatar
                 username={username}
                 size={30}
+                cacheBuster={avatarBuster}
                 fallbackStyle={{
                   width: 30,
                   height: 30,

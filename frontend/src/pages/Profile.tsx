@@ -85,7 +85,7 @@ const ACHIEVEMENTS_DEF = [
 export function Profile() {
   const { t } = useTranslation()
   const { query } = useRoute()
-  const { user } = useApp()
+  const { user, refreshAvatar, refreshUser } = useApp()
   const username = query.get('u') || user?.username
   const isOwnProfile = user?.username === username
 
@@ -158,6 +158,8 @@ export function Profile() {
       } else {
         retroAudio.playUiBeep(880, 0.06)
         setAvatarBuster(Date.now())
+        refreshAvatar()
+        refreshUser()
       }
     } catch (e) {
       setUploadError(t('profile.uploadErrorGeneric'))
@@ -175,6 +177,8 @@ export function Profile() {
       if (res.ok) {
         retroAudio.playUiBeep(440, 0.06)
         setAvatarBuster(Date.now())
+        refreshAvatar()
+        refreshUser()
       }
     } catch (e) {
       console.error(e)
