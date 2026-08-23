@@ -52,9 +52,7 @@ export class SocketHandlers {
 
         let state = await this.store.loadGameState(effectiveGameId);
         if (!state) {
-          const creationMatchData = await this.store.getMatchData(effectiveGameId);
-          const playerCount = parseInt(creationMatchData?.playerCount || '4', 10);
-          await this.store.createGame(effectiveGameId, true, SLOT_COLORS.slice(0, playerCount));
+          await this.store.createGame(effectiveGameId, true, SLOT_COLORS);
           state = await this.store.loadGameState(effectiveGameId);
         }
 
@@ -190,7 +188,7 @@ export class SocketHandlers {
     // Hotseat must wait for every local seat to have joined (they join one at
     // a time, via separate join_game calls on the same socket) before
     // starting — otherwise it'd fire after just the first seat.
-    const expectedSeats = matchData.gameType === 'HOTSEAT' ? parseInt(matchData.playerCount || '2', 10) : 0;
+    const expectedSeats = parseInt(matchData.playerCount || '2', 10);
     const activePlayers = state.players.filter(p => p.status === 'active');
     const allJoined = activePlayers.length >= expectedSeats;
     const allReady = activePlayers.length > 0 &&
@@ -213,7 +211,10 @@ export class SocketHandlers {
 
     (async () => {
       try {
-        if (socket.data.playerColor) {
+        const matchData = await this.store.getMatchData(gameId);
+        const isHotseat = matchData?.gameType === 'HOTSEAT';
+
+        if (socket.data.playerColor && !isHotseat) {
           const state = await this.store.loadGameState(gameId);
           if (state?.status === 'active' && state.currentTurn !== socket.data.playerColor) {
             socket.emit('error', 'Not your turn');
@@ -237,11 +238,15 @@ export class SocketHandlers {
 
     (async () => {
       try {
+        const matchData = await this.store.getMatchData(gameId);
+        const isHotseat = matchData?.gameType === 'HOTSEAT';
+
         const state = await this.store.loadGameState(gameId);
         if (state?.status === 'active') {
-          if (state.currentTurn !== color) return;
+          const expectedColor = isHotseat ? state.currentTurn : color;
+          if (state.currentTurn !== expectedColor) return;
           const piece = state.pieces.find(p => p.id === pieceId);
-          if (!piece || piece.color !== color) return;
+          if (!piece || piece.color !== expectedColor) return;
         }
         await this.engine.movePiece(gameId, pieceId);
       } catch (error) {

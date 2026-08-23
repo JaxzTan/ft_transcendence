@@ -67,9 +67,6 @@ function MiniDie({ value }: { value: number }) {
   )
 }
 
-// Matches the backend's SLOT_COLORS — hotseat seat index i always maps to
-// this color, regardless of the Lobby seat-picker's own (unrelated) display order.
-const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 
 export function Game() {
   const { t } = useTranslation()
@@ -98,7 +95,7 @@ export function Game() {
   const localNames: Partial<Record<PlayerColor, string>> = {}
   seats.forEach((seat, i) => {
     if (i === 0) return
-    if (seat.type === 'player') localNames[SLOT_COLORS[i]] = seat.name
+    if (seat.type === 'player') localNames[SEAT_COLORS[i]] = seat.name
   })
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
@@ -219,11 +216,17 @@ export function Game() {
       // separate accounts to join with, so this single socket must join_game
       // for every local color up front.
       if (activeMatch.mode === 'hotseat') {
-        for (const ck of Object.keys(localNames) as PlayerColor[]) {
-          socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
-        }
+        seats.forEach((seat, idx) => {
+          const color = SEAT_COLORS[idx]
+          if (seat.type === 'player') {
+            socket.emit('join_game', activeMatch.gameId, color, undefined, seat.name || color)
+          } else if (seat.type === 'you') {
+            socket.emit('join_game', activeMatch.gameId, color, undefined, user?.username || 'Host')
+          }
+        })
+      } else {
+        socket.emit('join_game', activeMatch.gameId, activeMatch.color)
       }
-      socket.emit('join_game', activeMatch.gameId, activeMatch.color)
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -477,19 +480,20 @@ export function Game() {
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
       const v = viewRef.current
       if (v.status !== 'active') return
-      if (v.currentTurn !== v.myColor) return
+      const isHotseatMode = activeMatch?.mode === 'hotseat'
+      const isCurrentTurnHuman = isHotseatMode
+        ? !v.players.find((p) => p.color === v.currentTurn)?.isBot
+        : v.currentTurn === v.myColor
+      if (!isCurrentTurnHuman) return
       if (v.turnPhase !== 'WAITING_FOR_ROLL') return
       if (v.clash || v.legalMoves.length > 0) return
       if (isRollingRef.current) return
       e.preventDefault()
-      isRollingRef.current = true
-      setIsRolling(true)
-      retroAudio.playUiBeep(980, 0.08, 'sawtooth')
-      socketRef.current?.emit('roll_dice')
+      rollDice()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [activeMatch])
 
   const rollDice = () => {
     if (!canRoll || isRolling || isRollingRef.current) return
@@ -631,7 +635,10 @@ export function Game() {
     )
   }
 
-  const isMyTurn = view.currentTurn === view.myColor
+  const isHotseat = activeMatch?.mode === 'hotseat'
+  const isMyTurn = isHotseat
+    ? (view.players.length === 0 || !view.players.find((p) => p.color === view.currentTurn)?.isBot)
+    : view.currentTurn === view.myColor
   const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
