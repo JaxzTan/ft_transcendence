@@ -479,7 +479,12 @@ export function Game() {
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
       const v = viewRef.current
       if (v.status !== 'active') return
-      if (v.currentTurn !== v.myColor) return
+      const isHotseatMode = activeMatch?.mode === 'hotseat'
+      const curTurnPlayer = v.players.find((p) => p.color === v.currentTurn)
+      const myTurnNow = isHotseatMode
+        ? (curTurnPlayer?.status === 'active' && !curTurnPlayer?.isBot)
+        : (v.currentTurn === v.myColor)
+      if (!myTurnNow) return
       if (v.turnPhase !== 'WAITING_FOR_ROLL') return
       if (v.clash || v.legalMoves.length > 0) return
       if (isRollingRef.current) return
@@ -491,7 +496,7 @@ export function Game() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [activeMatch])
 
   const rollDice = () => {
     if (!canRoll || isRolling || isRollingRef.current) return
@@ -626,7 +631,11 @@ export function Game() {
     )
   }
 
-  const isMyTurn = view.currentTurn === view.myColor
+  const isHotseat = activeMatch?.mode === 'hotseat'
+  const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+  const isMyTurn = isHotseat
+    ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
+    : view.currentTurn === view.myColor
   const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
@@ -1297,13 +1306,14 @@ export function Game() {
                         <div
                           style={{
                             width: '100%',
-                            padding: '6px 10px',
-                            background: isMyTurn ? 'rgba(255, 0, 127, 0.2)' : `${turnColorHex}18`,
+                            padding: '8px 12px',
+                            background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : `${turnColorHex}18`,
                             border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
-                            boxShadow: isMyTurn ? '0 0 12px rgba(255, 0, 127, 0.5)' : `0 0 8px ${turnColorHex}44`,
+                            boxShadow: isMyTurn ? '0 0 16px rgba(255, 0, 127, 0.6)' : `0 0 8px ${turnColorHex}44`,
+                            animation: isMyTurn ? 'pulse-turn-banner 1.6s infinite' : 'none',
                             borderRadius: 4,
                             textAlign: 'center',
-                            fontSize: '0.74rem',
+                            fontSize: '0.78rem',
                             fontFamily: 'var(--font-mono)',
                             fontWeight: 'bold',
                             color: '#ffffff',
@@ -1353,7 +1363,8 @@ export function Game() {
                         textAlign: 'center',
                         background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
                         borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
-                        boxShadow: canRoll && !isRolling ? '0 0 15px var(--accent-pink)' : 'none',
+                        boxShadow: canRoll && !isRolling ? '0 0 20px var(--accent-pink)' : 'none',
+                        animation: canRoll && !isRolling ? 'roll-btn-glow 1.5s infinite' : 'none',
                         cursor: canRoll && !isRolling ? 'pointer' : 'default',
                         opacity: canRoll && !isRolling ? 1 : 0.5,
                         boxSizing: 'border-box',

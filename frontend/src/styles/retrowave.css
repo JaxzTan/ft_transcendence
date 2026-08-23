@@ -281,6 +281,39 @@ body {
   }
 }
 
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 0, 127, 0.6);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 0, 127, 0.9), 0 0 10px #ff007f;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes pulse-turn-banner {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(255, 0, 127, 0.5), inset 0 0 8px rgba(255, 0, 127, 0.2);
+    border-color: var(--accent-pink);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(255, 0, 127, 0.9), inset 0 0 16px rgba(255, 0, 127, 0.4);
+    border-color: #ff3399;
+  }
+}
+
+@keyframes roll-btn-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px var(--accent-pink);
+    border-color: var(--accent-pink);
+  }
+  50% {
+    box-shadow: 0 0 28px var(--accent-pink), 0 0 14px #ff007f;
+    border-color: #ff3399;
+  }
+}
+
 .brand-title {
   font-family: var(--font-heading);
   font-size: 1.1rem;
