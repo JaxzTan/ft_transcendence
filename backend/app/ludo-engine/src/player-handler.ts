@@ -27,12 +27,16 @@ export function advanceTurnInState(state: GameState): void {
 
   let loopCount = 0;
   while (loopCount < 4) {
-    const p = state.players[nextIndex];
+    // .find by color, not an index into state.players — the array only
+    // holds entries for seats actually in the match (see redis.ts
+    // createGame's activeColors), so it's shorter than 4 for < 4-player
+    // games and no longer aligned 1:1 with COLORS by position.
+    const p = state.players.find(pl => pl.color === COLORS[nextIndex]);
     // Only an *active* seat can hold the turn — 'inactive' means the seat was
     // never joined at all (e.g. the unused 2 colors in a 2-player match), and
     // was previously falling through this check, permanently stalling the
     // turn on a seat nobody controls.
-    if (p.status === 'active') {
+    if (p?.status === 'active') {
       break;
     }
     nextIndex = (nextIndex + 1) % 4;
