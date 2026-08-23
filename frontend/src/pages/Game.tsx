@@ -640,7 +640,7 @@ export function Game() {
 	}
 
 	const isMyTurn = view.currentTurn === view.myColor
-	const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !view.clashResult && !animatingPiece && !turnSwapNotice
+	const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !view.clashResult && !animatingPiece
 	const turnLabel = view.status === 'waiting'
 		? t('game.waitingRoomTitle').toUpperCase()
 		: isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
@@ -1351,26 +1351,9 @@ export function Game() {
 										</div>
 
 										<button
-											className="retro-btn"
+											className={`roll-dice-btn ${canRoll && !isRolling ? 'is-active-turn' : 'is-inactive-turn'}`}
 											onClick={rollDice}
 											disabled={!canRoll || isRolling}
-											style={{
-												width: '100%',
-												padding: '12px 0',
-												fontSize: '0.85rem',
-												fontFamily: 'var(--font-heading)',
-												letterSpacing: '1px',
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-												textAlign: 'center',
-												background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
-												borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
-												boxShadow: canRoll && !isRolling ? '0 0 15px var(--accent-pink)' : 'none',
-												cursor: canRoll && !isRolling ? 'pointer' : 'default',
-												opacity: canRoll && !isRolling ? 1 : 0.5,
-												boxSizing: 'border-box',
-											}}
 										>
 											{isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
 										</button>

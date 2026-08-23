@@ -46,7 +46,7 @@ async function main() {
 
   // Connect to Redis
   const redisHost = process.env.REDIS_HOST || (process.env.SECRETS_DIR ? 'redis' : 'localhost');
-  const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
+  const redisPort = parseInt(process.env.REDIS_PORT || '6479', 10);
   const redisPassword = secret('REDIS_PASSWORD') || 'password123';
 
   const redis = new Redis({

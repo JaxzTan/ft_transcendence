@@ -281,6 +281,88 @@ body {
   }
 }
 
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 0, 127, 0.6);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 0, 127, 0.9), 0 0 10px #ff007f;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes pulse-turn-banner {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(255, 0, 127, 0.5), inset 0 0 8px rgba(255, 0, 127, 0.2);
+    border-color: var(--accent-pink);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(255, 0, 127, 0.9), inset 0 0 16px rgba(255, 0, 127, 0.4);
+    border-color: #ff3399;
+  }
+}
+
+@keyframes roll-btn-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 0, 127, 0.8), 0 0 30px rgba(255, 0, 127, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.3);
+    border-color: #ff007f;
+    text-shadow: 0 0 8px #ffffff, 0 0 12px #ff007f;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 0, 127, 1), 0 0 45px rgba(255, 0, 127, 0.7), inset 0 0 15px rgba(255, 0, 127, 0.5);
+    border-color: #ffe600;
+    text-shadow: 0 0 12px #ffffff, 0 0 18px #ffe600;
+    transform: scale(1.02);
+  }
+}
+
+.roll-dice-btn {
+  width: 100%;
+  padding: 12px 0;
+  font-size: 0.85rem;
+  font-family: var(--font-heading);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 4px;
+  box-sizing: border-box;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.roll-dice-btn.is-active-turn {
+  background: linear-gradient(135deg, #ff007f, #9d00ff) !important;
+  color: #ffffff !important;
+  border: 2px solid #ff007f !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  animation: roll-btn-glow 1.2s infinite ease-in-out !important;
+  transition: none !important;
+}
+
+.roll-dice-btn.is-active-turn:hover {
+  transform: scale(1.03) !important;
+  box-shadow: 0 0 30px rgba(255, 0, 127, 1), 0 0 50px rgba(255, 230, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.6) !important;
+}
+
+.roll-dice-btn.is-active-turn:active {
+  transform: scale(0.98) !important;
+}
+
+.roll-dice-btn.is-inactive-turn {
+  background: rgba(25, 10, 56, 0.5) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: none !important;
+  cursor: default !important;
+  opacity: 0.5 !important;
+  animation: none !important;
+}
+
 .brand-title {
   font-family: var(--font-heading);
   font-size: 1.1rem;
