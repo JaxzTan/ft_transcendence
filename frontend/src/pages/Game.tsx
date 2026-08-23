@@ -270,7 +270,7 @@ export function Game() {
         return
       }
 
-      dispatch({ type: 'state_update', ...(state as object) })
+      dispatch({ type: type || 'state_update', ...(state as object) })
 
       if (type === 'piece_moved') {
         const e = state as unknown as {
@@ -483,20 +483,26 @@ export function Game() {
       const curTurnPlayer = v.players.find((p) => p.color === v.currentTurn)
       const myTurnNow = isHotseatMode
         ? (curTurnPlayer?.status === 'active' && !curTurnPlayer?.isBot)
-        : (v.currentTurn === v.myColor)
+        : (v.currentTurn === v.myColor || (user?.username ? curTurnPlayer?.username === user?.username : false))
       if (!myTurnNow) return
-      if (v.turnPhase !== 'WAITING_FOR_ROLL') return
-      if (v.clash || v.legalMoves.length > 0) return
+      if (v.turnPhase === 'WAITING_FOR_MOVE' || v.legalMoves.length > 0) return
+      if (v.clash) return
       if (isRollingRef.current) return
       e.preventDefault()
       isRollingRef.current = true
       setIsRolling(true)
       retroAudio.playUiBeep(980, 0.08, 'sawtooth')
       socketRef.current?.emit('roll_dice')
+      setTimeout(() => {
+        if (isRollingRef.current) {
+          isRollingRef.current = false
+          setIsRolling(false)
+        }
+      }, 2000)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activeMatch])
+  }, [activeMatch, user?.username])
 
   const rollDice = () => {
     if (!canRoll || isRolling || isRollingRef.current) return
@@ -504,6 +510,12 @@ export function Game() {
     setIsRolling(true)
     retroAudio.playUiBeep(980, 0.08, 'sawtooth')
     socketRef.current?.emit('roll_dice')
+    setTimeout(() => {
+      if (isRollingRef.current) {
+        isRollingRef.current = false
+        setIsRolling(false)
+      }
+    }, 2000)
   }
 
   const movePiece = (pieceId: string) => {
@@ -635,8 +647,8 @@ export function Game() {
   const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
   const isMyTurn = isHotseat
     ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
-    : view.currentTurn === view.myColor
-  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
+    : (view.currentTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
+  const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
     : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
@@ -1348,27 +1360,9 @@ export function Game() {
                     </div>
 
                     <button
-                      className="retro-btn"
+                      className={`roll-dice-btn ${canRoll && !isRolling ? 'is-active-turn' : 'is-inactive-turn'}`}
                       onClick={rollDice}
                       disabled={!canRoll || isRolling}
-                      style={{
-                        width: '100%',
-                        padding: '12px 0',
-                        fontSize: '0.85rem',
-                        fontFamily: 'var(--font-heading)',
-                        letterSpacing: '1px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
-                        borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
-                        boxShadow: canRoll && !isRolling ? '0 0 20px var(--accent-pink)' : 'none',
-                        animation: canRoll && !isRolling ? 'roll-btn-glow 1.5s infinite' : 'none',
-                        cursor: canRoll && !isRolling ? 'pointer' : 'default',
-                        opacity: canRoll && !isRolling ? 1 : 0.5,
-                        boxSizing: 'border-box',
-                      }}
                     >
                       {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
                     </button>
