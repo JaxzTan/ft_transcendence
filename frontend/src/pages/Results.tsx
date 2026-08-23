@@ -13,10 +13,10 @@ export function Results() {
 
   // Trigger vending machine chiptune mechanical sound on mount
   useEffect(() => {
-    retroAudio.playUiBeep(450, 0.08)
+    retroAudio.playUiBeep(450, 0.06)
     const timer = setTimeout(() => {
-      retroAudio.playUiBeep(850, 0.08)
-    }, 250)
+      retroAudio.playUiBeep(850, 0.07)
+    }, 100)
     return () => clearTimeout(timer)
   }, [])
 
@@ -39,10 +39,13 @@ export function Results() {
 
   const ranked = [...activeResult.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
 
+  // A match is only completed with a real champion if it wasn't abandoned and a player reached the win condition
+  const hasRealWinner = !activeResult.abandoned && activeResult.players.some((p) => p.piecesInGoal >= 4)
+
   // Find current player's color or fallback to first human/player
   const myPlayer = activeResult.players.find((p) => !p.isBot && p.username === user?.username) || activeResult.players.find((p) => !p.isBot) || activeResult.players[0]
   const myColor = myPlayer?.color || 'red'
-  const won = activeResult.winner === myColor
+  const won = hasRealWinner && activeResult.winner === myColor
   const winnerPlayer = activeResult.players.find((p) => p.color === activeResult.winner)
 
   const COLOR_NAME_KEYS: Record<string, string> = {
@@ -63,7 +66,7 @@ export function Results() {
 
   // Calculate outcome display title
   let outcomeTitle = t('results.outcomeCompleted')
-  if (activeResult.abandoned) {
+  if (activeResult.abandoned || !hasRealWinner) {
     outcomeTitle = t('results.outcomeAbandoned')
   } else if (activeResult.mode === 'hotseat') {
     outcomeTitle = t('results.outcomeMatchComplete')
@@ -73,8 +76,9 @@ export function Results() {
     outcomeTitle = t('results.outcomeDefeat')
   }
 
-  // Render rank badge with correct 1st, 2nd, 3rd, 4th ordinal suffixes
+  // Render rank badge with correct 1st, 2nd, 3rd, 4th ordinal suffixes (only when not abandoned)
   const renderRankBadge = (rank: number, isWinner: boolean) => {
+    if (!hasRealWinner) return null
     if (isWinner) {
       return (
         <span className="pay-tag win">
@@ -142,16 +146,18 @@ export function Results() {
                   <p className="amount">
                     {t('results.modeLabel')} <span className="value">{modeLabel}</span>
                   </p>
-                  <p className="amount">
-                    {t('results.championLabel')} <span className="value">{winnerName.toUpperCase()}</span>
-                  </p>
+                  {hasRealWinner && (
+                    <p className="amount">
+                      {t('results.championLabel')} <span className="value">{winnerName.toUpperCase()}</span>
+                    </p>
+                  )}
 
                   <hr style={{ border: 'none', height: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', margin: '0.75em 0' }} />
 
                   {/* Player Roster Breakdown List */}
                   <ul className="payers-list">
                     {ranked.map((p, index) => {
-                      const isWinner = index === 0 && !activeResult.abandoned
+                      const isWinner = index === 0 && hasRealWinner
                       const isMe = p.color === myColor
                       const pName = isMe ? t('common.you') : p.username
 

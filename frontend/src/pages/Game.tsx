@@ -239,7 +239,6 @@ export function Game() {
 
     const handleEngineEvent = (state: unknown) => {
       const type = (state as { type?: string }).type
-      dispatch({ type: 'state_update', ...(state as object) })
 
       if (type === 'dice_rolled') {
         const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
@@ -251,6 +250,7 @@ export function Game() {
         setTimeout(() => {
           setIsRolling(false)
           isRollingRef.current = false
+          dispatch({ type: 'dice_rolled', ...(state as object) })
           setDisplayedLastRolls((prev) => ({ ...prev, [rollerColor]: e.value }))
           setMoveLogs((prev) => [
             {
@@ -262,7 +262,12 @@ export function Game() {
             ...prev.slice(0, 11),
           ])
         }, 750)
-      } else if (type === 'piece_moved') {
+        return
+      }
+
+      dispatch({ type: 'state_update', ...(state as object) })
+
+      if (type === 'piece_moved') {
         const e = state as unknown as {
           pieceId: string
           color: PlayerColor
@@ -343,16 +348,20 @@ export function Game() {
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
         retroAudio.playUiBeep(1100, 0.3, 'sawtooth')
+        let endedPlayers = viewRef.current.players
+          .filter((p) => p.status !== 'inactive')
+          .map((p) => ({
+            color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+          }))
+        if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
+          endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
+        }
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
           mode: activeMatch?.mode ?? 'pvp',
-          playerCount: activeMatch?.playerCount ?? 4,
-          players: viewRef.current.players
-            .filter((p) => p.status === 'active')
-            .map((p) => ({
-              color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
-            })),
+          playerCount: activeMatch?.playerCount ?? endedPlayers.length,
+          players: endedPlayers,
         })
         setTimeout(() => navigate('/results'), 2500)
       }
@@ -378,27 +387,56 @@ export function Game() {
       ])
     })
 
-    socket.on('game_timeout', () => {
-      setLastResult({
-        winner: viewRef.current.currentTurn,
+    const buildAbandonedResult = () => {
+      let players = viewRef.current.players
+        .filter((p) => p.status !== 'inactive')
+        .map((p) => ({
+          color: p.color,
+          username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+          isBot: p.isBot,
+          piecesInGoal: p.piecesInGoal ?? 0,
+        }))
+
+      if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
+        const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+        players = seats
+          .map((s, idx) => {
+            if (s.type === 'empty') return null
+            const color = SEAT_COLORS[idx] || 'red'
+            let username = 'Pilot'
+            if (s.type === 'you') username = user?.username || 'You'
+            else if (s.type === 'bot' || s.type === 'player') username = s.name
+            return {
+              color,
+              username,
+              isBot: s.type === 'bot',
+              piecesInGoal: 0,
+            }
+          })
+          .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
+      }
+
+      if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
+        players = players.slice(0, activeMatch.playerCount)
+      }
+
+      return {
+        winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
         resultDetail: 'abandoned',
         mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? 4,
-        players: [],
+        playerCount: activeMatch?.playerCount ?? players.length,
+        players,
         abandoned: true,
-      })
+      }
+    }
+
+    socket.on('game_timeout', () => {
+      setLastResult(buildAbandonedResult())
       setActiveMatch(null)
       navigate('/results')
     })
     socket.on('game_expired', () => {
-      setLastResult({
-        winner: viewRef.current.currentTurn,
-        resultDetail: 'abandoned',
-        mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? 4,
-        players: [],
-        abandoned: true,
-      })
+      setLastResult(buildAbandonedResult())
       setActiveMatch(null)
       navigate('/results')
     })
@@ -492,12 +530,45 @@ export function Game() {
   const endGame = () => {
     retroAudio.playExplosionSound()
     socketRef.current?.emit('end_game')
+
+    let players = viewRef.current.players
+      .filter((p) => p.status !== 'inactive')
+      .map((p) => ({
+        color: p.color,
+        username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+        isBot: p.isBot,
+        piecesInGoal: p.piecesInGoal ?? 0,
+      }))
+
+    if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
+      const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+      players = seats
+        .map((s, idx) => {
+          if (s.type === 'empty') return null
+          const color = SEAT_COLORS[idx] || 'red'
+          let username = 'Pilot'
+          if (s.type === 'you') username = user?.username || 'You'
+          else if (s.type === 'bot' || s.type === 'player') username = s.name
+          return {
+            color,
+            username,
+            isBot: s.type === 'bot',
+            piecesInGoal: 0,
+          }
+        })
+        .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
+    }
+
+    if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
+      players = players.slice(0, activeMatch.playerCount)
+    }
+
     setLastResult({
-      winner: viewRef.current.currentTurn,
+      winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
       resultDetail: 'abandoned',
       mode: activeMatch?.mode ?? 'pvp',
-      playerCount: activeMatch?.playerCount ?? 4,
-      players: [],
+      playerCount: activeMatch?.playerCount ?? players.length,
+      players,
       abandoned: true,
     })
     setActiveMatch(null)
@@ -859,7 +930,7 @@ export function Game() {
                           : isHotseat
                             ? t('game.localPlayer')
                             : 'Pilot')
-                    const lastRoll = (isRolling && view.currentTurn === ck) ? displayedLastRolls[ck] : (displayedLastRolls[ck] ?? view.lastRolls[ck])
+                    const lastRoll = displayedLastRolls[ck]
 
                     return (
                       <div

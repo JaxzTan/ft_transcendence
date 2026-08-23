@@ -102,7 +102,7 @@ export function Login() {
           </a>
         </div>
         <button type="submit" disabled={submitting} className="retro-auth-btn">
-          {submitting ? t('auth.enteringBtn') : 'SIGN IN // JACK IN'}
+          {submitting ? t('auth.enteringBtn') : 'SIGN IN'}
         </button>
 
         {/* OR divider */}

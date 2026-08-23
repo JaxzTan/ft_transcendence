@@ -2826,35 +2826,24 @@ canvas#snakeCanvas {
   border: 2.5px solid var(--accent-cyan);
   border-top: 2px dashed rgba(0, 240, 255, 0.6);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
-  animation: printVendingTicketSteps 1.2s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  animation: printVendingTicketSmooth 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top center;
   box-sizing: border-box;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
 }
 
-/* Authentic Step-Ratcheted Vending Machine Dispense Animation */
-@keyframes printVendingTicketSteps {
+/* Smooth, fast and jitter-free Vending Machine Dispense Animation */
+@keyframes printVendingTicketSmooth {
   0% {
-    transform: translateY(-105%);
-    opacity: 0.1;
-  }
-
-  25% {
-    transform: translateY(-75%);
-    opacity: 1;
-  }
-
-  50% {
-    transform: translateY(-45%);
-    opacity: 1;
-  }
-
-  75% {
-    transform: translateY(-15%);
-    opacity: 1;
+    transform: translate3d(0, -102%, 0);
+    opacity: 0;
   }
 
   100% {
-    transform: translateY(0%);
+    transform: translate3d(0, 0, 0);
     opacity: 1;
   }
 }
