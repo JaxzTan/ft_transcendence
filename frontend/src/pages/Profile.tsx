@@ -796,10 +796,12 @@ export function Profile() {
                   <div
                     className="retro-window"
                     style={{
-                      background: 'var(--bg-card)',
-                      border: 'var(--card-border-style)',
-                      boxShadow: 'var(--box-shadow)',
-                      borderRadius: 8,
+                      background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
+                      backdropFilter: 'blur(32px) saturate(220%)',
+                      WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+                      border: '1px solid rgba(0, 240, 255, 0.35)',
+                      boxShadow: '0 28px 70px rgba(0, 0, 0, 0.8), 0 0 32px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 0 20px rgba(255, 0, 127, 0.08)',
+                      borderRadius: 12,
                       overflow: 'hidden',
                       display: 'flex',
                       flexDirection: 'column',
@@ -809,8 +811,9 @@ export function Profile() {
                   >
                     {/* Tab Header Buttons */}
                     <div
-                      className="window-header"
                       style={{
+                        background: 'rgba(255, 255, 255, 0.04)',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                         padding: '8px 14px',
                         display: 'flex',
                         alignItems: 'center',
@@ -1083,10 +1086,12 @@ export function Profile() {
                     <div
                       className="retro-window"
                       style={{
-                        background: 'var(--bg-card)',
-                        border: 'var(--card-border-style)',
-                        boxShadow: 'var(--box-shadow)',
-                        borderRadius: 8,
+                        background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
+                        backdropFilter: 'blur(32px) saturate(220%)',
+                        WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+                        border: '1px solid rgba(0, 240, 255, 0.35)',
+                        boxShadow: '0 28px 70px rgba(0, 0, 0, 0.8), 0 0 32px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 0 20px rgba(255, 0, 127, 0.08)',
+                        borderRadius: 12,
                         overflow: 'hidden',
                         display: 'flex',
                         flexDirection: 'column',
@@ -1095,8 +1100,9 @@ export function Profile() {
                       }}
                     >
                       <div
-                        className="window-header"
                         style={{
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                           padding: '10px 14px',
                           display: 'flex',
                           alignItems: 'center',
@@ -1147,31 +1153,10 @@ export function Profile() {
                             return (
                               <div
                                 key={f.id}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '10px 14px',
-                                  borderRadius: 6,
-                                  background: 'var(--bg-secondary)',
-                                  border: '1px solid var(--border-color)',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.18s ease',
-                                  gap: 12,
-                                }}
+                                className="retro-friend-card"
                                 onClick={() => {
                                   retroAudio.playUiBeep(640, 0.04)
                                   navigate(`/profile?u=${f.username}`)
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'var(--bg-card)'
-                                  e.currentTarget.style.borderColor = 'var(--accent-cyan)'
-                                  e.currentTarget.style.transform = 'translateX(2px)'
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'var(--bg-secondary)'
-                                  e.currentTarget.style.borderColor = 'var(--border-color)'
-                                  e.currentTarget.style.transform = 'translateX(0)'
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>

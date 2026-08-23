@@ -84,14 +84,39 @@ export function Home() {
 	const [crtEnabled, setCrtEnabled] = useState(true)
 
 	useEffect(() => {
-		const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
-		setTheme(savedTheme)
-		document.documentElement.setAttribute('data-theme', savedTheme)
-		document.body.setAttribute('data-theme', savedTheme)
+		const updateCurrentTheme = (newTheme?: ThemeType) => {
+			const activeTheme = newTheme || (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
+			setTheme(activeTheme)
+		}
+
+		updateCurrentTheme()
+
+		const handleThemeChange = (e: Event) => {
+			const customEvent = e as CustomEvent<ThemeType>
+			updateCurrentTheme(customEvent.detail)
+		}
+
+		window.addEventListener('retro_theme_changed', handleThemeChange)
+		window.addEventListener('storage', handleThemeChange)
+
+		// MutationObserver for instant sync whenever data-theme changes on html
+		const observer = new MutationObserver(() => {
+			const attrTheme = document.documentElement.getAttribute('data-theme') as ThemeType
+			if (attrTheme && (attrTheme === 'synthwave' || attrTheme === 'win95' || attrTheme === 'terminal')) {
+				setTheme(attrTheme)
+			}
+		})
+		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 
 		const savedCrt = localStorage.getItem('retro_crt')
 		if (savedCrt === 'false') {
 			setCrtEnabled(false)
+		}
+
+		return () => {
+			window.removeEventListener('retro_theme_changed', handleThemeChange)
+			window.removeEventListener('storage', handleThemeChange)
+			observer.disconnect()
 		}
 	}, [])
 
@@ -251,8 +276,6 @@ export function Home() {
 					{ label: 'YELLOW', color: '#ffe600', x: 490, y: 380 },
 					{ label: 'BLUE', color: '#00f0ff', x: 635, y: 370 },
 				],
-				marquee: '[ TRANSCENDENCE // CYBER LUDO ]',
-				marqueeColor: '#00f0ff',
 			},
 			win95: {
 				bgTop: '#000000',
@@ -281,8 +304,6 @@ export function Home() {
 					{ label: 'P3-YLW', color: '#ffee00', x: 490, y: 380 },
 					{ label: 'P4-BLU', color: '#2255ff', x: 635, y: 370 },
 				],
-				marquee: '[ DIRECTX 3D // CYBER LUDO 95 ]',
-				marqueeColor: '#00ffff',
 			},
 			terminal: {
 				bgTop: '#000800',
@@ -311,8 +332,6 @@ export function Home() {
 					{ label: 'NODE:YLW', color: '#00ff66', x: 490, y: 380 },
 					{ label: 'NODE:BLU', color: '#33ff88', x: 635, y: 370 },
 				],
-				marquee: '> SYS_EXEC: TRANSCENDENCE_LUDO_CORE.SH',
-				marqueeColor: '#00ff66',
 			},
 		}
 
@@ -564,17 +583,6 @@ export function Home() {
 				ctx.fillText(p.label, p.x, p.y - 13 + pulse)
 				ctx.restore()
 			})
-
-			// 7. Marquee Title on Top of Screen
-			ctx.save()
-			ctx.font = '12px "Press Start 2P", monospace'
-			ctx.textAlign = 'center'
-			ctx.fillStyle = currentCfg.marqueeColor
-			ctx.shadowColor = currentCfg.marqueeColor
-			ctx.shadowBlur = 11
-			ctx.fillText(currentCfg.marquee, 360, 28)
-			ctx.shadowBlur = 0
-			ctx.restore()
 
 			animId = requestAnimationFrame(loop)
 		}
@@ -834,31 +842,10 @@ export function Home() {
 											return (
 												<div
 													key={f.id}
-													style={{
-														display: 'flex',
-														alignItems: 'center',
-														justifyContent: 'space-between',
-														padding: '10px 14px',
-														borderRadius: 6,
-														background: 'var(--bg-secondary)',
-														border: '1px solid var(--border-color)',
-														cursor: 'pointer',
-														transition: 'all 0.18s ease',
-														gap: 12,
-													}}
+													className="retro-friend-card"
 													onClick={() => {
 														retroAudio.playUiBeep(640, 0.04)
 														navigate(`/profile?u=${encodeURIComponent(f.username)}`)
-													}}
-													onMouseEnter={(e) => {
-														e.currentTarget.style.background = 'var(--bg-card)'
-														e.currentTarget.style.borderColor = 'var(--accent-cyan)'
-														e.currentTarget.style.transform = 'translateX(2px)'
-													}}
-													onMouseLeave={(e) => {
-														e.currentTarget.style.background = 'var(--bg-secondary)'
-														e.currentTarget.style.borderColor = 'var(--border-color)'
-														e.currentTarget.style.transform = 'translateX(0)'
 													}}
 												>
 													<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>

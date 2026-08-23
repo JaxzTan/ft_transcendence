@@ -191,10 +191,12 @@ export function Leaderboard() {
                     gap: 18,
                     alignItems: 'end',
                     padding: '18px 20px',
-                    borderRadius: 10,
-                    background: 'var(--bg-card)',
-                    border: 'var(--card-border-style)',
-                    boxShadow: 'var(--box-shadow)',
+                    borderRadius: 12,
+                    background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
+                    backdropFilter: 'blur(32px) saturate(220%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+                    border: '1px solid rgba(0, 240, 255, 0.35)',
+                    boxShadow: '0 28px 70px rgba(0, 0, 0, 0.8), 0 0 32px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 0 20px rgba(255, 0, 127, 0.08)',
                     flexShrink: 0,
                   }}
                 >
@@ -204,8 +206,8 @@ export function Leaderboard() {
                     return (
                       <div
                         style={{
-                          background: 'var(--bg-secondary)',
-                          border: 'var(--card-border-style)',
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: '1px solid rgba(0, 240, 255, 0.35)',
                           borderRadius: 8,
                           boxShadow: '0 0 18px rgba(0, 240, 255, 0.22)',
                           padding: '20px 22px',
@@ -360,8 +362,8 @@ export function Leaderboard() {
                     return (
                       <div
                         style={{
-                          background: 'var(--bg-secondary)',
-                          border: 'var(--card-border-style)',
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          border: '1px solid rgba(0, 240, 255, 0.35)',
                           borderRadius: 8,
                           boxShadow: '0 0 18px rgba(255, 0, 127, 0.22)',
                           padding: '20px 22px',
@@ -432,11 +434,13 @@ export function Leaderboard() {
               <div
                 className="retro-window"
                 style={{
-                  border: 'var(--card-border-style)',
-                  borderRadius: 6,
-                  background: 'var(--bg-card)',
+                  background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
+                  backdropFilter: 'blur(32px) saturate(220%)',
+                  WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+                  border: '1px solid rgba(0, 240, 255, 0.35)',
+                  boxShadow: '0 28px 70px rgba(0, 0, 0, 0.8), 0 0 32px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 0 20px rgba(255, 0, 127, 0.08)',
+                  borderRadius: 12,
                   overflow: 'hidden',
-                  boxShadow: 'var(--box-shadow)',
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
@@ -445,7 +449,6 @@ export function Leaderboard() {
               >
                 {/* Fixed Sticky Table Header */}
                 <div
-                  className="window-header"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '270px 1.4fr 170px 170px 150px',
@@ -457,6 +460,8 @@ export function Leaderboard() {
                     fontFamily: 'var(--font-display)',
                     textTransform: 'uppercase',
                     letterSpacing: '1.2px',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                     flexShrink: 0,
                     zIndex: 3,
                   }}

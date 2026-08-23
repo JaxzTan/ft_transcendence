@@ -419,18 +419,21 @@ export function Friends() {
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  background: 'var(--bg-card)',
-                  border: 'var(--card-border-style)',
-                  boxShadow: 'var(--box-shadow)',
-                  borderRadius: 8,
+                  background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
+                  backdropFilter: 'blur(32px) saturate(220%)',
+                  WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+                  border: '1px solid rgba(0, 240, 255, 0.35)',
+                  boxShadow: '0 28px 70px rgba(0, 0, 0, 0.8), 0 0 32px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 0 20px rgba(255, 0, 127, 0.08)',
+                  borderRadius: 12,
                   overflow: 'hidden',
                   minHeight: 0,
                 }}
               >
                 {/* Tab Switcher Header */}
                 <div
-                  className="window-header"
                   style={{
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                     padding: '10px 14px',
                     display: 'flex',
                     alignItems: 'center',
@@ -535,33 +538,10 @@ export function Friends() {
                         return (
                           <div
                             key={f.id}
+                            className="retro-friend-card"
                             onClick={() => {
                               retroAudio.playUiBeep(640, 0.04)
                               navigate(`/profile?u=${f.username}`)
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 14px',
-                              background: 'var(--bg-secondary)',
-                              border: '1px solid var(--border-color)',
-                              borderRadius: 6,
-                              transition: 'all 0.18s ease',
-                              gap: 12,
-                              cursor: 'pointer',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'var(--bg-card)'
-                              e.currentTarget.style.borderColor = 'var(--accent-cyan)'
-                              e.currentTarget.style.boxShadow = '0 0 14px rgba(0, 240, 255, 0.25)'
-                              e.currentTarget.style.transform = 'translateX(3px)'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'var(--bg-secondary)'
-                              e.currentTarget.style.borderColor = 'var(--border-color)'
-                              e.currentTarget.style.boxShadow = 'none'
-                              e.currentTarget.style.transform = 'translateX(0)'
                             }}
                             title={`Click to view ${f.username}'s Pilot Profile`}
                           >
@@ -791,10 +771,12 @@ export function Friends() {
                 <div
                   className="retro-window"
                   style={{
-                    background: 'var(--bg-card)',
-                    border: 'var(--card-border-style)',
-                    boxShadow: 'var(--box-shadow)',
-                    borderRadius: 8,
+                    background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
+                    backdropFilter: 'blur(32px) saturate(220%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+                    border: '1px solid rgba(0, 240, 255, 0.35)',
+                    boxShadow: '0 28px 70px rgba(0, 0, 0, 0.8), 0 0 32px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 0 20px rgba(255, 0, 127, 0.08)',
+                    borderRadius: 12,
                     padding: '16px 18px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -869,10 +851,12 @@ export function Friends() {
                   className="retro-window"
                   style={{
                     flex: 1,
-                    background: 'var(--bg-card)',
-                    border: 'var(--card-border-style)',
-                    boxShadow: 'var(--box-shadow)',
-                    borderRadius: 8,
+                    background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
+                    backdropFilter: 'blur(32px) saturate(220%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+                    border: '1px solid rgba(0, 240, 255, 0.35)',
+                    boxShadow: '0 28px 70px rgba(0, 0, 0, 0.8), 0 0 32px rgba(0, 240, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 0 20px rgba(255, 0, 127, 0.08)',
+                    borderRadius: 12,
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
@@ -881,8 +865,9 @@ export function Friends() {
                 >
                   {/* Card Header */}
                   <div
-                    className="window-header"
                     style={{
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                       padding: '10px 14px',
                       display: 'flex',
                       alignItems: 'center',
@@ -966,15 +951,9 @@ export function Friends() {
                       requests.map((r) => (
                         <div
                           key={r.id}
+                          className="retro-friend-card"
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
                             padding: '9px 12px',
-                            background: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            boxShadow: 'var(--box-shadow)',
-                            borderRadius: 6,
                             gap: 10,
                           }}
                         >

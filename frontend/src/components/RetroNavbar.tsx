@@ -60,6 +60,7 @@ export function RetroNavbar({
     document.documentElement.setAttribute('data-theme', newTheme)
     document.body.setAttribute('data-theme', newTheme)
     localStorage.setItem('retro_theme', newTheme)
+    window.dispatchEvent(new CustomEvent('retro_theme_changed', { detail: newTheme }))
     retroAudio.playUiBeep(880, 0.05)
   }
 
