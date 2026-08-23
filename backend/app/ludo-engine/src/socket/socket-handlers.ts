@@ -173,10 +173,26 @@ export class SocketHandlers {
         // Instantiate bot
         this.getOrCreateBot(gameId, slotColor, this.engine, this.store);
       }
+
+      // PvE auto-start: human joined and all bot opponents are registered,
+      // so mark all participants ready and start the game immediately (no waiting room).
+      const activePlayers = state.players.filter(p => p.status === 'active');
+      for (const p of activePlayers) {
+        if (!state.readyPlayers.includes(p.color)) {
+          state.readyPlayers.push(p.color);
+        }
+      }
+
+      if (state.status === 'waiting') {
+        state.currentTurn = firstActiveColor(state) ?? state.currentTurn;
+        state.status = 'active';
+        await this.store.saveGameState(gameId, state);
+        this.engine.emitEvent({ type: 'game_started', gameId });
+      }
+      return;
     }
 
-    // Every seat that has actually joined (human, local hotseat seat, or bot
-    // just registered above) is auto-ready — there's nobody real left to wait on.
+    // Every seat that has actually joined (human, local hotseat seat) is auto-ready
     for (const p of state.players) {
       if (p.status === 'active' && !state.readyPlayers.includes(p.color)) {
         state.readyPlayers.push(p.color);

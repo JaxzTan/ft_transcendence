@@ -63,6 +63,7 @@ export function Lobby() {
     try {
       const gameMode = allowAddPlayers ? 'pve' : (isLocal || isSolo || playerCount === 2) ? 'hotseat' : 'pvp'
       const filledCount = visible.filter((s) => s.type === 'you' || s.type === 'player').length
+      const pveBotCount = allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0
       const res = await postApi<{
         gameId: string
         token: string
@@ -73,8 +74,8 @@ export function Lobby() {
         playerCount: number
       }>('/api/match/create', {
         mode: gameMode,
-        playerCount: gameMode === 'hotseat' ? filledCount : playerCount,
-        botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
+        playerCount: gameMode === 'hotseat' ? filledCount : gameMode === 'pve' ? (1 + pveBotCount) : playerCount,
+        botCount: pveBotCount,
         clashEnabled: true,
       })
       setActiveMatch(res)
