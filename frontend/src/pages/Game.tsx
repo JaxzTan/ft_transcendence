@@ -1211,7 +1211,7 @@ export function Game() {
             </div>
 
             {/* COLUMN 3: TACTICAL CONTROLS & LOGS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '100%', height: '100%' }}>
               {/* IN-GAME DICE CONTROLS WINDOW */}
               <section className="retro-window" id="diceControlWindow">
                   <div className="window-header">
@@ -1245,16 +1245,14 @@ export function Game() {
                             boxShadow: isMyTurn ? '0 0 12px rgba(255, 0, 127, 0.5)' : `0 0 8px ${turnColorHex}44`,
                             borderRadius: 4,
                             textAlign: 'center',
-                            fontSize: '0.74rem',
+                            fontSize: '0.78rem',
                             fontFamily: 'var(--font-mono)',
                             fontWeight: 'bold',
                             color: '#ffffff',
                             letterSpacing: '0.5px',
                           }}
                         >
-                          {isMyTurn
-                            ? `▶ ${t('game.yourTurn').toUpperCase()} ◀`
-                            : `▶ ${t('game.botTurn', { name: activeName }).toUpperCase()} ◀`}
+                          {isMyTurn ? 'YOUR TURN' : `${activeName}'S TURN`}
                         </div>
                       )
                     })()}
@@ -1267,12 +1265,12 @@ export function Game() {
                       }}
                     >
                       {isRolling
-                        ? t('game.statusRolling')
+                        ? 'ROLLING...'
                         : canRoll
-                          ? t('game.statusRollNow')
+                          ? 'PRESS SPACE OR CLICK ROLL'
                           : view.turnPhase === 'WAITING_FOR_MOVE'
-                            ? t('game.statusSelectPiece')
-                            : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })}
+                            ? 'SELECT A PIECE TO MOVE'
+                            : `WAITING FOR ${view.currentTurn.toUpperCase()}...`}
                     </div>
 
                     <div style={{ height: 90, display: 'grid', placeItems: 'center' }}>
@@ -1301,7 +1299,7 @@ export function Game() {
                         boxSizing: 'border-box',
                       }}
                     >
-                      {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
+                      {isRolling ? 'ROLLING...' : 'ROLL DICE'}
                     </button>
 
                     <div
@@ -1312,7 +1310,7 @@ export function Game() {
                         textAlign: 'center',
                       }}
                     >
-                      [ {t('game.spaceToRoll')} ]
+                      [ SPACE TO ROLL ]
                     </div>
                   </div>
               </section>
@@ -1321,34 +1319,30 @@ export function Game() {
               <section className="retro-window" id="sectorControlWindow">
                 <div className="window-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{t('game.systemControlTitle')}</span>
+                    <span>CONTROLS & SHORTCUTS</span>
                   </div>
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    {t('game.combatKeybindsRules')}
-                  </div>
-
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>DICE ROLL:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('game.spaceToRoll')}</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>SELECT PIECE:</span>
                       <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{t('game.victoryGoal')}</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
+                      <span>GOAL:</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES HOME</span>
                     </div>
                   </div>
 
                   <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
 
                   <CyberButton
-                    label="HOW TO PLAY / RULES"
+                    label="GAME RULES"
                     shortcut="?"
                     variant="cyan"
                     onClick={() => {
@@ -1362,7 +1356,7 @@ export function Game() {
               </section>
 
               {/* MISSION TELEMETRY LOG WINDOW */}
-              <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <section className="retro-window" id="moveLogWindow" style={{ flex: '1 1 240px', minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div className="window-header" style={{ flex: 'none' }}>
                   <span>{t('game.reconLogsTitle')}</span>
                 </div>
