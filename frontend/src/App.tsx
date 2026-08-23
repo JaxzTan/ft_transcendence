@@ -16,6 +16,8 @@ import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
+import { NotificationToasts } from './components/NotificationToast'
+import { useNotifications } from './hooks/useNotifications'
 
 /** Screens that render inside the app shell (rail + header). */
 const SHELL_ROUTES: Record<string, () => ReactNode> = {}
@@ -73,10 +75,16 @@ function Screen() {
   return <>{FULL_ROUTES[path]()}</>
 }
 
+function GlobalNotifications() {
+  const { toasts, dismissToast } = useNotifications()
+  return <NotificationToasts toasts={toasts} onDismiss={dismissToast} />
+}
+
 export default function App() {
   return (
     <AppProvider>
       <Screen />
+      <GlobalNotifications />
     </AppProvider>
   )
 }

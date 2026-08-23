@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { getApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
 import { RetroNavbar } from '../components/RetroNavbar'
-import { NotificationToasts } from '../components/NotificationToast'
-import { useNotifications } from '../hooks/useNotifications'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
@@ -31,7 +29,6 @@ const STATUS_STYLE: Record<string, { label: string; color: string; border: strin
 export function Home() {
 	const { t } = useTranslation()
 	const { user } = useApp()
-	const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } = useNotifications()
 
 	// ------------------------------------------------------------------------
 	// 2. LIVE PLAYER CAREER STATS API
@@ -97,13 +94,6 @@ export function Home() {
 			setCrtEnabled(false)
 		}
 	}, [])
-
-	const toggleCrt = () => {
-		const next = !crtEnabled
-		setCrtEnabled(next)
-		localStorage.setItem('retro_crt', next ? 'true' : 'false')
-		retroAudio.playUiBeep(440, 0.05)
-	}
 
 	// ------------------------------------------------------------------------
 	// 4. CYBER COMM // FRIEND LIST & AUDIO
@@ -576,15 +566,7 @@ export function Home() {
 				{/* Main Content Wrapper */}
 				<div className="app-wrapper">
 					{/* Navigation Header */}
-					<RetroNavbar
-						activeRoute="/home"
-						crtEnabled={crtEnabled}
-						toggleCrt={toggleCrt}
-						notifications={notifications}
-						unreadCount={unreadCount}
-						onMarkRead={markRead}
-						onMarkAllRead={markAllRead}
-					/>
+					<RetroNavbar activeRoute="/home" />
 
 					{/* Hero Header Banner */}
 					<header className="hero-section">
@@ -1230,10 +1212,6 @@ export function Home() {
 					</footer>
 				</div>
 			</div>
-
-			{/* Emergency Dispatch Toast Alerts */}
-			<NotificationToasts toasts={toasts} onDismiss={dismissToast} />
 		</>
 	)
 }
-
