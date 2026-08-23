@@ -15,6 +15,7 @@ import '../styles/retrowave.css'
 type Friend = {
   id: string
   username: string
+  displayName?: string
   avatarStyle: any
   rating: number
   friendsSince: string
@@ -25,6 +26,7 @@ type FriendRequest = {
   id: string
   userId: string
   username: string
+  displayName?: string
   avatarStyle: any
   createdAt: string
 }
@@ -32,6 +34,7 @@ type FriendRequest = {
 type BlockedUser = {
   id: string
   username: string
+  displayName?: string
   avatarStyle: any
   rating: number
   blockedSince: string
@@ -622,7 +625,7 @@ export function Friends() {
                                     letterSpacing: '0.02em',
                                   }}
                                 >
-                                  {f.username}
+                                  {f.displayName || f.username}
                                 </div>
                                 <div style={{ fontSize: '0.7rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
                                   ● {t(STATUS_KEYS[f.status] ?? STATUS_KEYS.offline).toUpperCase()}
@@ -749,7 +752,7 @@ export function Friends() {
                             />
                             <div>
                               <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#ffffff', fontFamily: 'var(--font-display)' }}>
-                                {b.username}
+                                {b.displayName || b.username}
                               </div>
                               <div style={{ color: '#ff0055', fontSize: '0.68rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
                                 {t('friends.restrictedSince', { date: new Date(b.blockedSince).toLocaleDateString() })}
@@ -1006,7 +1009,7 @@ export function Friends() {
                                   textOverflow: 'ellipsis',
                                 }}
                               >
-                                {r.username}
+                                 {r.displayName || r.username}
                               </div>
                               <div style={{ color: 'var(--accent-cyan)', fontSize: '0.64rem', fontFamily: 'var(--font-display)', marginTop: 1 }}>
                                 {t('friends.sentYouRequestText')}

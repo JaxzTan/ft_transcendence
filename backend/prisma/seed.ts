@@ -107,6 +107,7 @@ async function main() {
       data: {
         id: randomUUID(),
         username: p.username,
+        displayName: p.username,
         email: `${p.username.toLowerCase()}@transcendence.cyber`,
         emailVerified: new Date(now - (50 - i) * 24 * HOUR),
         password_hash: pwd,
@@ -121,11 +122,22 @@ async function main() {
         bestWinStreak: Math.max(1, Math.floor(p.wins / 2)),
         avatarStyle: p.avatar,
         status: p.status as any,
-        achFirstBlood: p.wins > 0,
-        achOnFire: p.wins >= 10,
-        achTactician: p.wins >= 15,
-        achMaster: p.rating >= 1400,
-        achWorldChampion: p.rating >= 1600,
+        // Achievement flags use the revamp thresholds (achievement-revamp.md v3):
+        // lower gate values match the win counts in the seed roster.
+        achFirstBlood: p.wins >= 1,
+        achOnFire: Math.floor(p.wins / 4) >= 2, // seeded winStreak = floor(wins/4) >= 2 → wins >= 8
+        achDiceMaster: p.wins >= 3,
+        achBabySteps: Math.min(2, p.wins) >= 1, // botWins >= 1
+        // achTheDiceLoveMe needs botWins >= 3 — seed botWins caps at 2, so no
+        // seed player legitimately holds it; real PvE play + POST /check backfill unlock it.
+        achTactician: p.wins >= 5,
+        achMaster: p.wins >= 8,
+        achGrandBotMaster: p.wins >= 12,
+        achWorldChampion: p.wins >= 15,
+        achft_Transcendence: Math.max(0, p.wins - 2) >= 10, // humanWins >= 10
+        // achLoveTheMachine needs pveGameStreak (not reliably derivable from
+        // lifetime counters) — leave to real gameplay + POST /check backfill.
+        pveGameStreak: Math.min(3, Math.max(0, Math.floor(p.wins / 5))), // top players have the 3-PvE-streak
       },
     });
     createdUsers.push(user);

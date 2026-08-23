@@ -132,11 +132,16 @@ export function Game() {
     if (prevTurnRef.current && prevTurnRef.current !== view.currentTurn) {
       const nextTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
       const isNextBot = nextTurnPlayer?.isBot ?? false
-      const nextName = nextTurnPlayer?.username?.toUpperCase() || (isNextBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
-      const colorName = view.currentTurn.toUpperCase()
+      const colorKey = `lobby.color${view.currentTurn.charAt(0).toUpperCase() + view.currentTurn.slice(1)}` as 'lobby.colorRed' | 'lobby.colorGreen' | 'lobby.colorYellow' | 'lobby.colorBlue'
+      const translatedColor = t(colorKey).toUpperCase()
+      const nextName = localNames[view.currentTurn]?.toUpperCase() ||
+        nextTurnPlayer?.displayName?.toUpperCase() ||
+        nextTurnPlayer?.username?.toUpperCase() ||
+        nextTurnPlayer?.color?.toUpperCase() ||
+        (isNextBot ? `${t('common.bot').toUpperCase()} (${translatedColor})` : translatedColor)
 
       retroAudio.playUiBeep(640, 0.08, 'sine')
-      setTurnSwapNotice(`▶ TURN SWAP // ${nextName} [${colorName}] IS NOW IN CONTROL ◀`)
+      setTurnSwapNotice(t('game.turnSwapNotice', { name: nextName, color: translatedColor }))
 
       const timer = setTimeout(() => {
         setTurnSwapNotice(null)
@@ -146,7 +151,7 @@ export function Game() {
       return () => clearTimeout(timer)
     }
     prevTurnRef.current = view.currentTurn
-  }, [view?.currentTurn, view?.players])
+  }, [view?.currentTurn, view?.players, localNames, t])
 
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
@@ -220,7 +225,7 @@ export function Game() {
           socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
         }
       }
-      socket.emit('join_game', activeMatch.gameId, activeMatch.color)
+      socket.emit('join_game', activeMatch.gameId, activeMatch.color, user?.id, user?.displayName)
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -244,7 +249,7 @@ export function Game() {
         const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
         const rollerColor = viewRef.current.currentTurn
         const roller = viewRef.current.players.find((p) => p.color === rollerColor)
-        const rollerName = roller?.username || rollerColor
+        const rollerName = roller?.displayName || roller?.username || rollerColor
         retroAudio.playLaserSound()
         setIsRolling(true)
         setTimeout(() => {
@@ -265,7 +270,7 @@ export function Game() {
         return
       }
 
-      dispatch({ type: 'state_update', ...(state as object) })
+      dispatch({ type: type || 'state_update', ...(state as object) })
 
       if (type === 'piece_moved') {
         const e = state as unknown as {
@@ -342,7 +347,7 @@ export function Game() {
         const mine = e.players.find((p) => p.username === user?.username)
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
-          socket.emit('join_game', activeMatch.gameId, mine.color)
+          socket.emit('join_game', activeMatch.gameId, mine.color, user?.id, user?.displayName)
           setActiveMatch({ ...activeMatch, color: mine.color })
         }
       } else if (type === 'game_ended') {
@@ -380,9 +385,9 @@ export function Game() {
     socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
 
-    socket.on('player_aborted', (e: { color: PlayerColor; username: string }) => {
+    socket.on('player_aborted', (e: { color: PlayerColor; username: string; displayName?: string }) => {
       setMoveLogs((prev) => [
-        { ck: e.color, text: t('game.playerAborted', { name: e.username }) },
+        { ck: e.color, text: t('game.playerAborted', { name: e.displayName || e.username }) },
         ...prev.slice(0, 11),
       ])
     })
@@ -464,7 +469,7 @@ export function Game() {
     const seat = viewRef.current.players.find((p) => p.color === view.currentTurn)
     if (!seat || seat.isBot || seat.status !== 'active') return
     dispatch({ type: 'my_color_changed', color: view.currentTurn })
-    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
+    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, user?.id, localNames[view.currentTurn] || user?.displayName)
   }, [view.currentTurn, view.status, activeMatch])
 
   useEffect(() => {
@@ -474,19 +479,30 @@ export function Game() {
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
       const v = viewRef.current
       if (v.status !== 'active') return
-      if (v.currentTurn !== v.myColor) return
-      if (v.turnPhase !== 'WAITING_FOR_ROLL') return
-      if (v.clash || v.legalMoves.length > 0) return
+      const isHotseatMode = activeMatch?.mode === 'hotseat'
+      const curTurnPlayer = v.players.find((p) => p.color === v.currentTurn)
+      const myTurnNow = isHotseatMode
+        ? (curTurnPlayer?.status === 'active' && !curTurnPlayer?.isBot)
+        : (v.currentTurn === v.myColor || (user?.username ? curTurnPlayer?.username === user?.username : false))
+      if (!myTurnNow) return
+      if (v.turnPhase === 'WAITING_FOR_MOVE' || v.legalMoves.length > 0) return
+      if (v.clash) return
       if (isRollingRef.current) return
       e.preventDefault()
       isRollingRef.current = true
       setIsRolling(true)
       retroAudio.playUiBeep(980, 0.08, 'sawtooth')
       socketRef.current?.emit('roll_dice')
+      setTimeout(() => {
+        if (isRollingRef.current) {
+          isRollingRef.current = false
+          setIsRolling(false)
+        }
+      }, 2000)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [activeMatch, user?.username])
 
   const rollDice = () => {
     if (!canRoll || isRolling || isRollingRef.current) return
@@ -494,6 +510,12 @@ export function Game() {
     setIsRolling(true)
     retroAudio.playUiBeep(980, 0.08, 'sawtooth')
     socketRef.current?.emit('roll_dice')
+    setTimeout(() => {
+      if (isRollingRef.current) {
+        isRollingRef.current = false
+        setIsRolling(false)
+      }
+    }, 2000)
   }
 
   const movePiece = (pieceId: string) => {
@@ -621,8 +643,12 @@ export function Game() {
     )
   }
 
-  const isMyTurn = view.currentTurn === view.myColor
-  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
+  const isHotseat = activeMatch?.mode === 'hotseat'
+  const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+  const isMyTurn = isHotseat
+    ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
+    : (view.currentTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
+  const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
     : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
@@ -891,7 +917,7 @@ export function Game() {
                               }}
                             >
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {occupied && playerMeta?.username ? playerMeta.username : t('game.emptySeat')}
+                                {occupied && playerMeta?.username ? (playerMeta.displayName || playerMeta.username) : t('game.emptySeat')}
                               </span>
                             </div>
                           </div>
@@ -922,6 +948,7 @@ export function Game() {
                       : !playerMeta.isBot && playerMeta.username === user?.username
                     const name =
                       localNames[ck] ||
+                      playerMeta.displayName ||
                       playerMeta.username ||
                       (playerMeta.isBot
                         ? t('common.bot')
@@ -976,13 +1003,13 @@ export function Game() {
                               boxShadow: `0 0 10px ${colorAccent}`,
                             }}
                           >
-                            ▶ IN CONTROL ◀
+                            ▶ {t('game.inControl')} ◀
                           </span>
                         )}
 
                         {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
-                            username={name}
+                            username={playerMeta.username}
                             size={36}
                             fallbackStyle={{
                               width: 36,
@@ -1284,20 +1311,21 @@ export function Game() {
                     {(() => {
                       const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                       const isBot = activeTurnPlayer?.isBot ?? false
-                      const activeName = activeTurnPlayer?.username?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+                      const activeName = (activeTurnPlayer?.displayName || activeTurnPlayer?.username || activeTurnPlayer?.color)?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
                       const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
 
                       return (
                         <div
                           style={{
                             width: '100%',
-                            padding: '6px 10px',
-                            background: isMyTurn ? 'rgba(255, 0, 127, 0.2)' : `${turnColorHex}18`,
+                            padding: '8px 12px',
+                            background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : `${turnColorHex}18`,
                             border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
-                            boxShadow: isMyTurn ? '0 0 12px rgba(255, 0, 127, 0.5)' : `0 0 8px ${turnColorHex}44`,
+                            boxShadow: isMyTurn ? '0 0 16px rgba(255, 0, 127, 0.6)' : `0 0 8px ${turnColorHex}44`,
+                            animation: isMyTurn ? 'pulse-turn-banner 1.6s infinite' : 'none',
                             borderRadius: 4,
                             textAlign: 'center',
-                            fontSize: '0.74rem',
+                            fontSize: '0.78rem',
                             fontFamily: 'var(--font-mono)',
                             fontWeight: 'bold',
                             color: '#ffffff',
@@ -1332,26 +1360,9 @@ export function Game() {
                     </div>
 
                     <button
-                      className="retro-btn"
+                      className={`roll-dice-btn ${canRoll && !isRolling ? 'is-active-turn' : 'is-inactive-turn'}`}
                       onClick={rollDice}
                       disabled={!canRoll || isRolling}
-                      style={{
-                        width: '100%',
-                        padding: '12px 0',
-                        fontSize: '0.85rem',
-                        fontFamily: 'var(--font-heading)',
-                        letterSpacing: '1px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
-                        borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
-                        boxShadow: canRoll && !isRolling ? '0 0 15px var(--accent-pink)' : 'none',
-                        cursor: canRoll && !isRolling ? 'pointer' : 'default',
-                        opacity: canRoll && !isRolling ? 1 : 0.5,
-                        boxSizing: 'border-box',
-                      }}
                     >
                       {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
                     </button>

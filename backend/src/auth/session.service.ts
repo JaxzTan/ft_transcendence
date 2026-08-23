@@ -69,6 +69,17 @@ export class SessionService implements OnModuleDestroy {
     if (keys.length) await this.redis.del(...keys);
     await this.redis.del(`sessions:${userId}`);
   }
+
+  /** Revoke every session EXCEPT the one carrying `keepToken`. */
+  async revokeAllExcept(userId: string, keepToken: string | undefined): Promise<void> {
+    const keepHash = keepToken ? this.hash(keepToken) : undefined;
+    const hashes = await this.redis.smembers(`sessions:${userId}`);
+    const revokeHashes = hashes.filter((h) => h !== keepHash);
+    if (!keepHash) await this.redis.del(`sessions:${userId}`);
+    else await this.redis.srem(`sessions:${userId}`, ...revokeHashes);
+    const keys = revokeHashes.map((h) => `refresh:${h}`);
+    if (keys.length) await this.redis.del(...keys);
+  }
 }
 
 

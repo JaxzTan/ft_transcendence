@@ -59,6 +59,7 @@ async function main() {
     await prisma.user.update({
       where: { id: harleyhxng.id },
       data: {
+        displayName: 'Harley HX',
         rating: 1450,
         highestRating: 1480,
         wins: 12,
@@ -68,11 +69,6 @@ async function main() {
         winStreak: 5,
         bestWinStreak: 7,
         status: 'online',
-        gamesWithFourPieces: 9,
-        gamesWithThreePieces: 3,
-        gamesWithTwoPieces: 2,
-        gamesWithOnePiece: 1,
-        gamesWithZeroPieces: 0,
         disconnectCount: 0,
         reconnectCount: 0,
         achFirstBlood: true,
@@ -84,8 +80,6 @@ async function main() {
         achWorldChampion: true,
         achLoveTheMachine: true,
         achUnstoppable: true,
-        achCleanSweep: true,
-        achLastLaugh: true,
         achSpeedDemon: true,
       },
     });
@@ -162,6 +156,7 @@ async function main() {
     await prisma.user.update({
       where: { id: harleynghxedu.id },
       data: {
+        displayName: 'Harley NGHX',
         rating: 1190,
         highestRating: 1240,
         wins: 4,
@@ -171,11 +166,6 @@ async function main() {
         winStreak: 1,
         bestWinStreak: 3,
         status: 'online',
-        gamesWithFourPieces: 3,
-        gamesWithThreePieces: 2,
-        gamesWithTwoPieces: 1,
-        gamesWithOnePiece: 1,
-        gamesWithZeroPieces: 0,
         disconnectCount: 1,
         reconnectCount: 1,
         achFirstBlood: true,
