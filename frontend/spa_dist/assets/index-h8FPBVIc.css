@@ -1,9 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');* {
+  box-sizing: border-box;
+}
+
+html:not([data-theme]) body {
+  margin: 0;
+  min-height: 100vh;
+  color: #efe6d6;
+  background:
+    repeating-linear-gradient(
+      96deg,
+      rgba(255, 255, 255, 0.01) 0 1px,
+      transparent 1px 7px
+    ),
+    radial-gradient(130% 100% at 50% -12%, #2a1d12, #170f0a 55%, #100b07);
+  background-attachment: fixed;
+}
+
+input {
+  font-family: inherit;
+}
+
+input::placeholder {
+  color: #7a6c56;
+}
+
+a {
+  color: #e8c877;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #f4dfa0;
+}
+
+/* die while rolling */
+@keyframes shake {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    transform: rotate(-14deg) translateY(-4px) scale(1.04);
+  }
+  40% {
+    transform: rotate(12deg) translateY(2px) scale(1.02);
+  }
+  60% {
+    transform: rotate(-8deg) translateY(-3px) scale(1.03);
+  }
+  80% {
+    transform: rotate(6deg) translateY(1px) scale(1.01);
+  }
+}
+
+/* auth board */
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* active-turn dot */
+@keyframes pulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(240, 209, 138, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(240, 209, 138, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 209, 138, 0);
+  }
+}
+
+.mode-card:hover {
+  transform: translateY(-4px);
+  border-color: #c99b45 !important;
+}
+
+/* Home page: fixed-size components, but the whitespace around them shrinks
+   on short viewports so the page never needs to scroll. */
+.home-page {
+  gap: 14px;
+}
+.home-hero {
+  padding: 34px 36px;
+}
+.home-hero-title {
+  margin: 10px 0 12px;
+}
+.home-hero-actions {
+  margin-top: 22px;
+}
+.mode-card {
+  padding: 20px;
+  gap: 12px;
+}
+.home-ladder {
+  padding: 22px;
+}
+.home-ladder-header {
+  margin-bottom: 16px;
+}
+.home-ladder-row {
+  padding: 9px 0;
+}
+
+@media (max-height: 900px) {
+  .home-page {
+    gap: 10px;
+  }
+  .home-hero {
+    padding: 24px 36px;
+  }
+  .home-hero-title {
+    margin: 6px 0 8px;
+  }
+  .home-hero-actions {
+    margin-top: 14px;
+  }
+  .mode-card {
+    padding: 14px;
+    gap: 8px;
+  }
+  .home-ladder {
+    padding: 16px;
+  }
+  .home-ladder-header {
+    margin-bottom: 10px;
+  }
+  .home-ladder-row {
+    padding: 6px 0;
+  }
+}
+
+@media (max-height: 780px) {
+  .home-page {
+    gap: 6px;
+  }
+  .home-hero {
+    padding: 12px 36px;
+  }
+  .home-hero-title {
+    margin: 4px 0 6px;
+  }
+  .home-hero-actions {
+    margin-top: 8px;
+  }
+  .mode-card {
+    padding: 8px;
+    gap: 4px;
+  }
+  .home-ladder {
+    padding: 8px;
+  }
+  .home-ladder-header {
+    margin-bottom: 4px;
+  }
+  .home-ladder-row {
+    padding: 2px 0;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a2c1d;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+
 /* ==========================================================================
    RETRO WAVE ARCADE & OS - MAIN STYLESHEET
    ========================================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
-
 /* --------------------------------------------------------------------------
    THEME DESIGN SYSTEM TOKENS
    -------------------------------------------------------------------------- */
@@ -285,88 +466,6 @@ body {
   to {
     filter: drop-shadow(0 0 12px var(--accent-pink));
   }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(255, 0, 127, 0.6);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(255, 0, 127, 0.9), 0 0 10px #ff007f;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes pulse-turn-banner {
-  0%, 100% {
-    box-shadow: 0 0 12px rgba(255, 0, 127, 0.5), inset 0 0 8px rgba(255, 0, 127, 0.2);
-    border-color: var(--accent-pink);
-  }
-  50% {
-    box-shadow: 0 0 24px rgba(255, 0, 127, 0.9), inset 0 0 16px rgba(255, 0, 127, 0.4);
-    border-color: #ff3399;
-  }
-}
-
-@keyframes roll-btn-glow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(255, 0, 127, 0.8), 0 0 30px rgba(255, 0, 127, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.3);
-    border-color: #ff007f;
-    text-shadow: 0 0 8px #ffffff, 0 0 12px #ff007f;
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(255, 0, 127, 1), 0 0 45px rgba(255, 0, 127, 0.7), inset 0 0 15px rgba(255, 0, 127, 0.5);
-    border-color: #ffe600;
-    text-shadow: 0 0 12px #ffffff, 0 0 18px #ffe600;
-    transform: scale(1.02);
-  }
-}
-
-.roll-dice-btn {
-  width: 100%;
-  padding: 12px 0;
-  font-size: 0.85rem;
-  font-family: var(--font-heading);
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-radius: 4px;
-  box-sizing: border-box;
-  outline: none;
-  text-transform: uppercase;
-}
-
-.roll-dice-btn.is-active-turn {
-  background: linear-gradient(135deg, #ff007f, #9d00ff) !important;
-  color: #ffffff !important;
-  border: 2px solid #ff007f !important;
-  cursor: pointer !important;
-  opacity: 1 !important;
-  animation: roll-btn-glow 1.2s infinite ease-in-out !important;
-  transition: none !important;
-}
-
-.roll-dice-btn.is-active-turn:hover {
-  transform: scale(1.03) !important;
-  box-shadow: 0 0 30px rgba(255, 0, 127, 1), 0 0 50px rgba(255, 230, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.6) !important;
-}
-
-.roll-dice-btn.is-active-turn:active {
-  transform: scale(0.98) !important;
-}
-
-.roll-dice-btn.is-inactive-turn {
-  background: rgba(25, 10, 56, 0.5) !important;
-  color: rgba(255, 255, 255, 0.4) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
-  box-shadow: none !important;
-  cursor: default !important;
-  opacity: 0.5 !important;
-  animation: none !important;
 }
 
 .brand-title {
@@ -1062,31 +1161,6 @@ body {
   margin-right: auto !important;
   width: 100% !important;
   max-width: 100% !important;
-  overflow: hidden !important;
-}
-
-body:has(.game-page),
-html:has(.game-page) {
-  overflow: hidden !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-}
-
-body:has(.game-page) *::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
-}
-
-body:has(.game-page) * {
-  scrollbar-width: none !important;
-}
-
-body:has(.game-page) .crt-screen {
-  min-height: unset !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  overflow: hidden !important;
 }
 
 .window-header {
@@ -3143,7 +3217,7 @@ canvas#snakeCanvas {
   border: 2.5px solid var(--accent-cyan);
   border-top: 2px dashed rgba(0, 240, 255, 0.6);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
-  animation: printVendingTicketJitter 1.85s cubic-bezier(0.22, 0.85, 0.36, 1) forwards;
+  animation: printVendingTicketSmooth 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top center;
   box-sizing: border-box;
   will-change: transform, opacity;
@@ -3152,46 +3226,13 @@ canvas#snakeCanvas {
   transform: translate3d(0, 0, 0);
 }
 
-/* Slower Vending Machine Mechanical Stepper Dispense Animation with Slow Jitter */
-@keyframes printVendingTicketJitter {
+/* Smooth, fast and jitter-free Vending Machine Dispense Animation */
+@keyframes printVendingTicketSmooth {
   0% {
     transform: translate3d(0, -102%, 0);
     opacity: 0;
   }
-  6% {
-    transform: translate3d(0.8px, -90%, 0);
-    opacity: 1;
-  }
-  14% {
-    transform: translate3d(-0.9px, -78%, 0);
-  }
-  22% {
-    transform: translate3d(1.1px, -66%, 0);
-  }
-  30% {
-    transform: translate3d(-0.8px, -54%, 0);
-  }
-  40% {
-    transform: translate3d(1px, -42%, 0);
-  }
-  50% {
-    transform: translate3d(-0.7px, -30%, 0);
-  }
-  60% {
-    transform: translate3d(0.8px, -20%, 0);
-  }
-  70% {
-    transform: translate3d(-0.6px, -11%, 0);
-  }
-  80% {
-    transform: translate3d(0.5px, -5%, 0);
-  }
-  90% {
-    transform: translate3d(-0.3px, -1.5%, 0);
-  }
-  95% {
-    transform: translate3d(0.2px, 0.5px, 0);
-  }
+
   100% {
     transform: translate3d(0, 0, 0);
     opacity: 1;

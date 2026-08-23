@@ -11,6 +11,8 @@ import { getApi, postApi } from '../api'
 import { useApp } from '../store'
 import { SEAT_COLORS } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
+import { CyberButton, CyberModal } from '../components/CyberModal'
+import { ResultsModal } from '../components/ResultsModal'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
@@ -36,17 +38,14 @@ function MiniDie({ value }: { value: number }) {
   const on = MINI_PIP_MAP[value] || []
   return (
     <div
+      className="retro-die-cube"
       style={{
-        width: 38,
-        height: 38,
-        borderRadius: 8,
-        background: '#190a38',
-        boxShadow: '0 0 8px rgba(0, 240, 255, 0.3), inset 0 0 4px rgba(255, 0, 127, 0.3)',
-        border: '1.5px solid var(--accent-cyan)',
+        width: 34,
+        height: 34,
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr',
         gridTemplateRows: '1fr 1fr 1fr',
-        padding: 4,
+        padding: 3,
         gap: 2,
         flex: 'none',
       }}
@@ -55,12 +54,11 @@ function MiniDie({ value }: { value: number }) {
         <div key={i} style={{ display: 'grid', placeItems: 'center' }}>
           {on.includes(i) ? (
             <div
+              className="retro-die-pip"
               style={{
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: '#ffe600',
-                boxShadow: '0 0 4px #ffe600',
               }}
             />
           ) : null}
@@ -70,35 +68,27 @@ function MiniDie({ value }: { value: number }) {
   )
 }
 
-// Matches the backend's SLOT_COLORS — hotseat seat index i always maps to
-// this color, regardless of the Lobby seat-picker's own (unrelated) display order.
-const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 
 export function Game() {
   const { t } = useTranslation()
-  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
+  const { user, activeMatch, seats, setPlaying, lastResult, setLastResult, setActiveMatch } = useApp()
 
   // ------------------------------------------------------------------------
   // CRT & AUDIO CONTROLS
   // ------------------------------------------------------------------------
   const [crtEnabled, setCrtEnabled] = useState(true)
-  const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
+  const [isAbortModalOpen, setIsAbortModalOpen] = useState(false)
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem('retro_theme') || 'synthwave'
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    document.body.setAttribute('data-theme', savedTheme)
+
     const savedCrt = localStorage.getItem('retro_crt')
     if (savedCrt === 'false') {
       setCrtEnabled(false)
     }
   }, [])
-
-
-  const toggleSound = () => {
-    retroAudio.muted = !retroAudio.muted
-    setSoundMuted(retroAudio.muted)
-    if (!retroAudio.muted) {
-      retroAudio.playUiBeep(520, 0.06)
-    }
-  }
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
@@ -106,7 +96,7 @@ export function Game() {
   const localNames: Partial<Record<PlayerColor, string>> = {}
   seats.forEach((seat, i) => {
     if (i === 0) return
-    if (seat.type === 'player') localNames[SLOT_COLORS[i]] = seat.name
+    if (seat.type === 'player') localNames[SEAT_COLORS[i]] = seat.name
   })
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
@@ -117,9 +107,10 @@ export function Game() {
   const [isRolling, setIsRolling] = useState(false)
   const isRollingRef = useRef(false)
   const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
-  const [codeCopied, setCodeCopied] = useState(false)
   const [turnSwapNotice, setTurnSwapNotice] = useState<string | null>(null)
+  const [showResultsModal, setShowResultsModal] = useState(false)
   const prevTurnRef = useRef<PlayerColor | null>(null)
+  const isGameEnded = Boolean(lastResult || view?.status === 'finished')
 
   useEffect(() => {
     if (moveLogContainerRef.current) {
@@ -168,15 +159,27 @@ export function Game() {
   // accepted friend into THIS room (POST /api/game/:id/invite).
   const [friends, setFriends] = useState<Array<{ id: string; username: string }>>([])
   const [inviteStates, setInviteStates] = useState<Record<string, 'idle' | 'busy' | 'sent'>>({})
+  const [roomCode, setRoomCode] = useState<string | null>(activeMatch?.inviteCode ?? null)
+  const [isSystemModalOpen, setIsSystemModalOpen] = useState(false)
+  const [rulesPage, setRulesPage] = useState(0)
 
-  const copyRoomCode = () => {
-    if (!activeMatch?.inviteCode) return
-    retroAudio.playUiBeep(720, 0.06)
-    navigator.clipboard.writeText(activeMatch.inviteCode).then(() => {
-      setCodeCopied(true)
-      setTimeout(() => setCodeCopied(false), 1500)
-    })
-  }
+  // Fetch room code if not present in activeMatch
+  useEffect(() => {
+    if (!activeMatch?.gameId) return
+    if (activeMatch.inviteCode) {
+      setRoomCode(activeMatch.inviteCode)
+      return
+    }
+    fetch('/api/games/mine', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((rooms: Array<{ id: string; roomCode?: string; inviteCode?: string }> | null) => {
+        const room = rooms?.find((x) => x.id === activeMatch.gameId)
+        if (room?.roomCode || room?.inviteCode) {
+          setRoomCode(room.roomCode || room.inviteCode || null)
+        }
+      })
+      .catch(() => undefined)
+  }, [activeMatch?.gameId, activeMatch?.inviteCode])
 
   // Set presence status
   useEffect(() => {
@@ -221,11 +224,17 @@ export function Game() {
       // separate accounts to join with, so this single socket must join_game
       // for every local color up front.
       if (activeMatch.mode === 'hotseat') {
-        for (const ck of Object.keys(localNames) as PlayerColor[]) {
-          socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
-        }
+        seats.forEach((seat, idx) => {
+          const color = SEAT_COLORS[idx]
+          if (seat.type === 'player') {
+            socket.emit('join_game', activeMatch.gameId, color, undefined, seat.name || color)
+          } else if (seat.type === 'you') {
+            socket.emit('join_game', activeMatch.gameId, color, undefined, user?.username || 'Host')
+          }
+        })
+      } else {
+        socket.emit('join_game', activeMatch.gameId, activeMatch.color)
       }
-      socket.emit('join_game', activeMatch.gameId, activeMatch.color, user?.id, user?.displayName)
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -356,7 +365,10 @@ export function Game() {
         let endedPlayers = viewRef.current.players
           .filter((p) => p.status !== 'inactive')
           .map((p) => ({
-            color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+            color: p.color,
+            username: localNames[p.color] || (p as any).displayName || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+            isBot: p.isBot,
+            piecesInGoal: p.piecesInGoal,
           }))
         if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
           endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
@@ -368,7 +380,7 @@ export function Game() {
           playerCount: activeMatch?.playerCount ?? endedPlayers.length,
           players: endedPlayers,
         })
-        setTimeout(() => navigate('/results'), 2500)
+        setShowResultsModal(true)
       }
     }
 
@@ -397,13 +409,13 @@ export function Game() {
         .filter((p) => p.status !== 'inactive')
         .map((p) => ({
           color: p.color,
-          username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+          username: localNames[p.color] || (p as any).displayName || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
           isBot: p.isBot,
           piecesInGoal: p.piecesInGoal ?? 0,
         }))
 
       if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
-        const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+        const SEAT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
         players = seats
           .map((s, idx) => {
             if (s.type === 'empty') return null
@@ -437,13 +449,11 @@ export function Game() {
 
     socket.on('game_timeout', () => {
       setLastResult(buildAbandonedResult())
-      setActiveMatch(null)
-      navigate('/results')
+      setShowResultsModal(true)
     })
     socket.on('game_expired', () => {
       setLastResult(buildAbandonedResult())
-      setActiveMatch(null)
-      navigate('/results')
+      setShowResultsModal(true)
     })
 
     socket.on('error', (msg: string) => {
@@ -474,38 +484,29 @@ export function Game() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (isGameEnded) return
       if (e.code !== 'Space') return
       const el = e.target as HTMLElement | null
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
       const v = viewRef.current
       if (v.status !== 'active') return
       const isHotseatMode = activeMatch?.mode === 'hotseat'
-      const curTurnPlayer = v.players.find((p) => p.color === v.currentTurn)
-      const myTurnNow = isHotseatMode
-        ? (curTurnPlayer?.status === 'active' && !curTurnPlayer?.isBot)
-        : (v.currentTurn === v.myColor || (user?.username ? curTurnPlayer?.username === user?.username : false))
-      if (!myTurnNow) return
-      if (v.turnPhase === 'WAITING_FOR_MOVE' || v.legalMoves.length > 0) return
-      if (v.clash) return
+      const isCurrentTurnHuman = isHotseatMode
+        ? !v.players.find((p) => p.color === v.currentTurn)?.isBot
+        : v.currentTurn === v.myColor
+      if (!isCurrentTurnHuman) return
+      if (v.turnPhase !== 'WAITING_FOR_ROLL') return
+      if (v.clash || v.legalMoves.length > 0) return
       if (isRollingRef.current) return
       e.preventDefault()
-      isRollingRef.current = true
-      setIsRolling(true)
-      retroAudio.playUiBeep(980, 0.08, 'sawtooth')
-      socketRef.current?.emit('roll_dice')
-      setTimeout(() => {
-        if (isRollingRef.current) {
-          isRollingRef.current = false
-          setIsRolling(false)
-        }
-      }, 2000)
+      rollDice()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activeMatch, user?.username])
+  }, [activeMatch, isGameEnded])
 
   const rollDice = () => {
-    if (!canRoll || isRolling || isRollingRef.current) return
+    if (isGameEnded || !canRoll || isRolling || isRollingRef.current) return
     isRollingRef.current = true
     setIsRolling(true)
     retroAudio.playUiBeep(980, 0.08, 'sawtooth')
@@ -519,26 +520,25 @@ export function Game() {
   }
 
   const movePiece = (pieceId: string) => {
-    if (isRolling || isRollingRef.current) return
+    if (isGameEnded || isRolling || isRollingRef.current) return
     retroAudio.playUiBeep(640, 0.05)
     socketRef.current?.emit('move_piece', pieceId)
   }
 
-  const markReady = () => {
-    retroAudio.playUiBeep(1100, 0.1)
-    socketRef.current?.emit('player_ready')
-  }
-
   const selectColor = (color: PlayerColor) => {
+    if (isGameEnded) return
     retroAudio.playUiBeep(720, 0.05)
     socketRef.current?.emit('select_color', color)
   }
 
-  const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
+  const clashInput = (key: string) => {
+    if (isGameEnded) return
+    socketRef.current?.emit('clash_input', key)
+  }
   const clearClash = () => dispatch({ type: 'clash_clear' })
 
   const inviteFriend = async (friendId: string) => {
-    if (!activeMatch || inviteStates[friendId] === 'busy') return
+    if (isGameEnded || !activeMatch || inviteStates[friendId] === 'busy') return
     retroAudio.playUiBeep(800, 0.06)
     setInviteStates((prev) => ({ ...prev, [friendId]: 'busy' }))
     try {
@@ -557,13 +557,13 @@ export function Game() {
       .filter((p) => p.status !== 'inactive')
       .map((p) => ({
         color: p.color,
-        username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+        username: localNames[p.color] || (p as any).displayName || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
         isBot: p.isBot,
         piecesInGoal: p.piecesInGoal ?? 0,
       }))
 
     if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
-      const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+      const SEAT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
       players = seats
         .map((s, idx) => {
           if (s.type === 'empty') return null
@@ -593,9 +593,20 @@ export function Game() {
       players,
       abandoned: true,
     })
-    setActiveMatch(null)
-    navigate('/results')
+    setShowResultsModal(true)
   }
+
+  // Lock body/html scrollbars on Game page
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    const prevHtml = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+      document.documentElement.style.overflow = prevHtml
+    }
+  }, [])
 
   // If no match credentials exist, redirect back to lobby
   if (!activeMatch) {
@@ -644,14 +655,15 @@ export function Game() {
   }
 
   const isHotseat = activeMatch?.mode === 'hotseat'
-  const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
   const isMyTurn = isHotseat
-    ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
-    : (view.currentTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
-  const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece
-  const turnLabel = view.status === 'waiting'
-    ? t('game.waitingRoomTitle').toUpperCase()
-    : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
+    ? (view.players.length === 0 || !view.players.find((p) => p.color === view.currentTurn)?.isBot)
+    : view.currentTurn === view.myColor
+  const canRoll = !isGameEnded && isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
+  const turnLabel = isGameEnded
+    ? t('results.outcomeCompleted').toUpperCase()
+    : view.status === 'waiting'
+      ? t('game.waitingRoomTitle').toUpperCase()
+      : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
 
   return (
     <>
@@ -665,7 +677,11 @@ export function Game() {
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
-      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+      <div
+        className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
+        id="crtScreen"
+        style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+      >
         <div
           className="crt-scanlines"
           id="crtOverlay"
@@ -673,145 +689,127 @@ export function Game() {
         />
         <div className="crt-flicker" />
 
-        {/* Main Content Wrapper */}
-        <div className="app-wrapper game-page" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
-          {/* Hero Telemetry & Badge Bar */}
-          <header className="hero-section" style={{ padding: '12px 0 10px', textAlign: 'center' }}>
+        {/* Main Content Wrapper (Full Page Viewport with NO Left Navbar) */}
+        <div
+          className="app-wrapper game-page"
+          style={{
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            padding: '8px 14px 10px',
+          }}
+        >
+          {/* Hero Header & Live Turn Indicator */}
+          <header className="hero-section" style={{ padding: '6px 0 14px', textAlign: 'center', flexShrink: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <h1 className="hero-title" style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
+              <h1 className="hero-title" style={{ fontSize: '1.85rem', letterSpacing: '2px', marginBottom: 0, textAlign: 'center' }}>
                 {t('game.heroTitle')}
               </h1>
 
-              {/* Live Turn Announcement Pill */}
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '8px 20px',
-                  borderRadius: 4,
-                  background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : 'rgba(0, 240, 255, 0.15)',
-                  border: isMyTurn ? '1.5px solid var(--accent-pink)' : '1.5px solid var(--accent-cyan)',
-                  boxShadow: isMyTurn ? '0 0 15px rgba(255, 0, 127, 0.6)' : 'none',
-                  animation: isMyTurn ? 'pulse 1.6s infinite' : 'none',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <span
+              {/* Live Turn Announcement Pill & Room Code */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    background: isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
-                    boxShadow: isMyTurn ? '0 0 8px #ffe600' : '0 0 6px var(--accent-cyan)',
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: '0.75rem',
-                    color: isMyTurn ? '#ffe600' : '#ffffff',
-                    letterSpacing: '0.5px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '7px 22px',
+                    borderRadius: 6,
+                    background: !isGameEnded && isMyTurn ? 'rgba(255, 0, 127, 0.28)' : 'rgba(0, 240, 255, 0.18)',
+                    border: !isGameEnded && isMyTurn ? '2px solid var(--accent-pink)' : '2px solid var(--accent-cyan)',
+                    boxShadow: !isGameEnded && isMyTurn ? '0 0 18px rgba(255, 0, 127, 0.7)' : '0 0 12px rgba(0, 240, 255, 0.35)',
+                    animation: !isGameEnded && isMyTurn ? 'pulse 1.6s infinite' : 'none',
+                    boxSizing: 'border-box',
                   }}
                 >
-                  {turnLabel}
-                </span>
-              </div>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: !isGameEnded && isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
+                      boxShadow: !isGameEnded && isMyTurn ? '0 0 10px #ffe600' : '0 0 8px var(--accent-cyan)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-heading)',
+                      fontSize: '0.85rem',
+                      fontWeight: 'bold',
+                      color: !isGameEnded && isMyTurn ? '#ffe600' : '#ffffff',
+                      letterSpacing: '0.8px',
+                    }}
+                  >
+                    {turnLabel}
+                  </span>
+                </div>
 
-              {/* Game Status Marquee Bar */}
-              <div
-                style={{
-                  width: '100%',
-                  maxWidth: 740,
-                  minHeight: 38,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '8px 14px',
-                  background: turnSwapNotice
-                    ? 'rgba(255, 230, 0, 0.25)'
-                    : isMyTurn
-                      ? 'rgba(255, 0, 127, 0.2)'
-                      : 'rgba(0, 0, 0, 0.6)',
-                  border: turnSwapNotice
-                    ? '1.5px solid #ffe600'
-                    : isMyTurn
-                      ? '1.5px solid var(--accent-pink)'
-                      : '1.5px solid rgba(0, 240, 255, 0.35)',
-                  boxShadow: turnSwapNotice
-                    ? '0 0 20px #ffe600'
-                    : isMyTurn
-                      ? '0 0 12px rgba(255, 0, 127, 0.4)'
-                      : 'none',
-                  borderRadius: 4,
-                  textAlign: 'center',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.82rem',
-                  fontWeight: 'bold',
-                  color: turnSwapNotice ? '#ffe600' : isMyTurn ? '#ff007f' : 'var(--accent-cyan)',
-                  transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {turnSwapNotice || (
-                  view.status === 'waiting'
-                    ? t('game.readyNeedsOpponent')
-                    : isRolling
-                      ? t('game.statusRolling')
-                      : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
-                        ? t('game.statusRollNow')
-                        : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
-                          ? t('game.statusSelectPiece')
-                          : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })
+                {roomCode && (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 14px',
+                      borderRadius: 6,
+                      background: 'rgba(5, 2, 18, 0.75)',
+                      border: '1.5px solid var(--accent-yellow)',
+                      boxShadow: '0 0 10px rgba(255, 230, 0, 0.35)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.78rem',
+                      fontWeight: 'bold',
+                      color: 'var(--accent-yellow)',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>ROOM:</span>
+                    <span>{roomCode}</span>
+                  </div>
                 )}
               </div>
             </div>
-
-            {/* Badge Bar with Room Code */}
-            {activeMatch.inviteCode && (
-              <div className="badge-bar" style={{ marginTop: 14, justifyContent: 'center' }}>
-                <button
-                  className="retro-badge"
-                  style={{
-                    cursor: 'pointer',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--accent-cyan)',
-                    color: 'var(--accent-cyan)',
-                    fontFamily: 'var(--font-mono)',
-                    outline: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                  onClick={copyRoomCode}
-                  title="Click to copy Room Code"
-                >
-                  {t('game.roomLabel', { code: activeMatch.inviteCode, status: codeCopied ? t('game.roomCopiedOk') : t('game.roomCopy') })}
-                </button>
-              </div>
-            )}
           </header>
 
           {/* Main Tactical Grid Layout */}
           <main
             className="dashboard-grid"
             style={{
+              flex: 1,
+              minHeight: 0,
               display: 'grid',
-              gridTemplateColumns: '310px 1fr 310px',
-              gap: 8,
-              alignItems: 'start',
+              gridTemplateColumns: '400px 1fr 360px',
+              gap: 18,
+              alignItems: 'stretch',
               width: '100%',
-              margin: '0 auto',
+              overflow: 'hidden',
             }}
           >
             {/* COLUMN 1: PILOT ROSTER // TACTICAL STATUS & SYSTEM CONTROL */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '100%', height: '100%' }}>
               {/* Pilot Roster Window */}
               <section className="retro-window" id="playersWindow">
-                <div className="window-header">
+                <div className="window-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>{t('game.pilotRosterTitle')}</span>
                   </div>
+                  {roomCode && (
+                    <div
+                      style={{
+                        fontSize: '0.68rem',
+                        fontFamily: 'var(--font-mono)',
+                        color: 'var(--accent-yellow)',
+                        background: 'rgba(255, 230, 0, 0.12)',
+                        border: '1px solid rgba(255, 230, 0, 0.4)',
+                        padding: '2px 8px',
+                        borderRadius: 3,
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      CODE: {roomCode}
+                    </div>
+                  )}
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -842,27 +840,34 @@ export function Game() {
                     if (view.status === 'waiting') {
                       const isYou = ck === view.myColor
                       const isReady = view.readyPlayers.includes(ck)
+                      const isAvailable = !occupied
+
                       return (
                         <div
                           key={ck}
+                          onClick={() => {
+                            if (!isGameEnded && isAvailable && !isYou) {
+                              selectColor(ck)
+                            }
+                          }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: 10,
                             padding: '10px 12px',
-                            borderRadius: 4,
+                            borderRadius: 6,
                             border: isYou
-                              ? `1.5px solid ${colorAccent}`
+                              ? `2px solid ${colorAccent}`
                               : occupied
                                 ? `1px solid ${colorAccent}66`
-                                : '1px dashed rgba(255, 255, 255, 0.15)',
+                                : `1.5px dashed ${colorAccent}88`,
                             background: isYou
-                              ? 'rgba(255, 0, 127, 0.18)'
+                              ? `${colorAccent}22`
                               : occupied
-                                ? 'rgba(25, 10, 56, 0.65)'
-                                : 'rgba(10, 5, 25, 0.35)',
-                            boxShadow: isYou ? `0 0 10px ${colorAccent}44` : 'none',
-                            opacity: occupied ? 1 : 0.5,
+                                ? 'rgba(255, 255, 255, 0.04)'
+                                : 'rgba(0, 0, 0, 0.3)',
+                            boxShadow: isYou ? `0 0 14px ${colorAccent}66, inset 0 0 8px ${colorAccent}22` : 'none',
+                            cursor: !isGameEnded && isAvailable && !isYou ? 'pointer' : 'default',
                             transition: 'all 0.2s ease',
                           }}
                         >
@@ -895,10 +900,10 @@ export function Game() {
                                 display: 'grid',
                                 placeItems: 'center',
                                 fontWeight: 'bold',
-                                fontSize: '0.7rem',
+                                fontSize: '0.75rem',
                                 color: colorAccent,
-                                background: 'transparent',
-                                border: `1.5px dashed ${colorAccent}88`,
+                                background: isAvailable ? `${colorAccent}15` : 'transparent',
+                                border: `1px solid ${colorAccent}`,
                               }}
                             >
                               {ck.slice(0, 1).toUpperCase()}
@@ -910,15 +915,22 @@ export function Game() {
                               style={{
                                 fontWeight: 'bold',
                                 fontSize: '0.82rem',
-                                color: '#ffffff',
+                                color: isYou ? colorAccent : '#ffffff',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 6,
                               }}
                             >
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {occupied && playerMeta?.username ? (playerMeta.displayName || playerMeta.username) : t('game.emptySeat')}
+                                {isYou
+                                  ? `${user?.username || 'You'} (${ck.toUpperCase()})`
+                                  : occupied && playerMeta?.username
+                                    ? `${playerMeta.username} (${ck.toUpperCase()})`
+                                    : `[ + SELECT ${ck.toUpperCase()} ]`}
                               </span>
+                            </div>
+                            <div style={{ fontSize: '0.65rem', color: isYou ? '#ffe600' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                              {isYou ? '▶ YOUR SELECTED SEAT' : isAvailable ? 'CLICK TO CHOOSE COLOR' : 'OCCUPIED'}
                             </div>
                           </div>
 
@@ -933,6 +945,22 @@ export function Game() {
                               }}
                             >
                               {isReady ? 'READY OK' : 'WAITING'}
+                            </span>
+                          )}
+
+                          {isAvailable && !isYou && (
+                            <span
+                              style={{
+                                padding: '3px 8px',
+                                fontSize: '0.62rem',
+                                borderRadius: 3,
+                                border: `1px solid ${colorAccent}`,
+                                color: colorAccent,
+                                fontFamily: 'var(--font-mono)',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              SELECT
                             </span>
                           )}
                         </div>
@@ -974,8 +1002,8 @@ export function Game() {
                               ? `1.5px solid ${colorAccent}44`
                               : '1.5px dashed rgba(255, 255, 255, 0.12)',
                           background: isActive
-                            ? `rgba(35, 12, 70, 0.95)`
-                            : 'rgba(25, 10, 56, 0.65)',
+                            ? `var(--bg-card)`
+                            : 'var(--bg-secondary)',
                           boxShadow: isActive
                             ? `0 0 20px ${colorAccent}aa, inset 0 0 12px ${colorAccent}44`
                             : 'none',
@@ -1049,7 +1077,7 @@ export function Game() {
                             style={{
                               fontWeight: 'bold',
                               fontSize: '0.84rem',
-                              color: '#ffffff',
+                              color: 'var(--text-main)',
                               display: 'flex',
                               alignItems: 'center',
                               gap: 6,
@@ -1073,75 +1101,163 @@ export function Game() {
                       </div>
                     )
                   })}
+
+                  {view.status === 'waiting' && activeMatch?.mode === 'pvp' && (
+                    <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 10, marginTop: 4 }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                        {t('game.inviteComms')}
+                      </div>
+                      {friends.length === 0 ? (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {t('game.noFriendsToInvite')}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 130, overflowY: 'auto' }}>
+                          {friends.map((f) => {
+                            const st = inviteStates[f.id] ?? 'idle'
+                            return (
+                              <div
+                                key={f.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '6px 8px',
+                                  background: 'rgba(0, 0, 0, 0.4)',
+                                  borderRadius: 3,
+                                  border: '1px solid rgba(0, 240, 255, 0.2)',
+                                }}
+                              >
+                                <span style={{ fontSize: '0.75rem', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                                  {f.username}
+                                </span>
+                                <button
+                                  className="retro-btn"
+                                  onClick={() => inviteFriend(f.id)}
+                                  disabled={st !== 'idle' || isGameEnded}
+                                  style={{ padding: '3px 8px', fontSize: '0.62rem' }}
+                                >
+                                  {st === 'busy' ? '...' : st === 'sent' ? t('game.inviteSent') : `+ ${t('game.inviteBtn')}`}
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </section>
 
-              {/* Arena System Control & Sector Specs */}
-              <section className="retro-window" id="sectorControlWindow">
-                <div className="window-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{t('game.systemControlTitle')}</span>
-                  </div>
+              {/* View Results Button below Pilot Roster */}
+              {lastResult && (
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column' }}>
+                  <button
+                    className="retro-btn"
+                    onClick={() => {
+                      retroAudio.playUiBeep(640, 0.06)
+                      setShowResultsModal(true)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 0',
+                      fontSize: '0.82rem',
+                      fontFamily: 'var(--font-heading)',
+                      letterSpacing: '1px',
+                      background: 'linear-gradient(135deg, #ff007f, #9d00ff)',
+                      borderColor: 'var(--accent-pink)',
+                      color: '#ffffff',
+                      boxShadow: '0 0 16px var(--accent-pink)',
+                      animation: 'pulse 1.6s infinite',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    &gt;_ {t('game.viewResultsBtn', 'VIEW RESULTS')}
+                  </button>
                 </div>
+              )}
 
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    {t('game.combatKeybindsRules')}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>DICE ROLL:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('game.spaceToRoll')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>SELECT PIECE:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{t('game.victoryGoal')}</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
-
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    {t('game.audioPreferences')}
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
-                    <button
-                      className="retro-badge"
-                      style={{
-                        cursor: 'pointer',
-                        padding: '8px 10px',
-                        background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
-                        border: soundMuted ? '1px solid #ff0055' : '1px solid #00ff88',
-                        color: soundMuted ? '#ff0055' : '#00ff88',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.7rem',
-                        textAlign: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={toggleSound}
-                    >
-                      {soundMuted ? t('game.audioOff') : t('game.audioOn')}
-                    </button>
-                  </div>
+              {/* Ready / Start Match Button */}
+              {view.status === 'waiting' && !isGameEnded && (
+                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {(() => {
+                    const activeCount = view.players.filter((p) => p.status === 'active').length
+                    const alreadyReady = view.readyPlayers.includes(view.myColor)
+                    const soloRoom = activeCount < 2
+                    const disabled = alreadyReady || soloRoom || isGameEnded
+                    return (
+                      <button
+                        className="retro-btn"
+                        onClick={() => {
+                          if (isGameEnded) return
+                          retroAudio.playUiBeep(1100, 0.1)
+                          socketRef.current?.emit('player_ready')
+                        }}
+                        disabled={disabled}
+                        style={{
+                          width: '100%',
+                          padding: '14px 0',
+                          fontSize: '0.85rem',
+                          fontFamily: 'var(--font-heading)',
+                          letterSpacing: '1px',
+                          background: alreadyReady ? 'rgba(0, 255, 136, 0.22)' : 'var(--btn-bg)',
+                          borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
+                          color: alreadyReady ? '#00ff88' : '#ffffff',
+                          boxShadow: alreadyReady ? '0 0 16px rgba(0, 255, 136, 0.4)' : '0 0 15px var(--accent-pink)',
+                          opacity: disabled ? 0.6 : 1,
+                          cursor: disabled ? 'default' : 'pointer',
+                          display: 'flex',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 10,
+                        }}
+                      >
+                        <span>{alreadyReady ? `[${t('game.readyBadge').toUpperCase()}]` : soloRoom ? t('game.readyNeedsOpponent') : 'READY'}</span>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.85, fontFamily: 'var(--font-mono)' }}>
+                          ({view.readyPlayers.length}/{activeCount})
+                        </span>
+                      </button>
+                    )
+                  })()}
                 </div>
-              </section>
+              )}
             </div>
 
             {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 'min(650px, 66vh)', justifySelf: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                minHeight: 0,
+                minWidth: 0,
+              }}
+            >
               {(() => {
                 const currentTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                 const isBotTurn = currentTurnPlayer?.isBot ?? false
                 const activeLegalMoves = isRolling || isBotTurn ? [] : view.legalMoves
 
                 return (
-                  <div style={{ width: '100%' }}>
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      maxHeight: 'calc(100vh - 130px)',
+                      maxWidth: 'min(100%, calc(100vh - 130px))',
+                      aspectRatio: '1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: 'auto',
+                    }}
+                  >
                     <Board
                       pieces={view.pieces}
                       players={view.players}
@@ -1156,233 +1272,142 @@ export function Game() {
             </div>
 
             {/* COLUMN 3: TACTICAL CONTROLS & LOGS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {view.status === 'waiting' ? (
-                /* WAITING ROOM SETUP WINDOW */
-                <section className="retro-window" id="waitingSetupWindow">
-                  <div className="window-header">
-                    <span>{t('game.waitingBayTitle')}</span>
-                  </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '100%', height: '100%' }}>
+              {/* IN-GAME DICE CONTROLS WINDOW */}
+              <section className="retro-window" id="diceControlWindow">
+                <div className="window-header">
+                  <span>{t('game.diceSystemTitle')}</span>
+                </div>
 
-                  <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                        {t('game.selectSeatColor')}
+                <div
+                  className="window-body"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '16px 14px',
+                  }}
+                >
+                  {/* Active Turn Pilot Banner */}
+                  {(() => {
+                    const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+                    const isBot = activeTurnPlayer?.isBot ?? false
+                    const activeName = activeTurnPlayer?.username?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+                    const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
+
+                    return (
+                      <div
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          background: isMyTurn ? 'rgba(255, 0, 127, 0.2)' : `${turnColorHex}18`,
+                          border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
+                          boxShadow: isMyTurn ? '0 0 12px rgba(255, 0, 127, 0.5)' : `0 0 8px ${turnColorHex}44`,
+                          borderRadius: 4,
+                          textAlign: 'center',
+                          fontSize: '0.78rem',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 'bold',
+                          color: '#ffffff',
+                          letterSpacing: '0.5px',
+                        }}
+                      >
+                        {isMyTurn ? 'YOUR TURN' : `${activeName}'S TURN`}
                       </div>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                        {SEAT_COLORS.map((ck) => {
-                          const colAccent =
-                            ck === 'red'
-                              ? '#ff007f'
-                              : ck === 'green'
-                                ? '#00ff88'
-                                : ck === 'yellow'
-                                  ? '#ffe600'
-                                  : '#00f0ff'
-                          const takenByOther = view.players.some(
-                            (p) => p.color === ck && p.status === 'active' && ck !== view.myColor
-                          )
-                          const isSelected = ck === view.myColor
-                          return (
-                            <button
-                              key={ck}
-                              onClick={() => selectColor(ck)}
-                              title={ck.toUpperCase()}
-                              disabled={takenByOther}
-                              style={{
-                                flex: 1,
-                                height: 34,
-                                borderRadius: 4,
-                                cursor: takenByOther ? 'not-allowed' : 'pointer',
-                                background: isSelected ? colAccent : 'rgba(25, 10, 56, 0.8)',
-                                border: isSelected ? `2px solid #ffffff` : `1px solid ${colAccent}`,
-                                boxShadow: isSelected ? `0 0 12px ${colAccent}` : 'none',
-                                color: isSelected ? '#0d0221' : colAccent,
-                                fontWeight: 'bold',
-                                fontSize: '0.65rem',
-                                fontFamily: 'var(--font-mono)',
-                                opacity: takenByOther ? 0.35 : 1,
-                              }}
-                            >
-                              {ck.slice(0, 3).toUpperCase()}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {(() => {
-                      const activeCount = view.players.filter((p) => p.status === 'active').length
-                      const alreadyReady = view.readyPlayers.includes(view.myColor)
-                      const soloRoom = activeCount < 2
-                      const disabled = alreadyReady || soloRoom
-                      return (
-                        <button
-                          className="retro-btn"
-                          onClick={markReady}
-                          disabled={disabled}
-                          style={{
-                            width: '100%',
-                            padding: '12px 0',
-                            fontSize: '0.8rem',
-                            background: alreadyReady ? 'rgba(0, 255, 136, 0.2)' : 'var(--btn-bg)',
-                            borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
-                            color: alreadyReady ? '#00ff88' : '#ffffff',
-                            opacity: disabled ? 0.6 : 1,
-                            cursor: disabled ? 'default' : 'pointer',
-                          }}
-                        >
-                          {alreadyReady
-                            ? `[${t('game.readyBadge').toUpperCase()}] (${t('game.waitingForHost')})`
-                            : soloRoom
-                              ? t('game.readyNeedsOpponent')
-                              : t('game.startMatchBtn')}
-                        </button>
-                      )
-                    })()}
-
-                    <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-                      {t('game.readyPilots', { current: view.readyPlayers.length, total: view.players.filter((p) => p.status === 'active').length })}
-                    </div>
-
-                    {activeMatch?.mode === 'pvp' && (
-                      <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                          {t('game.inviteComms')}
-                        </div>
-                        {friends.length === 0 ? (
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            {t('game.noFriendsToInvite')}
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 110, overflowY: 'auto' }}>
-                            {friends.map((f) => {
-                              const st = inviteStates[f.id] ?? 'idle'
-                              return (
-                                <div
-                                  key={f.id}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '6px 8px',
-                                    background: 'rgba(0, 0, 0, 0.4)',
-                                    borderRadius: 3,
-                                  }}
-                                >
-                                  <span style={{ fontSize: '0.75rem', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-                                    {f.username}
-                                  </span>
-                                  <button
-                                    className="retro-btn"
-                                    onClick={() => inviteFriend(f.id)}
-                                    disabled={st !== 'idle'}
-                                    style={{ padding: '3px 8px', fontSize: '0.62rem' }}
-                                  >
-                                    {st === 'busy' ? '...' : st === 'sent' ? t('game.inviteSent') : `+ ${t('game.inviteBtn')}`}
-                                  </button>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </section>
-              ) : (
-                /* IN-GAME DICE CONTROLS WINDOW */
-                <section className="retro-window" id="diceControlWindow">
-                  <div className="window-header">
-                    <span>{t('game.diceSystemTitle')}</span>
-                  </div>
+                    )
+                  })()}
 
                   <div
-                    className="window-body"
                     style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '16px 14px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.72rem',
+                      color: isMyTurn ? '#ffe600' : 'var(--text-muted)',
                     }}
                   >
-                    {/* Active Turn Pilot Banner */}
-                    {(() => {
-                      const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
-                      const isBot = activeTurnPlayer?.isBot ?? false
-                      const activeName = (activeTurnPlayer?.displayName || activeTurnPlayer?.username || activeTurnPlayer?.color)?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
-                      const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
+                    {isRolling
+                      ? 'ROLLING...'
+                      : canRoll
+                        ? 'PRESS SPACE OR CLICK ROLL'
+                        : view.turnPhase === 'WAITING_FOR_MOVE'
+                          ? 'SELECT A PIECE TO MOVE'
+                          : `WAITING FOR ${view.currentTurn.toUpperCase()}...`}
+                  </div>
 
-                      return (
-                        <div
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : `${turnColorHex}18`,
-                            border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
-                            boxShadow: isMyTurn ? '0 0 16px rgba(255, 0, 127, 0.6)' : `0 0 8px ${turnColorHex}44`,
-                            animation: isMyTurn ? 'pulse-turn-banner 1.6s infinite' : 'none',
-                            borderRadius: 4,
-                            textAlign: 'center',
-                            fontSize: '0.78rem',
-                            fontFamily: 'var(--font-mono)',
-                            fontWeight: 'bold',
-                            color: '#ffffff',
-                            letterSpacing: '0.5px',
-                          }}
-                        >
-                          {isMyTurn
-                            ? `▶ ${t('game.yourTurn').toUpperCase()} ◀`
-                            : `▶ ${t('game.botTurn', { name: activeName }).toUpperCase()} ◀`}
-                        </div>
-                      )
-                    })()}
+                  <Die
+                    value={view.diceValue ?? 0}
+                    rolling={isRolling}
+                  />
 
-                    <div
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.72rem',
-                        color: isMyTurn ? '#ffe600' : 'var(--text-muted)',
-                      }}
-                    >
-                      {isRolling
-                        ? t('game.statusRolling')
-                        : canRoll
-                          ? t('game.statusRollNow')
-                          : view.turnPhase === 'WAITING_FOR_MOVE'
-                            ? t('game.statusSelectPiece')
-                            : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })}
+                  <button
+                    className="retro-btn"
+                    onClick={rollDice}
+                    disabled={!canRoll || isRolling || isGameEnded}
+                    style={{
+                      width: '100%',
+                      padding: '12px 0',
+                      fontSize: '0.85rem',
+                      fontFamily: 'var(--font-heading)',
+                      letterSpacing: '1px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      background: canRoll && !isRolling && !isGameEnded ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
+                      borderColor: canRoll && !isRolling && !isGameEnded ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
+                      boxShadow: canRoll && !isRolling && !isGameEnded ? '0 0 15px var(--accent-pink)' : 'none',
+                      cursor: canRoll && !isRolling && !isGameEnded ? 'pointer' : 'default',
+                      opacity: canRoll && !isRolling && !isGameEnded ? 1 : 0.5,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {isRolling ? 'ROLLING...' : 'ROLL DICE'}
+                  </button>
+                </div>
+              </section>
+
+              {/* Arena System Control & Sector Specs */}
+              <section className="retro-window" id="sectorControlWindow">
+                <div className="window-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>CONTROLS & SHORTCUTS</span>
+                  </div>
+                </div>
+
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>DICE ROLL:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR</span>
                     </div>
-
-                    <div style={{ height: 90, display: 'grid', placeItems: 'center' }}>
-                      <Die value={view.diceValue ?? 0} rolling={isRolling} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>SELECT PIECE:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
                     </div>
-
-                    <button
-                      className={`roll-dice-btn ${canRoll && !isRolling ? 'is-active-turn' : 'is-inactive-turn'}`}
-                      onClick={rollDice}
-                      disabled={!canRoll || isRolling}
-                    >
-                      {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
-                    </button>
-
-                    <div
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.68rem',
-                        color: 'var(--accent-cyan)',
-                        textAlign: 'center',
-                      }}
-                    >
-                      [ {t('game.spaceToRoll')} ]
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>GOAL:</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES HOME</span>
                     </div>
                   </div>
-                </section>
-              )}
+
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
+
+                  <CyberButton
+                    label="GAME RULES"
+                    shortcut="?"
+                    variant="cyan"
+                    onClick={() => {
+                      retroAudio.playUiBeep(600, 0.05)
+                      setRulesPage(0)
+                      setIsSystemModalOpen(true)
+                    }}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  />
+                </div>
+              </section>
 
               {/* MISSION TELEMETRY LOG WINDOW */}
-              <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <section className="retro-window" id="moveLogWindow" style={{ flex: '1 1 240px', minHeight: 220, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div className="window-header" style={{ flex: 'none' }}>
                   <span>{t('game.reconLogsTitle')}</span>
                 </div>
@@ -1404,33 +1429,23 @@ export function Game() {
                   }}
                 >
                   {moveLogs.length === 0 ? (
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontStyle: 'italic', fontFamily: 'var(--font-mono)' }}>
                       {t('game.noReconLogged')}
-                    </div>
+                    </span>
                   ) : (
-                    moveLogs.map((ml, i) => {
-                      const dotColor =
-                        ml.ck === 'red'
-                          ? '#ff007f'
-                          : ml.ck === 'green'
-                            ? '#00ff88'
-                            : ml.ck === 'yellow'
-                              ? '#ffe600'
-                              : '#00f0ff'
+                    moveLogs.map((log, idx) => {
+                      const colMap: Record<PlayerColor, string> = {
+                        red: '#ff007f',
+                        green: '#00ff88',
+                        yellow: '#ffe600',
+                        blue: '#00f0ff',
+                      }
                       return (
-                        <div
-                          key={i}
-                          style={{
-                            display: 'flex',
-                            gap: 8,
-                            fontSize: '0.72rem',
-                            color: '#ffffff',
-                            fontFamily: 'var(--font-mono)',
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          <span style={{ color: dotColor, fontWeight: 'bold' }}>●</span>
-                          <span>{ml.text}</span>
+                        <div key={idx} style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', lineHeight: 1.35 }}>
+                          <span style={{ color: colMap[log.ck] || '#00f0ff', fontWeight: 'bold' }}>
+                            [{log.ck.toUpperCase()}]
+                          </span>{' '}
+                          <span style={{ color: '#ffffff' }}>{log.text}</span>
                         </div>
                       )
                     })
@@ -1438,62 +1453,34 @@ export function Game() {
                 </div>
               </section>
 
-              {/* RETURN TO LOBBY BUTTON (Only for online PvP matches) */}
-              {activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat' && (
-                <button
-                  className="retro-btn"
+              {/* RETURN TO LOBBY BUTTON */}
+              {(isGameEnded || (activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat')) && (
+                <CyberButton
+                  label={t('game.returnToLobbyBtn')}
+                  shortcut="<"
+                  variant="cyan"
                   onClick={() => {
                     retroAudio.playUiBeep(440, 0.05)
+                    setLastResult(null)
+                    setShowResultsModal(false)
+                    setActiveMatch(null)
                     navigate('/gamelobby')
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    fontSize: '0.78rem',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 'bold',
-                    letterSpacing: '1px',
-                    lineHeight: '1.4',
-                    background: 'rgba(0, 240, 255, 0.12)',
-                    border: '1px solid var(--accent-cyan)',
-                    color: 'var(--accent-cyan)',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    boxSizing: 'border-box',
-                  }}
-                  title="Return to Ludo Lobby"
-                >
-                  &lt; {t('game.returnToLobbyBtn')}
-                </button>
+                  style={{ width: '100%', justifyContent: 'center' }}
+                />
               )}
 
-              {/* ABORT MISSION / END GAME BUTTON */}
-              {(() => {
+              {/* ABORT MISSION / END GAME BUTTON (Hidden once game is confirmed ended) */}
+              {!isGameEnded && (() => {
                 const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
                 return (
-                  <button
-                    className="retro-btn"
-                    onClick={endGame}
-                    style={{
-                      width: '100%',
-                      padding: isBotOrHotseat ? '18px 20px' : '12px 14px',
-                      fontSize: isBotOrHotseat ? '0.92rem' : '0.78rem',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 900,
-                      letterSpacing: isBotOrHotseat ? '1.5px' : '1px',
-                      lineHeight: '1.4',
-                      background: 'rgba(255, 0, 85, 0.18)',
-                      border: '1.5px solid #ff0055',
-                      color: '#ff0055',
-                      boxShadow: isBotOrHotseat ? '0 0 16px rgba(255, 0, 85, 0.3)' : 'none',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      boxSizing: 'border-box',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    // {t('game.abortMatchBtn')}
-                  </button>
+                  <CyberButton
+                    label={isBotOrHotseat ? 'ABORT SIMULATION' : t('game.abortMatchBtn')}
+                    shortcut="ESC"
+                    variant="danger"
+                    onClick={() => setIsAbortModalOpen(true)}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  />
                 )
               })()}
 
@@ -1501,6 +1488,210 @@ export function Game() {
           </main>
         </div>
       </div>
+
+      {/* Cyberpunk Glitch Confirmation Modal */}
+      <CyberModal
+        isOpen={isAbortModalOpen}
+        title="PROTOCOL TERMINATION"
+        versionTag={activeMatch?.gameId ? `ARENA.${activeMatch.gameId.slice(0, 8)}` : 'v001.e1349837856'}
+        message={
+          activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
+            ? 'You are about to terminate this tactical simulation. Combat records for this session will be halted.'
+            : 'You are about to withdraw and forfeit this ranked arena match. Match telemetry will be finalized as a defeat.'
+        }
+        subMessage="Do you want to confirm protocol abort?"
+        onCancel={() => setIsAbortModalOpen(false)}
+        onProceed={() => {
+          setIsAbortModalOpen(false)
+          endGame()
+        }}
+        cancelLabel="CANCEL"
+        proceedLabel="CONFIRM ABORT"
+        cancelShortcut="ESC"
+        proceedShortcut="↵"
+        isDanger
+      />
+
+      {/* Cyberpunk System Control & Multi-Page Rules Modal (6 Pages) */}
+      <CyberModal
+        isOpen={isSystemModalOpen}
+        title="ARENA PROTOCOLS & RULES"
+        versionTag="RULES.v42.SYS"
+        cancelLabel="CLOSE"
+        proceedLabel={rulesPage < 5 ? 'NEXT PAGE ▶' : 'START PLAYING'}
+        cancelShortcut="ESC"
+        proceedShortcut={rulesPage < 5 ? '→' : '↵'}
+        closeOnProceed={rulesPage >= 5}
+        onCancel={() => setIsSystemModalOpen(false)}
+        onProceed={() => {
+          if (rulesPage < 5) {
+            retroAudio.playUiBeep(700, 0.05)
+            setRulesPage((p) => p + 1)
+          } else {
+            setIsSystemModalOpen(false)
+          }
+        }}
+        message={
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 380, maxWidth: 520 }}>
+            {/* Page Navigation Tabs: Compact 1-row layout */}
+            <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid rgba(0, 240, 255, 0.25)', paddingBottom: 10 }}>
+              {[
+                { id: 0, label: '1. GOAL' },
+                { id: 1, label: '2. ROLL 6' },
+                { id: 2, label: '3. ENEMY' },
+                { id: 3, label: '4. STAR' },
+                { id: 4, label: '5. BLOCK' },
+                { id: 5, label: '6. HOME' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    retroAudio.playUiBeep(520, 0.04)
+                    setRulesPage(p.id)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '6px 2px',
+                    fontSize: '0.68rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 'bold',
+                    background: rulesPage === p.id ? 'rgba(0, 240, 255, 0.22)' : 'rgba(255, 255, 255, 0.04)',
+                    border: rulesPage === p.id ? '1.5px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: rulesPage === p.id ? '#ffffff' : 'var(--text-muted)',
+                    boxShadow: rulesPage === p.id ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* PAGE 0: Objective & Controls */}
+            {rulesPage === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // MISSION OBJECTIVE
+                </div>
+                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  Be the first pilot to move all four of your combat pieces from the Starting Area to the Home Triangle in the center!
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(5, 2, 18, 0.65)', padding: 14, borderRadius: 6, border: '1px solid rgba(255, 0, 127, 0.3)' }}>
+                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.5px' }}>COMBAT CONTROLS:</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Roll Quantum Dice:</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem' }}>SPACEBAR</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Select / Warp Piece:</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '0.85rem' }}>LEFT CLICK</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 1: Rolling a 6 */}
+            {rulesPage === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // ROLLING A 6
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-yellow)', border: '1px solid rgba(255, 230, 0, 0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>⚡</span>
+                    <span>Roll a <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> → you get to roll again!</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>🚀</span>
+                    <span>A <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> lets you bring a new piece onto the board.</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: '#ff0055', fontSize: '1.2rem' }}>⛔</span>
+                    <span>Roll <strong style={{ color: '#ff0055', fontSize: '1.05rem' }}>three 6s in a row</strong> → your turn immediately ends!</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 2: Landing on Enemy Piece */}
+            {rulesPage === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // LANDING ON ENEMY PIECE
+                </div>
+                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  If you land on another player's piece:
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-pink)', border: '1px solid rgba(255, 0, 127, 0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-pink)', fontSize: '1.2rem' }}>⚔</span>
+                    <span>Their piece gets <strong style={{ color: 'var(--accent-pink)', fontSize: '1.05rem' }}>kicked home</strong> back to their base!</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: '#00ff88', fontSize: '1.2rem' }}>✦</span>
+                    <span>You get a combat bonus: <strong style={{ color: '#00ff88', fontSize: '1.05rem' }}>roll again!</strong></span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 3: The Star */}
+            {rulesPage === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // THE STAR
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    ★ Star spaces are safe!
+                  </div>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    Nobody can knock your piece off a star. Multiple pilots can safely occupy the same star space without combat captures.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 4: Two Pieces Together (Blockade) */}
+            {rulesPage === 4 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#00ff88', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // TWO PIECES TOGETHER (BLOCKADE)
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #00ff88', border: '1px solid rgba(0, 255, 136, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: '#00ff88', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    🛡 Impassable Shield
+                  </div>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    Having <strong style={{ color: '#00ff88' }}>two pieces together</strong> will stop other players from crossing or landing on that space!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 5: Home Lane */}
+            {rulesPage === 5 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#9d00ff', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // HOME LANE & FINISH
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #9d00ff', border: '1px solid rgba(157, 0, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    You are <strong style={{ color: '#00ff88' }}>safe</strong> once you reach your coloured lane. Opponents cannot enter your home stretch!
+                  </p>
+                  <p style={{ margin: 0, color: '#ffe600', fontWeight: 'bold', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                    🎯 Just get to the center! (if you can get the exact steps!)
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        }
+      />
 
       {/* QTE Clash overlay */}
       {view.clash && (
@@ -1510,6 +1701,20 @@ export function Game() {
           myColor={view.myColor}
           onKeyPress={clashInput}
           onComplete={clearClash}
+        />
+      )}
+
+      {/* Game Results Modal Popup */}
+      {showResultsModal && lastResult && (
+        <ResultsModal
+          result={lastResult}
+          onReturnToLobby={() => {
+            setLastResult(null)
+            setShowResultsModal(false)
+            setActiveMatch(null)
+            navigate('/gamelobby')
+          }}
+          onClose={() => setShowResultsModal(false)}
         />
       )}
     </>

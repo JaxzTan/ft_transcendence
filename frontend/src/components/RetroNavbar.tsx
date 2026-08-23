@@ -30,16 +30,16 @@ export function RetroNavbar({
 }: RetroNavbarProps) {
   const { t } = useTranslation()
   const route = useRoute()
-  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp()
+  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor, avatarBuster } = useApp()
   const currentPath = activeRoute || route.path
 
-  const navItems = [
+  const navItems: Array<{ path: string; label: string; icon: string; disabled?: boolean }> = [
     { path: '/home', label: t('nav.home').toUpperCase(), icon: '⌂' },
     { path: '/leaderboard', label: t('nav.leaderboard').toUpperCase(), icon: '♛' },
     { path: '/profile', label: t('nav.profile').toUpperCase(), icon: '@/' },
     { path: '/friends', label: t('nav.friends').toUpperCase(), icon: '♟' },
     { path: '/gamelobby', label: t('nav.lobby').toUpperCase(), icon: '>_' },
-    { path: '/game', label: 'ARENA', icon: '{}', disabled: true },
+    { path: '/game', label: 'ARENA', icon: '{}' },
   ]
 
   // Global live notifications fallback so the notification bell works across all pages
@@ -60,6 +60,7 @@ export function RetroNavbar({
     document.documentElement.setAttribute('data-theme', newTheme)
     document.body.setAttribute('data-theme', newTheme)
     localStorage.setItem('retro_theme', newTheme)
+    window.dispatchEvent(new CustomEvent('retro_theme_changed', { detail: newTheme }))
     retroAudio.playUiBeep(880, 0.05)
   }
 
@@ -180,6 +181,7 @@ export function RetroNavbar({
               <UserAvatar
                 username={username}
                 size={30}
+                cacheBuster={avatarBuster}
                 fallbackStyle={{
                   width: 30,
                   height: 30,

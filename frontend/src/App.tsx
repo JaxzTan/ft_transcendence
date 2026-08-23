@@ -8,7 +8,7 @@ import { Leaderboard } from './pages/Leaderboard'
 import { Lobby } from './pages/Lobby'
 import { LudoLobby } from './pages/LudoLobby'
 import { Login } from './pages/Login'
-import { Results } from './pages/Results'
+// import { Results } from './pages/Results'
 import { Signup } from './pages/Signup'
 import { Profile } from './pages/Profile'
 import { TwoFactor } from './pages/TwoFactor'
@@ -16,6 +16,8 @@ import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
+import { NotificationToasts } from './components/NotificationToast'
+import { useNotifications } from './hooks/useNotifications'
 
 /** Screens that render inside the app shell (rail + header). */
 const SHELL_ROUTES: Record<string, () => ReactNode> = {}
@@ -34,7 +36,7 @@ const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/gamelobby': () => <LudoLobby />,
   '/gamelobby/table': () => <Lobby />,
   '/game': () => <Game />,
-  '/results': () => <Results />,
+  // '/results': () => <Results />,
 }
 
 /** Public routes, can be reached wihout a session */
@@ -73,10 +75,22 @@ function Screen() {
   return <>{FULL_ROUTES[path]()}</>
 }
 
+function GlobalNotifications() {
+  const { toasts, dismissToast } = useNotifications()
+  return <NotificationToasts toasts={toasts} onDismiss={dismissToast} />
+}
+
 export default function App() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('retro_theme') || 'synthwave'
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    document.body.setAttribute('data-theme', savedTheme)
+  }, [])
+
   return (
     <AppProvider>
       <Screen />
+      <GlobalNotifications />
     </AppProvider>
   )
 }

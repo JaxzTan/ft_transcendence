@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { getApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
 import { RetroNavbar } from '../components/RetroNavbar'
-import { NotificationToasts } from '../components/NotificationToast'
-import { useNotifications } from '../hooks/useNotifications'
 import { navigate } from '../router'
 import { useApp } from '../store'
 import { retroAudio } from '../utils/audio'
@@ -32,7 +30,6 @@ const STATUS_STYLE: Record<string, { label: string; color: string; border: strin
 export function Home() {
 	const { t } = useTranslation()
 	const { user } = useApp()
-	const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } = useNotifications()
 
 	// ------------------------------------------------------------------------
 	// 2. LIVE PLAYER CAREER STATS API
@@ -88,23 +85,41 @@ export function Home() {
 	const [crtEnabled, setCrtEnabled] = useState(true)
 
 	useEffect(() => {
-		const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
-		setTheme(savedTheme)
-		document.documentElement.setAttribute('data-theme', savedTheme)
-		document.body.setAttribute('data-theme', savedTheme)
+		const updateCurrentTheme = (newTheme?: ThemeType) => {
+			const activeTheme = newTheme || (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
+			setTheme(activeTheme)
+		}
+
+		updateCurrentTheme()
+
+		const handleThemeChange = (e: Event) => {
+			const customEvent = e as CustomEvent<ThemeType>
+			updateCurrentTheme(customEvent.detail)
+		}
+
+		window.addEventListener('retro_theme_changed', handleThemeChange)
+		window.addEventListener('storage', handleThemeChange)
+
+		// MutationObserver for instant sync whenever data-theme changes on html
+		const observer = new MutationObserver(() => {
+			const attrTheme = document.documentElement.getAttribute('data-theme') as ThemeType
+			if (attrTheme && (attrTheme === 'synthwave' || attrTheme === 'win95' || attrTheme === 'terminal')) {
+				setTheme(attrTheme)
+			}
+		})
+		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 
 		const savedCrt = localStorage.getItem('retro_crt')
 		if (savedCrt === 'false') {
 			setCrtEnabled(false)
 		}
-	}, [])
 
-	const toggleCrt = () => {
-		const next = !crtEnabled
-		setCrtEnabled(next)
-		localStorage.setItem('retro_crt', next ? 'true' : 'false')
-		retroAudio.playUiBeep(440, 0.05)
-	}
+		return () => {
+			window.removeEventListener('retro_theme_changed', handleThemeChange)
+			window.removeEventListener('storage', handleThemeChange)
+			observer.disconnect()
+		}
+	}, [])
 
 	// ------------------------------------------------------------------------
 	// 4. CYBER COMM // FRIEND LIST & AUDIO
@@ -137,11 +152,55 @@ export function Home() {
 		return () => clearInterval(iv)
 	}, [])
 
-	const [isPlayingAudio, setIsPlayingAudio] = useState(false)
+	const [isPlayingAudio, setIsPlayingAudio] = useState(retroAudio.isPlaying)
+	const [audioTrackIndex, setAudioTrackIndex] = useState(retroAudio.currentTrackIndex)
+	const [audioVolume, setAudioVolume] = useState(Math.round(retroAudio.volume * 100))
+	const [eqHeights, setEqHeights] = useState([8, 14, 20, 26, 18, 12, 22, 16, 10, 24, 15, 9])
+
 	const handleToggleAudio = () => {
 		const playing = retroAudio.togglePlay()
 		setIsPlayingAudio(playing)
 	}
+
+	const handleNextTrack = () => {
+		retroAudio.nextTrack()
+		setAudioTrackIndex(retroAudio.currentTrackIndex)
+		retroAudio.playUiBeep(880, 0.04)
+	}
+
+	const handlePrevTrack = () => {
+		retroAudio.prevTrack()
+		setAudioTrackIndex(retroAudio.currentTrackIndex)
+		retroAudio.playUiBeep(660, 0.04)
+	}
+
+	const handleStepVolume = (delta: number) => {
+		const newVol = Math.max(0, Math.min(100, audioVolume + delta))
+		setAudioVolume(newVol)
+		retroAudio.setVolume(newVol / 100)
+		retroAudio.playUiBeep(440 + newVol * 4, 0.03)
+	}
+
+	const handleLedSegmentClick = (segmentIndex: number) => {
+		const newVol = (segmentIndex + 1) * 10
+		setAudioVolume(newVol)
+		retroAudio.setVolume(newVol / 100)
+		retroAudio.playUiBeep(440 + newVol * 4, 0.03)
+	}
+
+	// Equalizer spectrum visualizer animation
+	useEffect(() => {
+		if (!isPlayingAudio) {
+			setEqHeights([4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4])
+			return
+		}
+		const iv = setInterval(() => {
+			setEqHeights((prev) =>
+				prev.map(() => Math.floor(Math.random() * 20) + 4)
+			)
+		}, 120)
+		return () => clearInterval(iv)
+	}, [isPlayingAudio])
 
 	// ------------------------------------------------------------------------
 	// 5. HUB ARCADE CABINET: 3D ATTRACT MODE & PRESS START
@@ -213,13 +272,11 @@ export function Home() {
 				],
 				sparks: ['#00f0ff', '#ff007f'],
 				pawns: [
-					{ label: 'RED', color: '#ff0055', x: 85, y: 350 },
-					{ label: 'GREEN', color: '#00ff88', x: 230, y: 360 },
-					{ label: 'YELLOW', color: '#ffe600', x: 490, y: 360 },
-					{ label: 'BLUE', color: '#00f0ff', x: 635, y: 350 },
+					{ label: 'RED', color: '#ff0055', x: 85, y: 370 },
+					{ label: 'GREEN', color: '#00ff88', x: 230, y: 380 },
+					{ label: 'YELLOW', color: '#ffe600', x: 490, y: 380 },
+					{ label: 'BLUE', color: '#00f0ff', x: 635, y: 370 },
 				],
-				marquee: '[ TRANSCENDENCE // CYBER LUDO ]',
-				marqueeColor: '#00f0ff',
 			},
 			win95: {
 				bgTop: '#000000',
@@ -243,13 +300,11 @@ export function Home() {
 				],
 				sparks: ['#ffffff', '#00ffff'],
 				pawns: [
-					{ label: 'P1-RED', color: '#ff2222', x: 85, y: 350 },
-					{ label: 'P2-GRN', color: '#00cc33', x: 230, y: 360 },
-					{ label: 'P3-YLW', color: '#ffee00', x: 490, y: 360 },
-					{ label: 'P4-BLU', color: '#2255ff', x: 635, y: 350 },
+					{ label: 'P1-RED', color: '#ff2222', x: 85, y: 370 },
+					{ label: 'P2-GRN', color: '#00cc33', x: 230, y: 380 },
+					{ label: 'P3-YLW', color: '#ffee00', x: 490, y: 380 },
+					{ label: 'P4-BLU', color: '#2255ff', x: 635, y: 370 },
 				],
-				marquee: '[ DIRECTX 3D // CYBER LUDO 95 ]',
-				marqueeColor: '#00ffff',
 			},
 			terminal: {
 				bgTop: '#000800',
@@ -273,13 +328,11 @@ export function Home() {
 				],
 				sparks: ['#00ff66', '#33ff88'],
 				pawns: [
-					{ label: 'NODE:RED', color: '#00ff66', x: 85, y: 350 },
-					{ label: 'NODE:GRN', color: '#33ff88', x: 230, y: 360 },
-					{ label: 'NODE:YLW', color: '#00ff66', x: 490, y: 360 },
-					{ label: 'NODE:BLU', color: '#33ff88', x: 635, y: 350 },
+					{ label: 'NODE:RED', color: '#00ff66', x: 85, y: 370 },
+					{ label: 'NODE:GRN', color: '#33ff88', x: 230, y: 380 },
+					{ label: 'NODE:YLW', color: '#00ff66', x: 490, y: 380 },
+					{ label: 'NODE:BLU', color: '#33ff88', x: 635, y: 370 },
 				],
-				marquee: '> SYS_EXEC: TRANSCENDENCE_LUDO_CORE.SH',
-				marqueeColor: '#00ff66',
 			},
 		}
 
@@ -288,14 +341,14 @@ export function Home() {
 		// Background stars
 		const stars = Array.from({ length: 65 }, () => ({
 			x: Math.random() * 720,
-			y: Math.random() * 260,
+			y: Math.random() * 270,
 			size: Math.random() * 1.8 + 0.5,
 			speed: Math.random() * 0.3 + 0.1,
 			alpha: Math.random() * 0.7 + 0.3,
 		}))
 
-		// 3D Cube vertices (centered at origin, side length = 108)
-		const cubeSize = 54
+		// 3D Cube vertices (centered at origin, side length = 112)
+		const cubeSize = 56
 		const rawVertices = [
 			[-cubeSize, -cubeSize, -cubeSize],
 			[cubeSize, -cubeSize, -cubeSize],
@@ -337,23 +390,23 @@ export function Home() {
 
 			// 2. Distant Sun (only for themes with sun)
 			if (currentCfg.hasSun !== false) {
-				const sunY = 250
-				const sunGrad = ctx.createRadialGradient(360, sunY, 7, 360, sunY, 90)
+				const sunY = 210
+				const sunGrad = ctx.createRadialGradient(360, sunY, 7, 360, sunY, 95)
 				sunGrad.addColorStop(0, currentCfg.sunC1)
 				sunGrad.addColorStop(0.5, currentCfg.sunC2)
 				sunGrad.addColorStop(1, 'rgba(0, 0, 0, 0)')
 				ctx.fillStyle = sunGrad
 				ctx.beginPath()
-				ctx.arc(360, sunY, 90, Math.PI, 0, false)
+				ctx.arc(360, sunY, 95, Math.PI, 0, false)
 				ctx.fill()
 
 				// Sun horizon scanlines
 				ctx.strokeStyle = currentCfg.sunScanline
 				ctx.lineWidth = 2
-				for (let sy = sunY - 60; sy < sunY; sy += 8) {
+				for (let sy = sunY - 65; sy < sunY; sy += 8) {
 					ctx.beginPath()
-					ctx.moveTo(265, sy)
-					ctx.lineTo(455, sy)
+					ctx.moveTo(260, sy)
+					ctx.lineTo(460, sy)
 					ctx.stroke()
 				}
 			}
@@ -361,7 +414,7 @@ export function Home() {
 			// 3. Floating Stars
 			stars.forEach((st) => {
 				st.y += st.speed
-				if (st.y > 260) st.y = 0
+				if (st.y > 210) st.y = 0
 				ctx.fillStyle = `rgba(${currentCfg.starRgb}, ${st.alpha * (0.8 + 0.2 * Math.sin(time * 3 + st.x))})`
 				ctx.beginPath()
 				ctx.arc(st.x, st.y, st.size, 0, Math.PI * 2)
@@ -369,14 +422,14 @@ export function Home() {
 			})
 
 			// 4. Horizon Perspective Grid
-			const horizonY = 260
+			const horizonY = 210
 			ctx.save()
 			ctx.strokeStyle = currentCfg.gridColor
 			ctx.lineWidth = 1
 
 			// Horizontal grid lines moving toward camera
-			for (let gy = 0; gy < 140; gy += 14) {
-				const y = horizonY + Math.pow((gy + gridOffset) / 145, 1.8) * 140
+			for (let gy = 0; gy < 210; gy += 18) {
+				const y = horizonY + Math.pow((gy + gridOffset) / 210, 1.8) * 210
 				if (y <= canvas.height) {
 					ctx.beginPath()
 					ctx.moveTo(0, y)
@@ -385,7 +438,7 @@ export function Home() {
 				}
 			}
 
-			// Perspective radiating vertical lines from vanishing point (360, 260)
+			// Perspective radiating vertical lines from vanishing point (360, 210)
 			for (let x = -250; x <= canvas.width + 250; x += 45) {
 				ctx.beginPath()
 				ctx.moveTo(360, horizonY)
@@ -396,8 +449,8 @@ export function Home() {
 
 			// 5. 3D Tumbling Ludo Dice in Center
 			const centerX = 360
-			const centerY = 135 + Math.sin(time * 2.2) * 10
-			const cameraDist = 260
+			const centerY = 210 + Math.sin(time * 2.2) * 8
+			const cameraDist = 280
 
 			// 3D rotation matrix calculation
 			const cosX = Math.cos(rotX), sinX = Math.sin(rotX)
@@ -430,7 +483,7 @@ export function Home() {
 			// Render glowing particle sparks behind dice
 			for (let i = 0; i < 8; i++) {
 				const sparkAngle = time * 3 + (i * Math.PI) / 4
-				const sparkR = 74 + Math.sin(time * 4 + i) * 15
+				const sparkR = 76 + Math.sin(time * 4 + i) * 15
 				const sx = centerX + Math.cos(sparkAngle) * sparkR
 				const sy = centerY + Math.sin(sparkAngle * 1.3) * (sparkR * 0.5)
 				const sparkCol = currentCfg.sparks[i % currentCfg.sparks.length]
@@ -438,7 +491,7 @@ export function Home() {
 				ctx.shadowColor = sparkCol
 				ctx.shadowBlur = 9
 				ctx.beginPath()
-				ctx.arc(sx, sy, 2.4, 0, Math.PI * 2)
+				ctx.arc(sx, sy, 2.5, 0, Math.PI * 2)
 				ctx.fill()
 				ctx.shadowBlur = 0
 			}
@@ -487,6 +540,7 @@ export function Home() {
 				pips.forEach(([u, v]: any) => {
 					const su = u + 0.5
 					const sv = v + 0.5
+
 					const topX = p0.px + (p1.px - p0.px) * su
 					const topY = p0.py + (p1.py - p0.py) * su
 					const botX = p3.px + (p2.px - p3.px) * su
@@ -531,17 +585,6 @@ export function Home() {
 				ctx.restore()
 			})
 
-			// 7. Marquee Title on Top of Screen
-			ctx.save()
-			ctx.font = '12px "Press Start 2P", monospace'
-			ctx.textAlign = 'center'
-			ctx.fillStyle = currentCfg.marqueeColor
-			ctx.shadowColor = currentCfg.marqueeColor
-			ctx.shadowBlur = 11
-			ctx.fillText(currentCfg.marquee, 360, 28)
-			ctx.shadowBlur = 0
-			ctx.restore()
-
 			animId = requestAnimationFrame(loop)
 		}
 
@@ -578,15 +621,7 @@ export function Home() {
 				{/* Main Content Wrapper */}
 				<div className="app-wrapper">
 					{/* Navigation Header */}
-					<RetroNavbar
-						activeRoute="/home"
-						crtEnabled={crtEnabled}
-						toggleCrt={toggleCrt}
-						notifications={notifications}
-						unreadCount={unreadCount}
-						onMarkRead={markRead}
-						onMarkAllRead={markAllRead}
-					/>
+					<RetroNavbar activeRoute="/home" />
 
 					{/* Hero Header Banner */}
 					<header className="hero-section">
@@ -594,66 +629,22 @@ export function Home() {
 						<p className="hero-subtitle">
 							{t('home.greeting', { name: displayName.toUpperCase() })} // PACE 24
 						</p>
-
-						<div className="badge-bar">
-							<button
-								className="retro-badge"
-								style={{
-									cursor: 'pointer',
-									background: 'var(--bg-secondary)',
-									border: isPlayingAudio ? '1px solid var(--accent-pink)' : '1px dashed var(--accent-cyan)',
-									color: isPlayingAudio ? 'var(--accent-pink)' : 'var(--accent-cyan)',
-									fontFamily: 'var(--font-mono)',
-									outline: 'none',
-								}}
-								onClick={handleToggleAudio}
-								title="Click to toggle Chiptune Audio"
-							>
-								{isPlayingAudio ? t('homeExtended.audioActive') : t('homeExtended.audioStandby')}
-							</button>
-							<span
-								className="retro-badge"
-								style={{
-									border: '1px solid var(--accent-cyan)',
-									color: 'var(--accent-cyan)',
-									display: 'inline-flex',
-									alignItems: 'center',
-									fontFamily: 'var(--font-mono)',
-								}}
-							>
-								{t('homeExtended.onlinePlayers')} 42
-							</span>
-							<span
-								className="retro-badge"
-								style={{
-									border: '1px dashed rgba(255, 255, 255, 0.25)',
-									color: 'var(--text-muted)',
-									display: 'inline-flex',
-									alignItems: 'center',
-									fontFamily: 'var(--font-mono)',
-								}}
-							>
-								// SLOT_03: [EMPTY]
-							</span>
-							<span
-								className="retro-badge"
-								style={{
-									border: '1px dashed rgba(255, 255, 255, 0.25)',
-									color: 'var(--text-muted)',
-									display: 'inline-flex',
-									alignItems: 'center',
-									fontFamily: 'var(--font-mono)',
-								}}
-							>
-								// SLOT_04: [EMPTY]
-							</span>
-						</div>
 					</header>
 
 					{/* Main Interactive Dashboard Grid */}
 					<main className="dashboard-grid">
 						{/* Widget 1: 3D Attract Mode Arcade Cabinet & Press Start */}
-						<section className="retro-window col-8" id="arcadeWindow">
+						<section
+							className="retro-window col-8"
+							id="arcadeWindow"
+							style={{
+								height: 450,
+								maxHeight: 450,
+								display: 'flex',
+								flexDirection: 'column',
+								boxSizing: 'border-box',
+							}}
+						>
 							<div className="window-header">
 								<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 									<span>{t('homeExtended.arcadeArenaTitle')}</span>
@@ -663,22 +654,45 @@ export function Home() {
 									<span className="window-btn max" />
 								</div>
 							</div>
-							<div className="window-body arcade-container">
+							<div
+								className="window-body arcade-container"
+								style={{
+									padding: 0,
+									display: 'flex',
+									flexDirection: 'column',
+									alignItems: 'center',
+									justifyContent: 'center',
+									flex: 1,
+									minHeight: 0,
+									overflow: 'hidden',
+								}}
+							>
 								{/* Arcade Canvas Frame & Interactive Press Start Overlay */}
 								<div
 									className="arcade-screen-frame"
-									style={
-										isWarpingToLobby
+									style={{
+										height: '100%',
+										width: '100%',
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										...(isWarpingToLobby
 											? {
 													border: '4px solid #ffffff',
 													boxShadow: '0 0 35px #ffffff, 0 0 50px var(--accent-cyan)',
 											  }
-											: undefined
-									}
+											: {}),
+									}}
 									onClick={launchToLobby}
 									title="Click or press Spacebar to enter Ludo Lobby"
 								>
-									<canvas id="arcadeCanvas" ref={canvasRef} width={720} height={400} />
+									<canvas
+										id="arcadeCanvas"
+										ref={canvasRef}
+										width={720}
+										height={420}
+										style={{ width: '100%', height: '100%', display: 'block', objectFit: 'fill' }}
+									/>
 
 									{/* Interactive Translucent Press Start Banner Overlay */}
 									<div className="arcade-start-overlay">
@@ -722,7 +736,17 @@ export function Home() {
 						</section>
 
 						{/* Widget 2: Friends List */}
-						<section className="retro-window col-4" id="friendsWindow">
+						<section
+							className="retro-window col-4"
+							id="friendsWindow"
+							style={{
+								height: 450,
+								maxHeight: 450,
+								display: 'flex',
+								flexDirection: 'column',
+								boxSizing: 'border-box',
+							}}
+						>
 							<div className="window-header">
 								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 									<span>{t('friends.title').toUpperCase()} ({friends?.length ?? 0})</span>
@@ -779,141 +803,131 @@ export function Home() {
 							</div>
 
 							<div
+								className="window-body"
 								style={{
-									padding: '12px 14px',
+									padding: 0,
 									display: 'flex',
 									flexDirection: 'column',
-									gap: 9,
 									flex: 1,
-									overflowY: 'auto',
 									minHeight: 0,
-									maxHeight: 280,
+									overflow: 'hidden',
 								}}
 							>
-								{isFriendsLoading && friends === null ? (
-									<div style={{ padding: 28, textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
-										{t('homeExtended.scanningComms')}
-									</div>
-								) : !friends || friends.length === 0 ? (
-									<div style={{ padding: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
-										{t('homeExtended.noFriendsLinked')}
-									</div>
-								) : (
-									friends.map((f) => {
-										const fRank = leaderboardMap[f.username]
-										const fTier = getRankTier(f.rating ?? 1200, fRank)
-										const fStatus = STATUS_STYLE[f.status || 'offline'] || STATUS_STYLE.offline
-										const isPace24 =
-											f.username.toLowerCase().includes('harleynghx') ||
-											f.username.toLowerCase().includes('harleyhx')
+								<div
+									style={{
+										padding: '10px 12px',
+										display: 'flex',
+										flexDirection: 'column',
+										gap: 8,
+										flex: 1,
+										overflowY: 'auto',
+										minHeight: 0,
+									}}
+								>
+									{isFriendsLoading && friends === null ? (
+										<div style={{ padding: 28, textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
+											{t('homeExtended.scanningComms')}
+										</div>
+									) : !friends || friends.length === 0 ? (
+										<div style={{ padding: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
+											{t('homeExtended.noFriendsLinked')}
+										</div>
+									) : (
+										friends.map((f) => {
+											const fRank = leaderboardMap[f.username]
+											const fTier = getRankTier(f.rating ?? 1200, fRank)
+											const fStatus = STATUS_STYLE[f.status || 'offline'] || STATUS_STYLE.offline
+											const isPace24 =
+												f.username.toLowerCase().includes('harleynghx') ||
+												f.username.toLowerCase().includes('harleyhx')
 
-										return (
-											<div
-												key={f.id}
-												style={{
-													display: 'flex',
-													alignItems: 'center',
-													justifyContent: 'space-between',
-													padding: '10px 14px',
-													borderRadius: 6,
-													background: 'rgba(10, 3, 26, 0.85)',
-													border: '1.5px solid rgba(0, 240, 255, 0.25)',
-													cursor: 'pointer',
-													transition: 'all 0.18s ease',
-													gap: 12,
-												}}
-												onClick={() => {
-													retroAudio.playUiBeep(640, 0.04)
-													navigate(`/profile?u=${encodeURIComponent(f.username)}`)
-												}}
-												onMouseEnter={(e) => {
-													e.currentTarget.style.background = 'rgba(0, 240, 255, 0.16)'
-													e.currentTarget.style.borderColor = 'var(--accent-cyan)'
-													e.currentTarget.style.transform = 'translateX(2px)'
-												}}
-												onMouseLeave={(e) => {
-													e.currentTarget.style.background = 'rgba(10, 3, 26, 0.85)'
-													e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.25)'
-													e.currentTarget.style.transform = 'translateX(0)'
-												}}
-											>
-												<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-													<div style={{ position: 'relative', flexShrink: 0 }}>
-														<div
-															style={{
-																padding: 2,
-																borderRadius: 5,
-																background: `linear-gradient(135deg, ${fTier.color}, var(--accent-cyan))`,
-																boxShadow: `0 0 8px ${fTier.glow}`,
-															}}
-														>
-															<UserAvatar
-																username={f.username}
-																avatarStyle={f.avatarStyle}
-																size={38}
-																fallbackStyle={{
-																	width: 38,
-																	height: 38,
-																	borderRadius: 4,
-																	background: 'rgba(10, 2, 28, 0.95)',
-																	color: 'var(--accent-cyan)',
-																	display: 'grid',
-																	placeItems: 'center',
-																	fontWeight: 900,
-																	fontSize: '0.95rem',
+											return (
+												<div
+													key={f.id}
+													className="retro-friend-card"
+													onClick={() => {
+														retroAudio.playUiBeep(640, 0.04)
+														navigate(`/profile?u=${encodeURIComponent(f.username)}`)
+													}}
+												>
+													<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+														<div style={{ position: 'relative', flexShrink: 0 }}>
+															<div
+																style={{
+																	padding: 2,
+																	borderRadius: 5,
+																	background: `linear-gradient(135deg, ${fTier.color}, var(--accent-cyan))`,
+																	boxShadow: `0 0 8px ${fTier.glow}`,
+																}}
+															>
+																<UserAvatar
+																	username={f.username}
+																	avatarStyle={f.avatarStyle}
+																	size={38}
+																	fallbackStyle={{
+																		width: 38,
+																		height: 38,
+																		borderRadius: 4,
+																		background: 'rgba(10, 2, 28, 0.95)',
+																		color: 'var(--accent-cyan)',
+																		display: 'grid',
+																		placeItems: 'center',
+																		fontWeight: 900,
+																		fontSize: '0.95rem',
+																	}}
+																/>
+															</div>
+															<span
+																style={{
+																	position: 'absolute',
+																	right: -2,
+																	bottom: -2,
+																	width: 9,
+																	height: 9,
+																	borderRadius: '50%',
+																	background: fStatus.color,
+																	border: '2px solid #0d0221',
+																	boxShadow: `0 0 6px ${fStatus.color}`,
 																}}
 															/>
 														</div>
-														<span
-															style={{
-																position: 'absolute',
-																right: -2,
-																bottom: -2,
-																width: 9,
-																height: 9,
-																borderRadius: '50%',
-																background: fStatus.color,
-																border: '2px solid #0d0221',
-																boxShadow: `0 0 6px ${fStatus.color}`,
-															}}
-														/>
-													</div>
-													<div style={{ minWidth: 0, flex: 1 }}>
-														<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-															<span
-																style={{
-																	fontSize: '0.92rem',
-																	fontWeight: 900,
-																	color: '#ffffff',
-																	fontFamily: 'var(--font-display)',
-																	whiteSpace: 'nowrap',
-																	overflow: 'hidden',
-																	textOverflow: 'ellipsis',
-																	letterSpacing: '0.02em',
-																}}
-															>
-																{f.displayName || f.username}
-															</span>
-															<RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
-														</div>
-														<div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
-															● {fStatus.label.toUpperCase()} // {t('homeExtended.alliedPilot')}{isPace24 ? ' // PACE 24' : ''}
+														<div style={{ minWidth: 0, flex: 1 }}>
+															<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+																<span
+																	style={{
+																		fontSize: '0.92rem',
+																		fontWeight: 900,
+																		color: 'var(--text-main)',
+																		fontFamily: 'var(--font-display)',
+																		whiteSpace: 'nowrap',
+																		overflow: 'hidden',
+																		textOverflow: 'ellipsis',
+																		letterSpacing: '0.02em',
+																	}}
+																>
+																	{f.username}
+																</span>
+																<RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
+															</div>
+															<div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
+																● {fStatus.label.toUpperCase()} // {t('homeExtended.alliedPilot')}{isPace24 ? ' // PACE 24' : ''}
+															</div>
 														</div>
 													</div>
-												</div>
 
-												<div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-													<span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
-														{f.rating ?? 1200}
-													</span>
-													<span style={{ fontSize: '0.64rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
-														ELO
-													</span>
+													<div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+														<span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
+															{f.rating ?? 1200}
+														</span>
+														<span style={{ fontSize: '0.64rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
+															ELO
+														</span>
+													</div>
 												</div>
-											</div>
-										)
-									})
-								)}
+											)
+										})
+									)}
+								</div>
 							</div>
 						</section>
 
@@ -936,8 +950,8 @@ export function Home() {
 										alignItems: 'center',
 										justifyContent: 'space-between',
 										padding: '12px 16px',
-										background: 'rgba(0, 0, 0, 0.45)',
-										border: '1px solid var(--accent-cyan)',
+										background: 'var(--bg-secondary)',
+										border: '1px solid var(--border-color)',
 										borderRadius: 4,
 										flexWrap: 'wrap',
 										gap: 12,
@@ -950,8 +964,8 @@ export function Home() {
 										/>
 										<div>
 											<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: '#ffffff', letterSpacing: 1 }}>
-													{displayName.toUpperCase()}
+												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: 'var(--text-main)', letterSpacing: 1 }}>
+													{username.toUpperCase()}
 												</span>
 												<RankBadge
 													tier={getRankTier(stats?.rating ?? 1200, leaderboardRank)}
@@ -989,8 +1003,8 @@ export function Home() {
 									<div
 										style={{
 											padding: '12px 14px',
-											background: 'rgba(25, 10, 56, 0.5)',
-											border: '1px solid rgba(0, 240, 255, 0.3)',
+											background: 'var(--bg-secondary)',
+											border: '1px solid var(--border-color)',
 											borderRadius: 4,
 											display: 'flex',
 											flexDirection: 'column',
@@ -1009,8 +1023,8 @@ export function Home() {
 									<div
 										style={{
 											padding: '12px 14px',
-											background: 'rgba(25, 10, 56, 0.5)',
-											border: '1px solid rgba(255, 0, 127, 0.3)',
+											background: 'var(--bg-secondary)',
+											border: '1px solid var(--border-color)',
 											borderRadius: 4,
 											display: 'flex',
 											flexDirection: 'column',
@@ -1029,8 +1043,8 @@ export function Home() {
 									<div
 										style={{
 											padding: '12px 14px',
-											background: 'rgba(25, 10, 56, 0.5)',
-											border: '1px solid rgba(255, 230, 0, 0.3)',
+											background: 'var(--bg-secondary)',
+											border: '1px solid var(--border-color)',
 											borderRadius: 4,
 											display: 'flex',
 											flexDirection: 'column',
@@ -1104,10 +1118,38 @@ export function Home() {
 							</div>
 						</section>
 
-						{/* Widget 4: Quick Deploy Arena Modes */}
-						<section className="retro-window col-4" id="quickDeployWindow">
+						{/* Widget 4: Cyber Sound Deck & Cassette Synthesizer */}
+						<section className="retro-window col-4" id="cyberSoundDeckWindow">
 							<div className="window-header">
-								<span>{t('homeExtended.gameModesTitle')}</span>
+								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+									<span>◖ CYBERSOUND DECK ◗</span>
+									<span
+										style={{
+											fontSize: '0.62rem',
+											padding: '2px 6px',
+											borderRadius: 3,
+											background: isPlayingAudio ? 'rgba(0, 240, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+											border: isPlayingAudio ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.15)',
+											color: isPlayingAudio ? 'var(--accent-cyan)' : 'var(--text-muted)',
+											fontFamily: 'var(--font-mono)',
+											fontWeight: 'bold',
+											display: 'inline-flex',
+											alignItems: 'center',
+											gap: 4,
+										}}
+									>
+										<span
+											style={{
+												width: 6,
+												height: 6,
+												borderRadius: '50%',
+												background: isPlayingAudio ? 'var(--accent-cyan)' : 'var(--text-muted)',
+												boxShadow: isPlayingAudio ? '0 0 6px var(--accent-cyan)' : 'none',
+											}}
+										/>
+										{isPlayingAudio ? 'LIVE STEREO' : 'STANDBY'}
+									</span>
+								</div>
 								<div className="window-controls">
 									<span className="window-btn min" />
 									<span className="window-btn max" />
@@ -1118,110 +1160,129 @@ export function Home() {
 								style={{
 									display: 'flex',
 									flexDirection: 'column',
-									gap: 10,
+									gap: 8,
 									justifyContent: 'space-between',
 								}}
 							>
-								{/* Cartridge 1: 1v1 Cyber Duel */}
-								<button
-									className="retro-btn"
-									style={{
-										width: '100%',
-										padding: '10px 14px',
-										display: 'flex',
-										justifyContent: 'space-between',
-										alignItems: 'center',
-										background: 'rgba(0, 240, 255, 0.08)',
-										border: '1px solid var(--accent-cyan)',
-									}}
-									onClick={() => {
-										retroAudio.playUiBeep(700, 0.06)
-										navigate('/gamelobby')
-									}}
-								>
-									<div style={{ textAlign: 'left' }}>
-										<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-cyan)' }}>
-											{t('homeExtended.duel1v1Title')}
+								{/* Cyber Cassette Chassis */}
+								<div className="cyber-cassette-chassis">
+									{/* OLED Track HUD Display */}
+									<div className="oled-screen">
+										<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+											<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--accent-pink)', fontWeight: 'bold' }}>
+												TRACK 0{audioTrackIndex + 1} / 0{retroAudio.tracks.length}
+											</span>
+											<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: isPlayingAudio ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+												{isPlayingAudio ? '● PLAYING' : '■ IDLE'}
+											</span>
 										</div>
-										<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-											{t('homeExtended.duel1v1Desc')}
+										<div className="oled-title">
+											{retroAudio.tracks[audioTrackIndex]?.name || "SYNTHWAVE NIGHTS '84"}
+										</div>
+										<div className="oled-meta">
+											<span>{retroAudio.tracks[audioTrackIndex]?.tempo || 120} BPM // A-MIN</span>
+											<span>CHIPTUNE · 44.1kHz</span>
 										</div>
 									</div>
-									<span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>{t('homeExtended.deployAction')}</span>
-								</button>
 
-								{/* Cartridge 2: 4-Player Royale */}
-								<button
-									className="retro-btn"
-									style={{
-										width: '100%',
-										padding: '10px 14px',
-										display: 'flex',
-										justifyContent: 'space-between',
-										alignItems: 'center',
-										background: 'rgba(255, 0, 127, 0.08)',
-										border: '1px solid var(--accent-pink)',
-									}}
-									onClick={() => {
-										retroAudio.playUiBeep(700, 0.06)
-										navigate('/gamelobby')
-									}}
-								>
-									<div style={{ textAlign: 'left' }}>
-										<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-pink)' }}>
-											{t('homeExtended.match4PTitle')}
-										</div>
-										<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-											{t('homeExtended.match4PDesc')}
-										</div>
+									{/* Multi-Band Stereo Spectrum Equalizer */}
+									<div className="cyber-eq-deck">
+										{eqHeights.map((h, i) => (
+											<div
+												key={i}
+												className="cyber-eq-col"
+												style={{ height: `${h}px` }}
+											/>
+										))}
 									</div>
-									<span style={{ fontSize: '0.8rem', color: 'var(--accent-pink)' }}>{t('homeExtended.deployAction')}</span>
-								</button>
+								</div>
 
-								{/* Cartridge 3: AI Practice / Local */}
-								<button
-									className="retro-btn"
-									style={{
-										width: '100%',
-										padding: '10px 14px',
-										display: 'flex',
-										justifyContent: 'space-between',
-										alignItems: 'center',
-										background: 'rgba(255, 230, 0, 0.08)',
-										border: '1px solid var(--accent-yellow)',
-									}}
-									onClick={() => {
-										retroAudio.playUiBeep(700, 0.06)
-										navigate('/game')
-									}}
-								>
-									<div style={{ textAlign: 'left' }}>
-										<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-yellow)' }}>
-											{t('homeExtended.practiceBotsTitle')}
+								{/* Primary Cyber Transport Hardware Cluster */}
+								<div className="cyber-transport-cluster">
+									<button
+										type="button"
+										className="cyber-deck-key"
+										onClick={handlePrevTrack}
+										title="Previous Audio Track"
+									>
+										<span className="cyber-key-icon" style={{ color: 'var(--accent-cyan)' }}>
+											⏮
+										</span>
+										<span className="cyber-key-label">PREV</span>
+										<span className="cyber-key-sub">RW // TRACK</span>
+									</button>
+
+									<button
+										type="button"
+										className={`cyber-deck-key cyber-deck-key-play ${isPlayingAudio ? 'active' : ''}`}
+										onClick={handleToggleAudio}
+										title={isPlayingAudio ? 'Pause Chiptune Audio' : 'Play Chiptune Audio'}
+									>
+										<span className="cyber-key-icon" style={{ color: isPlayingAudio ? '#ffffff' : 'var(--accent-pink)' }}>
+											{isPlayingAudio ? '⏸' : '▶'}
+										</span>
+										<span className="cyber-key-label" style={{ color: '#ffffff', fontSize: '0.64rem' }}>
+											{isPlayingAudio ? 'PAUSE' : 'PLAY SYNTH'}
+										</span>
+										<span className="cyber-key-sub" style={{ color: isPlayingAudio ? 'var(--accent-yellow)' : 'var(--accent-cyan)' }}>
+											{isPlayingAudio ? '● LIVE AUDIO' : '○ STANDBY'}
+										</span>
+									</button>
+
+									<button
+										type="button"
+										className="cyber-deck-key"
+										onClick={handleNextTrack}
+										title="Next Audio Track"
+									>
+										<span className="cyber-key-icon" style={{ color: 'var(--accent-cyan)' }}>
+											⏭
+										</span>
+										<span className="cyber-key-label">NEXT</span>
+										<span className="cyber-key-sub">FF // TRACK</span>
+									</button>
+								</div>
+
+								{/* Cyber Master Volume Console & 10-Segment LED Meter */}
+								<div className="cyber-vol-console">
+									<div className="cyber-fader-track-row">
+										<button
+											type="button"
+											className="cyber-vol-step-btn"
+											onClick={() => handleStepVolume(-10)}
+											title="Decrease Volume (-10%)"
+										>
+											-
+										</button>
+
+										{/* 10 Interactive LED Bar Segments */}
+										<div
+											className="cyber-vol-led-bar"
+											title={`Volume: ${audioVolume}% (Click segment to set)`}
+										>
+											{Array.from({ length: 10 }).map((_, idx) => {
+												const isLit = audioVolume >= (idx + 1) * 10 - 5
+												const colorClass = idx < 5 ? 'lit-cyan' : idx < 8 ? 'lit-amber' : 'lit-pink'
+												return (
+													<div
+														key={idx}
+														className={`cyber-vol-led-segment ${isLit ? colorClass : ''}`}
+														onClick={() => handleLedSegmentClick(idx)}
+													/>
+												)
+											})}
 										</div>
-										<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-											{t('homeExtended.practiceBotsDesc')}
-										</div>
+
+										<button
+											type="button"
+											className="cyber-vol-step-btn"
+											onClick={() => handleStepVolume(10)}
+											title="Increase Volume (+10%)"
+										>
+											+
+										</button>
 									</div>
-									<span style={{ fontSize: '0.8rem', color: 'var(--accent-yellow)' }}>{t('homeExtended.playAction')}</span>
-								</button>
-
-								{/* Global Ladder Footer Link */}
-								<button
-									className="retro-btn"
-									style={{
-										width: '100%',
-										padding: '8px 12px',
-										fontSize: '0.72rem',
-										marginTop: 4,
-									}}
-									onClick={() => {
-										retroAudio.playUiBeep(600, 0.05)
-										navigate('/leaderboard')
-									}}
-								>
-									{t('homeExtended.viewGlobalLadder')}
-								</button>
+								</div>
 							</div>
 						</section>
 					</main>
@@ -1232,10 +1293,6 @@ export function Home() {
 					</footer>
 				</div>
 			</div>
-
-			{/* Emergency Dispatch Toast Alerts */}
-			<NotificationToasts toasts={toasts} onDismiss={dismissToast} />
 		</>
 	)
 }
-
