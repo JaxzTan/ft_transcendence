@@ -866,11 +866,12 @@ export function Friends() {
 
                 {/* Bottom Right Card: Dedicated FRIEND REQUESTS Card */}
                 <div
+                  className="retro-window"
                   style={{
                     flex: 1,
-                    background: requests.length > 0 ? 'linear-gradient(180deg, rgba(28, 8, 54, 0.95) 0%, rgba(14, 4, 32, 0.98) 100%)' : 'rgba(12, 4, 28, 0.85)',
-                    border: requests.length > 0 ? '1.5px solid var(--accent-pink)' : '1.5px solid rgba(255, 255, 255, 0.15)',
-                    boxShadow: requests.length > 0 ? '0 0 20px rgba(255, 0, 127, 0.25)' : 'none',
+                    background: 'var(--bg-card)',
+                    border: 'var(--card-border-style)',
+                    boxShadow: 'var(--box-shadow)',
                     borderRadius: 8,
                     display: 'flex',
                     flexDirection: 'column',
@@ -880,10 +881,9 @@ export function Friends() {
                 >
                   {/* Card Header */}
                   <div
+                    className="window-header"
                     style={{
                       padding: '10px 14px',
-                      background: requests.length > 0 ? 'rgba(255, 0, 127, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                      borderBottom: requests.length > 0 ? '1px solid rgba(255, 0, 127, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -896,14 +896,14 @@ export function Friends() {
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          background: requests.length > 0 ? '#ff007f' : 'var(--text-muted)',
-                          boxShadow: requests.length > 0 ? '0 0 8px #ff007f' : 'none',
+                          background: requests.length > 0 ? 'var(--accent-pink)' : 'var(--text-muted)',
+                          boxShadow: requests.length > 0 ? '0 0 8px var(--accent-pink)' : 'none',
                         }}
                       />
                       <span
                         style={{
                           fontSize: '0.78rem',
-                          color: requests.length > 0 ? '#ff007f' : '#ffffff',
+                          color: 'var(--text-main)',
                           fontFamily: 'var(--font-display)',
                           fontWeight: 900,
                           letterSpacing: '1px',
@@ -971,9 +971,9 @@ export function Friends() {
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '9px 12px',
-                            background: 'rgba(18, 6, 42, 0.88)',
-                            border: '1px solid rgba(255, 0, 127, 0.32)',
-                            boxShadow: '0 0 10px rgba(255, 0, 127, 0.12)',
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            boxShadow: 'var(--box-shadow)',
                             borderRadius: 6,
                             gap: 10,
                           }}
@@ -999,7 +999,7 @@ export function Friends() {
                                 style={{
                                   fontSize: '0.86rem',
                                   fontWeight: 900,
-                                  color: '#ffffff',
+                                  color: 'var(--text-main)',
                                   fontFamily: 'var(--font-display)',
                                   whiteSpace: 'nowrap',
                                   overflow: 'hidden',

@@ -796,8 +796,8 @@ export function Home() {
 													justifyContent: 'space-between',
 													padding: '10px 14px',
 													borderRadius: 6,
-													background: 'rgba(10, 3, 26, 0.85)',
-													border: '1.5px solid rgba(0, 240, 255, 0.25)',
+													background: 'var(--bg-secondary)',
+													border: '1px solid var(--border-color)',
 													cursor: 'pointer',
 													transition: 'all 0.18s ease',
 													gap: 12,
@@ -807,13 +807,13 @@ export function Home() {
 													navigate(`/profile?u=${encodeURIComponent(f.username)}`)
 												}}
 												onMouseEnter={(e) => {
-													e.currentTarget.style.background = 'rgba(0, 240, 255, 0.16)'
+													e.currentTarget.style.background = 'var(--bg-card)'
 													e.currentTarget.style.borderColor = 'var(--accent-cyan)'
 													e.currentTarget.style.transform = 'translateX(2px)'
 												}}
 												onMouseLeave={(e) => {
-													e.currentTarget.style.background = 'rgba(10, 3, 26, 0.85)'
-													e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.25)'
+													e.currentTarget.style.background = 'var(--bg-secondary)'
+													e.currentTarget.style.borderColor = 'var(--border-color)'
 													e.currentTarget.style.transform = 'translateX(0)'
 												}}
 											>
@@ -864,7 +864,7 @@ export function Home() {
 																style={{
 																	fontSize: '0.92rem',
 																	fontWeight: 900,
-																	color: '#ffffff',
+																	color: 'var(--text-main)',
 																	fontFamily: 'var(--font-display)',
 																	whiteSpace: 'nowrap',
 																	overflow: 'hidden',
@@ -883,7 +883,7 @@ export function Home() {
 												</div>
 
 												<div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-													<span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
+													<span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
 														{f.rating ?? 1200}
 													</span>
 													<span style={{ fontSize: '0.64rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
@@ -916,8 +916,8 @@ export function Home() {
 										alignItems: 'center',
 										justifyContent: 'space-between',
 										padding: '12px 16px',
-										background: 'rgba(0, 0, 0, 0.45)',
-										border: '1px solid var(--accent-cyan)',
+										background: 'var(--bg-secondary)',
+										border: '1px solid var(--border-color)',
 										borderRadius: 4,
 										flexWrap: 'wrap',
 										gap: 12,
@@ -930,7 +930,7 @@ export function Home() {
 										/>
 										<div>
 											<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: '#ffffff', letterSpacing: 1 }}>
+												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: 'var(--text-main)', letterSpacing: 1 }}>
 													{username.toUpperCase()}
 												</span>
 												<RankBadge
@@ -969,8 +969,8 @@ export function Home() {
 									<div
 										style={{
 											padding: '12px 14px',
-											background: 'rgba(25, 10, 56, 0.5)',
-											border: '1px solid rgba(0, 240, 255, 0.3)',
+											background: 'var(--bg-secondary)',
+											border: '1px solid var(--border-color)',
 											borderRadius: 4,
 											display: 'flex',
 											flexDirection: 'column',
@@ -989,8 +989,8 @@ export function Home() {
 									<div
 										style={{
 											padding: '12px 14px',
-											background: 'rgba(25, 10, 56, 0.5)',
-											border: '1px solid rgba(255, 0, 127, 0.3)',
+											background: 'var(--bg-secondary)',
+											border: '1px solid var(--border-color)',
 											borderRadius: 4,
 											display: 'flex',
 											flexDirection: 'column',
@@ -1009,8 +1009,8 @@ export function Home() {
 									<div
 										style={{
 											padding: '12px 14px',
-											background: 'rgba(25, 10, 56, 0.5)',
-											border: '1px solid rgba(255, 230, 0, 0.3)',
+											background: 'var(--bg-secondary)',
+											border: '1px solid var(--border-color)',
 											borderRadius: 4,
 											display: 'flex',
 											flexDirection: 'column',
