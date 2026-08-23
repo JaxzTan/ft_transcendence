@@ -2,8 +2,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef } from 'react'
 import { COL, type ColorKey } from '../theme'
 
-const CELL_BG = '#efe6d6'
-const LINE = '#c9b995'
+const CELL_BG = '#050515'
+const LINE = '#00f0ff'
 
 // ─── Track geometry ─────────────────────────────────────────────────────────
 // The engine works purely in logical steps (0-57, see board-mapper.ts) and has
@@ -58,19 +58,78 @@ function stepToCell(color: ColorKey, step: number): Cell | null {
   return null
 }
 
-function Sphere({ ck }: { ck: ColorKey }) {
+const PATH_MAP: Record<ColorKey, string> = {
+  yellow: `
+    M2,0 h1 v1 h-1 z  M8,0 h1 v1 h-1 z
+    M3,1 h1 v1 h-1 z  M7,1 h1 v1 h-1 z
+    M2,2 h7 v1 h-7 z
+    M1,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M8,3 h2 v1 h-2 z
+    M0,4 h11 v1 h-11 z
+    M0,5 h1 v1 h-1 z  M2,5 h7 v1 h-7 z  M10,5 h1 v1 h-1 z
+    M0,6 h1 v1 h-1 z  M2,6 h1 v1 h-1 z  M8,6 h1 v1 h-1 z  M10,6 h1 v1 h-1 z
+    M3,7 h2 v1 h-2 z  M6,7 h2 v1 h-2 z
+  `,
+  red: `
+    M0,0 h1 v2 h-1 z  M10,0 h1 v2 h-1 z
+    M2,1 h7 v1 h-7 z
+    M1,2 h2 v1 h-2 z  M4,2 h3 v1 h-3 z  M8,2 h2 v1 h-2 z
+    M0,3 h11 v1 h-11 z
+    M0,4 h1 v1 h-1 z  M2,4 h7 v1 h-7 z  M10,4 h1 v1 h-1 z
+    M0,5 h1 v1 h-1 z  M2,5 h1 v1 h-1 z  M8,5 h1 v1 h-1 z  M10,5 h1 v1 h-1 z
+    M3,6 h2 v1 h-2 z  M6,6 h2 v1 h-2 z
+    M2,7 h1 v1 h-1 z  M8,7 h1 v1 h-1 z
+  `,
+  green: `
+    M4,0 h3 v1 h-3 z
+    M3,1 h5 v1 h-5 z
+    M2,2 h7 v1 h-7 z
+    M1,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M8,3 h2 v1 h-2 z
+    M0,4 h11 v1 h-11 z
+    M1,5 h1 v1 h-1 z  M3,5 h5 v1 h-5 z  M9,5 h1 v1 h-1 z
+    M0,6 h1 v1 h-1 z  M10,6 h1 v1 h-1 z
+    M1,7 h1 v1 h-1 z  M9,7 h1 v1 h-1 z
+  `,
+  blue: `
+    M3,0 h5 v1 h-5 z
+    M1,1 h9 v1 h-9 z
+    M0,2 h11 v1 h-11 z
+    M0,3 h2 v1 h-2 z  M4,3 h3 v1 h-3 z  M9,3 h2 v1 h-2 z
+    M0,4 h11 v1 h-11 z
+    M2,5 h2 v1 h-2 z  M7,5 h2 v1 h-2 z
+    M1,6 h1 v1 h-1 z  M4,6 h1 v1 h-1 z  M6,6 h1 v1 h-1 z  M9,6 h1 v1 h-1 z
+    M0,7 h1 v1 h-1 z  M10,7 h1 v1 h-1 z
+  `,
+}
+
+function Sphere({ ck, isLegal }: { ck: ColorKey; isLegal?: boolean }) {
   const c = COL[ck]
+  const d = PATH_MAP[ck]
+
   return (
-    <div
+    <svg
+      viewBox="-1 -1 13 10"
       style={{
-        width: '72%',
-        aspectRatio: '1',
-        borderRadius: '50%',
-        background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${c.base} 52%, ${c.dark})`,
-        boxShadow: '0 3px 5px rgba(0,0,0,.45)',
-        border: '2px solid rgba(0,0,0,.28)',
+        width: '100%',
+        height: '100%',
+        overflow: 'visible',
+        filter: isLegal
+          ? 'drop-shadow(0 0 4px #ffe600) drop-shadow(0 0 8px #ffe600)'
+          : 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.95))',
       }}
-    />
+      shapeRendering="crispEdges"
+    >
+      {/* High-contrast solid black outline tracing the Invader's exact pixel shape */}
+      <path
+        d={d}
+        fill="none"
+        stroke="#000000"
+        strokeWidth="1"
+        strokeLinejoin="miter"
+        strokeLinecap="square"
+      />
+      {/* Original Invader color fill */}
+      <path fill={c.base} d={d} />
+    </svg>
   )
 }
 
@@ -89,59 +148,106 @@ function Ring({ ck }: { ck: ColorKey }) {
 }
 
 function Yard({
-  r, c, ck, basePieces, legalPieceIds, onPieceClick,
+  r, c, ck, basePieces, goalCount, legalPieceIds, onPieceClick,
 }: {
   r: number
   c: number
   ck: ColorKey
   basePieces: Array<{ id: string }>
+  goalCount: number
   legalPieceIds: Set<string>
   onPieceClick?: (pieceId: string) => void
 }) {
   const col = COL[ck]
+  const label = ck === 'yellow' ? 'YELLOW-BAY' : `${ck.toUpperCase()}-BAY`
   return (
     <div
       style={{
         gridRow: `${r + 1} / span 6`,
         gridColumn: `${c + 1} / span 6`,
-        padding: '11%',
-        background: col.yard,
-        border: `3px solid ${col.base}`,
-        borderRadius: 12,
+        padding: '6% 8%',
+        background: 'rgba(10, 2, 28, 0.95)',
+        border: '1.5px solid #2121ff',
+        borderRadius: 8,
+        boxShadow: '0 0 14px rgba(33, 33, 255, 0.45), inset 0 0 10px rgba(0, 240, 255, 0.15)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'space-between',
       }}
     >
       <div
         style={{
           width: '100%',
-          height: '100%',
-          background: CELL_BG,
-          borderRadius: 10,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <span
+          style={{
+            fontSize: '0.62rem',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 'bold',
+            color: col.base,
+            letterSpacing: '0.5px',
+            textShadow: `0 0 6px ${col.base}`,
+          }}
+        >
+          // {label}
+        </span>
+        <span
+          style={{
+            fontSize: '0.62rem',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 'bold',
+            color: goalCount > 0 ? '#00ff88' : '#ffffff',
+            background: 'rgba(5, 5, 20, 0.9)',
+            border: `1px solid ${col.base}`,
+            padding: '1px 6px',
+            borderRadius: 3,
+            boxShadow: `0 0 6px ${col.base}66`,
+          }}
+        >
+          GOAL: {goalCount}/4
+        </span>
+      </div>
+      <div
+        style={{
+          width: '100%',
+          height: '82%',
+          background: 'rgba(10, 2, 28, 0.95)',
+          border: `1.5px solid ${col.base}`,
+          borderRadius: 8,
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gridTemplateRows: '1fr 1fr',
-          gap: '10%',
-          padding: '13%',
-          boxShadow: 'inset 0 2px 6px rgba(0,0,0,.2)',
+          gap: '8%',
+          padding: '10%',
+          boxShadow: `inset 0 0 10px ${col.base}33`,
+          placeItems: 'center',
         }}
       >
         {[0, 1, 2, 3].map((s) => {
           const piece = basePieces[s]
-          if (!piece) return <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ring ck={ck} /></div>
+          if (!piece) return <div key={s} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ring ck={ck} /></div>
           const isLegal = legalPieceIds.has(piece.id)
           return (
             <div
               key={s}
               onClick={() => isLegal && onPieceClick?.(piece.id)}
               style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32,
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 cursor: isLegal ? 'pointer' : 'default',
-                border: isLegal ? '2.5px solid #9aa4ad' : 'none',
-                boxShadow: isLegal ? '0 0 0 4px rgba(160,165,170,.35), 0 0 10px rgba(0,0,0,.45)' : 'none',
-                animation: isLegal ? 'haloPulse 1.8s ease-in-out infinite' : 'none',
-                borderRadius: '50%',
+                animation: isLegal ? 'piecePulse 1.2s ease-in-out infinite' : 'none',
+                zIndex: isLegal ? 30 : 1,
               }}
             >
-              <Sphere ck={ck} />
+              <Sphere ck={ck} isLegal={isLegal} />
             </div>
           )
         })}
@@ -190,6 +296,8 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
   const activeColors = new Set(players.filter((p) => p.status === 'active' || p.status === 'disconnected').map((p) => p.color))
   const basePieces = (ck: ColorKey) =>
     activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase) : []
+  const goalCount = (ck: ColorKey) =>
+    pieces.filter((p) => p.color === ck && p.isInGoal).length
 
   const cells: ReactNode[] = []
   for (let r = 0; r < 15; r++) {
@@ -211,7 +319,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
         boxSizing: 'border-box',
       }
       let inner: ReactNode = null
-      if (startCol)
+      if (startCol) {
         inner = (
           <div
             style={{
@@ -219,22 +327,37 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
               height: '44%',
               clipPath:
                 'polygon(50% 0,61% 35%,100% 35%,68% 57%,79% 100%,50% 72%,21% 100%,32% 57%,0 35%,39% 35%)',
-              background: 'rgba(255,255,255,.85)',
+              background: '#ffffff',
+              filter: 'drop-shadow(0 0 4px #ffffff)',
             }}
           />
         )
-      else if (SAFE_STAR_CELLS[key])
+      } else if (SAFE_STAR_CELLS[key]) {
         inner = (
           <div
             style={{
-              width: '36%',
-              height: '36%',
+              width: '40%',
+              height: '40%',
               clipPath:
                 'polygon(50% 0,61% 35%,100% 35%,68% 57%,79% 100%,50% 72%,21% 100%,32% 57%,0 35%,39% 35%)',
-              background: '#000',
+              background: '#ffe600',
+              filter: 'drop-shadow(0 0 5px #ffe600)',
             }}
           />
         )
+      } else if (!laneColor(r, c)) {
+        inner = (
+          <div
+            style={{
+              width: 4,
+              height: 4,
+              borderRadius: '50%',
+              background: '#ffb8ae',
+              boxShadow: '0 0 4px #ffb8ae',
+            }}
+          />
+        )
+      }
       cells.push(
         <div key={`p${key}`} style={style}>
           {inner}
@@ -278,10 +401,10 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
     const style = document.createElement('style')
     style.id = id
     style.textContent = `
-      @keyframes haloPulse {
-        0% { box-shadow: 0 0 0 4px rgba(160,165,170,.35), 0 0 6px rgba(0,0,0,.45); }
-        50% { box-shadow: 0 0 0 7px rgba(160,165,170,.55), 0 0 14px rgba(0,0,0,.55); }
-        100% { box-shadow: 0 0 0 4px rgba(160,165,170,.35), 0 0 6px rgba(0,0,0,.45); }
+      @keyframes piecePulse {
+        0%   { transform: scale(1); }
+        50%  { transform: scale(1.24); }
+        100% { transform: scale(1); }
       }
       @keyframes captureRing {
         from { transform: scale(.2); opacity: .9; }
@@ -360,7 +483,6 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
   for (const [key, list] of byCell) {
     const [r, c] = key.split(',').map(Number)
     list.forEach((p, i) => {
-      const col = COL[p.ck]
       const offset = list.length > 1 ? SUB_OFFSETS[i % SUB_OFFSETS.length] : { x: 0, y: 0 }
       enginePieces.push(
         <div
@@ -369,20 +491,21 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
           style={{
             gridRow: r + 1,
             gridColumn: c + 1,
-            width: 20,
-            height: 20,
+            width: p.isLegal ? 36 : 30,
+            height: p.isLegal ? 36 : 30,
             alignSelf: 'center',
             justifySelf: 'center',
-            borderRadius: '50%',
-            background: `radial-gradient(circle at 34% 30%, #ffffffdd, ${col.base} 52%, ${col.dark})`,
-            border: p.isLegal ? '2.5px solid #9aa4ad' : '2px solid rgba(0,0,0,.28)',
-            boxShadow: p.isLegal ? '0 0 0 4px rgba(160,165,170,.35), 0 0 10px rgba(0,0,0,.45)' : '0 2px 4px rgba(0,0,0,.45)',
-            animation: p.isLegal ? 'haloPulse 1.8s ease-in-out infinite' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: p.isLegal ? 'piecePulse 1.2s ease-in-out infinite' : 'none',
             cursor: p.isLegal ? 'pointer' : 'default',
-            zIndex: 10,
+            zIndex: p.isLegal ? 30 : 10,
             transform: `translate(${offset.x}%, ${offset.y}%)`,
           }}
-        />,
+        >
+          <Sphere ck={p.ck} isLegal={p.isLegal} />
+        </div>,
       )
     })
   }
@@ -398,22 +521,23 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
           gridTemplateRows: 'repeat(15,1fr)',
           gap: 1,
           padding: '2.5%',
-          borderRadius: 12,
-          background: 'linear-gradient(160deg,#25150f,#1a0f0a)',
-          boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.5)',
+          borderRadius: 10,
+          background: 'rgba(15, 6, 38, 0.95)',
+          border: '2px solid #2121ff',
+          boxShadow: '0 0 25px rgba(33, 33, 255, 0.6), inset 0 0 20px rgba(0, 240, 255, 0.25)',
         }}
       >
-        <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={0} c={9} ck="green" basePieces={basePieces('green')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={9} c={9} ck="yellow" basePieces={basePieces('yellow')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={9} c={0} ck="blue" basePieces={basePieces('blue')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} goalCount={goalCount('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={0} c={9} ck="green" basePieces={basePieces('green')} goalCount={goalCount('green')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={9} c={9} ck="yellow" basePieces={basePieces('yellow')} goalCount={goalCount('yellow')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard r={9} c={0} ck="blue" basePieces={basePieces('blue')} goalCount={goalCount('blue')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
         <div
           style={{
             gridRow: '7 / span 3',
             gridColumn: '7 / span 3',
             background: `conic-gradient(from 45deg, ${COL.yellow.base} 0 90deg, ${COL.blue.base} 90deg 180deg, ${COL.red.base} 180deg 270deg, ${COL.green.base} 270deg 360deg)`,
-            boxShadow: 'inset 0 0 0 2px rgba(0,0,0,.35)',
-            transform: 'rotate(-90deg)',
+            border: '2px solid #2121ff',
+            boxShadow: '0 0 18px rgba(33, 33, 255, 0.6), inset 0 0 12px rgba(0,0,0,.7)',
           }}
         />
         {cells}

@@ -216,12 +216,23 @@ export class FriendsService {
     return { message: 'Friend removed' };
   }
 
-  async getFriends(userId: string) {
+  async getFriends(userId: string, targetUsername?: string) {
+    let effectiveUserId = userId;
+    if (targetUsername) {
+      const targetUser = await this.prisma.db.user.findUnique({
+        where: { username: targetUsername },
+        select: { id: true },
+      });
+      if (targetUser) {
+        effectiveUserId = targetUser.id;
+      }
+    }
+
     const friendships = await this.prisma.db.friendship.findMany({
       where: {
         OR: [
-          { userId, status: 'accepted' },
-          { friendId: userId, status: 'accepted' },
+          { userId: effectiveUserId, status: 'accepted' },
+          { friendId: effectiveUserId, status: 'accepted' },
         ],
       },
       include: {
@@ -231,7 +242,7 @@ export class FriendsService {
     });
 
     const friends = friendships.map((f) => {
-      const friend = f.userId === userId ? f.friend : f.user;
+      const friend = f.userId === effectiveUserId ? f.friend : f.user;
       return {
         id: friend.id,
         username: friend.username,

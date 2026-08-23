@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Shell } from './components/Shell'
-import { Dashboard } from './pages/Dashboard'
 import { Friends } from './pages/Friends'
 import { Game } from './pages/Game'
 import { Home } from './pages/Home'
@@ -15,29 +14,25 @@ import { Profile } from './pages/Profile'
 import { TwoFactor } from './pages/TwoFactor'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
-// MultiplayerLobby is intentionally UNWIRED (file kept for reference):
-// all multiplayer create/join/quick routes through /lobby (LudoLobby) now.
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 
 /** Screens that render inside the app shell (rail + header). */
-const SHELL_ROUTES: Record<string, () => ReactNode> = {
-  '/home': () => <Home />,
-  '/dashboard': () => <Dashboard />,
-  '/leaderboard': () => <Leaderboard />,
-  '/friends': () => <Friends />,
-  '/profile': () => <Profile />,
-}
+const SHELL_ROUTES: Record<string, () => ReactNode> = {}
 
 /** Full-bleed screens (no shell). */
 const FULL_ROUTES: Record<string, () => ReactNode> = {
+  '/home': () => <Home />,
+  '/leaderboard': () => <Leaderboard />,
+  '/friends': () => <Friends />,
+  '/profile': () => <Profile />,
   '/login': () => <Login />,
   '/signup': () => <Signup />,
   '/2fa': () => <TwoFactor />,
   '/forgot-password': () => <ForgotPassword />,
   '/reset-password': () => <ResetPassword />,
-  '/lobby': () => <LudoLobby />,
-  '/lobby/table': () => <Lobby />,
+  '/gamelobby': () => <LudoLobby />,
+  '/gamelobby/table': () => <Lobby />,
   '/game': () => <Game />,
   '/results': () => <Results />,
 }

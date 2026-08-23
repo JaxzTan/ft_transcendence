@@ -83,13 +83,6 @@ model User {
   achLastLaugh         Boolean @default(false)
   achSpeedDemon        Boolean @default(false)
 
-  // Ludo result detail counters
-  gamesWithFourPieces  Int  @default(0)
-  gamesWithThreePieces Int  @default(0)
-  gamesWithTwoPieces   Int  @default(0)
-  gamesWithOnePiece    Int  @default(0)
-  gamesWithZeroPieces  Int  @default(0)
-
   accounts Account[]
   notifications       Notification[]
 

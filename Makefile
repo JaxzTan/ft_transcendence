@@ -74,6 +74,12 @@ seed-secrets: check-secrets
 start: seed-secrets
 	@docker compose -f $(COMPOSE_FILE) up -d --build
 
+seed:
+	@docker cp backend/prisma/seed.ts backend:/app/prisma/seed.ts 2>/dev/null || true
+	@docker compose -f $(COMPOSE_FILE) exec -e DATABASE_URL="postgresql://db_bossman:$$(cat $(SECRET_DIR)/db_password.txt)@db:5432/transcendence" backend npx prisma db seed
+
+db-seed: seed
+
 
 # stop/down/logs carry --profile dev so they still reach frontend-dev; without
 # it compose ignores profiled services and leaves the container orphaned.

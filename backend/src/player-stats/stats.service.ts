@@ -21,6 +21,8 @@ export class StatsService {
     const totalPiecesInGoal = participations.reduce((s, p) => s + p.piecesInGoal, 0);
 
     return {
+      rating: user.rating,
+      highestRating: user.highestRating,
       totalGames,
       wins,
       losses: totalGames - wins,

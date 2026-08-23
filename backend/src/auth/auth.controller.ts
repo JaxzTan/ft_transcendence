@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -19,6 +20,9 @@ const ACCESS_MAX_AGE_MS = 15 * 60 * 1000; // 15 min, matches JwtModule expiresIn
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_PATH = '/api/auth';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days, matches SessionService TTL
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+
 const LOCAL_FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 const NGROK_FRONTEND_URL = secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev';
 
@@ -42,6 +46,9 @@ export class AuthController {
 
   // No cookie here anymore: the account must be email-verified before its
   // first login, and every login must pass the 2FA code step.
+  // Tight: each call sends a real email (SMTP is live), so an open register
+  // route is both an account-spam vector and a way to use us as a mail bomb.
+  @Throttle({ default: { limit: 3, ttl: HOUR_MS } })
   @Post('register')
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
     return this.authService.register(dto, originFromRequest(req));
@@ -60,6 +67,8 @@ export class AuthController {
   // Factor one. With 2FA on, answers { twoFactorRequired: true, pendingToken }
   // and no session. With 2FA off, the password is enough: sets the session
   // cookies and answers { twoFactorRequired: false, user }.
+  // The password brute-force surface. 5/min still allows a fat-fingered human.
+  @Throttle({ default: { limit: 5, ttl: MINUTE_MS } })
   @Post('login')
   @HttpCode(200)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
@@ -79,6 +88,10 @@ export class AuthController {
   }
 
   // Factor two: emailed code + pendingToken buy the actual session cookies.
+  // twofactor.service.ts caps guesses at 5 *per challenge*, which an attacker
+  // sidesteps by starting a new challenge each time. This caps the rate at
+  // which they can do that — a 6-digit code needs far more than 5 tries/min.
+  @Throttle({ default: { limit: 5, ttl: MINUTE_MS } })
   @Post('2fa/verify')
   @HttpCode(200)
   async verifyTwoFactor(@Body() dto: TwoFactorDto, @Res({ passthrough: true }) res: Response) {
@@ -92,6 +105,9 @@ export class AuthController {
 
   // Silent re-auth: the browser sends only the refresh cookie and gets a fresh
   // access token (plus a rotated refresh token). No password or 2FA involved.
+  // Looser on purpose: apiFetch calls this automatically on any 401, so a user
+  // with several tabs open can legitimately burst. Still bounded.
+  @Throttle({ default: { limit: 30, ttl: MINUTE_MS } })
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
@@ -104,6 +120,9 @@ export class AuthController {
 
   // Password reset, step one: always answers with the same generic message,
   // whether or not the email is registered (no account enumeration).
+  // Also sends a real email, and here the victim is whoever owns the address —
+  // without a cap this is a free inbox-flooding tool aimed at someone else.
+  @Throttle({ default: { limit: 3, ttl: HOUR_MS } })
   @Post('forgot-password')
   @HttpCode(200)
   async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
@@ -111,6 +130,9 @@ export class AuthController {
   }
 
   // Password reset, step two: the emailed token + a new password.
+  // The reset token is a 32-byte random value, so guessing it is hopeless
+  // anyway — this just removes the option of trying at speed.
+  @Throttle({ default: { limit: 5, ttl: 15 * MINUTE_MS } })
   @Post('reset-password')
   @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
