@@ -118,7 +118,6 @@ async function main() {
         bestWinStreak: Math.max(1, Math.floor(p.wins / 2)),
         avatarStyle: p.avatar,
         status: p.status as any,
-        gamesWithFourPieces: Math.floor(p.wins * 0.7),
         achFirstBlood: p.wins > 0,
         achOnFire: p.wins >= 10,
         achTactician: p.wins >= 15,
