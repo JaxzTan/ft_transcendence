@@ -178,6 +178,7 @@ export function Leaderboard() {
               {/* Inside-Window Podium Showcase (Fixed above the scrollable table) */}
               {data && data.entries.length > 0 && (
                 <div
+                  className="retro-window"
                   style={{
                     display: 'grid',
                     gridTemplateColumns:
@@ -191,8 +192,9 @@ export function Leaderboard() {
                     alignItems: 'end',
                     padding: '18px 20px',
                     borderRadius: 10,
-                    background: 'rgba(10, 3, 24, 0.65)',
-                    border: '1px solid rgba(0, 240, 255, 0.25)',
+                    background: 'var(--bg-card)',
+                    border: 'var(--card-border-style)',
+                    boxShadow: 'var(--box-shadow)',
                     flexShrink: 0,
                   }}
                 >
@@ -202,8 +204,8 @@ export function Leaderboard() {
                     return (
                       <div
                         style={{
-                          background: 'rgba(25, 10, 56, 0.85)',
-                          border: '1.5px solid rgba(0, 240, 255, 0.45)',
+                          background: 'var(--bg-secondary)',
+                          border: 'var(--card-border-style)',
                           borderRadius: 8,
                           boxShadow: '0 0 18px rgba(0, 240, 255, 0.22)',
                           padding: '20px 22px',
@@ -358,8 +360,8 @@ export function Leaderboard() {
                     return (
                       <div
                         style={{
-                          background: 'rgba(25, 10, 56, 0.85)',
-                          border: '1.5px solid rgba(255, 0, 127, 0.45)',
+                          background: 'var(--bg-secondary)',
+                          border: 'var(--card-border-style)',
                           borderRadius: 8,
                           boxShadow: '0 0 18px rgba(255, 0, 127, 0.22)',
                           padding: '20px 22px',
@@ -428,12 +430,13 @@ export function Leaderboard() {
 
               {/* Ladder Table Container (ONLY THIS SECTION SCROLLS) */}
               <div
+                className="retro-window"
                 style={{
-                  border: '1.5px solid rgba(0, 240, 255, 0.3)',
+                  border: 'var(--card-border-style)',
                   borderRadius: 6,
-                  background: 'rgba(5, 2, 18, 0.9)',
+                  background: 'var(--bg-card)',
                   overflow: 'hidden',
-                  boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.5)',
+                  boxShadow: 'var(--box-shadow)',
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
@@ -442,16 +445,15 @@ export function Leaderboard() {
               >
                 {/* Fixed Sticky Table Header */}
                 <div
+                  className="window-header"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '270px 1.4fr 170px 170px 150px',
                     gap: 20,
                     padding: '14px 28px',
-                    background: 'rgba(25, 10, 56, 0.98)',
-                    borderBottom: '1.5px solid rgba(0, 240, 255, 0.3)',
                     fontSize: '0.82rem',
                     fontWeight: 900,
-                    color: 'var(--accent-cyan)',
+                    color: 'var(--text-main)',
                     fontFamily: 'var(--font-display)',
                     textTransform: 'uppercase',
                     letterSpacing: '1.2px',

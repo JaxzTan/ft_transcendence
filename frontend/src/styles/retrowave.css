@@ -49,8 +49,8 @@
   --border-color: #ffffff;
   --box-shadow: 2px 2px 0px #000000, inset -1px -1px 0px #000000, inset 1px 1px 0px #dfdfdf;
   --font-heading: 'Press Start 2P', cursive;
-  --font-display: 'VT323', monospace;
-  --font-mono: 'VT323', monospace;
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
   --grid-line-color: transparent;
   --grid-bg-glow: transparent;
   --btn-bg: #c0c0c0;
@@ -75,9 +75,9 @@
   --text-muted: #22aa22;
   --border-color: #33ff33;
   --box-shadow: 0 0 10px rgba(51, 255, 51, 0.4), inset 0 0 10px rgba(51, 255, 51, 0.15);
-  --font-heading: 'VT323', monospace;
-  --font-display: 'VT323', monospace;
-  --font-mono: 'VT323', monospace;
+  --font-heading: 'Press Start 2P', cursive;
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
   --grid-line-color: rgba(51, 255, 51, 0.1);
   --grid-bg-glow: rgba(51, 255, 51, 0.05);
   --btn-bg: #0a1f0a;
@@ -158,7 +158,12 @@ body {
 
 [data-theme="win95"] .synthwave-sun,
 [data-theme="terminal"] .synthwave-sun {
-  display: none;
+  display: none !important;
+}
+
+[data-theme="win95"] .perspective-grid,
+[data-theme="win95"] .grid-horizon {
+  display: none !important;
 }
 
 .perspective-grid {
@@ -1468,6 +1473,169 @@ canvas#snakeCanvas {
     opacity: 1;
     transform: perspective(600px) rotateX(0deg) translateY(0) scale(1);
   }
+}
+
+/* --------------------------------------------------------------------------
+   THEME-SPECIFIC COMPONENT OVERRIDES (WIN95 & TERMINAL)
+   -------------------------------------------------------------------------- */
+
+/* Win95 Floating Dock (Navbar) */
+[data-theme="win95"] .retro-floating-dock {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #000000, inset 1px 1px 0px #dfdfdf !important;
+  backdrop-filter: none !important;
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .retro-floating-dock .theme-trigger-btn {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  color: #000000 !important;
+  box-shadow: 1px 1px 0px #000000 !important;
+}
+
+[data-theme="win95"] .retro-floating-dock .theme-trigger-btn.active {
+  background: #000080 !important;
+  color: #ffffff !important;
+  border-top: 2px solid #000000 !important;
+  border-left: 2px solid #000000 !important;
+  border-right: 2px solid #ffffff !important;
+  border-bottom: 2px solid #ffffff !important;
+  box-shadow: inset 1px 1px 0px #000000 !important;
+}
+
+/* Terminal Floating Dock (Navbar) */
+[data-theme="terminal"] .retro-floating-dock {
+  background: rgba(5, 16, 5, 0.95) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 25px rgba(51, 255, 51, 0.3), inset 0 0 15px rgba(51, 255, 51, 0.15) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+[data-theme="terminal"] .retro-floating-dock .theme-trigger-btn {
+  background: #0a1f0a !important;
+  border: 1px solid rgba(51, 255, 51, 0.4) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .retro-floating-dock .theme-trigger-btn.active {
+  background: #116611 !important;
+  border-color: #33ff33 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px #33ff33, inset 0 0 8px #33ff33 !important;
+}
+
+/* Win95 Popovers */
+[data-theme="win95"] .theme-popover-menu {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  color: #000000 !important;
+  backdrop-filter: none !important;
+}
+
+/* Terminal Popovers */
+[data-theme="terminal"] .theme-popover-menu {
+  background: rgba(5, 16, 5, 0.98) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 25px rgba(51, 255, 51, 0.35) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+}
+
+/* Win95 Windows & Cards */
+[data-theme="win95"] .retro-window {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  border-radius: 0px !important;
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .window-header {
+  background: linear-gradient(90deg, #000080, #1084d0) !important;
+  color: #ffffff !important;
+  padding: 6px 10px !important;
+  border-radius: 0px !important;
+}
+
+[data-theme="win95"] .window-body {
+  background: #c0c0c0 !important;
+  color: #000000 !important;
+}
+
+/* Terminal Windows & Cards */
+[data-theme="terminal"] .retro-window {
+  background: rgba(10, 31, 10, 0.95) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 18px rgba(51, 255, 51, 0.25) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .window-header {
+  background: #116611 !important;
+  color: #33ff33 !important;
+  border-bottom: 1px solid #33ff33 !important;
+}
+
+[data-theme="terminal"] .window-body {
+  background: rgba(5, 16, 5, 0.92) !important;
+  color: #33ff33 !important;
+}
+
+/* Win95 & Terminal Ticket Passes */
+[data-theme="win95"] .retro-ticket-pass {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  border-radius: 0px !important;
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .ticket-action-pill {
+  background: #000080 !important;
+  color: #ffffff !important;
+  border: 2px outset #ffffff !important;
+  border-radius: 0px !important;
+  box-shadow: 1px 1px 0px #000000 !important;
+}
+
+[data-theme="terminal"] .retro-ticket-pass {
+  background: rgba(10, 31, 10, 0.9) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 15px rgba(51, 255, 51, 0.2) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .ticket-action-pill {
+  background: #116611 !important;
+  color: #33ff33 !important;
+  border: 1px solid #33ff33 !important;
+  box-shadow: 0 0 12px rgba(51, 255, 51, 0.4) !important;
 }
 
 #color-scheme {

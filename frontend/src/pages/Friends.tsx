@@ -415,12 +415,13 @@ export function Friends() {
                   LEFT COLUMN: Allied Operatives / Restricted Pilots List
                  ════════════════════════════════════════════════════════════════ */}
               <div
+                className="retro-window"
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  background: 'rgba(12, 3, 30, 0.85)',
-                  border: '1.5px solid rgba(0, 240, 255, 0.28)',
-                  boxShadow: '0 0 16px rgba(0, 240, 255, 0.08), inset 0 0 20px rgba(0, 0, 0, 0.6)',
+                  background: 'var(--bg-card)',
+                  border: 'var(--card-border-style)',
+                  boxShadow: 'var(--box-shadow)',
                   borderRadius: 8,
                   overflow: 'hidden',
                   minHeight: 0,
@@ -428,10 +429,9 @@ export function Friends() {
               >
                 {/* Tab Switcher Header */}
                 <div
+                  className="window-header"
                   style={{
                     padding: '10px 14px',
-                    background: 'linear-gradient(90deg, rgba(28, 8, 62, 0.95), rgba(16, 4, 38, 0.95))',
-                    borderBottom: '1px solid rgba(0, 240, 255, 0.25)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -543,11 +543,10 @@ export function Friends() {
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              padding: '11px 16px',
+                              padding: '12px 14px',
+                              background: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
                               borderRadius: 6,
-                              background: 'rgba(18, 6, 42, 0.82)',
-                              border: `1.5px solid ${f.status === 'online' || f.status === 'playing' ? 'rgba(0, 240, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)'}`,
-                              boxShadow: f.status === 'online' || f.status === 'playing' ? '0 0 10px rgba(0, 240, 255, 0.08)' : 'none',
                               transition: 'all 0.18s ease',
                               gap: 12,
                               cursor: 'pointer',
@@ -790,10 +789,11 @@ export function Friends() {
               >
                 {/* Top Right Card: ADD FRIEND */}
                 <div
+                  className="retro-window"
                   style={{
-                    background: 'rgba(14, 4, 34, 0.92)',
-                    border: '1.5px solid var(--accent-cyan)',
-                    boxShadow: '0 0 16px rgba(0, 240, 255, 0.15)',
+                    background: 'var(--bg-card)',
+                    border: 'var(--card-border-style)',
+                    boxShadow: 'var(--box-shadow)',
                     borderRadius: 8,
                     padding: '16px 18px',
                     display: 'flex',

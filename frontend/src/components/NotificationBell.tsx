@@ -64,7 +64,6 @@ export function NotificationBell({
   unreadCount,
   onMarkRead,
   onMarkAllRead,
-  placement = 'bottom-right',
   fullWidth = false,
   containerStyle,
   buttonStyle,
@@ -147,8 +146,6 @@ export function NotificationBell({
     }
   }
 
-  const isRight = placement === 'right'
-
   const bellContainerStyle: CSSProperties = {
     position: 'relative',
     userSelect: 'none',
@@ -159,49 +156,27 @@ export function NotificationBell({
     ...containerStyle,
   }
 
-  const dropdownStyle: CSSProperties = isRight
-    ? {
-        position: 'absolute',
-        left: 'calc(100% + 14px)',
-        bottom: 0,
-        top: 'auto',
-        right: 'auto',
-        width: 350,
-        maxHeight: 460,
-        background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.96), rgba(10, 2, 28, 0.98))',
-        border: '1.5px solid var(--accent-cyan, #00f0ff)',
-        boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 20px 60px rgba(0, 0, 0, 0.95)',
-        borderRadius: 14,
-        zIndex: 10005,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        backdropFilter: 'blur(32px) saturate(220%)',
-        opacity: open ? 1 : 0,
-        transform: open ? 'translateX(0)' : 'translateX(-8px)',
-        pointerEvents: open ? 'auto' : 'none',
-        transition: 'opacity 0.2s ease, transform 0.2s ease',
-      }
-    : {
-        position: 'absolute',
-        top: 'calc(100% + 8px)',
-        right: 0,
-        width: 380,
-        maxHeight: 460,
-        background: 'rgba(10, 4, 24, 0.96)',
-        border: '1.5px solid var(--accent-cyan, #00f0ff)',
-        boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 16px 40px rgba(0, 0, 0, 0.9)',
-        borderRadius: 4,
-        zIndex: 120,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        backdropFilter: 'blur(10px)',
-        opacity: open ? 1 : 0,
-        transform: open ? 'translateY(0)' : 'translateY(-8px)',
-        pointerEvents: open ? 'auto' : 'none',
-        transition: 'opacity 0.2s ease, transform 0.2s ease',
-      }
+  const dropdownStyle: CSSProperties = {
+    position: 'fixed',
+    right: 28,
+    bottom: 28,
+    width: 380,
+    maxWidth: 'calc(100vw - 56px)',
+    maxHeight: 480,
+    background: 'var(--bg-card)',
+    border: 'var(--card-border-style)',
+    boxShadow: 'var(--box-shadow)',
+    borderRadius: 8,
+    zIndex: 10005,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backdropFilter: 'blur(32px) saturate(220%)',
+    opacity: open ? 1 : 0,
+    transform: open ? 'translateY(0)' : 'translateY(16px)',
+    pointerEvents: open ? 'auto' : 'none',
+    transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+  }
 
   return (
     <div ref={ref} style={bellContainerStyle}>
@@ -283,17 +258,20 @@ export function NotificationBell({
         </button>
       )}
 
-      {/* Retro Dropdown Window Frame */}
-      <div style={dropdownStyle}>
-        {/* Window Header */}
+      {/* Dropdown Panel - Hardware Terminal Window */}
+      <div
+        className="retro-window theme-popover-menu"
+        style={dropdownStyle}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Terminal Window Header Bar */}
         <div
+          className="window-header"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '10px 14px',
-            background: 'rgba(0, 240, 255, 0.12)',
-            borderBottom: '1px solid rgba(0, 240, 255, 0.3)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -301,7 +279,7 @@ export function NotificationBell({
               style={{
                 fontFamily: 'var(--font-heading, monospace)',
                 fontSize: '0.78rem',
-                color: 'var(--accent-cyan, #00f0ff)',
+                color: 'var(--text-main, #ffffff)',
                 letterSpacing: 1,
                 fontWeight: 'bold',
               }}
