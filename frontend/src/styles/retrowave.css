@@ -3278,3 +3278,109 @@ canvas#snakeCanvas {
     font-size: 0.88rem;
   }
 }
+
+/* ==========================================================================
+   LUDO LOBBY TACTICAL COMBAT PASS TICKETS (INTERACTIVE CARDS)
+   ========================================================================== */
+
+.retro-ticket-pass {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 12px;
+  padding: 26px 32px;
+  min-height: 108px;
+  gap: 24px;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s ease,
+              background 0.22s ease;
+}
+
+.retro-ticket-pass:hover:not(.disabled) {
+  transform: translateY(-4px);
+}
+
+.retro-ticket-pass:active:not(.disabled) {
+  transform: translateY(1px);
+}
+
+.retro-ticket-pass.ticket-pink {
+  background: linear-gradient(90deg, rgba(255, 0, 127, 0.22) 0%, rgba(20, 6, 42, 0.96) 100%);
+  border: 2px solid #ff007f;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(255, 0, 127, 0.25);
+}
+
+.retro-ticket-pass.ticket-pink:hover:not(.disabled) {
+  border-color: #ff3399;
+  background: linear-gradient(90deg, rgba(255, 0, 127, 0.32) 0%, rgba(30, 8, 55, 0.98) 100%);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), 0 0 28px rgba(255, 0, 127, 0.55), inset 0 0 16px rgba(255, 0, 127, 0.2);
+}
+
+.retro-ticket-pass.ticket-yellow {
+  background: linear-gradient(90deg, rgba(255, 230, 0, 0.2) 0%, rgba(20, 6, 42, 0.96) 100%);
+  border: 2px solid #ffe600;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(255, 230, 0, 0.22);
+}
+
+.retro-ticket-pass.ticket-yellow:hover:not(.disabled) {
+  border-color: #ffff33;
+  background: linear-gradient(90deg, rgba(255, 230, 0, 0.3) 0%, rgba(30, 8, 55, 0.98) 100%);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), 0 0 28px rgba(255, 230, 0, 0.5), inset 0 0 16px rgba(255, 230, 0, 0.18);
+}
+
+.retro-ticket-pass.ticket-green {
+  background: linear-gradient(90deg, rgba(0, 255, 136, 0.2) 0%, rgba(20, 6, 42, 0.96) 100%);
+  border: 2px solid #00ff88;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 255, 136, 0.22);
+}
+
+.retro-ticket-pass.ticket-green:hover:not(.disabled) {
+  border-color: #33ffaa;
+  background: linear-gradient(90deg, rgba(0, 255, 136, 0.3) 0%, rgba(30, 8, 55, 0.98) 100%);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), 0 0 28px rgba(0, 255, 136, 0.5), inset 0 0 16px rgba(0, 255, 136, 0.18);
+}
+
+.retro-ticket-pass.ticket-cyan {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.2) 0%, rgba(20, 6, 42, 0.96) 100%);
+  border: 2px solid var(--accent-cyan);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 240, 255, 0.22);
+}
+
+.retro-ticket-pass.ticket-cyan:hover:not(.disabled) {
+  border-color: #33f6ff;
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.3) 0%, rgba(30, 8, 55, 0.98) 100%);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), 0 0 28px rgba(0, 240, 255, 0.5), inset 0 0 16px rgba(0, 240, 255, 0.18);
+}
+
+.ticket-action-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+[data-theme="win95"] .retro-ticket-pass {
+  background-color: #c0c0c0 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: inset 2px 2px 0 #ffffff, inset -2px -2px 0 #000000, 3px 3px 0 #000000 !important;
+}
+
+[data-theme="terminal"] .retro-ticket-pass {
+  background: rgba(10, 31, 10, 0.96) !important;
+  border: 2px solid #33ff33 !important;
+  box-shadow: 0 0 16px rgba(51, 255, 51, 0.25) !important;
+}
