@@ -38,7 +38,7 @@ export class MatchController {
 		return this.match.findRandomMatch(req.user.id, clashEnabled);
 	}
 
-	// ─── PvE: Human vs Bot (2p or 4p) ────────────────────────────────────────
+	// ─── PvE: Human vs Bot (1 - 3 bots) ────────────────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/pve')
 	pve(
@@ -59,6 +59,7 @@ export class MatchController {
 		@Body('botCount') botCount: number,
 		@Body('clashEnabled') clashEnabled?: boolean,
 		@Body('botColors') botColors?: string[],
+		@Body('seatColors') seatColors?: string[],
 	) {
 		// mode is REQUIRED: omitting it must not silently fall back to a bot game
 		// (the old `mode || 'pve'` default let any caller create a bot-seeded PvE
@@ -78,6 +79,7 @@ export class MatchController {
 			botCount || 0,
 			clashEnabled,
 			botColors,
+			seatColors,
 		);
 	}
 

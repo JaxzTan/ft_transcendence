@@ -22,8 +22,9 @@ export class MatchService {
 		botCount: number,
 		clashEnabled: boolean = true,
 		botColors?: string[],
+		seatColors?: string[],
 	) {
-		return this.creator.createMatch(userId, mode, playerCount, botCount, clashEnabled, botColors);
+		return this.creator.createMatch(userId, mode, playerCount, botCount, clashEnabled, botColors, seatColors);
 	}
 	async findRandomMatch(userId: string, clashEnabled: boolean = true) {
 		return this.creator.findRandomMatch(userId, clashEnabled, (gameId: string, uid: string) => this.player.joinMatch(gameId, uid), (uid: string) => this.query.listMyRooms(uid));

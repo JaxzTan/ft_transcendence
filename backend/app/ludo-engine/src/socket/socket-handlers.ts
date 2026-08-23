@@ -54,7 +54,13 @@ export class SocketHandlers {
         if (!state) {
           const creationMatchData = await this.store.getMatchData(effectiveGameId);
           const playerCount = parseInt(creationMatchData?.playerCount || '4', 10);
-          await this.store.createGame(effectiveGameId, true, SLOT_COLORS.slice(0, playerCount));
+          // Prefer the persisted seatColors (exact ordered seats, including
+          // skipped colors in hotseat, e.g. blue + green + yellow with no red).
+          // Falls back to the dense slot fill for older rooms / direct engine use.
+          const seatColors = creationMatchData?.seatColors
+            ? (creationMatchData.seatColors.split(',') as PlayerColor[])
+            : SLOT_COLORS.slice(0, playerCount);
+          await this.store.createGame(effectiveGameId, true, seatColors);
           state = await this.store.loadGameState(effectiveGameId);
         }
 

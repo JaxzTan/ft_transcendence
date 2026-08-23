@@ -204,7 +204,12 @@ export class SocketServer {
 			const newGameId = `${gameId}-rematch`;
 			const oldMatchData = await this.store.getMatchData(gameId);
 			const playerCount = parseInt(oldMatchData?.playerCount || '4', 10);
-			await this.store.createGame(newGameId, true, SLOT_COLORS.slice(0, playerCount));
+			// Reuse the original seat order (skipped colors in hotseat etc.)
+			// rather than re-densifying the first playerCount colors.
+			const seatColors = oldMatchData?.seatColors
+				? (oldMatchData.seatColors.split(',') as PlayerColor[])
+				: SLOT_COLORS.slice(0, playerCount);
+			await this.store.createGame(newGameId, true, seatColors);
 
 			// Transfer players who voted
 			const voters = this.rematchVotes.get(gameId)!;

@@ -48,6 +48,7 @@ export class MatchCreatorService {
 		botCount: number,
 		clashEnabled: boolean = true,
 		botColors?: string[],
+		seatColors?: string[],
 	) {
 		// playerCount === 1 is the solo "Test Your Luck" run — hotseat with
 		// nobody else seated, just the host racing their own dice.
@@ -111,11 +112,32 @@ export class MatchCreatorService {
 			createdAt: Date.now().toString(),
 		};
 
+		// The slot→seat color mapping is fixed by index (0=blue,1=red,2=green,
+		// 3=yellow). Persist the exact seat order so the engine creates game
+		// state with the same colors — especially hotseat, where players can
+		// skip seats (e.g. blue + green + yellow but no red).
+		const colorSlot = new Map<string, number>(SLOT_COLORS.map((c, i) => [c, i + 1]));
+		const resolvedSeatColors =
+			Array.isArray(seatColors) && seatColors.length > 0
+				? seatColors
+				: SLOT_COLORS.slice(0, playerCount);
+		if (resolvedSeatColors.length !== playerCount) {
+			throw new BadRequestException('seatColors must have exactly playerCount entries');
+		}
+		for (const c of resolvedSeatColors) {
+			if (!colorSlot.has(c)) {
+				throw new BadRequestException(`Invalid seat color: ${c}`);
+			}
+		}
+		if (resolvedSeatColors[0] !== SLOT_COLORS[0]) {
+			throw new BadRequestException('The host (first seat) must be blue');
+		}
+		updates.seatColors = resolvedSeatColors.join(',');
+
 		if (isPvP) {
 			updates.inviteCode = generateInviteCode();
 		} else {
 			updates.startedAt = Date.now().toString();
-			const colorSlot = new Map<string, number>(SLOT_COLORS.map((c, i) => [c, i + 1]));
 			const assignedBotColors =
 				Array.isArray(botColors) && botColors.length > 0
 					? botColors
