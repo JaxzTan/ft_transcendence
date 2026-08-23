@@ -47,7 +47,7 @@ services:
       - 127.0.0.1:6479:6479
 
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -p 6479 -a \"$(cat /secrets/redis_password.txt)\" --no-auth-warning ping | grep -q PONG"]
       interval: 5s
       timeout: 5s
       retries: 3
