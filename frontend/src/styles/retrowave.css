@@ -498,11 +498,11 @@ body {
 
 .hero-section {
   text-align: center;
-  padding: 40px 20px;
+  padding: 16px 20px;
   background: var(--bg-card);
   border: var(--card-border-style);
   box-shadow: var(--box-shadow);
-  margin-bottom: 30px;
+  margin-bottom: 18px;
   position: relative;
   overflow: hidden;
   border-radius: 4px;
@@ -510,35 +510,35 @@ body {
 
 .hero-title {
   font-family: var(--font-heading);
-  font-size: 2.2rem;
-  line-height: 1.4;
+  font-size: 1.6rem;
+  line-height: 1.2;
   color: #ffffff;
-  text-shadow: 3px 3px 0px var(--accent-pink), -2px -2px 0px var(--accent-cyan), 0 0 20px rgba(255, 0, 127, 0.8);
-  margin-bottom: 15px;
+  text-shadow: 2px 2px 0px var(--accent-pink), -1px -1px 0px var(--accent-cyan), 0 0 18px rgba(255, 0, 127, 0.8);
+  margin-bottom: 8px;
   letter-spacing: 2px;
 }
 
 .hero-subtitle {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.05rem;
   color: var(--accent-yellow);
   text-shadow: 0 0 10px var(--accent-yellow);
-  margin-bottom: 25px;
+  margin-bottom: 12px;
 }
 
 .badge-bar {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: 15px;
+  margin-top: 8px;
 }
 
 .retro-badge {
   background: var(--bg-secondary);
   border: 1px dashed var(--accent-cyan);
-  padding: 6px 12px;
-  font-size: 0.8rem;
+  padding: 4px 10px;
+  font-size: 0.74rem;
   color: var(--accent-cyan);
 }
 
