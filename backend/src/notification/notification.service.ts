@@ -40,7 +40,7 @@ export class NotificationService implements OnModuleDestroy {
 
   constructor(private readonly prisma: PrismaService) {
     const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
     const password = secret('REDIS_PASSWORD');
     const opts = { host, port, password, retryStrategy: (t: number) => Math.min(t * 50, 2000) };
 

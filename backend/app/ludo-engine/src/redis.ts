@@ -15,7 +15,7 @@ export class RedisGameStore {
 
   constructor(redisUrl?: string) {
     const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
     let password: string | undefined;
     try {
       password = readFileSync('/secrets/redis_password.txt', 'utf8').trim();

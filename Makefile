@@ -58,17 +58,24 @@ secrets:
 	chmod 600 $(SECRET_DIR)/*.txt
 	@echo "🔑 Secrets ready in $(SECRET_DIR)/ — one value per file, <VAR> lowercased"
 	@docker volume create $(SECRETS_VOLUME) >/dev/null
-	@tar -C $(SECRET_DIR) -cf - . | docker run --rm -i -v $(SECRETS_VOLUME):/secrets alpine sh -c 'tar -xf - -C /secrets && chmod 600 /secrets/*.txt'
+	@docker rm -f secrets-seed >/dev/null 2>&1 || true
+	@docker run -d --rm --name secrets-seed -v $(SECRETS_VOLUME):/secrets alpine sleep 60 >/dev/null
+	@tar -C $(SECRET_DIR) -cf - . | docker exec -i secrets-seed tar -xf - --no-same-owner -C /secrets
+	@docker exec secrets-seed sh -c 'chmod 600 /secrets/*.txt'
+	@docker stop secrets-seed >/dev/null
 	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
 
 build: secrets
 	@docker compose -f $(COMPOSE_FILE) build
 
 # secrets_data (compose.yaml) is `external: true` — Make owns it, not compose.
-# Seeded via `docker cp` rather than a bind mount because Docker Desktop's
+# Seeded via a tar pipe rather than a bind mount because Docker Desktop's
 # macOS virtiofs share can deadlock (EDEADLK) reading ./secrets live from
-# inside a container; docker cp reads the host file directly and doesn't hit
-# that path. Re-run (idempotent, <1s) whenever secrets/ changes on disk.
+# inside a container; streaming the host file directly doesn't hit that path.
+# `tar | docker exec tar --no-same-owner` instead of plain `docker cp` because
+# docker cp preserves host UID/GID and overlay2's lchown rejects UIDs above the
+# 16-bit range (EINVAL) — common on machines with large LDAP-assigned UIDs.
+# Re-run (idempotent, <1s) whenever secrets/ changes on disk.
 SECRETS_VOLUME = secrets_data
 
 start: secrets
