@@ -32,6 +32,11 @@ export class AchievementsService {
       if (!game) return;
 
       for (const p of game.participants) {
+        // Bots ("bot-<color>") are never real players: processGameEnd skips
+        // them for ratings/counters, so they must not be evaluated for
+        // achievements either — otherwise bot rows could accumulate wins and
+        // fire phantom notifications for bot user IDs.
+        if (p.user_id.startsWith('bot-')) continue;
         await this.evaluateForUser(p.user_id, game, true);
       }
     } catch (err) {
