@@ -90,8 +90,9 @@ export class SocketServer {
 				this.triggerBotTurn(event.gameId, animMs + BOT_THINK_MS);
 			} else if (event.type === 'dice_rolled') {
 				// Only trigger bot turn if no legal moves (turn auto-advanced)
+				// Wait for the 750ms frontend dice-roll animation plus thinking pause
 				if (event.legalMoves.length === 0) {
-					this.triggerBotTurn(event.gameId, BOT_THINK_MS);
+					this.triggerBotTurn(event.gameId, 750 + BOT_THINK_MS);
 				}
 			}
 		});

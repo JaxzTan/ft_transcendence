@@ -17,6 +17,7 @@ export interface Notification {
   read: boolean
   createdAt: string
 }
+export type InAppNotification = Notification
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
@@ -49,49 +50,42 @@ export function useNotifications() {
   }, [user])
 
   // ── SSE connection ───────────────────────────────────────────────────────
-  // Opens an EventSource to /api/notifications/stream when the user is logged
-  // in. The backend holds this HTTP connection open and pushes JSON events
-  // whenever a notification is published for this user.
-  //
-  // EventSource handles reconnection automatically (the browser retries on
-  // network failures with exponential backoff). We close it on logout or
-  // unmount.
   useEffect(() => {
     if (!user) {
-      // Close any lingering connection on logout.
       esRef.current?.close()
       esRef.current = null
       return
     }
 
-    const es = new EventSource('/api/notifications/stream', {
-      // EventSource doesn't support custom headers, but our JWT is in an
-      // httpOnly cookie so the browser sends it automatically.
-    })
-    esRef.current = es
+    let es: EventSource | null = null
+    try {
+      es = new EventSource('/api/notifications/stream')
+      esRef.current = es
 
-    es.onmessage = (event: MessageEvent) => {
-      try {
-        const notification: Notification = JSON.parse(event.data)
-
-        // Add to the persistent list (bell dropdown).
-        setNotifications((prev) => [notification, ...prev])
-
-        // Add to the transient toast queue (auto-dismissed after 8s).
-        setToasts((prev) => [notification, ...prev])
-      } catch {
-        console.error('Failed to parse SSE notification:', event.data)
+      es.onmessage = (event: MessageEvent) => {
+        try {
+          if (!event.data) return
+          const notification: Notification = JSON.parse(event.data)
+          if (notification && notification.id) {
+            setNotifications((prev) => [notification, ...prev])
+            setToasts((prev) => [notification, ...prev])
+          }
+        } catch {
+          // ignore malformed data
+        }
       }
-    }
 
-    es.onerror = () => {
-      // EventSource auto-reconnects — nothing to do here.
-      // Logging is optional; commented out to avoid noise.
-      // console.warn('SSE connection error, will auto-reconnect')
+      es.onerror = () => {
+        // SSE reconnection handled automatically
+      }
+    } catch {
+      // ignore EventSource failure
     }
 
     return () => {
-      es.close()
+      try {
+        es?.close()
+      } catch {}
       esRef.current = null
     }
   }, [user])

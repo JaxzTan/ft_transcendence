@@ -14,33 +14,13 @@ OAUTH_SECRETS  = google_client_id google_client_secret google_callback_url \
                  github_client_id github_client_secret github_callback_url \
                  fortytwo_client_id fortytwo_client_secret fortytwo_callback_url
 
-# Full set of files the stack needs. The backend entrypoint hard-fails without
-# the trio (db_credentials, db_password, jwt_secret); the runtime needs the rest.
-# OAuth files are manual-only (never generated); the rest auto-generate below
-# only if missing — but the preflight still demands every file exist up-front.
-REQUIRED_SECRETS = jwt_secret db_password db_root_password redis_password \
-                  engine_api_key db_credentials redis_credentials \
-                  frontend_url ngrok_port https_port database_url \
-                  $(OAUTH_SECRETS)
-
 all: build start
 
-# One-command secrets pipeline: preflight (fail hard) → generate any missing
-# → seed the Docker volume. Used by every build/start path exactly once.
-secrets:
+l: prepare-secrets build startal
+
+prepare-secrets:
+	@mkdir -p $(SECRET_DIR)
 	@set -e; \
-	missing=""; \
-	for s in $(REQUIRED_SECRETS); do \
-	  [ -s $(SECRET_DIR)/$$s.txt ] || missing="$$missing $$s"; \
-	done; \
-	if [ -n "$$missing" ]; then \
-	  echo "❌ Preflight failed — required secrets missing in $(SECRET_DIR)/:"; \
-	  for s in $$missing; do echo "      $(SECRET_DIR)/$$s.txt"; done; \
-	  echo "   Restore the secrets/ directory (team zip), then re-run."; \
-	  exit 1; \
-	fi; \
-	echo "✅ Preflight OK — all required secrets present"; \
-	echo "🔧 Generating any missing derived/random secrets…"; \
 	gen()  { [ -s $(SECRET_DIR)/$$1.txt ] || openssl rand -hex $$2 > $(SECRET_DIR)/$$1.txt; }; \
 	seed() { [ -s $(SECRET_DIR)/$$1.txt ] || printf '%s\n' "$$2" > $(SECRET_DIR)/$$1.txt; }; \
 	gen  jwt_secret        32; \
@@ -57,15 +37,22 @@ secrets:
 	  "postgresql://db_bossman:$$(cat $(SECRET_DIR)/db_password.txt)@localhost:5432/transcendence"; \
 	chmod 600 $(SECRET_DIR)/*.txt
 	@echo "🔑 Secrets ready in $(SECRET_DIR)/ — one value per file, <VAR> lowercased"
-	@docker volume create $(SECRETS_VOLUME) >/dev/null
-	@docker rm -f secrets-seed >/dev/null 2>&1 || true
-	@docker run -d --rm --name secrets-seed -v $(SECRETS_VOLUME):/secrets alpine sleep 60 >/dev/null
-	@docker cp $(SECRET_DIR)/. secrets-seed:/secrets/
-	@docker exec secrets-seed sh -c 'chmod 600 /secrets/*.txt'
-	@docker stop secrets-seed >/dev/null
-	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
 
-build: secrets
+# Fails fast here rather than letting the backend crash-loop on a missing secret.
+check-secrets: prepare-secrets
+	@missing=""; \
+	for s in $(OAUTH_SECRETS); do \
+	  [ -s $(SECRET_DIR)/$$s.txt ] || missing="$$missing $$s"; \
+	done; \
+	if [ -n "$$missing" ]; then \
+	  echo "❌ Missing OAuth secrets — the backend will throw on startup:"; \
+	  for s in $$missing; do echo "      $(SECRET_DIR)/$$s.txt"; done; \
+	  echo "   Copy these from the Google / GitHub / 42 developer consoles."; \
+	  exit 1; \
+	fi; \
+	echo "✅ All required secrets present"
+
+build: check-secrets
 	@docker compose -f $(COMPOSE_FILE) build
 
 # secrets_data (compose.yaml) is `external: true` — Make owns it, not compose.
@@ -75,8 +62,24 @@ build: secrets
 # that path. Re-run (idempotent, <1s) whenever secrets/ changes on disk.
 SECRETS_VOLUME = secrets_data
 
-start: secrets
-	@docker compose -f $(COMPOSE_FILE) up -d
+seed-secrets: check-secrets
+	@docker volume create $(SECRETS_VOLUME) >/dev/null
+	@docker rm -f secrets-seed >/dev/null 2>&1 || true
+	@docker run -d --rm --name secrets-seed -v $(SECRETS_VOLUME):/secrets alpine sleep 60 >/dev/null
+	@docker cp $(SECRET_DIR)/. secrets-seed:/secrets/
+	@docker exec secrets-seed sh -c 'chmod 600 /secrets/*.txt'
+	@docker stop secrets-seed >/dev/null
+	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
+
+start: seed-secrets
+	@docker compose -f $(COMPOSE_FILE) up -d --build
+
+seed:
+	@docker cp backend/prisma/seed.ts backend:/app/prisma/seed.ts 2>/dev/null || true
+	@docker compose -f $(COMPOSE_FILE) exec -e DATABASE_URL="postgresql://db_bossman:$$(cat $(SECRET_DIR)/db_password.txt)@db:5432/transcendence" backend npx prisma db seed
+
+db-seed: seed
+
 
 # stop/down/logs carry --profile dev so they still reach frontend-dev; without
 # it compose ignores profiled services and leaves the container orphaned.
@@ -96,13 +99,10 @@ down:
 # tearing anything down. The dev profile is off by default, hence --profile
 # here but not in all. Ctrl-C stops watching; the containers keep running
 # (use `make stop`/`make down`).
-dev: down secrets
+dev: down seed-secrets
 	@echo "🔥 HMR dev server:    http://localhost:8080"
 	@echo "🔒 nginx (built SPA): https://localhost:8443"
 	@docker compose -f $(COMPOSE_FILE) --profile dev watch
-
-# Shortcut previously had a typo (`startal`) — now a plain full build+start.
-l: all
 
 logs:
 	@docker compose -f $(COMPOSE_FILE) --profile dev logs -f
@@ -120,10 +120,6 @@ prune:
 	@docker system prune -af --volumes
 
 fclean: prune clean
-
-# Full reset: nuke everything (images, volumes, networks), then rebuild fresh
-# from a clean slate (secrets preflight re-runs against the restored secrets/).
-re: fclean all
 
 
 # ── LAN MODE ────────────────────────────────────────────────────────────────
@@ -175,6 +171,8 @@ stop-tunnel:
 	@docker compose -f $(COMPOSE_FILE) --profile dev stop
 	@echo "Stopped."
 
-.PHONY: all build start secrets \
-        dev stop down logs clean fclean prune re l \
-        lan ngrok-auth tunnel tunnel-url up-tunnel dev-tunnel stop-tunnel
+re: stop down all
+
+.PHONY: all build start dev stop down logs clean fclean prune re \
+        lan ngrok-auth tunnel tunnel-url up-tunnel dev-tunnel stop-tunnel \
+        seed-secrets check-secrets prepare-secrets

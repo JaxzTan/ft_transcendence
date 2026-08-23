@@ -2,33 +2,23 @@ import { useEffect, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
-import { RulesModal } from '../components/RulesModal'
 import { ClashOverlay } from '../game/ClashOverlay'
 import { applyEvent, initialView } from '../game/reducer'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { connectSocket } from '../socket'
 import { getApi, postApi } from '../api'
-import { RULES_ON_START_KEY, useApp } from '../store'
-import { COL, SEAT_COLORS, btnGold, card, sectionLabel } from '../theme'
+import { useApp } from '../store'
+import { SEAT_COLORS } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
+import { retroAudio } from '../utils/audio'
+import '../styles/retrowave.css'
 
-function Pips({ count, color }: { count: number; color: string }) {
-  return (
-    <div style={{ display: 'flex', gap: 3 }}>
-      {Array.from({ length: 4 }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: i < count ? color : 'transparent',
-            border: '1.5px solid ' + (i < count ? color : '#4a3826'),
-            boxSizing: 'border-box',
-          }}
-        />
-      ))}
-    </div>
-  )
+const SEAT_HUES: Record<PlayerColor, string> = {
+  red: '#ff007f',
+  green: '#00ff88',
+  yellow: '#ffe600',
+  blue: '#00f0ff',
 }
 
 /** Pip indexes (3x3 grid, row-major) lit per face value - mirrors Die.tsx. */
@@ -42,24 +32,23 @@ const MINI_PIP_MAP: Record<number, number[]> = {
 }
 
 /** Compact 3x3 mini-die face for the "Last Rolled" box in the player rows. */
-function MiniDie({ value, rolling }: { value: number; rolling?: boolean }) {
+function MiniDie({ value }: { value: number }) {
   const on = MINI_PIP_MAP[value] || []
   return (
     <div
       style={{
-        width: 44,
-        height: 44,
-        borderRadius: 11,
-        background: 'linear-gradient(150deg,#fbf5e6,#e4d8bf)',
-        boxShadow: 'inset 0 1px 2px rgba(255,255,255,.8),inset 0 -2px 3px rgba(140,120,80,.35),0 2px 4px rgba(0,0,0,.45)',
-        border: '1px solid #cbb99a',
+        width: 38,
+        height: 38,
+        borderRadius: 8,
+        background: '#190a38',
+        boxShadow: '0 0 8px rgba(0, 240, 255, 0.3), inset 0 0 4px rgba(255, 0, 127, 0.3)',
+        border: '1.5px solid var(--accent-cyan)',
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr',
         gridTemplateRows: '1fr 1fr 1fr',
         padding: 4,
         gap: 2,
         flex: 'none',
-        animation: rolling ? 'shake .3s ease-in-out infinite' : 'none',
       }}
     >
       {Array.from({ length: 9 }, (_, i) => (
@@ -67,10 +56,11 @@ function MiniDie({ value, rolling }: { value: number; rolling?: boolean }) {
           {on.includes(i) ? (
             <div
               style={{
-                width: 8,
-                height: 8,
+                width: 6,
+                height: 6,
                 borderRadius: '50%',
-                background: 'radial-gradient(circle at 35% 30%,#5a4a2e,#241a0c)',
+                background: '#ffe600',
+                boxShadow: '0 0 4px #ffe600',
               }}
             />
           ) : null}
@@ -86,7 +76,29 @@ const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 
 export function Game() {
   const { t } = useTranslation()
-  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch, settingOn } = useApp()
+  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
+
+  // ------------------------------------------------------------------------
+  // CRT & AUDIO CONTROLS
+  // ------------------------------------------------------------------------
+  const [crtEnabled, setCrtEnabled] = useState(true)
+  const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
+
+  useEffect(() => {
+    const savedCrt = localStorage.getItem('retro_crt')
+    if (savedCrt === 'false') {
+      setCrtEnabled(false)
+    }
+  }, [])
+
+
+  const toggleSound = () => {
+    retroAudio.muted = !retroAudio.muted
+    setSoundMuted(retroAudio.muted)
+    if (!retroAudio.muted) {
+      retroAudio.playUiBeep(520, 0.06)
+    }
+  }
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
@@ -100,75 +112,61 @@ export function Game() {
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
   const viewRef = useRef(view)
   viewRef.current = view
-  // Mirrors `canRoll` (computed further down, from displayTurn) for the
-  // spacebar shortcut's mount-once effect — see canRoll's assignment below.
-  const canRollRef = useRef(false)
-  const [connected, setConnected] = useState(false)
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
+  const moveLogContainerRef = useRef<HTMLDivElement>(null)
   const [isRolling, setIsRolling] = useState(false)
   const isRollingRef = useRef(false)
-  // Color of whichever player's die is currently mid-spin — drives the shake
-  // on both the big "your roll" Die and that player's sidebar MiniDie, for
-  // your own rolls AND opponent/bot rolls alike (same event path for all
-  // three modes: hotseat, pve, pvp — see handleDiceRolled below).
-  const [rollingColor, setRollingColor] = useState<PlayerColor | null>(null)
-  const diceSpinTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Bots keep the original quick spin; human rollers (including opponents in
-  // pvp/hotseat) get a longer, more readable spin.
-  const DICE_SPIN_BOT_MS = 500
-  const DICE_SPIN_HUMAN_MS = 1000
+  const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
   const [codeCopied, setCodeCopied] = useState(false)
+  const [turnSwapNotice, setTurnSwapNotice] = useState<string | null>(null)
+  const prevTurnRef = useRef<PlayerColor | null>(null)
+
+  useEffect(() => {
+    if (moveLogContainerRef.current) {
+      moveLogContainerRef.current.scrollTop = moveLogContainerRef.current.scrollHeight
+    }
+  }, [moveLogs.length])
+
+  useEffect(() => {
+    if (!view) return
+    if (prevTurnRef.current && prevTurnRef.current !== view.currentTurn) {
+      const nextTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+      const isNextBot = nextTurnPlayer?.isBot ?? false
+      const nextName = nextTurnPlayer?.username?.toUpperCase() || (isNextBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+      const colorName = view.currentTurn.toUpperCase()
+
+      retroAudio.playUiBeep(640, 0.08, 'sine')
+      setTurnSwapNotice(`▶ TURN SWAP // ${nextName} [${colorName}] IS NOW IN CONTROL ◀`)
+
+      const timer = setTimeout(() => {
+        setTurnSwapNotice(null)
+      }, 700)
+
+      prevTurnRef.current = view.currentTurn
+      return () => clearTimeout(timer)
+    }
+    prevTurnRef.current = view.currentTurn
+  }, [view?.currentTurn, view?.players])
+
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
   // piece_moved handler below, which steps through the server's `path`.
   const [animatingPiece, setAnimatingPiece] = useState<{ pieceId: string; step: number } | null>(null)
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const STEP_ANIM_MS = 220
+  const STEP_ANIM_MS = 180
   // Capture burst FX: a short cosmetic ring + sparks on the landing square
   // when a piece is captured. Set at the end of the mover's walk, cleared
   // after the burst plays out — purely visual, no game state involved.
   const [captureFx, setCaptureFx] = useState<{ color: string; to: number } | null>(null)
   const captureFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Ghost render of the eaten piece(s): board state already reflects the
-  // capture the instant the event arrives, so without this the eaten piece
-  // just vanishes before the mover visually gets there. Keep it drawn at its
-  // pre-capture cell, then pop it out in sync with the capture burst FX below.
-  const [fadingPieces, setFadingPieces] = useState<Array<{ id: string; ck: PlayerColor; step: number; popping: boolean }>>([])
   // Friend-invite picker (waiting room, PvP only): lets the host invite an
   // accepted friend into THIS room (POST /api/game/:id/invite).
   const [friends, setFriends] = useState<Array<{ id: string; username: string }>>([])
   const [inviteStates, setInviteStates] = useState<Record<string, 'idle' | 'busy' | 'sent'>>({})
-  // Turn indicator/controls lag the real turn so a turn change reads as a
-  // beat instead of an instant snap when the previous player finishes. Bots
-  // keep the original beat; a turn landing on a human gets a longer, more
-  // readable one.
-  const TURN_CHANGE_DELAY_BOT_MS = 500
-  const TURN_CHANGE_DELAY_HUMAN_MS = 1000
-  const [displayTurn, setDisplayTurn] = useState(view.currentTurn)
-  useEffect(() => {
-    if (displayTurn === view.currentTurn) return
-    const nextPlayer = view.players.find((p) => p.color === view.currentTurn)
-    const delay = nextPlayer?.isBot ? TURN_CHANGE_DELAY_BOT_MS : TURN_CHANGE_DELAY_HUMAN_MS
-    const timer = setTimeout(() => setDisplayTurn(view.currentTurn), delay)
-    return () => clearTimeout(timer)
-  }, [view.currentTurn, displayTurn, view.players])
-
-  // Auto-pop the rules once per match, right as it goes active, if the
-  // Lobby's Rules toggle was on when this match was created. Keyed off
-  // gameId (not a plain "have we shown it" boolean) so navigating between
-  // matches in the same session shows it again for each new one.
-  const [rulesOpen, setRulesOpen] = useState(false)
-  const rulesShownForGameRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (view.status !== 'active') return
-    if (!settingOn(RULES_ON_START_KEY)) return
-    if (rulesShownForGameRef.current === activeMatch?.gameId) return
-    rulesShownForGameRef.current = activeMatch?.gameId ?? null
-    setRulesOpen(true)
-  }, [view.status, activeMatch?.gameId, settingOn])
 
   const copyRoomCode = () => {
     if (!activeMatch?.inviteCode) return
+    retroAudio.playUiBeep(720, 0.06)
     navigator.clipboard.writeText(activeMatch.inviteCode).then(() => {
       setCodeCopied(true)
       setTimeout(() => setCodeCopied(false), 1500)
@@ -214,23 +212,15 @@ export function Game() {
     }
 
     socket.on('connect', () => {
-      setConnected(true)
       // Hotseat: one physical device controls every seat — the engine has no
       // separate accounts to join with, so this single socket must join_game
-      // for every local color up front (else an un-joined seat stays 'inactive'
-      // forever and advanceTurnInState skips it, effectively stranding the
-      // game on whoever joined first). Join the others first, own color last,
-      // so socket.data.playerColor (server-side move/roll authorization,
-      // overwritten by each join_game call) ends up on blue — the color that
-      // actually goes first.
+      // for every local color up front.
       if (activeMatch.mode === 'hotseat') {
         for (const ck of Object.keys(localNames) as PlayerColor[]) {
           socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
         }
       }
       socket.emit('join_game', activeMatch.gameId, activeMatch.color)
-      // Socket.IO re-fires 'connect' on every reconnect, so this also covers
-      // rejoining after a drop; if a clash was frozen mid-QTE, resume it too.
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -239,163 +229,146 @@ export function Game() {
     })
 
     socket.on('disconnect', () => {
-      setConnected(false)
       setIsRolling(false)
       isRollingRef.current = false
-      setRollingColor(null)
-      if (diceSpinTimerRef.current) {
-        clearTimeout(diceSpinTimerRef.current)
-        diceSpinTimerRef.current = null
-      }
     })
 
     socket.on('game_joined', (state) => {
       dispatch({ type: 'game_joined', ...(state as object) })
     })
 
-    // The engine publishes events through Redis pub/sub, and redis-broadcaster.ts
-    // now forwards each one under its own Socket.IO event name (e.g. `dice_rolled`,
-    // `piece_moved`, `game_started`, `game_ended`, `player_exited`, `clash_start`,
-    // `clash_result`, `clash_frozen`, `lobby_update`). We register a single
-    // `handleEngineEvent` on all of those names (plus `state_update` for safety).
-    // Every payload carries its own `type`; spreading it after the literal
-    // 'state_update' below lets it win, so the reducer still resolves the correct
-    // case. Side effects for each type live here too.
-    // Dice rolls get a dedicated handler (not routed through handleEngineEvent
-    // below) so the die can hold a guaranteed minimum spin — otherwise a fast
-    // round-trip (or a same-tab bot roll) applies the new value/log line
-    // instantly with no visible animation. The game-state dispatch itself is
-    // NOT delayed for this (see below): a bot can resolve its own roll ->
-    // move in under a millisecond, and delaying the dice_rolled dispatch let
-    // a fast-following piece_moved (dispatched immediately, already carrying
-    // the correct advanced turn) get overwritten by this roll's now-stale
-    // snapshot once the delay timer finally fired — permanently freezing the
-    // turn indicator on the wrong player. Capturing `roller` synchronously
-    // off viewRef, before any dispatch, matches how the reducer's own
-    // dice_rolled case resolves the roller (see reducer.ts comment).
-    const handleDiceRolled = (state: unknown) => {
-      const roller = viewRef.current.currentTurn
-      dispatch({ type: 'state_update', ...(state as object) })
-
-      const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
-      const rollerMeta = viewRef.current.players.find((p) => p.color === roller)
-      setMoveLogs((prev) => [
-        {
-          ck: roller,
-          text: e.forfeited
-            ? t('game.thirdSixForfeit', { name: rollerMeta?.username || roller })
-            : `${t('game.rolledValue', { value: e.value })}${e.bonusRoll ? t('game.bonusSuffix') : ''}`,
-        },
-        ...prev.slice(0, 7),
-      ])
-
-      // Cosmetic-only from here on: hold the shake for a guaranteed minimum
-      // duration. Guarded by roller so a stale timer from an earlier roll
-      // can never clear a newer roll's spin — but even if it raced, all it
-      // could ever affect is the shake animation, never game state.
-      setRollingColor(roller)
-      if (diceSpinTimerRef.current) clearTimeout(diceSpinTimerRef.current)
-      const spinMs = rollerMeta?.isBot ? DICE_SPIN_BOT_MS : DICE_SPIN_HUMAN_MS
-      diceSpinTimerRef.current = setTimeout(() => {
-        diceSpinTimerRef.current = null
-        setRollingColor((cur) => (cur === roller ? null : cur))
-        setIsRolling(false)
-        isRollingRef.current = false
-      }, spinMs)
-    }
-
     const handleEngineEvent = (state: unknown) => {
       const type = (state as { type?: string }).type
 
-      // Snapshot captured pieces' pre-move cells BEFORE dispatching — the
-      // dispatch below applies the engine's already-final state (captured
-      // piece back in base), so viewRef.current.pieces is our last chance to
-      // see where they were standing.
-      if (type === 'piece_moved') {
-        const e = state as unknown as { capturedPieceIds?: string[] }
-        const captured = (e.capturedPieceIds ?? [])
-          .map((id) => viewRef.current.pieces.find((p) => p.id === id))
-          .filter((p): p is NonNullable<typeof p> => !!p)
-          .map((p) => ({ id: p.id, ck: p.color as PlayerColor, step: p.step, popping: false }))
-        if (captured.length > 0) setFadingPieces(captured)
+      if (type === 'dice_rolled') {
+        const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
+        const rollerColor = viewRef.current.currentTurn
+        const roller = viewRef.current.players.find((p) => p.color === rollerColor)
+        const rollerName = roller?.username || rollerColor
+        retroAudio.playLaserSound()
+        setIsRolling(true)
+        setTimeout(() => {
+          setIsRolling(false)
+          isRollingRef.current = false
+          dispatch({ type: 'dice_rolled', ...(state as object) })
+          setDisplayedLastRolls((prev) => ({ ...prev, [rollerColor]: e.value }))
+          setMoveLogs((prev) => [
+            {
+              ck: rollerColor,
+              text: e.forfeited
+                ? t('game.thirdSixForfeit', { name: rollerName })
+                : `${t('game.rolledValue', { value: e.value })}${e.bonusRoll ? t('game.bonusSuffix') : ''}`,
+            },
+            ...prev.slice(0, 11),
+          ])
+        }, 750)
+        return
       }
 
       dispatch({ type: 'state_update', ...(state as object) })
 
       if (type === 'piece_moved') {
-        const e = state as unknown as { pieceId: string; color: PlayerColor; captured: boolean; to: number; path: number[] }
-        setMoveLogs((prev) => [
-          { ck: e.color, text: e.captured ? t('game.capturedPiece', { to: e.to }) : t('game.movedPiece', { to: e.to }) },
-          ...prev.slice(0, 7),
-        ])
-        // Board state (turn, legal moves, captures) already reflects the final
-        // move above — this only walks the *visual* piece through the server's
-        // path box by box instead of snapping straight to the destination.
-        if (animTimerRef.current) clearInterval(animTimerRef.current)
-        const path = e.path ?? []
-        if (path.length > 0) {
-          let i = 0
-          setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
-          animTimerRef.current = setInterval(() => {
-            i++
-            if (i >= path.length) {
-              if (animTimerRef.current) clearInterval(animTimerRef.current)
-              animTimerRef.current = null
-              setAnimatingPiece(null)
-              return
-            }
-            setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
-          }, STEP_ANIM_MS)
+        const e = state as unknown as {
+          pieceId: string
+          color: PlayerColor
+          captured: boolean
+          capturedPieceIds?: string[]
+          to: number
+          path: number[]
         }
-        // Capture/goal burst: show the ring/sparks exactly when the mover
-        // visually arrives (mirrors the server's own bot pacing math), then
-        // auto-clear. Goal entry (piece reaches step 57, the center
-        // triangle) gets the same celebratory burst as a capture does.
-        if (e.captured || e.to === 57) {
-          if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
-          captureFxTimerRef.current = setTimeout(() => {
-            setCaptureFx({ color: e.color, to: e.to })
-            if (e.captured) {
-              setFadingPieces((prev) => prev.map((f) => ({ ...f, popping: true })))
-              setTimeout(() => setFadingPieces([]), 320)
-            }
-            setTimeout(() => setCaptureFx(null), 600)
-          }, path.length * STEP_ANIM_MS)
+        const path = e.path ?? []
+
+        // Extract color of captured piece if a capture occurred
+        let victimColor = ''
+        if (e.captured) {
+          if (e.capturedPieceIds && e.capturedPieceIds.length > 0) {
+            victimColor = e.capturedPieceIds[0].split('-')[0].toUpperCase()
+          } else {
+            const victim = viewRef.current.pieces.find((p) => p.color !== e.color && p.step === e.to)
+            if (victim) victimColor = victim.color.toUpperCase()
+          }
+          if (!victimColor) victimColor = 'OPPONENT'
+        }
+
+        // Set animatingPiece SYNCHRONOUSLY to path[0] so React batches this with dispatch({ type: 'state_update' })
+        // This prevents the piece from flickering at e.to on frame 1.
+        if (path.length > 0) {
+          setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
+        }
+
+        const runStepAnimation = () => {
+          retroAudio.playUiBeep(580, 0.06, 'sine')
+          if (e.captured) {
+            setMoveLogs((prev) => [
+              { ck: e.color, text: t('game.capturedPiece', { color: victimColor }) },
+              ...prev.slice(0, 11),
+            ])
+          }
+
+          if (path.length > 1) {
+            if (animTimerRef.current) clearInterval(animTimerRef.current)
+            let i = 0
+            animTimerRef.current = setInterval(() => {
+              i++
+              if (i >= path.length) {
+                if (animTimerRef.current) clearInterval(animTimerRef.current)
+                animTimerRef.current = null
+                setAnimatingPiece(null)
+                return
+              }
+              setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
+            }, STEP_ANIM_MS)
+          } else {
+            setAnimatingPiece(null)
+          }
+
+          if (e.captured) {
+            retroAudio.playExplosionSound()
+            if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
+            captureFxTimerRef.current = setTimeout(() => {
+              setCaptureFx({ color: e.color, to: e.to })
+              setTimeout(() => setCaptureFx(null), 600)
+            }, (path.length || 1) * STEP_ANIM_MS)
+          }
+        }
+
+        if (isRollingRef.current) {
+          setTimeout(runStepAnimation, 750)
+        } else {
+          runStepAnimation()
         }
       } else if (type === 'lobby_update') {
-        // If a color swap moved *my* seat, resync the socket's own notion of
-        // playerColor by re-joining with the new color (server derives move/roll
-        // authorization from socket.data.playerColor, set once at join_game time).
         const e = state as unknown as { players: Array<{ username: string; color: PlayerColor }> }
         const mine = e.players.find((p) => p.username === user?.username)
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
           socket.emit('join_game', activeMatch.gameId, mine.color)
-          // Persist the swap so a refresh/rejoin re-joins with the color the
-          // player actually picked, not the one assigned when the match was
-          // created (activeMatch is what seeds initialView() and the
-          // post-reconnect join_game call — see below).
           setActiveMatch({ ...activeMatch, color: mine.color })
         }
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
+        retroAudio.playUiBeep(1100, 0.3, 'sawtooth')
+        let endedPlayers = viewRef.current.players
+          .filter((p) => p.status !== 'inactive')
+          .map((p) => ({
+            color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+          }))
+        if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
+          endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
+        }
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
           mode: activeMatch?.mode ?? 'pvp',
-          playerCount: activeMatch?.playerCount ?? 4,
-          players: viewRef.current.players
-            .filter((p) => p.status === 'active')
-            .map((p) => ({
-              color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
-            })),
+          playerCount: activeMatch?.playerCount ?? endedPlayers.length,
+          players: endedPlayers,
         })
         setTimeout(() => navigate('/results'), 2500)
       }
     }
 
     socket.on('state_update', handleEngineEvent)
-    socket.on('dice_rolled', handleDiceRolled)
+    socket.on('dice_rolled', handleEngineEvent)
     socket.on('piece_moved', handleEngineEvent)
     socket.on('game_started', handleEngineEvent)
     socket.on('game_ended', handleEngineEvent)
@@ -407,35 +380,63 @@ export function Game() {
     socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
 
-    // Another PvP player pressed End Game — log a translatable line.
     socket.on('player_aborted', (e: { color: PlayerColor; username: string }) => {
       setMoveLogs((prev) => [
         { ck: e.color, text: t('game.playerAborted', { name: e.username }) },
-        ...prev.slice(0, 7),
+        ...prev.slice(0, 11),
       ])
     })
 
-    socket.on('game_timeout', () => {
-      setLastResult({
-        winner: viewRef.current.currentTurn,
+    const buildAbandonedResult = () => {
+      let players = viewRef.current.players
+        .filter((p) => p.status !== 'inactive')
+        .map((p) => ({
+          color: p.color,
+          username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+          isBot: p.isBot,
+          piecesInGoal: p.piecesInGoal ?? 0,
+        }))
+
+      if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
+        const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+        players = seats
+          .map((s, idx) => {
+            if (s.type === 'empty') return null
+            const color = SEAT_COLORS[idx] || 'red'
+            let username = 'Pilot'
+            if (s.type === 'you') username = user?.username || 'You'
+            else if (s.type === 'bot' || s.type === 'player') username = s.name
+            return {
+              color,
+              username,
+              isBot: s.type === 'bot',
+              piecesInGoal: 0,
+            }
+          })
+          .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
+      }
+
+      if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
+        players = players.slice(0, activeMatch.playerCount)
+      }
+
+      return {
+        winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
         resultDetail: 'abandoned',
         mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? 4,
-        players: [],
+        playerCount: activeMatch?.playerCount ?? players.length,
+        players,
         abandoned: true,
-      })
+      }
+    }
+
+    socket.on('game_timeout', () => {
+      setLastResult(buildAbandonedResult())
       setActiveMatch(null)
       navigate('/results')
     })
     socket.on('game_expired', () => {
-      setLastResult({
-        winner: viewRef.current.currentTurn,
-        resultDetail: 'abandoned',
-        mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? 4,
-        players: [],
-        abandoned: true,
-      })
+      setLastResult(buildAbandonedResult())
       setActiveMatch(null)
       navigate('/results')
     })
@@ -452,18 +453,11 @@ export function Game() {
       animTimerRef.current = null
       if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
       captureFxTimerRef.current = null
-      if (diceSpinTimerRef.current) clearTimeout(diceSpinTimerRef.current)
-      diceSpinTimerRef.current = null
       setAnimatingPiece(null)
       setCaptureFx(null)
-      setFadingPieces([])
     }
   }, [activeMatch, setLastResult])
 
-  // Hotseat: keep the single socket's server-side authorization (playerColor)
-  // pointed at whoever's turn it currently is, so the same device can roll for
-  // every local seat in turn. Re-emitting join_game is the only way to update
-  // that — see the eager multi-join above for why the same mechanism applies.
   useEffect(() => {
     if (!activeMatch || activeMatch.mode !== 'hotseat') return
     if (view.status !== 'active' || view.currentTurn === viewRef.current.myColor) return
@@ -473,29 +467,21 @@ export function Game() {
     socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
   }, [view.currentTurn, view.status, activeMatch])
 
-  // Spacebar = roll dice (alternative to the Roll button). Guarded by the
-  // exact same gate as the button (canRollRef, mirroring canRoll) plus an
-  // input-field check so typing in a text box never rolls. Idempotent: a
-  // second press while a roll is in flight is ignored.
-  //
-  // Deliberately keyed off canRoll/displayTurn rather than the raw
-  // view.currentTurn: displayTurn lags the real turn by a beat (see
-  // TURN_CHANGE_DELAY_* above) so the turn change reads as a beat instead of
-  // an instant snap. Gating on the raw currentTurn let spacebar jump the gun
-  // and start rolling before that beat finished — before the turn indicator
-  // even said it was your turn yet — while the button correctly stayed
-  // disabled for that same window. This keeps both input paths in sync.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return
       const el = e.target as HTMLElement | null
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
-      if (!canRollRef.current) return
+      const v = viewRef.current
+      if (v.status !== 'active') return
+      if (v.currentTurn !== v.myColor) return
+      if (v.turnPhase !== 'WAITING_FOR_ROLL') return
+      if (v.clash || v.legalMoves.length > 0) return
       if (isRollingRef.current) return
       e.preventDefault()
       isRollingRef.current = true
       setIsRolling(true)
-      setRollingColor(viewRef.current.myColor)
+      retroAudio.playUiBeep(980, 0.08, 'sawtooth')
       socketRef.current?.emit('roll_dice')
     }
     window.addEventListener('keydown', onKeyDown)
@@ -506,24 +492,32 @@ export function Game() {
     if (!canRoll || isRolling || isRollingRef.current) return
     isRollingRef.current = true
     setIsRolling(true)
-    setRollingColor(view.myColor)
+    retroAudio.playUiBeep(980, 0.08, 'sawtooth')
     socketRef.current?.emit('roll_dice')
   }
-  // Target-piece selection is locked out until the die has fully stopped
-  // spinning (rollingColor cleared) — applies uniformly whether the roll
-  // belongs to the human player or a bot, since rollingColor is set for
-  // whichever color just rolled either way (see handleDiceRolled above).
+
   const movePiece = (pieceId: string) => {
-    if (rollingColor !== null) return
+    if (isRolling || isRollingRef.current) return
+    retroAudio.playUiBeep(640, 0.05)
     socketRef.current?.emit('move_piece', pieceId)
   }
-  const markReady = () => socketRef.current?.emit('player_ready')
-  const selectColor = (color: PlayerColor) => socketRef.current?.emit('select_color', color)
+
+  const markReady = () => {
+    retroAudio.playUiBeep(1100, 0.1)
+    socketRef.current?.emit('player_ready')
+  }
+
+  const selectColor = (color: PlayerColor) => {
+    retroAudio.playUiBeep(720, 0.05)
+    socketRef.current?.emit('select_color', color)
+  }
+
   const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
   const clearClash = () => dispatch({ type: 'clash_clear' })
 
   const inviteFriend = async (friendId: string) => {
     if (!activeMatch || inviteStates[friendId] === 'busy') return
+    retroAudio.playUiBeep(800, 0.06)
     setInviteStates((prev) => ({ ...prev, [friendId]: 'busy' }))
     try {
       await postApi(`/api/game/${activeMatch.gameId}/invite`, { friendId })
@@ -533,29 +527,48 @@ export function Game() {
     }
   }
 
-  // "Go to Lobby" is PURE navigation: it leaves the game screen but does NOT
-  // mutate the engine state. The unmount socket.disconnect() puts the human in
-  // the grace/pause path (seat preserved) — Resume Last Game reconnects the
-  // exact same turn state. Definitive exit is only via End Game / end_game.
-  const leaveGame = () => {
-    navigate('/lobby')
-  }
-
-  // "End Game" definitively terminates the match for this player. Emits the
-  // engine's end_game event: bot-mode games are aborted + wiped (unreachable
-  // via Resume); PvP prunes just this seat and the game continues if >= 2
-  // humans remain. No result is posted for aborted games, and the match is
-  // cleared so Resume Last Game can never resurrect it.
   const endGame = () => {
+    retroAudio.playExplosionSound()
     socketRef.current?.emit('end_game')
-    // Abandoned outcome: no result is posted for aborts, so the quitter gets
-    // the "Game Abandoned" card (no rating change) instead of a silent kick.
+
+    let players = viewRef.current.players
+      .filter((p) => p.status !== 'inactive')
+      .map((p) => ({
+        color: p.color,
+        username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+        isBot: p.isBot,
+        piecesInGoal: p.piecesInGoal ?? 0,
+      }))
+
+    if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
+      const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+      players = seats
+        .map((s, idx) => {
+          if (s.type === 'empty') return null
+          const color = SEAT_COLORS[idx] || 'red'
+          let username = 'Pilot'
+          if (s.type === 'you') username = user?.username || 'You'
+          else if (s.type === 'bot' || s.type === 'player') username = s.name
+          return {
+            color,
+            username,
+            isBot: s.type === 'bot',
+            piecesInGoal: 0,
+          }
+        })
+        .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
+    }
+
+    if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
+      players = players.slice(0, activeMatch.playerCount)
+    }
+
     setLastResult({
-      winner: viewRef.current.currentTurn,
+      winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
       resultDetail: 'abandoned',
       mode: activeMatch?.mode ?? 'pvp',
-      playerCount: activeMatch?.playerCount ?? 4,
-      players: [],
+      playerCount: activeMatch?.playerCount ?? players.length,
+      players,
       abandoned: true,
     })
     setActiveMatch(null)
@@ -565,371 +578,916 @@ export function Game() {
   // If no match credentials exist, redirect back to lobby
   if (!activeMatch) {
     return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#12100a', color: '#f0e2c4' }}>
-        <div style={{ ...card, padding: 32, textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>No active match found</div>
-          <div style={{ color: '#a99a83', marginBottom: 20 }}>Please set up a game from the lobby first.</div>
-          <button onClick={() => navigate('/lobby')} style={{ ...btnGold, padding: '12px 24px' }}>
-            Go to Lobby
-          </button>
+      <>
+        <div className="grid-background">
+          <div className="synthwave-sun" />
+          <div className="grid-horizon" />
+          <div className="perspective-grid" />
+          <div className="win95-starfield" />
+          <div className="terminal-vector-core" />
         </div>
-      </div>
+
+        <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+          <div className="crt-scanlines" id="crtOverlay" style={{ display: crtEnabled ? 'block' : 'none' }} />
+          <div className="crt-flicker" />
+
+          <div className="app-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <section className="retro-window" style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
+              <div className="window-header">
+                <span>{t('game.noActiveSessionTitle')}</span>
+              </div>
+              <div className="window-body" style={{ textAlign: 'center', padding: '30px 24px' }}>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', color: 'var(--accent-yellow)', marginBottom: 10 }}>
+                  NO MATCH CREDENTIALS DETECTED
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 24, lineHeight: 1.5 }}>
+                  Please initialize or join a tactical Ludo arena from the Game Lobby first.
+                </div>
+                <button
+                  className="retro-btn"
+                  style={{ width: '100%', padding: '12px 0', fontSize: '0.8rem' }}
+                  onClick={() => {
+                    retroAudio.playUiBeep(600, 0.05)
+                    navigate('/gamelobby')
+                  }}
+                >
+                  &gt;_ {t('game.returnToLobbyBtn')}
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </>
     )
   }
 
-  const isMyTurn = displayTurn === view.myColor
-  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece
-  // Keep the spacebar shortcut in sync with the Roll button's own gate —
-  // it's declared in a mount-once effect below, so it reads this via a ref
-  // rather than closing over the (stale, first-render) canRoll value.
-  canRollRef.current = canRoll
+  const isMyTurn = view.currentTurn === view.myColor
+  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
   const turnLabel = view.status === 'waiting'
-    ? t('game.waitingRoomTitle')
-    : isMyTurn ? t('game.yourTurnShort') : `${displayTurn.toUpperCase()}'s turn`
+    ? t('game.waitingRoomTitle').toUpperCase()
+    : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 30px', borderBottom: '1px solid #2e2115' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div
-            onClick={leaveGame}
-            style={{
-              cursor: 'pointer', padding: '9px 16px', borderRadius: 10, border: '1px solid #3a2c1d',
-              background: '#1a130d', fontSize: 13, fontWeight: 700, color: '#c9bda3',
-            }}
-          >
-            ← {t('game.goToLobby')}
-          </div>
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 18, color: '#f4e9cf' }}>
-            {t('game.modePlayerCasual', { mode: view.players.length || 2 })}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#a99a83' }}>
-            {activeMatch.inviteCode && (
-              <>
-                <span style={{ fontWeight: 800, letterSpacing: '.1em', color: '#c9bda3' }}>
-                  {t('game.roomCode')} {activeMatch.inviteCode}
-                </span>
-                <div
-                  onClick={copyRoomCode}
-                  title={t('game.copyRoomCode')}
-                  style={{
-                    cursor: 'pointer', padding: '3px 9px', borderRadius: 7, border: '1px solid #3a2c1d',
-                    background: codeCopied ? '#22432f' : '#140e0b', fontSize: 11, fontWeight: 700,
-                    color: codeCopied ? '#5fd08a' : '#c9bda3',
-                  }}
-                >
-                  {codeCopied ? t('game.copiedBtn') : t('game.copyBtn')}
-                </div>
-              </>
-            )}
-            <span style={{ fontSize: 11, color: connected ? '#5fd08a' : '#e05050' }}>
-              {connected ? '● Live' : '● Connecting…'}
-            </span>
-          </div>
-        </div>
+    <>
+      {/* Animated 3D Synthwave Grid & Sun Background */}
+      <div className="grid-background">
+        <div className="synthwave-sun" />
+        <div className="grid-horizon" />
+        <div className="perspective-grid" />
+        <div className="win95-starfield" />
+        <div className="terminal-vector-core" />
+      </div>
+
+      {/* CRT Monitor Overlay FX Container */}
+      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
         <div
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderRadius: 999,
-            background: '#22432f', border: '1px solid #2e4a38', fontWeight: 700, fontSize: '13.5px', color: '#dff0e0',
-          }}
-        >
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#5fd08a' }} />
-          {turnLabel}
-        </div>
-      </header>
+          className="crt-scanlines"
+          id="crtOverlay"
+          style={{ display: crtEnabled ? 'block' : 'none' }}
+        />
+        <div className="crt-flicker" />
 
-      <div
-        style={{
-          flex: 1, display: 'grid', gridTemplateColumns: '320px 1fr 280px', gap: 24, padding: '26px 30px',
-          alignItems: 'start', maxWidth: 1300, margin: '0 auto', width: '100%',
-        }}
-      >
-        {/* Players sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Sidebar header: Players label + "Last Rolled" column header, aligned over the dice column */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: 12 }}>
-            <div style={{ ...sectionLabel, color: '#a99a83' }}>{t('lobby.players')}</div>
-            <div style={{ ...sectionLabel, color: '#a99a83', fontSize: 10 }}>{t('game.lastRolled')}</div>
-          </div>
-          {SEAT_COLORS.map((ck) => {
-            const col = COL[ck]
-            const playerMeta = view.players.find((p) => p.color === ck)
-            const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
-            const isActive = displayTurn === ck
+        {/* Main Content Wrapper */}
+        <div className="app-wrapper game-page" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
+          {/* Hero Telemetry & Badge Bar */}
+          <header className="hero-section" style={{ padding: '12px 0 10px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <h1 className="hero-title" style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
+                {t('game.heroTitle')}
+              </h1>
 
-            if (view.status === 'waiting') {
-              const isYou = ck === view.myColor
-              const isReady = view.readyPlayers.includes(ck)
-              return (
-                <div
-                  key={ck}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 13,
-                    border: '1px solid ' + (isYou ? col.base : '#3a2c1d'),
-                    background: occupied ? 'linear-gradient(180deg,#241b13,#1a130d)' : 'rgba(255,255,255,.02)',
-                    opacity: occupied ? 1 : 0.55,
-                  }}
-                >
-                  {occupied && playerMeta?.username ? (
-                    <UserAvatar
-                      username={playerMeta.username}
-                      size={38}
-                      fallbackStyle={{
-                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                        fontWeight: 800, fontSize: 13, color: '#12100a',
-                        background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                      }}
-                      style={{ borderRadius: 10 }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                        fontWeight: 800, fontSize: 13, color: '#12100a',
-                        background: 'transparent',
-                        border: `1.5px dashed ${col.base}88`,
-                      }}
-                    />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 800, fontSize: 14, color: occupied ? '#f0e2c4' : '#8a7c66' }}>
-                      {occupied ? playerMeta!.username : t('game.emptySeat')}
-                    </div>
-                    <div style={{ color: '#a99a83', fontSize: 12 }}>{isYou ? t('common.you') : ck}</div>
-                  </div>
-                  {occupied && (
-                    <span style={{ fontSize: 11, fontWeight: 800, color: isReady ? '#5fd08a' : '#a99a83' }}>
-                      {isReady ? `✓ ${t('game.readyBadge')}` : t('game.notReadyBadge')}
-                    </span>
-                  )}
-                </div>
-              )
-            }
-
-            // active = full row, disconnected = dimmed "Reconnecting…", exited =
-            // removed from the roster (matches the board, whose pieces are gone).
-            if (!playerMeta || playerMeta.status === 'exited' || playerMeta.status === 'inactive') return null
-            const isDisconnected = playerMeta.status === 'disconnected'
-            const isHotseat = activeMatch.mode === 'hotseat'
-            // Hotseat: every seat is controlled by the same device, so "isYou"
-            // means "whoever's turn this device is currently authorized to
-            // play" (view.myColor) rather than a username match — the other
-            // local seat has its own typed-in name (see localNames) but still
-            // isn't a separate real account.
-            const isYou = isHotseat ? ck === view.myColor : !playerMeta.isBot && playerMeta.username === user?.username
-            const name = playerMeta.username
-            const sub = isDisconnected ? t('game.reconnecting') : playerMeta.isBot ? t('common.bot') : isYou ? t('common.you') : isHotseat ? t('game.localPlayer') : 'Player'
-            const goalCount = playerMeta.piecesInGoal ?? 0
-            const lastRoll = view.lastRolls[ck]
-
-            return (
+              {/* Live Turn Announcement Pill */}
               <div
-                key={ck}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 11, padding: 12, borderRadius: 13,
-                  border: '1px solid ' + (isActive ? col.base : '#3a2c1d'),
-                  background: isActive ? `linear-gradient(180deg,${col.base}22,#1a130d)` : 'linear-gradient(180deg,#241b13,#1a130d)',
-                  boxShadow: isActive ? `0 0 0 1px ${col.base}55` : 'none',
-                  opacity: isDisconnected ? 0.55 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 20px',
+                  borderRadius: 4,
+                  background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : 'rgba(0, 240, 255, 0.15)',
+                  border: isMyTurn ? '1.5px solid var(--accent-pink)' : '1.5px solid var(--accent-cyan)',
+                  boxShadow: isMyTurn ? '0 0 15px rgba(255, 0, 127, 0.6)' : 'none',
+                  animation: isMyTurn ? 'pulse 1.6s infinite' : 'none',
+                  boxSizing: 'border-box',
                 }}
               >
-                {!playerMeta.isBot && !isHotseat ? (
-                  <UserAvatar
-                    username={name}
-                    size={38}
-                    fallbackStyle={{
-                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                    }}
-                    style={{ borderRadius: 10 }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 38, height: 38, flex: 'none', borderRadius: 10, display: 'grid', placeItems: 'center',
-                      fontWeight: 800, fontSize: 13, color: '#12100a', background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                    }}
-                  >
-                    {name.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4' }}>{name}</div>
-                  <div style={{ color: '#a99a83', fontSize: 12 }}>{sub}</div>
-                </div>
-                <Pips count={goalCount} color={col.base} />
-                {/* Last Rolled column — fixed right edge, aligns under the sidebar header */}
-                <div style={{ flex: 'none' }}>
-                  {lastRoll ? (
-                    <MiniDie value={lastRoll} rolling={rollingColor === ck} />
-                  ) : rollingColor === ck ? (
-                    <MiniDie value={1} rolling />
-                  ) : (
-                    <div style={{ width: 44, height: 44, borderRadius: 11, border: '1px dashed #4a3826', display: 'grid', placeItems: 'center', color: '#8a7c66', fontSize: 14, flex: 'none' }}>–</div>
-                  )}
-                </div>
+                <span
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    background: isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
+                    boxShadow: isMyTurn ? '0 0 8px #ffe600' : '0 0 6px var(--accent-cyan)',
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-heading)',
+                    fontSize: '0.75rem',
+                    color: isMyTurn ? '#ffe600' : '#ffffff',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  {turnLabel}
+                </span>
               </div>
-            )
-          })}
-        </div>
 
-        {/* Board */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div
+              {/* Game Status Marquee Bar */}
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: 740,
+                  minHeight: 38,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '8px 14px',
+                  background: turnSwapNotice
+                    ? 'rgba(255, 230, 0, 0.25)'
+                    : isMyTurn
+                      ? 'rgba(255, 0, 127, 0.2)'
+                      : 'rgba(0, 0, 0, 0.6)',
+                  border: turnSwapNotice
+                    ? '1.5px solid #ffe600'
+                    : isMyTurn
+                      ? '1.5px solid var(--accent-pink)'
+                      : '1.5px solid rgba(0, 240, 255, 0.35)',
+                  boxShadow: turnSwapNotice
+                    ? '0 0 20px #ffe600'
+                    : isMyTurn
+                      ? '0 0 12px rgba(255, 0, 127, 0.4)'
+                      : 'none',
+                  borderRadius: 4,
+                  textAlign: 'center',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.82rem',
+                  fontWeight: 'bold',
+                  color: turnSwapNotice ? '#ffe600' : isMyTurn ? '#ff007f' : 'var(--accent-cyan)',
+                  transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {turnSwapNotice || (
+                  view.status === 'waiting'
+                    ? t('game.readyNeedsOpponent')
+                    : isRolling
+                      ? t('game.statusRolling')
+                      : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
+                        ? t('game.statusRollNow')
+                        : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
+                          ? t('game.statusSelectPiece')
+                          : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })
+                )}
+              </div>
+            </div>
+
+            {/* Badge Bar with Room Code */}
+            {activeMatch.inviteCode && (
+              <div className="badge-bar" style={{ marginTop: 14, justifyContent: 'center' }}>
+                <button
+                  className="retro-badge"
+                  style={{
+                    cursor: 'pointer',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--accent-cyan)',
+                    color: 'var(--accent-cyan)',
+                    fontFamily: 'var(--font-mono)',
+                    outline: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  onClick={copyRoomCode}
+                  title="Click to copy Room Code"
+                >
+                  {t('game.roomLabel', { code: activeMatch.inviteCode, status: codeCopied ? t('game.roomCopiedOk') : t('game.roomCopy') })}
+                </button>
+              </div>
+            )}
+          </header>
+
+          {/* Main Tactical Grid Layout */}
+          <main
+            className="dashboard-grid"
             style={{
-              width: '100%', maxWidth: 540, padding: 16, borderRadius: 20,
-              background: 'linear-gradient(145deg,#3a2a1a,#241811)',
-              boxShadow: '0 34px 66px -26px #000,inset 0 2px 0 rgba(255,255,255,.06)',
-              border: '1px solid #4a3826',
+              display: 'grid',
+              gridTemplateColumns: '310px 1fr 310px',
+              gap: 8,
+              alignItems: 'start',
+              width: '100%',
+              margin: '0 auto',
             }}
           >
-            <Board pieces={view.pieces} players={view.players} legalMoves={rollingColor ? [] : view.legalMoves} onPieceClick={movePiece} animating={animatingPiece} fx={captureFx} fading={fadingPieces} />
-          </div>
-        </div>
+            {/* COLUMN 1: PILOT ROSTER // TACTICAL STATUS & SYSTEM CONTROL */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Pilot Roster Window */}
+              <section className="retro-window" id="playersWindow">
+                <div className="window-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>{t('game.pilotRosterTitle')}</span>
+                  </div>
+                </div>
 
-        {/* Controls sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {view.status === 'waiting' ? (
-            <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={sectionLabel}>{t('game.waitingRoomTitle')}</div>
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                      {t('game.seatPilotHeader')}
+                    </span>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      {t('game.lastRolled').toUpperCase()}
+                    </span>
+                  </div>
 
-              <div>
-                <div style={{ fontSize: 12.5, color: '#a99a83', marginBottom: 8 }}>{t('game.chooseColor')}</div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {SEAT_COLORS.slice(0, activeMatch?.playerCount ?? 4).map((ck) => {
-                    const col = COL[ck]
-                    const takenByOther = view.players.some((p) => p.color === ck && p.status === 'active' && ck !== view.myColor)
+                  {SEAT_COLORS.map((ck) => {
+                    const playerMeta = view.players.find((p) => p.color === ck)
+                    const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
+                    const isActive = view.currentTurn === ck
+
+                    // Color neon accent map
+                    const colorAccent =
+                      ck === 'red'
+                        ? '#ff007f'
+                        : ck === 'green'
+                          ? '#00ff88'
+                          : ck === 'yellow'
+                            ? '#ffe600'
+                            : '#00f0ff'
+
+                    if (view.status === 'waiting') {
+                      const isYou = ck === view.myColor
+                      const isReady = view.readyPlayers.includes(ck)
+                      return (
+                        <div
+                          key={ck}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 10,
+                            padding: '10px 12px',
+                            borderRadius: 4,
+                            border: isYou
+                              ? `1.5px solid ${colorAccent}`
+                              : occupied
+                                ? `1px solid ${colorAccent}66`
+                                : '1px dashed rgba(255, 255, 255, 0.15)',
+                            background: isYou
+                              ? 'rgba(255, 0, 127, 0.18)'
+                              : occupied
+                                ? 'rgba(25, 10, 56, 0.65)'
+                                : 'rgba(10, 5, 25, 0.35)',
+                            boxShadow: isYou ? `0 0 10px ${colorAccent}44` : 'none',
+                            opacity: occupied ? 1 : 0.5,
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          {occupied && playerMeta?.username ? (
+                            <UserAvatar
+                              username={playerMeta.username}
+                              size={34}
+                              fallbackStyle={{
+                                width: 34,
+                                height: 34,
+                                flex: 'none',
+                                borderRadius: 4,
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontWeight: 'bold',
+                                fontSize: '0.75rem',
+                                color: '#0d0221',
+                                background: colorAccent,
+                                border: `1px solid ${colorAccent}`,
+                              }}
+                              style={{ borderRadius: 4, border: `1px solid ${colorAccent}` }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: 34,
+                                height: 34,
+                                flex: 'none',
+                                borderRadius: 4,
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontWeight: 'bold',
+                                fontSize: '0.7rem',
+                                color: colorAccent,
+                                background: 'transparent',
+                                border: `1.5px dashed ${colorAccent}88`,
+                              }}
+                            >
+                              {ck.slice(0, 1).toUpperCase()}
+                            </div>
+                          )}
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontWeight: 'bold',
+                                fontSize: '0.82rem',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                              }}
+                            >
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {occupied && playerMeta?.username ? playerMeta.username : t('game.emptySeat')}
+                              </span>
+                            </div>
+                          </div>
+
+                          {occupied && (
+                            <span
+                              className="retro-badge"
+                              style={{
+                                padding: '2px 6px',
+                                fontSize: '0.62rem',
+                                border: isReady ? '1px solid #00ff88' : '1px solid #ff0055',
+                                color: isReady ? '#00ff88' : '#ff0055',
+                              }}
+                            >
+                              {isReady ? 'READY OK' : 'WAITING'}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    // Active game pilot card
+                    if (!playerMeta) return null
+                    const isDisconnected = playerMeta.status === 'disconnected'
+                    const isHotseat = activeMatch.mode === 'hotseat'
+                    const isYou = isHotseat
+                      ? ck === view.myColor
+                      : !playerMeta.isBot && playerMeta.username === user?.username
+                    const name =
+                      localNames[ck] ||
+                      playerMeta.username ||
+                      (playerMeta.isBot
+                        ? t('common.bot')
+                        : isYou
+                          ? t('common.you')
+                          : isHotseat
+                            ? t('game.localPlayer')
+                            : 'Pilot')
+                    const lastRoll = displayedLastRolls[ck]
+
                     return (
                       <div
                         key={ck}
-                        onClick={() => selectColor(ck)}
-                        title={ck}
                         style={{
-                          width: 34, height: 34, borderRadius: 10, cursor: 'pointer',
-                          background: `linear-gradient(180deg,${col.base},${col.dark})`,
-                          border: ck === view.myColor ? '2px solid #f0e2c4' : '2px solid transparent',
-                          boxShadow: ck === view.myColor ? `0 0 0 2px ${col.base}` : 'none',
-                          opacity: takenByOther ? 0.55 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          padding: '10px 12px',
+                          borderRadius: 4,
+                          border: isActive
+                            ? `1.5px solid ${colorAccent}`
+                            : occupied
+                              ? `1.5px solid ${colorAccent}44`
+                              : '1.5px dashed rgba(255, 255, 255, 0.12)',
+                          background: isActive
+                            ? `rgba(35, 12, 70, 0.95)`
+                            : 'rgba(25, 10, 56, 0.65)',
+                          boxShadow: isActive
+                            ? `0 0 20px ${colorAccent}aa, inset 0 0 12px ${colorAccent}44`
+                            : 'none',
+                          opacity: isDisconnected ? 0.55 : 1,
+                          position: 'relative',
+                          transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease',
+                          boxSizing: 'border-box',
                         }}
-                      />
+                      >
+                        {/* Active Turn Top-Right Badge */}
+                        {isActive && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: -7,
+                              right: 8,
+                              background: colorAccent,
+                              color: '#0d0221',
+                              fontSize: '0.55rem',
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 900,
+                              padding: '1px 6px',
+                              borderRadius: 3,
+                              letterSpacing: '0.5px',
+                              boxShadow: `0 0 10px ${colorAccent}`,
+                            }}
+                          >
+                            ▶ IN CONTROL ◀
+                          </span>
+                        )}
+
+                        {!playerMeta.isBot && !isHotseat ? (
+                          <UserAvatar
+                            username={name}
+                            size={36}
+                            fallbackStyle={{
+                              width: 36,
+                              height: 36,
+                              flex: 'none',
+                              borderRadius: 4,
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '0.8rem',
+                              color: '#0d0221',
+                              background: colorAccent,
+                            }}
+                            style={{ borderRadius: 4, border: `1.5px solid ${colorAccent}` }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 36,
+                              height: 36,
+                              flex: 'none',
+                              borderRadius: 4,
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '0.75rem',
+                              color: '#0d0221',
+                              background: colorAccent,
+                              border: `1.5px solid ${colorAccent}`,
+                            }}
+                          >
+                            {name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontWeight: 'bold',
+                              fontSize: '0.84rem',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            {isActive && (
+                              <span style={{ color: colorAccent, fontWeight: 'bold', fontSize: '0.75rem' }}>▶</span>
+                            )}
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {name}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Fixed slot for MiniDie to prevent callsign layout jitter */}
+                        <div style={{ width: 36, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                          {lastRoll !== undefined && lastRoll > 0 && (
+                            <MiniDie value={lastRoll} />
+                          )}
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
-              </div>
+              </section>
 
+              {/* Arena System Control & Sector Specs */}
+              <section className="retro-window" id="sectorControlWindow">
+                <div className="window-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>{t('game.systemControlTitle')}</span>
+                  </div>
+                </div>
+
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                    {t('game.combatKeybindsRules')}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>DICE ROLL:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('game.spaceToRoll')}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>SELECT PIECE:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{t('game.victoryGoal')}</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
+
+                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                    {t('game.audioPreferences')}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                    <button
+                      className="retro-badge"
+                      style={{
+                        cursor: 'pointer',
+                        padding: '8px 10px',
+                        background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
+                        border: soundMuted ? '1px solid #ff0055' : '1px solid #00ff88',
+                        color: soundMuted ? '#ff0055' : '#00ff88',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.7rem',
+                        textAlign: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onClick={toggleSound}
+                    >
+                      {soundMuted ? t('game.audioOff') : t('game.audioOn')}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 'min(650px, 66vh)', justifySelf: 'center' }}>
               {(() => {
-                const activeCount = view.players.filter((p) => p.status === 'active').length
-                const alreadyReady = view.readyPlayers.includes(view.myColor)
-                const soloRoom = activeCount < 2
-                const disabled = alreadyReady || soloRoom
+                const currentTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+                const isBotTurn = currentTurnPlayer?.isBot ?? false
+                const activeLegalMoves = isRolling || isBotTurn ? [] : view.legalMoves
+
                 return (
-                  <button
-                    onClick={markReady}
-                    disabled={disabled}
-                    style={{
-                      ...btnGold, width: '100%', padding: 14,
-                      opacity: disabled ? 0.6 : 1,
-                      cursor: disabled ? 'default' : 'pointer',
-                    }}
-                  >
-                    {alreadyReady ? t('game.readyWaitingBtn') : soloRoom ? t('game.readyNeedsOpponent') : t('game.readyBtn')}
-                  </button>
+                  <div style={{ width: '100%' }}>
+                    <Board
+                      pieces={view.pieces}
+                      players={view.players}
+                      legalMoves={activeLegalMoves}
+                      onPieceClick={isRolling || isBotTurn ? () => { } : movePiece}
+                      animating={animatingPiece}
+                      fx={captureFx}
+                    />
+                  </div>
                 )
               })()}
+            </div>
 
-              <div style={{ fontSize: 13, color: '#5fd08a', textAlign: 'center' }}>
-                {t('game.readyCount', {
-                  ready: view.readyPlayers.length,
-                  total: view.players.filter((p) => p.status === 'active').length,
-                })}
-              </div>
+            {/* COLUMN 3: TACTICAL CONTROLS & LOGS */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {view.status === 'waiting' ? (
+                /* WAITING ROOM SETUP WINDOW */
+                <section className="retro-window" id="waitingSetupWindow">
+                  <div className="window-header">
+                    <span>{t('game.waitingBayTitle')}</span>
+                  </div>
 
-              {activeMatch?.mode === 'pvp' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #3a2c1d', paddingTop: 14 }}>
-                  <div style={{ fontSize: 12.5, color: '#a99a83', fontWeight: 700 }}>{t('game.inviteFriend')}</div>
-                  {friends.length === 0 ? (
-                    <div style={{ fontSize: 12, color: '#8a7c66' }}>{t('game.noFriendsToInvite')}</div>
-                  ) : (
-                    friends.map((f) => {
-                      const st = inviteStates[f.id] ?? 'idle'
+                  <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                        {t('game.selectSeatColor')}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+                        {SEAT_COLORS.map((ck) => {
+                          const colAccent =
+                            ck === 'red'
+                              ? '#ff007f'
+                              : ck === 'green'
+                                ? '#00ff88'
+                                : ck === 'yellow'
+                                  ? '#ffe600'
+                                  : '#00f0ff'
+                          const takenByOther = view.players.some(
+                            (p) => p.color === ck && p.status === 'active' && ck !== view.myColor
+                          )
+                          const isSelected = ck === view.myColor
+                          return (
+                            <button
+                              key={ck}
+                              onClick={() => selectColor(ck)}
+                              title={ck.toUpperCase()}
+                              disabled={takenByOther}
+                              style={{
+                                flex: 1,
+                                height: 34,
+                                borderRadius: 4,
+                                cursor: takenByOther ? 'not-allowed' : 'pointer',
+                                background: isSelected ? colAccent : 'rgba(25, 10, 56, 0.8)',
+                                border: isSelected ? `2px solid #ffffff` : `1px solid ${colAccent}`,
+                                boxShadow: isSelected ? `0 0 12px ${colAccent}` : 'none',
+                                color: isSelected ? '#0d0221' : colAccent,
+                                fontWeight: 'bold',
+                                fontSize: '0.65rem',
+                                fontFamily: 'var(--font-mono)',
+                                opacity: takenByOther ? 0.35 : 1,
+                              }}
+                            >
+                              {ck.slice(0, 3).toUpperCase()}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const activeCount = view.players.filter((p) => p.status === 'active').length
+                      const alreadyReady = view.readyPlayers.includes(view.myColor)
+                      const soloRoom = activeCount < 2
+                      const disabled = alreadyReady || soloRoom
                       return (
-                        <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13.5, color: '#f0e2c4' }}>{f.username}</div>
-                          <button
-                            onClick={() => inviteFriend(f.id)}
-                            disabled={st !== 'idle'}
-                            style={{
-                              border: '1px solid ' + (st === 'sent' ? '#2e4a38' : '#3a2c1d'),
-                              borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700,
-                              color: st === 'sent' ? '#5fd08a' : '#c9bda3',
-                              background: st === 'sent' ? 'rgba(34,67,47,.3)' : '#1a130d',
-                              cursor: st === 'idle' ? 'pointer' : 'default',
-                              flex: 'none',
-                            }}
-                          >
-                            {st === 'busy' ? t('game.invitingBtn') : st === 'sent' ? t('game.inviteSent') : t('game.inviteBtn')}
-                          </button>
+                        <button
+                          className="retro-btn"
+                          onClick={markReady}
+                          disabled={disabled}
+                          style={{
+                            width: '100%',
+                            padding: '12px 0',
+                            fontSize: '0.8rem',
+                            background: alreadyReady ? 'rgba(0, 255, 136, 0.2)' : 'var(--btn-bg)',
+                            borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
+                            color: alreadyReady ? '#00ff88' : '#ffffff',
+                            opacity: disabled ? 0.6 : 1,
+                            cursor: disabled ? 'default' : 'pointer',
+                          }}
+                        >
+                          {alreadyReady
+                            ? `[${t('game.readyBadge').toUpperCase()}] (${t('game.waitingForHost')})`
+                            : soloRoom
+                              ? t('game.readyNeedsOpponent')
+                              : t('game.startMatchBtn')}
+                        </button>
+                      )
+                    })()}
+
+                    <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+                      {t('game.readyPilots', { current: view.readyPlayers.length, total: view.players.filter((p) => p.status === 'active').length })}
+                    </div>
+
+                    {activeMatch?.mode === 'pvp' && (
+                      <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                          {t('game.inviteComms')}
+                        </div>
+                        {friends.length === 0 ? (
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {t('game.noFriendsToInvite')}
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 110, overflowY: 'auto' }}>
+                            {friends.map((f) => {
+                              const st = inviteStates[f.id] ?? 'idle'
+                              return (
+                                <div
+                                  key={f.id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '6px 8px',
+                                    background: 'rgba(0, 0, 0, 0.4)',
+                                    borderRadius: 3,
+                                  }}
+                                >
+                                  <span style={{ fontSize: '0.75rem', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                                    {f.username}
+                                  </span>
+                                  <button
+                                    className="retro-btn"
+                                    onClick={() => inviteFriend(f.id)}
+                                    disabled={st !== 'idle'}
+                                    style={{ padding: '3px 8px', fontSize: '0.62rem' }}
+                                  >
+                                    {st === 'busy' ? '...' : st === 'sent' ? t('game.inviteSent') : `+ ${t('game.inviteBtn')}`}
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              ) : (
+                /* IN-GAME DICE CONTROLS WINDOW */
+                <section className="retro-window" id="diceControlWindow">
+                  <div className="window-header">
+                    <span>{t('game.diceSystemTitle')}</span>
+                  </div>
+
+                  <div
+                    className="window-body"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '16px 14px',
+                    }}
+                  >
+                    {/* Active Turn Pilot Banner */}
+                    {(() => {
+                      const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+                      const isBot = activeTurnPlayer?.isBot ?? false
+                      const activeName = activeTurnPlayer?.username?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+                      const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
+
+                      return (
+                        <div
+                          style={{
+                            width: '100%',
+                            padding: '6px 10px',
+                            background: isMyTurn ? 'rgba(255, 0, 127, 0.2)' : `${turnColorHex}18`,
+                            border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
+                            boxShadow: isMyTurn ? '0 0 12px rgba(255, 0, 127, 0.5)' : `0 0 8px ${turnColorHex}44`,
+                            borderRadius: 4,
+                            textAlign: 'center',
+                            fontSize: '0.74rem',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 'bold',
+                            color: '#ffffff',
+                            letterSpacing: '0.5px',
+                          }}
+                        >
+                          {isMyTurn
+                            ? `▶ ${t('game.yourTurn').toUpperCase()} ◀`
+                            : `▶ ${t('game.botTurn', { name: activeName }).toUpperCase()} ◀`}
+                        </div>
+                      )
+                    })()}
+
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.72rem',
+                        color: isMyTurn ? '#ffe600' : 'var(--text-muted)',
+                      }}
+                    >
+                      {isRolling
+                        ? t('game.statusRolling')
+                        : canRoll
+                          ? t('game.statusRollNow')
+                          : view.turnPhase === 'WAITING_FOR_MOVE'
+                            ? t('game.statusSelectPiece')
+                            : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })}
+                    </div>
+
+                    <div style={{ height: 90, display: 'grid', placeItems: 'center' }}>
+                      <Die value={view.diceValue ?? 0} rolling={isRolling} />
+                    </div>
+
+                    <button
+                      className="retro-btn"
+                      onClick={rollDice}
+                      disabled={!canRoll || isRolling}
+                      style={{
+                        width: '100%',
+                        padding: '12px 0',
+                        fontSize: '0.85rem',
+                        fontFamily: 'var(--font-heading)',
+                        letterSpacing: '1px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
+                        borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
+                        boxShadow: canRoll && !isRolling ? '0 0 15px var(--accent-pink)' : 'none',
+                        cursor: canRoll && !isRolling ? 'pointer' : 'default',
+                        opacity: canRoll && !isRolling ? 1 : 0.5,
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
+                    </button>
+
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.68rem',
+                        color: 'var(--accent-cyan)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      [ {t('game.spaceToRoll')} ]
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* MISSION TELEMETRY LOG WINDOW */}
+              <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className="window-header" style={{ flex: 'none' }}>
+                  <span>{t('game.reconLogsTitle')}</span>
+                </div>
+
+                <div
+                  ref={moveLogContainerRef}
+                  className="window-body"
+                  style={{
+                    flex: 1,
+                    height: '100%',
+                    maxHeight: '100%',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    padding: '10px 12px',
+                    background: 'rgba(5, 2, 15, 0.75)',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {moveLogs.length === 0 ? (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                      {t('game.noReconLogged')}
+                    </div>
+                  ) : (
+                    moveLogs.map((ml, i) => {
+                      const dotColor =
+                        ml.ck === 'red'
+                          ? '#ff007f'
+                          : ml.ck === 'green'
+                            ? '#00ff88'
+                            : ml.ck === 'yellow'
+                              ? '#ffe600'
+                              : '#00f0ff'
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            display: 'flex',
+                            gap: 8,
+                            fontSize: '0.72rem',
+                            color: '#ffffff',
+                            fontFamily: 'var(--font-mono)',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          <span style={{ color: dotColor, fontWeight: 'bold' }}>●</span>
+                          <span>{ml.text}</span>
                         </div>
                       )
                     })
                   )}
                 </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ ...card, padding: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <div style={sectionLabel}>
-                {rollingColor ? t('game.rolling') : canRoll ? t('game.yourRoll') : view.turnPhase === 'WAITING_FOR_MOVE' ? 'Pick a piece' : 'Dice'}
-              </div>
-              <div style={{ height: 96, display: 'grid', placeItems: 'center' }}>
-                <Die value={view.diceValue ?? 0} rolling={rollingColor !== null} />
-              </div>
-              <button
-                onClick={rollDice}
-                disabled={!canRoll || isRolling}
-                style={{
-                  ...btnGold, width: '100%', padding: 14,
-                  opacity: canRoll && !isRolling ? 1 : 0.5, cursor: canRoll && !isRolling ? 'pointer' : 'default',
-                }}
-              >
-                {isRolling ? t('game.rolling') : t('game.rollDice')}
-              </button>
-              {view.turnPhase === 'WAITING_FOR_MOVE' && isMyTurn && (
-                <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
-                  Click a highlighted piece to move
-                </div>
-              )}
-              {!isMyTurn && (
-                <div style={{ fontSize: 13, color: '#a99a83', textAlign: 'center' }}>
-                  Waiting for {view.currentTurn}…
-                </div>
-              )}
-            </div>
-          )}
+              </section>
 
-          <div style={{ ...card, padding: '18px 20px' }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', marginBottom: 10 }}>{t('game.moveLog')}</div>
-            {moveLogs.length === 0 ? (
-              <div style={{ fontSize: 13, color: '#a99a83' }}>Game events will appear here…</div>
-            ) : (
-              moveLogs.map((ml, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', fontSize: 13, color: '#c9bda3' }}>
-                  <span style={{ color: COL[ml.ck]?.base ?? '#f0d18a', fontWeight: 800 }}>●</span>
-                  <span>{ml.text}</span>
-                </div>
-              ))
-            )}
-          </div>
+              {/* RETURN TO LOBBY BUTTON (Only for online PvP matches) */}
+              {activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat' && (
+                <button
+                  className="retro-btn"
+                  onClick={() => {
+                    retroAudio.playUiBeep(440, 0.05)
+                    navigate('/gamelobby')
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    fontSize: '0.78rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 'bold',
+                    letterSpacing: '1px',
+                    lineHeight: '1.4',
+                    background: 'rgba(0, 240, 255, 0.12)',
+                    border: '1px solid var(--accent-cyan)',
+                    color: 'var(--accent-cyan)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    boxSizing: 'border-box',
+                  }}
+                  title="Return to Ludo Lobby"
+                >
+                  &lt; {t('game.returnToLobbyBtn')}
+                </button>
+              )}
 
-          <button
-            onClick={endGame}
-            style={{
-              border: '1px solid #2e4a38', borderRadius: 12, padding: 12, font: "700 13.5px 'Hanken Grotesk'",
-              color: '#8fbf9f', cursor: 'pointer', background: 'rgba(34,67,47,.3)',
-            }}
-          >
-            {t('game.endGameDemo')}
-          </button>
+              {/* ABORT MISSION / END GAME BUTTON */}
+              {(() => {
+                const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
+                return (
+                  <button
+                    className="retro-btn"
+                    onClick={endGame}
+                    style={{
+                      width: '100%',
+                      padding: isBotOrHotseat ? '18px 20px' : '12px 14px',
+                      fontSize: isBotOrHotseat ? '0.92rem' : '0.78rem',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      letterSpacing: isBotOrHotseat ? '1.5px' : '1px',
+                      lineHeight: '1.4',
+                      background: 'rgba(255, 0, 85, 0.18)',
+                      border: '1.5px solid #ff0055',
+                      color: '#ff0055',
+                      boxShadow: isBotOrHotseat ? '0 0 16px rgba(255, 0, 85, 0.3)' : 'none',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    // {t('game.abortMatchBtn')}
+                  </button>
+                )
+              })()}
+
+            </div>
+          </main>
         </div>
       </div>
 
@@ -943,8 +1501,6 @@ export function Game() {
           onComplete={clearClash}
         />
       )}
-
-      {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
-    </div>
+    </>
   )
 }

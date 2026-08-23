@@ -22,6 +22,28 @@ export default defineConfig({
   build: {
     outDir: process.env.BUILD_OUT_DIR || 'dist',
     emptyOutDir: true,
+    cssMinify: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@dicebear')) {
+              return 'vendor-dicebear'
+            }
+            if (id.includes('socket.io-client')) {
+              return 'vendor-socket'
+            }
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react'
+            }
+            if (id.includes('i18next')) {
+              return 'vendor-i18n'
+            }
+            return 'vendor'
+          }
+        },
+      },
+    },
   },
   server: {
     host: true,
