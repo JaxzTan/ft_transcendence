@@ -10,7 +10,7 @@ const PROVIDERS = ['google', 'github', '42'] as const
 
 type Providers = string[]
 interface ProfileResp {
-  user?: { id: string; username: string; email?: string | null; providers?: Providers; hasPassword?: boolean }
+  user?: { id: string; username: string; displayName?: string; email?: string | null; providers?: Providers; hasPassword?: boolean }
   emailVerificationSent?: boolean
   oauthRedirectUrl?: string
   message?: string
@@ -31,7 +31,8 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const { user, setUser } = useApp()
 
-  const [username, setUsername] = useState(user?.username ?? '')
+  const [username] = useState(user?.username ?? '')
+  const [displayName, setDisplayName] = useState(user?.displayName ?? '')
   const [email, setEmail] = useState('')
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
   const [hasPassword, setHasPassword] = useState(false)
@@ -48,6 +49,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
     let cancelled = false
     getApi<ProfileResp>('/api/auth/profile').catch(() => null).then((data) => {
       if (cancelled || !data?.user) return
+      setDisplayName(data.user.displayName ?? data.user.username ?? '')
       setEmail(data.user.email ?? '')
       setProviders(data.user.providers ?? [])
       setHasPassword(!!data.user.hasPassword)
@@ -59,7 +61,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
   const handleSave = async () => {
     setBusy(true); setError(''); setNotice('')
     const body: Record<string, unknown> = {}
-    if (username.trim() && username.trim() !== user?.username) body.username = username.trim()
+    if (displayName.trim() && displayName.trim() !== (user?.displayName ?? user?.username)) body.displayName = displayName.trim()
     if (email.trim()) body.email = email.trim()
     body.twoFactorEnabled = twoFactorEnabled
     const isPasswordChange = !!(currentPassword || newPassword || confirmPassword)
@@ -96,6 +98,8 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
       const msg = (e as { message?: string })?.message ?? ''
       setError(/last sign-in|keep at least one/i.test(msg) ? t('profileEdit.lastMethod')
         : /linked to another user/i.test(msg) ? t('profileEdit.providerTaken')
+        : /email.*(?:already|registered)/i.test(msg) ? t('profileEdit.emailTaken')
+        : /display name.*(?:taken|already)/i.test(msg) ? t('profileEdit.displayNameTaken')
         : t('profileEdit.genericError'))
     } finally {
       setBusy(false)
@@ -142,7 +146,13 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.username')}</label>
-        <input style={inputStyle()} value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t('profileEdit.usernamePlaceholder')} />
+        <input style={{ ...inputStyle(), background: 'rgba(0,0,0,0.25)', color: 'var(--text-muted)', cursor: 'not-allowed' }} value={username} readOnly disabled />
+        <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', lineHeight: 1.5, marginBottom: 12 }}>
+          {t('profileEdit.usernameLocked')}
+        </div>
+
+        <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.displayName')}</label>
+        <input style={inputStyle()} value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={t('profileEdit.displayNamePlaceholder')} />
 
         <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.email')}</label>
         <input style={inputStyle()} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('profileEdit.emailPlaceholder')} />

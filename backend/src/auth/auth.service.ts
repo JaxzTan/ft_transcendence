@@ -34,7 +34,7 @@ type LoginResult =
       twoFactorRequired: false;
       accessToken: string;
       refreshToken: string;
-      user: { id: string; username: string };
+      user: { id: string; username: string; displayName: string };
     };
 
 @Injectable()
@@ -57,7 +57,7 @@ export class AuthService {
     if (email) {
       const emailTaken = await this.prisma.db.user.findUnique({ where: { email } });
       if (emailTaken) {
-        throw new ConflictException('Email is already registered');
+        throw new ConflictException('Email already registered. Use a different email');
       }
     }
 
@@ -66,6 +66,7 @@ export class AuthService {
       data: {
         id: crypto.randomUUID(),
         username: dto.username,
+        displayName: dto.username,
         email,
         password_hash: passwordHash,
       },
@@ -197,7 +198,15 @@ export class AuthService {
   async issueSession(userId: string, username: string) {
     const accessToken = this.signAccess(userId, username);
     const refreshToken = await this.session.issue(userId);
-    return { accessToken, refreshToken, user: { id: userId, username } };
+    const user = await this.prisma.db.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true },
+    });
+    return {
+      accessToken,
+      refreshToken,
+      user: { id: userId, username, displayName: user?.displayName ?? username },
+    };
   }
 
   /**
@@ -214,7 +223,7 @@ export class AuthService {
     return {
       accessToken: this.signAccess(user.id, user.username),
       refreshToken: rotated.newToken,
-      user: { id: user.id, username: user.username },
+      user: { id: user.id, username: user.username, displayName: user.displayName },
     };
   }
 
@@ -235,6 +244,7 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        displayName: user.displayName,
         email: user.email,
         hasPassword: !!user.password_hash,
         providers: accounts.map((a) => a.provider),
@@ -275,21 +285,21 @@ export class AuthService {
   }
 
   /**
-   * Complete profile update — edit username, email, and/or the email-code 2FA
-   * method in one call. Only provided fields change.
+   * Complete profile update — edit display name, email, and/or the email-code
+   * 2FA method in one call. Only provided fields change.
+   *
+   * The username is auto-generated and cannot be changed; only the display
+   * name is editable.
    *
    * Email changes REUSE the signup verification path: the new address is
    * saved, `emailVerified` is cleared (the login gate requires a verified
    * address), and a fresh verification link is emailed via the same
    * createVerifyToken → sendVerification flow as register().
-   *
-   * Username changes re-issue the session so the JWT/refresh carry the new
-   * username; the response includes fresh tokens the controller sets as cookies.
    */
   async updateProfile(
     userId: string,
     dto: {
-      username?: string;
+      displayName?: string;
       email?: string;
       twoFactorEnabled?: boolean;
       oauthToAdd?: string;
@@ -303,17 +313,21 @@ export class AuthService {
     let emailChanged = false;
     let newEmail: string | undefined;
 
-    if (dto.username !== undefined && dto.username !== user.username) {
-      const taken = await this.prisma.db.user.findUnique({ where: { username: dto.username } });
-      if (taken) throw new ConflictException('Username is already taken');
-      data.username = dto.username;
+    if (dto.displayName !== undefined && dto.displayName !== user.displayName) {
+      const taken = await this.prisma.db.user.findUnique({
+        where: { displayName: dto.displayName },
+      });
+      if (taken) throw new ConflictException('Display name is already taken');
+      data.displayName = dto.displayName;
     }
 
     if (dto.email !== undefined) {
       const email = normalizeEmail(dto.email);
       if (email !== user.email) {
         const emailTaken = await this.prisma.db.user.findUnique({ where: { email } });
-        if (emailTaken) throw new ConflictException('Email is already registered');
+        if (emailTaken) {
+          throw new ConflictException('Email already registered. Use a different email');
+        }
         data.email = email;
         // New address must be re-confirmed before it can be used to log in.
         data.emailVerified = null;
@@ -353,13 +367,6 @@ export class AuthService {
       await this.mail.sendVerification(newEmail, `${BASE_URL}/api/auth/verify-email?token=${token}`);
     }
 
-    // Username change → the JWT/refresh carry the username claim; re-issue so
-    // the session stays valid with the new name.
-    let session: { accessToken: string; refreshToken: string } | undefined;
-    if (dto.username !== undefined && dto.username !== user.username) {
-      session = await this.issueSession(updated.id, updated.username);
-    }
-
     const accounts = await this.prisma.db.account.findMany({
       where: { userId },
       select: { provider: true },
@@ -369,13 +376,13 @@ export class AuthService {
       user: {
         id: updated.id,
         username: updated.username,
+        displayName: updated.displayName,
         email: updated.email,
         hasPassword: !!updated.password_hash,
         providers: accounts.map((a) => a.provider),
       },
       emailVerificationSent: emailChanged,
       oauthRedirectUrl,
-      session,
     };
   }
 
@@ -446,38 +453,54 @@ export class AuthService {
     // "Add method" intent with a new provider account: link it straight to
     // the requesting user (provider identity is already vouched by OAuth).
     if (linkUserId) {
-      await this.prisma.db.account.create({
-        data: {
-          id: crypto.randomUUID(),
-          userId: linkUserId,
-          provider: input.provider,
-          providerAccountId: input.providerAccountId,
-        },
-      });
       const linked = await this.prisma.db.user.findUnique({ where: { id: linkUserId } });
-      if (!linked) throw new UnauthorizedException('User not found');
-      return linked;
+      if (linked) {
+        await this.prisma.db.account.create({
+          data: {
+            id: crypto.randomUUID(),
+            userId: linkUserId,
+            provider: input.provider,
+            providerAccountId: input.providerAccountId,
+          },
+        });
+        return linked;
+      }
+      // The "add method" user no longer exists — e.g. this browser's session
+      // survived a DB reset/wipe (db push --accept-data-loss). Don't try to
+      // link a provider to a ghost userId (that would throw an FK violation);
+      // fall through and treat this OAuth callback as a normal first-time login.
     }
 
-    //  If first time with this provider, and email matches an existing
-    //  user, link to that user.
+    //  If first time with this provider, and the email matches an existing
+    //  user, REJECT the OAuth login — the email already belongs to another
+    //  account. (The "add sign-in method" flow above is exempt: it never
+    //  claims the provider's email for the account.)
     const email = input.email ? normalizeEmail(input.email) : undefined;
-    let user = email
-      ? await this.prisma.db.user.findUnique({ where: { email } })
-      : null;
-
-    // Create new
-    if (!user) {
-      const username = await this.generateUniqueUsername(input.usernameSeed);
-      user = await this.prisma.db.user.create({
-        data: {
-          id: crypto.randomUUID(),
-          username,
-          email,
-          emailVerified: email ? new Date() : null,
-        },
-      });
+    if (email) {
+      const emailOwner = await this.prisma.db.user.findUnique({ where: { email } });
+      if (emailOwner) {
+        // Don't leak the exact owner — same generic message as register().
+        throw new ConflictException(
+          'This email is already being used. Use a different email or log in using the same method you used to create this account.',
+        );
+      }
     }
+
+    // Create new — the provider-verified email populates the email field; if
+    // the provider returned no email (GitHub/42 with no verified address), the
+    // account is still created with an empty email and the user can add one
+    // later via Edit Profile.
+    const username = await this.generateUniqueUsername(input.usernameSeed);
+    const displayName = await this.generateUniqueDisplayName(username);
+    const user = await this.prisma.db.user.create({
+      data: {
+        id: crypto.randomUUID(),
+        username,
+        displayName,
+        email,
+        emailVerified: email ? new Date() : null,
+      },
+    });
 
     await this.prisma.db.account.create({
       data: {
@@ -543,8 +566,30 @@ export class AuthService {
     const base = seed.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'user';
     let candidate = base;
     while (await this.prisma.db.user.findUnique({ where: { username: candidate } })) {
-      candidate = `${base}_${Math.floor(1000 + Math.random() * 9000)}`;
+      candidate = `${base}_${this.randomChars(5)}`;
     }
     return candidate;
+  }
+
+  // Display names are unique too, so a freshly generated display name that
+  // collides with an existing one also gets 5 random characters appended.
+  private async generateUniqueDisplayName(seed: string) {
+    const base = seed.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'user';
+    let candidate = base;
+    while (await this.prisma.db.user.findUnique({ where: { displayName: candidate } })) {
+      candidate = `${base}_${this.randomChars(5)}`;
+    }
+    return candidate;
+  }
+
+  // 5 random alphanumeric characters (e.g. "3kF9z"). Avoids ambiguous
+  // characters (0/O, 1/l/I) so generated suffixes are easy to read aloud.
+  private randomChars(length: number): string {
+    const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let out = '';
+    for (let i = 0; i < length; i++) {
+      out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
   }
 }

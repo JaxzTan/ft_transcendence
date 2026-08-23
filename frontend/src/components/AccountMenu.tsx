@@ -19,7 +19,7 @@ export function AccountMenu() {
   const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp()
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
-  const name = user?.username ?? 'You'
+  const name = user?.displayName ?? user?.username ?? 'You'
 
   // Close on outside click / Escape.
   useEffect(() => {

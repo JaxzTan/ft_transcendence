@@ -59,6 +59,7 @@ async function main() {
     await prisma.user.update({
       where: { id: harleyhxng.id },
       data: {
+        displayName: 'Harley HX',
         rating: 1450,
         highestRating: 1480,
         wins: 12,
@@ -162,6 +163,7 @@ async function main() {
     await prisma.user.update({
       where: { id: harleynghxedu.id },
       data: {
+        displayName: 'Harley NGHX',
         rating: 1190,
         highestRating: 1240,
         wins: 4,

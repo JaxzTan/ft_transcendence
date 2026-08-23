@@ -11,6 +11,7 @@ import '../styles/retrowave.css'
 
 interface Profile {
   username: string
+  displayName?: string
   rating: number
   wins: number
   losses: number
@@ -189,7 +190,7 @@ export function Dashboard() {
                   color: 'var(--accent-cyan)',
                 }}
               >
-                // CALLSIGN: {user?.username?.toUpperCase() ?? 'GUEST'}
+                // CALLSIGN: {(user?.displayName ?? user?.username)?.toUpperCase() ?? 'GUEST'}
               </span>
               <span
                 className="retro-badge"
@@ -272,7 +273,7 @@ export function Dashboard() {
                         letterSpacing: '1px',
                       }}
                     >
-                      {profile?.username ?? user?.username ?? t('common.you')}
+                      {profile?.displayName ?? profile?.username ?? user?.displayName ?? user?.username ?? t('common.you')}
                     </span>
                     <RankBadge tier={currentTier} fontSize="0.78rem" padding="3px 10px" />
                   </div>

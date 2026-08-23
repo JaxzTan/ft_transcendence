@@ -123,11 +123,13 @@ export class MatchCreatorService {
 		await this.redis.expire(`match:${gameId}`, 86400);
 
 		const username = await this.resolveUsername(userId);
+		const displayName = await this.resolveDisplayName(userId);
 		const token = this.jwt.sign(
 			{
 				gameId,
 				playerId: userId,
 				username: username || undefined,
+				displayName,
 				role: 'player1',
 				mode,
 				clashEnabled,
@@ -215,5 +217,11 @@ export class MatchCreatorService {
 		if (isBotUserId(userId)) return null;
 		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
 		return user?.username ?? null;
+	}
+
+	private async resolveDisplayName(userId: string): Promise<string | undefined> {
+		if (isBotUserId(userId)) return undefined;
+		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { displayName: true } });
+		return user?.displayName ?? undefined;
 	}
 }

@@ -79,10 +79,14 @@ export class SocketHandlers {
             if (player) player.status = 'active';
           }
 
-          // Populate PlayerMeta with frontend-compatible fields
+          // Populate PlayerMeta with frontend-compatible fields.
+          // `username` is the immutable identity (used for login/avatar/URLs);
+          // `displayName` is what the UI actually shows in-game.
           const meta = state.players.find(p => p.color === playerColor);
           if (meta) {
-            meta.username = effectiveUsername || effectiveUserId || (playerColor.charAt(0).toUpperCase() + playerColor.slice(1));
+            const resolvedUsername = effectiveUsername || effectiveUserId || (playerColor.charAt(0).toUpperCase() + playerColor.slice(1));
+            meta.username = resolvedUsername;
+            meta.displayName = displayName || socket.data.displayName || resolvedUsername;
             meta.isBot = isBotUserId(effectiveUserId);
             meta.isConnected = true;
             meta.status = 'active';

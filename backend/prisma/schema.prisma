@@ -47,6 +47,7 @@ enum GameType {
 model User {
   id            String       @id
   username      String       @unique
+  displayName   String       @unique
   email         String?      @unique
   password_hash String?      // null for OAuth-only users
   emailVerified DateTime?

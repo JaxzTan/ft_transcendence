@@ -260,7 +260,7 @@ export function Lobby() {
                                 />
                                 <div>
                                   <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
-                                    {user?.username.toUpperCase() || t('common.you')}
+                                    {(user?.displayName ?? user?.username ?? '').toUpperCase() || t('common.you')}
                                   </div>
                                   <div style={{ color: hue, fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
                                     [HOST / PILOT 01]

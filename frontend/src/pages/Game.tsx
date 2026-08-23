@@ -138,7 +138,7 @@ export function Game() {
     if (prevTurnRef.current && prevTurnRef.current !== view.currentTurn) {
       const nextTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
       const isNextBot = nextTurnPlayer?.isBot ?? false
-      const nextName = nextTurnPlayer?.username?.toUpperCase() || (isNextBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+      const nextName = (nextTurnPlayer?.displayName || nextTurnPlayer?.username || nextTurnPlayer?.color)?.toUpperCase() || (isNextBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
       const colorName = view.currentTurn.toUpperCase()
 
       retroAudio.playUiBeep(640, 0.08, 'sine')
@@ -226,7 +226,7 @@ export function Game() {
           socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
         }
       }
-      socket.emit('join_game', activeMatch.gameId, activeMatch.color)
+      socket.emit('join_game', activeMatch.gameId, activeMatch.color, user?.id, user?.displayName)
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -251,7 +251,7 @@ export function Game() {
         const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
         const rollerColor = viewRef.current.currentTurn
         const roller = viewRef.current.players.find((p) => p.color === rollerColor)
-        const rollerName = roller?.username || rollerColor
+        const rollerName = roller?.displayName || roller?.username || rollerColor
         retroAudio.playLaserSound()
         setIsRolling(true)
         setTimeout(() => {
@@ -343,7 +343,7 @@ export function Game() {
         const mine = e.players.find((p) => p.username === user?.username)
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
-          socket.emit('join_game', activeMatch.gameId, mine.color)
+          socket.emit('join_game', activeMatch.gameId, mine.color, user?.id, user?.displayName)
           setActiveMatch({ ...activeMatch, color: mine.color })
         }
       } else if (type === 'game_ended') {
@@ -377,9 +377,9 @@ export function Game() {
     socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
 
-    socket.on('player_aborted', (e: { color: PlayerColor; username: string }) => {
+    socket.on('player_aborted', (e: { color: PlayerColor; username: string; displayName?: string }) => {
       setMoveLogs((prev) => [
-        { ck: e.color, text: t('game.playerAborted', { name: e.username }) },
+        { ck: e.color, text: t('game.playerAborted', { name: e.displayName || e.username }) },
         ...prev.slice(0, 11),
       ])
     })
@@ -432,7 +432,7 @@ export function Game() {
     const seat = viewRef.current.players.find((p) => p.color === view.currentTurn)
     if (!seat || seat.isBot || seat.status !== 'active') return
     dispatch({ type: 'my_color_changed', color: view.currentTurn })
-    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
+    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, user?.id, localNames[view.currentTurn] || user?.displayName)
   }, [view.currentTurn, view.status, activeMatch])
 
   useEffect(() => {
@@ -826,7 +826,7 @@ export function Game() {
                               }}
                             >
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {occupied && playerMeta?.username ? playerMeta.username : t('game.emptySeat')}
+                                {occupied && playerMeta?.username ? (playerMeta.displayName || playerMeta.username) : t('game.emptySeat')}
                               </span>
                             </div>
                           </div>
@@ -857,6 +857,7 @@ export function Game() {
                       : !playerMeta.isBot && playerMeta.username === user?.username
                     const name =
                       localNames[ck] ||
+                      playerMeta.displayName ||
                       playerMeta.username ||
                       (playerMeta.isBot
                         ? t('common.bot')
@@ -917,7 +918,7 @@ export function Game() {
 
                         {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
-                            username={name}
+                            username={playerMeta.username}
                             size={36}
                             fallbackStyle={{
                               width: 36,
@@ -1244,7 +1245,7 @@ export function Game() {
                     {(() => {
                       const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                       const isBot = activeTurnPlayer?.isBot ?? false
-                      const activeName = activeTurnPlayer?.username?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+                      const activeName = (activeTurnPlayer?.displayName || activeTurnPlayer?.username || activeTurnPlayer?.color)?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
                       const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
 
                       return (

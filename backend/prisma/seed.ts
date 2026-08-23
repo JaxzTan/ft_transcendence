@@ -104,6 +104,7 @@ async function main() {
       data: {
         id: randomUUID(),
         username: p.username,
+        displayName: p.username,
         email: `${p.username.toLowerCase()}@transcendence.cyber`,
         emailVerified: new Date(now - (50 - i) * 24 * HOUR),
         password_hash: pwd,

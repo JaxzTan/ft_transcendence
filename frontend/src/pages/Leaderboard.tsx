@@ -11,6 +11,7 @@ import '../styles/retrowave.css'
 type LeaderboardEntry = {
   rank: number
   username: string
+  displayName?: string
   rating: number
   gamesPlayed: number
   wins: number
@@ -24,7 +25,7 @@ type LeaderboardResponse = {
   total: number
   page: number
   limit: number
-  myRank?: { rank: number; username: string; rating: number } | null
+  myRank?: { rank: number; username: string; displayName?: string; rating: number } | null
 }
 
 export function Leaderboard() {
@@ -238,7 +239,7 @@ export function Leaderboard() {
                           />
                           <div>
                             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                              {top2.username}
+                              {top2.displayName || top2.username}
                             </div>
                             <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em', marginTop: 2 }}>
                               ♛ {top2.rating}
@@ -322,7 +323,7 @@ export function Leaderboard() {
                           </div>
                           <div>
                             <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                              {top1.username}
+                              {top1.displayName || top1.username}
                             </div>
                             <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em', marginTop: 2 }}>
                               ♛ {top1.rating}
@@ -394,7 +395,7 @@ export function Leaderboard() {
                           />
                           <div>
                             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                              {top3.username}
+                              {top3.displayName || top3.username}
                             </div>
                             <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ffffff', fontFamily: 'var(--font-display)', letterSpacing: '0.04em', marginTop: 2 }}>
                               ♛ {top3.rating}
@@ -578,7 +579,7 @@ export function Leaderboard() {
                                   textOverflow: 'ellipsis',
                                 }}
                               >
-                                {entry.username} {isYou && <span style={{ color: 'var(--accent-pink)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>[YOU]</span>}
+                                {entry.displayName || entry.username} {isYou && <span style={{ color: 'var(--accent-pink)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>[YOU]</span>}
                               </div>
                             </div>
                           </div>

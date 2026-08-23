@@ -13,6 +13,7 @@ import '../styles/retrowave.css'
 interface UserProfile {
   id: string
   username: string
+  displayName?: string
   avatarStyle: string | null
   rating: number
   highestRating: number
@@ -52,6 +53,7 @@ type MatchHistory = {
 type Friend = {
   id: string
   username: string
+  displayName?: string
   avatarStyle: any
   rating: number
   friendsSince: string
@@ -119,6 +121,8 @@ export function Profile() {
   const [uploadError, setUploadError] = useState('')
   const [avatarBuster, setAvatarBuster] = useState(Date.now())
   const [showEdit, setShowEdit] = useState(false)
+  // Bump to refetch the profile after the edit modal saves/closes.
+  const [profileRefresh, setProfileRefresh] = useState(0)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -250,7 +254,7 @@ export function Profile() {
     return () => {
       cancelled = true
     }
-  }, [username, avatarBuster, isOwnProfile])
+  }, [username, avatarBuster, isOwnProfile, profileRefresh])
 
   const totalGames = profile ? profile.wins + profile.losses : 0
   const winRate = totalGames > 0 ? Math.round((profile!.wins / totalGames) * 100) : 0
@@ -347,7 +351,7 @@ export function Profile() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                  <span>// PILOT PROFILE • {profile.username.toUpperCase()} (ID: #{profile.id.slice(0, 8).toUpperCase()})</span>
+                  <span>// PILOT PROFILE • {(profile.displayName || profile.username).toUpperCase()} (ID: #{profile.id.slice(0, 8).toUpperCase()})</span>
                 </div>
                 <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span className="window-btn min" />
@@ -503,7 +507,7 @@ export function Profile() {
                           textOverflow: 'ellipsis',
                         }}
                       >
-                        {profile.username}
+                        {profile.displayName || profile.username}
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
@@ -1217,20 +1221,20 @@ export function Profile() {
                                   </div>
                                   <div style={{ minWidth: 0, flex: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                      <span
-                                        style={{
-                                          fontSize: '0.92rem',
-                                          fontWeight: 900,
-                                          color: '#ffffff',
-                                          fontFamily: 'var(--font-display)',
-                                          whiteSpace: 'nowrap',
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                          letterSpacing: '0.02em',
-                                        }}
-                                      >
-                                        {f.username}
-                                      </span>
+                                        <span
+                                          style={{
+                                            fontSize: '0.92rem',
+                                            fontWeight: 900,
+                                            color: '#ffffff',
+                                            fontFamily: 'var(--font-display)',
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            letterSpacing: '0.02em',
+                                          }}
+                                        >
+                                          {f.displayName || f.username}
+                                        </span>
                                       <RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
                                     </div>
                                     <div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
@@ -1261,7 +1265,16 @@ export function Profile() {
         </div>
       </div>
 
-      {showEdit && <ProfileEditModal onClose={() => setShowEdit(false)} />}
+      {showEdit && (
+        <ProfileEditModal
+          onClose={() => {
+            setShowEdit(false)
+            // The edit modal updates the store (`setUser`); refetch this page's
+            // public-profile payload so the header/display name reflects the change.
+            setProfileRefresh((n) => n + 1)
+          }}
+        />
+      )}
     </>
   )
 }

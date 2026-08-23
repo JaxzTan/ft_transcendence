@@ -320,6 +320,7 @@ export class SocketServer {
 
 			socket.data.userId = payload.userId;
 			socket.data.username = payload.username;
+			socket.data.displayName = payload.displayName;
 			socket.data.gameId = payload.gameId;
 			socket.data.role = payload.role as 'player' | 'spectator';
 			next();

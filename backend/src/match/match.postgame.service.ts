@@ -150,9 +150,9 @@ export class MatchPostgameService {
 		await this.redis.expire(`match:${newGameId}`, 86400);
 		await this.redis.del(pendingKey);
 
-		const username = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+		const username = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true, displayName: true } });
 		const token = this.jwt.sign(
-			{ gameId: newGameId, playerId: userId, username: username?.username || undefined, role: 'player1' },
+			{ gameId: newGameId, playerId: userId, username: username?.username || undefined, displayName: username?.displayName ?? undefined, role: 'player1' },
 			{ expiresIn: '24h' },
 		);
 

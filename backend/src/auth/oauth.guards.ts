@@ -1,8 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ConflictException, ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
-import { Request } from 'express';
-import { isTunnelRequest } from '../secrets';
+import { Request, Response } from 'express';
+import { secret, isTunnelRequest } from '../secrets';
 
 // Both the localhost and ngrok OAuth apps are registered at once (under
 // distinct passport strategy names, see auth.module.ts), so a single guard
@@ -25,7 +26,7 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
 
     constructor(public readonly jwt: JwtService) {}
 
-    canActivate(context: ExecutionContext) {
+    canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
       const req = context.switchToHttp().getRequest<Request>();
       const guard = isTunnelRequest(req.get('host')) ? this.tunnel : this.local;
 
@@ -54,7 +55,29 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
         const opts = (guard as any).options ?? {};
         (guard as any).options = { ...opts, state };
       }
-      return guard.canActivate(context);
+
+      const result = guard.canActivate(context);
+
+      // Fast paths — a boolean can't carry the strategy rejection; observables
+      // are passed through untouched.
+      if (typeof result === 'boolean') return result;
+      if (result instanceof Observable) return result;
+
+      // Promise path: the strategy may reject with the email-taken
+      // ConflictException. The browser is on a redirect round-trip here, so a
+      // JSON error would land blank on screen — send it back to the login page
+      // with the translated email-in-use error instead.
+      return result.catch((err: unknown) => {
+        if (err instanceof ConflictException) {
+          const res = context.switchToHttp().getResponse<Response>();
+          const frontendUrl = isTunnelRequest(req.get('host'))
+            ? (secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev')
+            : (secret('FRONTEND_URL') ?? 'https://localhost:8443');
+          res.redirect(`${frontendUrl}/login?error=email-in-use`);
+          return false;
+        }
+        throw err;
+      });
     }
   }
 
