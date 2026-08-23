@@ -1149,8 +1149,8 @@ export function Profile() {
                                   justifyContent: 'space-between',
                                   padding: '10px 14px',
                                   borderRadius: 6,
-                                  background: 'rgba(10, 3, 26, 0.85)',
-                                  border: '1.5px solid rgba(0, 240, 255, 0.25)',
+                                  background: 'var(--bg-secondary)',
+                                  border: '1px solid var(--border-color)',
                                   cursor: 'pointer',
                                   transition: 'all 0.18s ease',
                                   gap: 12,
@@ -1160,13 +1160,13 @@ export function Profile() {
                                   navigate(`/profile?u=${f.username}`)
                                 }}
                                 onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'rgba(0, 240, 255, 0.16)'
+                                  e.currentTarget.style.background = 'var(--bg-card)'
                                   e.currentTarget.style.borderColor = 'var(--accent-cyan)'
                                   e.currentTarget.style.transform = 'translateX(2px)'
                                 }}
                                 onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'rgba(10, 3, 26, 0.85)'
-                                  e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.25)'
+                                  e.currentTarget.style.background = 'var(--bg-secondary)'
+                                  e.currentTarget.style.borderColor = 'var(--border-color)'
                                   e.currentTarget.style.transform = 'translateX(0)'
                                 }}
                               >

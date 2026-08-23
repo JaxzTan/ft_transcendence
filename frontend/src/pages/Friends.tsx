@@ -552,15 +552,15 @@ export function Friends() {
                               cursor: 'pointer',
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.background = 'rgba(28, 10, 64, 0.95)'
+                              e.currentTarget.style.background = 'var(--bg-card)'
                               e.currentTarget.style.borderColor = 'var(--accent-cyan)'
                               e.currentTarget.style.boxShadow = '0 0 14px rgba(0, 240, 255, 0.25)'
                               e.currentTarget.style.transform = 'translateX(3px)'
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(18, 6, 42, 0.82)'
-                              e.currentTarget.style.borderColor = f.status === 'online' || f.status === 'playing' ? 'rgba(0, 240, 255, 0.28)' : 'rgba(255, 255, 255, 0.1)'
-                              e.currentTarget.style.boxShadow = f.status === 'online' || f.status === 'playing' ? '0 0 10px rgba(0, 240, 255, 0.08)' : 'none'
+                              e.currentTarget.style.background = 'var(--bg-secondary)'
+                              e.currentTarget.style.borderColor = 'var(--border-color)'
+                              e.currentTarget.style.boxShadow = 'none'
                               e.currentTarget.style.transform = 'translateX(0)'
                             }}
                             title={`Click to view ${f.username}'s Pilot Profile`}
