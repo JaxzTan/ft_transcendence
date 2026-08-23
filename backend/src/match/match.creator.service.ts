@@ -47,6 +47,7 @@ export class MatchCreatorService {
 		playerCount: number,
 		botCount: number,
 		clashEnabled: boolean = true,
+		botColors?: string[],
 	) {
 		// playerCount === 1 is the solo "Test Your Luck" run — hotseat with
 		// nobody else seated, just the host racing their own dice.
@@ -114,9 +115,22 @@ export class MatchCreatorService {
 			updates.inviteCode = generateInviteCode();
 		} else {
 			updates.startedAt = Date.now().toString();
-			if (totalBots >= 1) updates.player2_id = BOT_PREFIX + SLOT_COLORS[1];
-			if (totalBots >= 2) updates.player3_id = BOT_PREFIX + SLOT_COLORS[2];
-			if (totalBots >= 3) updates.player4_id = BOT_PREFIX + SLOT_COLORS[3];
+			const colorSlot = new Map<string, number>(SLOT_COLORS.map((c, i) => [c, i + 1]));
+			const assignedBotColors =
+				Array.isArray(botColors) && botColors.length > 0
+					? botColors
+					: SLOT_COLORS.slice(1, 1 + totalBots);
+			if (assignedBotColors.length !== totalBots) {
+				throw new BadRequestException('botColors must match botCount');
+			}
+			for (const color of assignedBotColors) {
+				const slot = colorSlot.get(color);
+				if (!slot || slot < 2 || slot > 4) {
+					throw new BadRequestException(`Invalid bot color: ${color}`);
+				}
+				updates[`player${slot}_id`] = BOT_PREFIX + color;
+				updates[`player${slot}_color`] = color;
+			}
 		}
 
 		await this.redis.hset(`match:${gameId}`, updates);

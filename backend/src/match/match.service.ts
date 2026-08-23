@@ -15,8 +15,15 @@ export class MatchService {
 	) {}
 
 	// ─── Creation ───────────────────────────────────────────────────────────
-	async createMatch(userId: string, mode: 'pvp' | 'pve' | 'hotseat', playerCount: number, botCount: number, clashEnabled: boolean = true) {
-		return this.creator.createMatch(userId, mode, playerCount, botCount, clashEnabled);
+	async createMatch(
+		userId: string,
+		mode: 'pvp' | 'pve' | 'hotseat',
+		playerCount: number,
+		botCount: number,
+		clashEnabled: boolean = true,
+		botColors?: string[],
+	) {
+		return this.creator.createMatch(userId, mode, playerCount, botCount, clashEnabled, botColors);
 	}
 	async findRandomMatch(userId: string, clashEnabled: boolean = true) {
 		return this.creator.findRandomMatch(userId, clashEnabled, (gameId: string, uid: string) => this.player.joinMatch(gameId, uid), (uid: string) => this.query.listMyRooms(uid));

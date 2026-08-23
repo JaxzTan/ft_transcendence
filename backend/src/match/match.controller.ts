@@ -58,6 +58,7 @@ export class MatchController {
 		@Body('playerCount') playerCount: number,
 		@Body('botCount') botCount: number,
 		@Body('clashEnabled') clashEnabled?: boolean,
+		@Body('botColors') botColors?: string[],
 	) {
 		// mode is REQUIRED: omitting it must not silently fall back to a bot game
 		// (the old `mode || 'pve'` default let any caller create a bot-seeded PvE
@@ -76,6 +77,7 @@ export class MatchController {
 			playerCount || 2,
 			botCount || 0,
 			clashEnabled,
+			botColors,
 		);
 	}
 
