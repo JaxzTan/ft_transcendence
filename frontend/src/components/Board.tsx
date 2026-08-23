@@ -506,17 +506,21 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div
         className="retro-board-chassis"
         style={{
           width: '100%',
+          height: '100%',
+          maxWidth: '100%',
+          maxHeight: '100%',
           aspectRatio: '1',
           display: 'grid',
           gridTemplateColumns: 'repeat(15,1fr)',
           gridTemplateRows: 'repeat(15,1fr)',
           gap: 1,
           padding: '2.5%',
+          boxSizing: 'border-box',
         }}
       >
         <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} goalCount={goalCount('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />

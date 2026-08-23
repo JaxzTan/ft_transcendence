@@ -93,7 +93,6 @@ export function Game() {
     }
   }, [])
 
-
   const toggleSound = () => {
     retroAudio.muted = !retroAudio.muted
     setSoundMuted(retroAudio.muted)
@@ -119,7 +118,6 @@ export function Game() {
   const [isRolling, setIsRolling] = useState(false)
   const isRollingRef = useRef(false)
   const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
-  const [codeCopied, setCodeCopied] = useState(false)
   const [turnSwapNotice, setTurnSwapNotice] = useState<string | null>(null)
   const prevTurnRef = useRef<PlayerColor | null>(null)
 
@@ -165,15 +163,25 @@ export function Game() {
   // accepted friend into THIS room (POST /api/game/:id/invite).
   const [friends, setFriends] = useState<Array<{ id: string; username: string }>>([])
   const [inviteStates, setInviteStates] = useState<Record<string, 'idle' | 'busy' | 'sent'>>({})
+  const [roomCode, setRoomCode] = useState<string | null>(activeMatch?.inviteCode ?? null)
 
-  const copyRoomCode = () => {
-    if (!activeMatch?.inviteCode) return
-    retroAudio.playUiBeep(720, 0.06)
-    navigator.clipboard.writeText(activeMatch.inviteCode).then(() => {
-      setCodeCopied(true)
-      setTimeout(() => setCodeCopied(false), 1500)
-    })
-  }
+  // Fetch room code if not present in activeMatch
+  useEffect(() => {
+    if (!activeMatch?.gameId) return
+    if (activeMatch.inviteCode) {
+      setRoomCode(activeMatch.inviteCode)
+      return
+    }
+    fetch('/api/games/mine', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((rooms: Array<{ id: string; roomCode?: string; inviteCode?: string }> | null) => {
+        const room = rooms?.find((x) => x.id === activeMatch.gameId)
+        if (room?.roomCode || room?.inviteCode) {
+          setRoomCode(room.roomCode || room.inviteCode || null)
+        }
+      })
+      .catch(() => undefined)
+  }, [activeMatch?.gameId, activeMatch?.inviteCode])
 
   // Set presence status
   useEffect(() => {
@@ -504,11 +512,6 @@ export function Game() {
     socketRef.current?.emit('move_piece', pieceId)
   }
 
-  const markReady = () => {
-    retroAudio.playUiBeep(1100, 0.1)
-    socketRef.current?.emit('player_ready')
-  }
-
   const selectColor = (color: PlayerColor) => {
     retroAudio.playUiBeep(720, 0.05)
     socketRef.current?.emit('select_color', color)
@@ -577,6 +580,18 @@ export function Game() {
     navigate('/results')
   }
 
+  // Lock body/html scrollbars on Game page
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    const prevHtml = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+      document.documentElement.style.overflow = prevHtml
+    }
+  }, [])
+
   // If no match credentials exist, redirect back to lobby
   if (!activeMatch) {
     return (
@@ -641,7 +656,11 @@ export function Game() {
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
-      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+      <div
+        className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
+        id="crtScreen"
+        style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+      >
         <div
           className="crt-scanlines"
           id="crtOverlay"
@@ -649,145 +668,127 @@ export function Game() {
         />
         <div className="crt-flicker" />
 
-        {/* Main Content Wrapper */}
-        <div className="app-wrapper game-page" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
-          {/* Hero Telemetry & Badge Bar */}
-          <header className="hero-section" style={{ padding: '12px 0 10px', textAlign: 'center' }}>
+        {/* Main Content Wrapper (Full Page Viewport with NO Left Navbar) */}
+        <div
+          className="app-wrapper game-page"
+          style={{
+            height: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            padding: '8px 14px 10px',
+          }}
+        >
+          {/* Hero Header & Live Turn Indicator */}
+          <header className="hero-section" style={{ padding: '6px 0 14px', textAlign: 'center', flexShrink: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <h1 className="hero-title" style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
+              <h1 className="hero-title" style={{ fontSize: '1.85rem', letterSpacing: '2px', marginBottom: 0, textAlign: 'center' }}>
                 {t('game.heroTitle')}
               </h1>
 
-              {/* Live Turn Announcement Pill */}
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '8px 20px',
-                  borderRadius: 4,
-                  background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : 'rgba(0, 240, 255, 0.15)',
-                  border: isMyTurn ? '1.5px solid var(--accent-pink)' : '1.5px solid var(--accent-cyan)',
-                  boxShadow: isMyTurn ? '0 0 15px rgba(255, 0, 127, 0.6)' : 'none',
-                  animation: isMyTurn ? 'pulse 1.6s infinite' : 'none',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <span
+              {/* Live Turn Announcement Pill & Room Code */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    background: isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
-                    boxShadow: isMyTurn ? '0 0 8px #ffe600' : '0 0 6px var(--accent-cyan)',
-                  }}
-                />
-                <span
-                  style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: '0.75rem',
-                    color: isMyTurn ? '#ffe600' : '#ffffff',
-                    letterSpacing: '0.5px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '7px 22px',
+                    borderRadius: 6,
+                    background: isMyTurn ? 'rgba(255, 0, 127, 0.28)' : 'rgba(0, 240, 255, 0.18)',
+                    border: isMyTurn ? '2px solid var(--accent-pink)' : '2px solid var(--accent-cyan)',
+                    boxShadow: isMyTurn ? '0 0 18px rgba(255, 0, 127, 0.7)' : '0 0 12px rgba(0, 240, 255, 0.35)',
+                    animation: isMyTurn ? 'pulse 1.6s infinite' : 'none',
+                    boxSizing: 'border-box',
                   }}
                 >
-                  {turnLabel}
-                </span>
-              </div>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
+                      boxShadow: isMyTurn ? '0 0 10px #ffe600' : '0 0 8px var(--accent-cyan)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-heading)',
+                      fontSize: '0.85rem',
+                      fontWeight: 'bold',
+                      color: isMyTurn ? '#ffe600' : '#ffffff',
+                      letterSpacing: '0.8px',
+                    }}
+                  >
+                    {turnLabel}
+                  </span>
+                </div>
 
-              {/* Game Status Marquee Bar */}
-              <div
-                style={{
-                  width: '100%',
-                  maxWidth: 740,
-                  minHeight: 38,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '8px 14px',
-                  background: turnSwapNotice
-                    ? 'rgba(255, 230, 0, 0.25)'
-                    : isMyTurn
-                      ? 'rgba(255, 0, 127, 0.2)'
-                      : 'rgba(0, 0, 0, 0.6)',
-                  border: turnSwapNotice
-                    ? '1.5px solid #ffe600'
-                    : isMyTurn
-                      ? '1.5px solid var(--accent-pink)'
-                      : '1.5px solid rgba(0, 240, 255, 0.35)',
-                  boxShadow: turnSwapNotice
-                    ? '0 0 20px #ffe600'
-                    : isMyTurn
-                      ? '0 0 12px rgba(255, 0, 127, 0.4)'
-                      : 'none',
-                  borderRadius: 4,
-                  textAlign: 'center',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.82rem',
-                  fontWeight: 'bold',
-                  color: turnSwapNotice ? '#ffe600' : isMyTurn ? '#ff007f' : 'var(--accent-cyan)',
-                  transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {turnSwapNotice || (
-                  view.status === 'waiting'
-                    ? t('game.readyNeedsOpponent')
-                    : isRolling
-                      ? t('game.statusRolling')
-                      : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
-                        ? t('game.statusRollNow')
-                        : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
-                          ? t('game.statusSelectPiece')
-                          : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })
+                {roomCode && (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 14px',
+                      borderRadius: 6,
+                      background: 'rgba(5, 2, 18, 0.75)',
+                      border: '1.5px solid var(--accent-yellow)',
+                      boxShadow: '0 0 10px rgba(255, 230, 0, 0.35)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.78rem',
+                      fontWeight: 'bold',
+                      color: 'var(--accent-yellow)',
+                      letterSpacing: '1px',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>ROOM:</span>
+                    <span>{roomCode}</span>
+                  </div>
                 )}
               </div>
             </div>
-
-            {/* Badge Bar with Room Code */}
-            {activeMatch.inviteCode && (
-              <div className="badge-bar" style={{ marginTop: 14, justifyContent: 'center' }}>
-                <button
-                  className="retro-badge"
-                  style={{
-                    cursor: 'pointer',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--accent-cyan)',
-                    color: 'var(--accent-cyan)',
-                    fontFamily: 'var(--font-mono)',
-                    outline: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                  onClick={copyRoomCode}
-                  title="Click to copy Room Code"
-                >
-                  {t('game.roomLabel', { code: activeMatch.inviteCode, status: codeCopied ? t('game.roomCopiedOk') : t('game.roomCopy') })}
-                </button>
-              </div>
-            )}
           </header>
 
           {/* Main Tactical Grid Layout */}
           <main
             className="dashboard-grid"
             style={{
+              flex: 1,
+              minHeight: 0,
               display: 'grid',
-              gridTemplateColumns: '310px 1fr 310px',
-              gap: 8,
-              alignItems: 'start',
+              gridTemplateColumns: '400px 1fr 360px',
+              gap: 18,
+              alignItems: 'stretch',
               width: '100%',
-              margin: '0 auto',
+              overflow: 'hidden',
             }}
           >
             {/* COLUMN 1: PILOT ROSTER // TACTICAL STATUS & SYSTEM CONTROL */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '100%', height: '100%' }}>
               {/* Pilot Roster Window */}
               <section className="retro-window" id="playersWindow">
-                <div className="window-header">
+                <div className="window-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>{t('game.pilotRosterTitle')}</span>
                   </div>
+                  {roomCode && (
+                    <div
+                      style={{
+                        fontSize: '0.68rem',
+                        fontFamily: 'var(--font-mono)',
+                        color: 'var(--accent-yellow)',
+                        background: 'rgba(255, 230, 0, 0.12)',
+                        border: '1px solid rgba(255, 230, 0, 0.4)',
+                        padding: '2px 8px',
+                        borderRadius: 3,
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      CODE: {roomCode}
+                    </div>
+                  )}
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -818,27 +819,34 @@ export function Game() {
                     if (view.status === 'waiting') {
                       const isYou = ck === view.myColor
                       const isReady = view.readyPlayers.includes(ck)
+                      const isAvailable = !occupied
+
                       return (
                         <div
                           key={ck}
+                          onClick={() => {
+                            if (isAvailable && !isYou) {
+                              selectColor(ck)
+                            }
+                          }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: 10,
                             padding: '10px 12px',
-                            borderRadius: 4,
+                            borderRadius: 6,
                             border: isYou
-                              ? `1.5px solid ${colorAccent}`
+                              ? `2px solid ${colorAccent}`
                               : occupied
                                 ? `1px solid ${colorAccent}66`
-                                : '1px dashed rgba(255, 255, 255, 0.15)',
+                                : `1.5px dashed ${colorAccent}88`,
                             background: isYou
-                              ? 'rgba(255, 0, 127, 0.18)'
+                              ? `${colorAccent}22`
                               : occupied
-                                ? 'rgba(25, 10, 56, 0.65)'
-                                : 'rgba(10, 5, 25, 0.35)',
-                            boxShadow: isYou ? `0 0 10px ${colorAccent}44` : 'none',
-                            opacity: occupied ? 1 : 0.5,
+                                ? 'rgba(255, 255, 255, 0.04)'
+                                : 'rgba(0, 0, 0, 0.3)',
+                            boxShadow: isYou ? `0 0 14px ${colorAccent}66, inset 0 0 8px ${colorAccent}22` : 'none',
+                            cursor: isAvailable && !isYou ? 'pointer' : 'default',
                             transition: 'all 0.2s ease',
                           }}
                         >
@@ -871,10 +879,10 @@ export function Game() {
                                 display: 'grid',
                                 placeItems: 'center',
                                 fontWeight: 'bold',
-                                fontSize: '0.7rem',
+                                fontSize: '0.75rem',
                                 color: colorAccent,
-                                background: 'transparent',
-                                border: `1.5px dashed ${colorAccent}88`,
+                                background: isAvailable ? `${colorAccent}15` : 'transparent',
+                                border: `1px solid ${colorAccent}`,
                               }}
                             >
                               {ck.slice(0, 1).toUpperCase()}
@@ -886,15 +894,22 @@ export function Game() {
                               style={{
                                 fontWeight: 'bold',
                                 fontSize: '0.82rem',
-                                color: '#ffffff',
+                                color: isYou ? colorAccent : '#ffffff',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 6,
                               }}
                             >
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {occupied && playerMeta?.username ? playerMeta.username : t('game.emptySeat')}
+                                {isYou
+                                  ? `${user?.username || 'You'} (${ck.toUpperCase()})`
+                                  : occupied && playerMeta?.username
+                                    ? `${playerMeta.username} (${ck.toUpperCase()})`
+                                    : `[ + SELECT ${ck.toUpperCase()} ]`}
                               </span>
+                            </div>
+                            <div style={{ fontSize: '0.65rem', color: isYou ? '#ffe600' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                              {isYou ? '▶ YOUR SELECTED SEAT' : isAvailable ? 'CLICK TO CHOOSE COLOR' : 'OCCUPIED'}
                             </div>
                           </div>
 
@@ -909,6 +924,22 @@ export function Game() {
                               }}
                             >
                               {isReady ? 'READY OK' : 'WAITING'}
+                            </span>
+                          )}
+
+                          {isAvailable && !isYou && (
+                            <span
+                              style={{
+                                padding: '3px 8px',
+                                fontSize: '0.62rem',
+                                borderRadius: 3,
+                                border: `1px solid ${colorAccent}`,
+                                color: colorAccent,
+                                fontFamily: 'var(--font-mono)',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              SELECT
                             </span>
                           )}
                         </div>
@@ -1048,75 +1079,131 @@ export function Game() {
                       </div>
                     )
                   })}
+
+                  {view.status === 'waiting' && activeMatch?.mode === 'pvp' && (
+                    <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 10, marginTop: 4 }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                        {t('game.inviteComms')}
+                      </div>
+                      {friends.length === 0 ? (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {t('game.noFriendsToInvite')}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 130, overflowY: 'auto' }}>
+                          {friends.map((f) => {
+                            const st = inviteStates[f.id] ?? 'idle'
+                            return (
+                              <div
+                                key={f.id}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '6px 8px',
+                                  background: 'rgba(0, 0, 0, 0.4)',
+                                  borderRadius: 3,
+                                  border: '1px solid rgba(0, 240, 255, 0.2)',
+                                }}
+                              >
+                                <span style={{ fontSize: '0.75rem', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
+                                  {f.username}
+                                </span>
+                                <button
+                                  className="retro-btn"
+                                  onClick={() => inviteFriend(f.id)}
+                                  disabled={st !== 'idle'}
+                                  style={{ padding: '3px 8px', fontSize: '0.62rem' }}
+                                >
+                                  {st === 'busy' ? '...' : st === 'sent' ? t('game.inviteSent') : `+ ${t('game.inviteBtn')}`}
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </section>
 
-              {/* Arena System Control & Sector Specs */}
-              <section className="retro-window" id="sectorControlWindow">
-                <div className="window-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{t('game.systemControlTitle')}</span>
-                  </div>
+              {/* Ready / Start Match Button */}
+              {view.status === 'waiting' && (
+                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {(() => {
+                    const activeCount = view.players.filter((p) => p.status === 'active').length
+                    const alreadyReady = view.readyPlayers.includes(view.myColor)
+                    const soloRoom = activeCount < 2
+                    const disabled = alreadyReady || soloRoom
+                    return (
+                      <button
+                        className="retro-btn"
+                        onClick={() => {
+                          retroAudio.playUiBeep(1100, 0.1)
+                          socketRef.current?.emit('player_ready')
+                        }}
+                        disabled={disabled}
+                        style={{
+                          width: '100%',
+                          padding: '14px 0',
+                          fontSize: '0.85rem',
+                          fontFamily: 'var(--font-heading)',
+                          letterSpacing: '1px',
+                          background: alreadyReady ? 'rgba(0, 255, 136, 0.22)' : 'var(--btn-bg)',
+                          borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
+                          color: alreadyReady ? '#00ff88' : '#ffffff',
+                          boxShadow: alreadyReady ? '0 0 16px rgba(0, 255, 136, 0.4)' : '0 0 15px var(--accent-pink)',
+                          opacity: disabled ? 0.6 : 1,
+                          cursor: disabled ? 'default' : 'pointer',
+                          display: 'flex',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 10,
+                        }}
+                      >
+                        <span>{alreadyReady ? `[${t('game.readyBadge').toUpperCase()}]` : soloRoom ? t('game.readyNeedsOpponent') : 'READY'}</span>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.85, fontFamily: 'var(--font-mono)' }}>
+                          ({view.readyPlayers.length}/{activeCount})
+                        </span>
+                      </button>
+                    )
+                  })()}
                 </div>
-
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    {t('game.combatKeybindsRules')}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>DICE ROLL:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('game.spaceToRoll')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>SELECT PIECE:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{t('game.victoryGoal')}</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
-
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    {t('game.audioPreferences')}
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
-                    <button
-                      className="retro-badge"
-                      style={{
-                        cursor: 'pointer',
-                        padding: '8px 10px',
-                        background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
-                        border: soundMuted ? '1px solid #ff0055' : '1px solid #00ff88',
-                        color: soundMuted ? '#ff0055' : '#00ff88',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.7rem',
-                        textAlign: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={toggleSound}
-                    >
-                      {soundMuted ? t('game.audioOff') : t('game.audioOn')}
-                    </button>
-                  </div>
-                </div>
-              </section>
+              )}
             </div>
 
             {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 'min(650px, 66vh)', justifySelf: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                minHeight: 0,
+                minWidth: 0,
+              }}
+            >
               {(() => {
                 const currentTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                 const isBotTurn = currentTurnPlayer?.isBot ?? false
                 const activeLegalMoves = isRolling || isBotTurn ? [] : view.legalMoves
 
                 return (
-                  <div style={{ width: '100%' }}>
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      maxHeight: 'calc(100vh - 130px)',
+                      maxWidth: 'min(100%, calc(100vh - 130px))',
+                      aspectRatio: '1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: 'auto',
+                    }}
+                  >
                     <Board
                       pieces={view.pieces}
                       players={view.players}
@@ -1131,143 +1218,9 @@ export function Game() {
             </div>
 
             {/* COLUMN 3: TACTICAL CONTROLS & LOGS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {view.status === 'waiting' ? (
-                /* WAITING ROOM SETUP WINDOW */
-                <section className="retro-window" id="waitingSetupWindow">
-                  <div className="window-header">
-                    <span>{t('game.waitingBayTitle')}</span>
-                  </div>
-
-                  <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                        {t('game.selectSeatColor')}
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                        {SEAT_COLORS.map((ck) => {
-                          const colAccent =
-                            ck === 'red'
-                              ? '#ff007f'
-                              : ck === 'green'
-                                ? '#00ff88'
-                                : ck === 'yellow'
-                                  ? '#ffe600'
-                                  : '#00f0ff'
-                          const takenByOther = view.players.some(
-                            (p) => p.color === ck && p.status === 'active' && ck !== view.myColor
-                          )
-                          const isSelected = ck === view.myColor
-                          return (
-                            <button
-                              key={ck}
-                              onClick={() => selectColor(ck)}
-                              title={ck.toUpperCase()}
-                              disabled={takenByOther}
-                              style={{
-                                flex: 1,
-                                height: 34,
-                                borderRadius: 4,
-                                cursor: takenByOther ? 'not-allowed' : 'pointer',
-                                background: isSelected ? colAccent : 'rgba(25, 10, 56, 0.8)',
-                                border: isSelected ? `2px solid #ffffff` : `1px solid ${colAccent}`,
-                                boxShadow: isSelected ? `0 0 12px ${colAccent}` : 'none',
-                                color: isSelected ? '#0d0221' : colAccent,
-                                fontWeight: 'bold',
-                                fontSize: '0.65rem',
-                                fontFamily: 'var(--font-mono)',
-                                opacity: takenByOther ? 0.35 : 1,
-                              }}
-                            >
-                              {ck.slice(0, 3).toUpperCase()}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {(() => {
-                      const activeCount = view.players.filter((p) => p.status === 'active').length
-                      const alreadyReady = view.readyPlayers.includes(view.myColor)
-                      const soloRoom = activeCount < 2
-                      const disabled = alreadyReady || soloRoom
-                      return (
-                        <button
-                          className="retro-btn"
-                          onClick={markReady}
-                          disabled={disabled}
-                          style={{
-                            width: '100%',
-                            padding: '12px 0',
-                            fontSize: '0.8rem',
-                            background: alreadyReady ? 'rgba(0, 255, 136, 0.2)' : 'var(--btn-bg)',
-                            borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
-                            color: alreadyReady ? '#00ff88' : '#ffffff',
-                            opacity: disabled ? 0.6 : 1,
-                            cursor: disabled ? 'default' : 'pointer',
-                          }}
-                        >
-                          {alreadyReady
-                            ? `[${t('game.readyBadge').toUpperCase()}] (${t('game.waitingForHost')})`
-                            : soloRoom
-                              ? t('game.readyNeedsOpponent')
-                              : t('game.startMatchBtn')}
-                        </button>
-                      )
-                    })()}
-
-                    <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-                      {t('game.readyPilots', { current: view.readyPlayers.length, total: view.players.filter((p) => p.status === 'active').length })}
-                    </div>
-
-                    {activeMatch?.mode === 'pvp' && (
-                      <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                          {t('game.inviteComms')}
-                        </div>
-                        {friends.length === 0 ? (
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            {t('game.noFriendsToInvite')}
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 110, overflowY: 'auto' }}>
-                            {friends.map((f) => {
-                              const st = inviteStates[f.id] ?? 'idle'
-                              return (
-                                <div
-                                  key={f.id}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '6px 8px',
-                                    background: 'rgba(0, 0, 0, 0.4)',
-                                    borderRadius: 3,
-                                  }}
-                                >
-                                  <span style={{ fontSize: '0.75rem', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-                                    {f.username}
-                                  </span>
-                                  <button
-                                    className="retro-btn"
-                                    onClick={() => inviteFriend(f.id)}
-                                    disabled={st !== 'idle'}
-                                    style={{ padding: '3px 8px', fontSize: '0.62rem' }}
-                                  >
-                                    {st === 'busy' ? '...' : st === 'sent' ? t('game.inviteSent') : `+ ${t('game.inviteBtn')}`}
-                                  </button>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </section>
-              ) : (
-                /* IN-GAME DICE CONTROLS WINDOW */
-                <section className="retro-window" id="diceControlWindow">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', maxHeight: '100%' }}>
+              {/* IN-GAME DICE CONTROLS WINDOW */}
+              <section className="retro-window" id="diceControlWindow">
                   <div className="window-header">
                     <span>{t('game.diceSystemTitle')}</span>
                   </div>
@@ -1369,8 +1322,63 @@ export function Game() {
                       [ {t('game.spaceToRoll')} ]
                     </div>
                   </div>
-                </section>
-              )}
+              </section>
+
+              {/* Arena System Control & Sector Specs */}
+              <section className="retro-window" id="sectorControlWindow">
+                <div className="window-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>{t('game.systemControlTitle')}</span>
+                  </div>
+                </div>
+
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                    {t('game.combatKeybindsRules')}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>DICE ROLL:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('game.spaceToRoll')}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>SELECT PIECE:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>{t('game.victoryGoal')}</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
+
+                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                    {t('game.audioPreferences')}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                    <button
+                      className="retro-badge"
+                      style={{
+                        cursor: 'pointer',
+                        padding: '8px 10px',
+                        background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
+                        border: soundMuted ? '1px solid #ff0055' : '1px solid #00ff88',
+                        color: soundMuted ? '#ff0055' : '#00ff88',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.7rem',
+                        textAlign: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onClick={toggleSound}
+                    >
+                      {soundMuted ? t('game.audioOff') : t('game.audioOn')}
+                    </button>
+                  </div>
+                </div>
+              </section>
 
               {/* MISSION TELEMETRY LOG WINDOW */}
               <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
