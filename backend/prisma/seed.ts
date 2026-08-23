@@ -27,7 +27,10 @@ function getDatabaseUrl(): string {
     const parts = creds.split(':');
     const user = parts[0] || 'db_bossman';
     const db = parts[1] || 'transcendence';
-    const host = parts[2] || (process.env.SECRETS_DIR ? 'db' : 'localhost');
+    // db_credentials.txt's host field ("db") is correct only inside the
+    // container. Outside Docker, SECRETS_DIR is unset, so ignore the file's
+    // value and use localhost (reachable via compose.yaml's published port).
+    const host = process.env.SECRETS_DIR ? parts[2] || 'db' : 'localhost';
     return `postgresql://${user}:${pwd}@${host}:5432/${db}`;
   }
   return secret('DATABASE_URL') || '';
