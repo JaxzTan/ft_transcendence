@@ -64,6 +64,7 @@ export function NotificationBell({
   unreadCount,
   onMarkRead,
   onMarkAllRead,
+  placement = 'right',
   fullWidth = false,
   containerStyle,
   buttonStyle,
@@ -72,7 +73,7 @@ export function NotificationBell({
   unreadCount: number
   onMarkRead: (id: string) => void
   onMarkAllRead: () => void
-  placement?: 'bottom-right' | 'right'
+  placement?: 'bottom-right' | 'right' | 'top-right'
   fullWidth?: boolean
   containerStyle?: CSSProperties
   buttonStyle?: CSSProperties
@@ -156,12 +157,16 @@ export function NotificationBell({
     ...containerStyle,
   }
 
+  const isRight = placement === 'right' || fullWidth
+
   const dropdownStyle: CSSProperties = {
-    position: 'fixed',
-    right: 28,
-    bottom: 28,
+    position: 'absolute',
+    left: isRight ? 'calc(100% + 14px)' : 'auto',
+    right: isRight ? 'auto' : 0,
+    bottom: isRight ? 0 : 'auto',
+    top: isRight ? 'auto' : 'calc(100% + 8px)',
     width: 380,
-    maxWidth: 'calc(100vw - 56px)',
+    maxWidth: 'calc(100vw - 320px)',
     maxHeight: 480,
     background: 'var(--bg-card)',
     border: 'var(--card-border-style)',
@@ -173,7 +178,9 @@ export function NotificationBell({
     overflow: 'hidden',
     backdropFilter: 'blur(32px) saturate(220%)',
     opacity: open ? 1 : 0,
-    transform: open ? 'translateY(0)' : 'translateY(16px)',
+    transform: open
+      ? (isRight ? 'translateX(0)' : 'translateY(0)')
+      : (isRight ? 'translateX(-12px)' : 'translateY(10px)'),
     pointerEvents: open ? 'auto' : 'none',
     transition: 'opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
   }
@@ -348,15 +355,15 @@ export function NotificationBell({
                     gap: 10,
                     padding: '12px 14px',
                     cursor: 'pointer',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                    background: n.read ? 'transparent' : 'rgba(0, 240, 255, 0.08)',
+                    borderBottom: '1px solid var(--border-color)',
+                    background: n.read ? 'transparent' : 'var(--bg-secondary)',
                     transition: 'background 0.15s ease',
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.15)')
+                    (e.currentTarget.style.background = 'var(--bg-card)')
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(0, 240, 255, 0.08)')
+                    (e.currentTarget.style.background = n.read ? 'transparent' : 'var(--bg-secondary)')
                   }
                 >
                   {/* Unread diamond indicator */}
@@ -397,7 +404,7 @@ export function NotificationBell({
                       style={{
                         fontSize: '0.78rem',
                         fontWeight: n.read ? 'normal' : 'bold',
-                        color: n.read ? 'var(--text-muted, #aaa)' : '#ffffff',
+                        color: n.read ? 'var(--text-muted)' : 'var(--text-main)',
                         lineHeight: 1.35,
                         fontFamily: 'var(--font-mono, monospace)',
                       }}
