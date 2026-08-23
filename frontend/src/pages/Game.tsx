@@ -11,6 +11,7 @@ import { getApi, postApi } from '../api'
 import { useApp } from '../store'
 import { SEAT_COLORS } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
+import { CyberButton, CyberModal } from '../components/CyberModal'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
@@ -79,6 +80,7 @@ export function Game() {
   // ------------------------------------------------------------------------
   const [crtEnabled, setCrtEnabled] = useState(true)
   const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
+  const [isAbortModalOpen, setIsAbortModalOpen] = useState(false)
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('retro_theme') || 'synthwave'
@@ -1429,60 +1431,29 @@ export function Game() {
 
               {/* RETURN TO LOBBY BUTTON (Only for online PvP matches) */}
               {activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat' && (
-                <button
-                  className="retro-btn"
+                <CyberButton
+                  label={t('game.returnToLobbyBtn')}
+                  shortcut="<"
+                  variant="cyan"
                   onClick={() => {
                     retroAudio.playUiBeep(440, 0.05)
                     navigate('/gamelobby')
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    fontSize: '0.78rem',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 'bold',
-                    letterSpacing: '1px',
-                    lineHeight: '1.4',
-                    background: 'rgba(0, 240, 255, 0.12)',
-                    border: '1px solid var(--accent-cyan)',
-                    color: 'var(--accent-cyan)',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    boxSizing: 'border-box',
-                  }}
-                  title="Return to Ludo Lobby"
-                >
-                  &lt; {t('game.returnToLobbyBtn')}
-                </button>
+                  style={{ width: '100%', justifyContent: 'center' }}
+                />
               )}
 
               {/* ABORT MISSION / END GAME BUTTON */}
               {(() => {
                 const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
                 return (
-                  <button
-                    className="retro-btn"
-                    onClick={endGame}
-                    style={{
-                      width: '100%',
-                      padding: isBotOrHotseat ? '18px 20px' : '12px 14px',
-                      fontSize: isBotOrHotseat ? '0.92rem' : '0.78rem',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 900,
-                      letterSpacing: isBotOrHotseat ? '1.5px' : '1px',
-                      lineHeight: '1.4',
-                      background: 'rgba(255, 0, 85, 0.18)',
-                      border: '1.5px solid #ff0055',
-                      color: '#ff0055',
-                      boxShadow: isBotOrHotseat ? '0 0 16px rgba(255, 0, 85, 0.3)' : 'none',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      boxSizing: 'border-box',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    // {t('game.abortMatchBtn')}
-                  </button>
+                  <CyberButton
+                    label={isBotOrHotseat ? 'ABORT SIMULATION' : t('game.abortMatchBtn')}
+                    shortcut="ESC"
+                    variant="danger"
+                    onClick={() => setIsAbortModalOpen(true)}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  />
                 )
               })()}
 
@@ -1490,6 +1461,29 @@ export function Game() {
           </main>
         </div>
       </div>
+
+      {/* Cyberpunk Glitch Confirmation Modal */}
+      <CyberModal
+        isOpen={isAbortModalOpen}
+        title="PROTOCOL TERMINATION"
+        versionTag={activeMatch?.gameId ? `ARENA.${activeMatch.gameId.slice(0, 8)}` : 'v001.e1349837856'}
+        message={
+          activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
+            ? 'You are about to terminate this tactical simulation. Combat records for this session will be halted.'
+            : 'You are about to withdraw and forfeit this ranked arena match. Match telemetry will be finalized as a defeat.'
+        }
+        subMessage="Do you want to confirm protocol abort?"
+        onCancel={() => setIsAbortModalOpen(false)}
+        onProceed={() => {
+          setIsAbortModalOpen(false)
+          endGame()
+        }}
+        cancelLabel="CANCEL"
+        proceedLabel="CONFIRM ABORT"
+        cancelShortcut="ESC"
+        proceedShortcut="↵"
+        isDanger
+      />
 
       {/* QTE Clash overlay */}
       {view.clash && (

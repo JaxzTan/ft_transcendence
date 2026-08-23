@@ -3721,3 +3721,628 @@ canvas#snakeCanvas {
   background: #33ff33 !important;
   box-shadow: 0 0 8px #33ff33 !important;
 }
+
+/* ==========================================================================
+   CYBERPUNK GLITCH POPOVER MODAL & CYBER BUTTON DESIGN SYSTEM
+   ========================================================================== */
+
+:root {
+  --flicker: linear(
+    0 0%,
+    0.1864 6.17%,
+    0.0001 14.41%,
+    0.5244 20.97%,
+    0.3927 37.91%,
+    0.8115 60.62%,
+    0.9416 61.92%,
+    0.9928 67.98%,
+    0.5032 70.42%,
+    0.9077 96.96%,
+    0.6736 98.74%,
+    1 100%
+  );
+}
+
+.cyber-btn {
+  --corner: 10px;
+  --border: 1.5px;
+  --clip: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--corner)),
+    calc(100% - var(--corner)) 100%,
+    0% 100%
+  );
+  --btn-accent: var(--accent-cyan, #00f0ff);
+  --btn-shadow: var(--accent-pink, #ff007f);
+  --shimmy-distance: 4;
+  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-weight: 900;
+  letter-spacing: 1px;
+  min-width: 140px;
+  text-align: left;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  border: 0;
+  background: transparent;
+  position: relative;
+  color: var(--btn-accent);
+  cursor: pointer;
+  box-sizing: border-box;
+  user-select: none;
+  transition: transform 0.15s ease;
+  overflow: visible;
+}
+
+.cyber-btn.cyber-btn-pink {
+  --btn-accent: var(--accent-pink, #ff007f);
+  --btn-shadow: #9d00ff;
+}
+
+.cyber-btn.cyber-btn-yellow {
+  --btn-accent: var(--accent-yellow, #ffe600);
+  --btn-shadow: #ff5500;
+}
+
+.cyber-btn.cyber-btn-danger {
+  --btn-accent: #ff0055;
+  --btn-shadow: #ff0000;
+}
+
+.cyber-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cyber-btn:not(:disabled):hover,
+.cyber-btn:not(:disabled):focus-visible {
+  color: #0d0221;
+}
+
+.cyber-btn:not(:disabled):hover .backdrop,
+.cyber-btn:not(:disabled):focus-visible .backdrop {
+  background: var(--btn-accent);
+  box-shadow: 0 0 16px var(--btn-accent);
+}
+
+.cyber-btn:not(:disabled):hover kbd,
+.cyber-btn:not(:disabled):focus-visible kbd {
+  color: var(--btn-accent);
+  background: #0d0221;
+}
+
+.cyber-btn .backdrop {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgba(15, 5, 32, 0.85);
+  backdrop-filter: blur(8px) saturate(180%);
+  clip-path: var(--clip);
+  pointer-events: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cyber-btn .backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--btn-accent);
+  border: var(--border) solid transparent;
+  clip-path: var(--clip);
+  mask: linear-gradient(#0000 0% 100%), linear-gradient(#fff 0% 100%);
+  mask-clip: padding-box, border-box;
+  mask-repeat: no-repeat;
+  mask-composite: intersect;
+  z-index: 2;
+}
+
+.cyber-btn .backdrop .corner {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: var(--corner);
+  width: var(--corner);
+}
+
+.cyber-btn .backdrop .corner::after {
+  content: '';
+  height: calc(var(--border) * 2);
+  width: 200%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  transform: rotate(135deg);
+  background: var(--btn-accent);
+}
+
+.cyber-btn kbd {
+  position: relative;
+  z-index: 3;
+  color: #0d0221;
+  font-family: var(--font-mono, monospace);
+  font-weight: bold;
+  height: 20px;
+  min-width: 20px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.65rem;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--btn-accent);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.cyber-btn span.cyber-label {
+  position: relative;
+  z-index: 3;
+  font-size: 0.76rem;
+  letter-spacing: 0.5px;
+}
+
+.cyber-btn .glitch-btn-layer {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  pointer-events: none;
+  color: var(--btn-accent);
+  text-shadow: 0 1px var(--btn-shadow);
+  z-index: 4;
+}
+
+.cyber-btn:not(:disabled):hover .glitch-btn-layer {
+  display: inline-flex;
+  animation: cyberBtnGlitch 1.8s infinite;
+}
+
+.cyber-btn:not(:disabled):hover .glitch-btn-layer .backdrop {
+  background: #0d0221;
+}
+
+.cyber-btn .letters {
+  display: flex;
+}
+
+.cyber-btn .letters span:nth-of-type(2),
+.cyber-btn .letters span:nth-of-type(5) {
+  scale: 1 -1;
+}
+
+.cyber-btn .letters span:nth-of-type(3),
+.cyber-btn .letters span:nth-of-type(6),
+.cyber-btn .letters span:nth-of-type(7) {
+  scale: -1 -1;
+}
+
+/* ==========================================================================
+   CYBER MODAL OVERLAY & MULTI-STAGE ENTRANCE CHOREOGRAPHY
+   ========================================================================== */
+
+.cyber-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 2, 14, 0.78);
+  backdrop-filter: blur(12px) saturate(180%);
+  z-index: 10002;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.cyber-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cyber-modal-box {
+  --corner: 12px;
+  --border: 2px;
+  --clip: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--corner)),
+    calc(100% - var(--corner)) 100%,
+    0% 100%
+  );
+  --modal-accent: var(--accent-cyan, #00f0ff);
+  --modal-shadow: var(--accent-pink, #ff007f);
+  color: var(--modal-accent);
+  width: clamp(340px, 90vw, 500px);
+  position: relative;
+  box-sizing: border-box;
+  font-family: var(--font-display, sans-serif);
+  overflow: visible;
+  background: transparent;
+}
+
+/* 1. Side vertical glowing indicator bar */
+.cyber-modal-box::after,
+.cyber-modal-box::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  right: 100%;
+  width: 1rem;
+  border: var(--border) solid var(--modal-accent);
+  translate: -25% 0;
+  opacity: 0;
+  backdrop-filter: saturate(180%) blur(6px);
+  transition-property: opacity, translate;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-out;
+  transition-delay: 0.325s;
+}
+
+.cyber-modal-box::before {
+  background: var(--modal-accent);
+  mask: linear-gradient(#fff, hsl(0 0% 100% / 0.6) 15% 95%, #fff);
+}
+
+.cyber-modal-box.is-open::after,
+.cyber-modal-box.is-open::before {
+  opacity: 1;
+  translate: var(--border) 0;
+}
+
+.cyber-modal-box.is-open::before {
+  animation: cyberModalFlicker 0.625s var(--flicker) none;
+  animation-delay: 0.2s;
+  transition-delay: 0s;
+}
+
+/* 2. Modal Body & Sliding Backdrop */
+.cyber-modal-box .modal__body {
+  position: relative;
+  backdrop-filter: saturate(180%) blur(8px);
+  clip-path: inset(0 calc(100% + (2 * var(--border))) 0 0);
+  transition-property: clip-path;
+  transition-duration: 0.26s;
+  transition-delay: 0.075s;
+}
+
+.cyber-modal-box.is-open .modal__body {
+  clip-path: inset(0 calc(var(--border) * -1) 0 0);
+  transition-delay: 0.22s;
+}
+
+.cyber-modal-box .body__backdrop {
+  position: absolute;
+  inset: 0;
+  transition-property: translate;
+  transition-duration: 0.26s;
+  translate: calc(-100% - (2 * var(--border))) 0;
+  transition-delay: 0.075s;
+}
+
+.cyber-modal-box.is-open .body__backdrop {
+  translate: 0 0;
+  transition-delay: 0.22s;
+}
+
+.cyber-modal-box .body__backdrop .backdrop-plate {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: rgba(14, 4, 32, 0.95);
+  clip-path: var(--clip);
+  border: var(--border) solid var(--modal-accent);
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.35), inset 0 0 20px rgba(255, 0, 127, 0.15);
+}
+
+.cyber-modal-box .body__backdrop::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 2rem;
+  width: calc(2 * var(--border));
+  height: 40%;
+  background: var(--modal-accent);
+  opacity: 0.7;
+  clip-path: polygon(0 0, 0 100%, 100% calc(100% - 6px), 100% 6px);
+}
+
+.cyber-modal-box .body__content {
+  padding: 1.4rem 1.4rem 1.2rem;
+  position: relative;
+  clip-path: inset(0 calc(100% + (2 * var(--border))) 0 0);
+  transition-property: clip-path;
+  transition-duration: 0.26s;
+  transition-delay: 0.075s;
+}
+
+.cyber-modal-box.is-open .body__content {
+  clip-path: inset(0 calc(var(--border) * -1) 0 0);
+  transition-delay: 0.22s;
+}
+
+.cyber-modal-box .version {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  font-size: 0.62rem;
+  font-family: var(--font-mono, monospace);
+  opacity: 0.65;
+  color: var(--modal-accent);
+}
+
+/* 3. Heading & Underline drawing across */
+.cyber-modal-box h2 {
+  padding-bottom: 0.6rem;
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+  position: relative;
+  font-size: 1.15rem;
+  font-family: var(--font-heading);
+  letter-spacing: 1px;
+  color: #ffffff;
+}
+
+.cyber-modal-box h2 span {
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: ease-out;
+  transition-duration: 0.26s;
+}
+
+.cyber-modal-box.is-open h2 span {
+  opacity: 1;
+  transition-delay: 0.325s;
+}
+
+.cyber-modal-box h2::after {
+  content: '';
+  height: var(--border);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--modal-accent);
+  box-shadow: 0 0 8px var(--modal-accent);
+  position: absolute;
+  transform-origin: 0 50%;
+  transition-duration: 0.26s;
+  transition-property: scale;
+  transition-timing-function: ease-in;
+  scale: 0 1;
+}
+
+.cyber-modal-box.is-open h2::after {
+  scale: 1 1;
+  transition-delay: 0.325s;
+  transition-timing-function: ease-out;
+}
+
+/* 4. Text paragraphs sliding down */
+.cyber-modal-box .body__text {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.88);
+  opacity: 0;
+  translate: 0 -1lh;
+  transition-property: opacity, translate;
+  transition-duration: 0.26s;
+  transition-timing-function: ease-out;
+}
+
+.cyber-modal-box.is-open .body__text {
+  translate: 0 0;
+  opacity: 1;
+  transition-delay: 0.325s;
+}
+
+.cyber-modal-box .body__text p {
+  margin: 0 0 0.8rem 0;
+}
+
+.cyber-modal-box .body__text p:last-child {
+  margin-bottom: 0;
+  font-weight: bold;
+  color: var(--accent-yellow, #ffe600);
+}
+
+/* 5. Actions button group sliding in last */
+.cyber-modal-box .modal__actions {
+  display: flex;
+  align-items: center;
+  justifyContent: flex-end;
+  gap: 0.8rem;
+  padding-top: 1.2rem;
+  transition-property: translate, opacity;
+  transition-duration: 0.1s;
+  transition-timing-function: ease-out;
+  opacity: 0;
+  translate: -24px 0;
+}
+
+.cyber-modal-box.is-open .modal__actions {
+  opacity: 1;
+  translate: 0 0;
+  transition-delay: 0.5s;
+}
+
+/* 6. Multi-stage Glitch keyframes */
+.cyber-modal-box .modal__glitch {
+  --shimmy-distance: 2;
+  --clip-one: polygon(0 2%, 100% 2%, 100% 95%, 95% 95%, 95% 90%, 85% 90%, 85% 95%, 8% 95%, 0 70%);
+  --clip-two: polygon(0 78%, 100% 78%, 100% 100%, 95% 100%, 95% 90%, 85% 90%, 85% 100%, 8% 100%, 0 78%);
+  --clip-three: polygon(0 44%, 100% 44%, 100% 54%, 95% 54%, 95% 54%, 85% 54%, 85% 54%, 8% 54%, 0 54%);
+  --clip-four: polygon(0 0, 100% 0, 100% 0, 95% 0, 95% 0, 85% 0, 85% 0, 8% 0, 0 0);
+  --clip-five: polygon(0 0, 100% 0, 100% 0, 95% 0, 95% 0, 85% 0, 85% 0, 8% 0, 0 0);
+  --clip-six: polygon(0 40%, 100% 40%, 100% 85%, 95% 85%, 95% 85%, 85% 85%, 85% 85%, 8% 85%, 0 70%);
+  --clip-seven: polygon(0 63%, 100% 63%, 100% 80%, 95% 80%, 95% 80%, 85% 80%, 85% 80%, 8% 80%, 0 70%);
+  position: absolute;
+  inset: 0;
+  padding: 1.4rem;
+  color: var(--modal-shadow);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+}
+
+.cyber-modal-box.glitching .modal__glitch {
+  opacity: 1;
+  animation: cyberModalFullGlitch 1.6s ease forwards;
+}
+
+@keyframes cyberModalFullGlitch {
+  0% {
+    clip-path: var(--clip-one);
+  }
+  2%, 8% {
+    clip-path: var(--clip-two);
+    transform: translate(calc(var(--shimmy-distance) * -1%), 0);
+  }
+  6% {
+    clip-path: var(--clip-two);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  9% {
+    clip-path: var(--clip-two);
+    transform: translate(0, 0);
+  }
+  10% {
+    clip-path: var(--clip-three);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  13% {
+    clip-path: var(--clip-three);
+    transform: translate(0, 0);
+  }
+  14%, 21% {
+    clip-path: var(--clip-four);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  25% {
+    clip-path: var(--clip-five);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  30% {
+    clip-path: var(--clip-five);
+    transform: translate(calc(var(--shimmy-distance) * -1%), 0);
+  }
+  35%, 45% {
+    clip-path: var(--clip-six);
+    transform: translate(calc(var(--shimmy-distance) * -1%), 0);
+  }
+  40% {
+    clip-path: var(--clip-six);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  50% {
+    clip-path: var(--clip-six);
+    transform: translate(0, 0);
+  }
+  55% {
+    clip-path: var(--clip-seven);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  60% {
+    clip-path: var(--clip-seven);
+    transform: translate(0, 0);
+  }
+  31%, 61%, 100% {
+    clip-path: var(--clip-four);
+    opacity: 0;
+  }
+}
+
+@keyframes cyberBtnGlitch {
+  0% {
+    clip-path: polygon(0 2%, 100% 2%, 100% 95%, 85% 95%, 0 70%);
+    transform: translate(-2px, 1px);
+  }
+  25% {
+    clip-path: polygon(0 44%, 100% 44%, 100% 54%, 85% 54%, 0 54%);
+    transform: translate(2px, -1px);
+  }
+  50% {
+    clip-path: polygon(0 63%, 100% 63%, 100% 80%, 85% 80%, 0 70%);
+    transform: translate(-1px, 2px);
+  }
+  75% {
+    clip-path: polygon(0 15%, 100% 15%, 100% 30%, 85% 30%, 0 25%);
+    transform: translate(1px, -1px);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 0, 95% 0, 0 0);
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes cyberModalFlicker {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Theme adaptation for Win95 and Terminal */
+[data-theme="win95"] .cyber-modal-box .body__backdrop .backdrop-plate {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  border-radius: 0px !important;
+  clip-path: none !important;
+}
+
+[data-theme="win95"] .cyber-modal-box::before,
+[data-theme="win95"] .cyber-modal-box::after {
+  display: none !important;
+}
+
+[data-theme="win95"] .cyber-modal-box h2 {
+  color: #000080 !important;
+}
+
+[data-theme="win95"] .cyber-modal-box .body__text {
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .cyber-btn .backdrop {
+  background: #c0c0c0 !important;
+  clip-path: none !important;
+}
+
+[data-theme="win95"] .cyber-btn {
+  clip-path: none !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  color: #000000 !important;
+}
+
+[data-theme="terminal"] .cyber-modal-box .body__backdrop .backdrop-plate {
+  background: rgba(5, 16, 5, 0.98) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 25px rgba(51, 255, 51, 0.4) !important;
+}
+
+[data-theme="terminal"] .cyber-modal-box h2 {
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-modal-box .body__text {
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-btn {
+  color: #33ff33 !important;
+  --btn-accent: #33ff33;
+}
