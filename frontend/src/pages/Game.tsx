@@ -12,6 +12,7 @@ import { useApp } from '../store'
 import { SEAT_COLORS } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
 import { CyberButton, CyberModal } from '../components/CyberModal'
+import { ResultsModal } from '../components/ResultsModal'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
@@ -70,7 +71,7 @@ function MiniDie({ value }: { value: number }) {
 
 export function Game() {
   const { t } = useTranslation()
-  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
+  const { user, activeMatch, seats, setPlaying, lastResult, setLastResult, setActiveMatch } = useApp()
 
   // ------------------------------------------------------------------------
   // CRT & AUDIO CONTROLS
@@ -107,6 +108,7 @@ export function Game() {
   const isRollingRef = useRef(false)
   const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
   const [turnSwapNotice, setTurnSwapNotice] = useState<string | null>(null)
+  const [showResultsModal, setShowResultsModal] = useState(false)
   const prevTurnRef = useRef<PlayerColor | null>(null)
 
   useEffect(() => {
@@ -357,7 +359,10 @@ export function Game() {
         let endedPlayers = viewRef.current.players
           .filter((p) => p.status !== 'inactive')
           .map((p) => ({
-            color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+            color: p.color,
+            username: localNames[p.color] || (p as any).displayName || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+            isBot: p.isBot,
+            piecesInGoal: p.piecesInGoal,
           }))
         if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
           endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
@@ -369,7 +374,7 @@ export function Game() {
           playerCount: activeMatch?.playerCount ?? endedPlayers.length,
           players: endedPlayers,
         })
-        setTimeout(() => navigate('/results'), 2500)
+        setShowResultsModal(true)
       }
     }
 
@@ -398,13 +403,13 @@ export function Game() {
         .filter((p) => p.status !== 'inactive')
         .map((p) => ({
           color: p.color,
-          username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+          username: localNames[p.color] || (p as any).displayName || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
           isBot: p.isBot,
           piecesInGoal: p.piecesInGoal ?? 0,
         }))
 
       if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
-        const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+        const SEAT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
         players = seats
           .map((s, idx) => {
             if (s.type === 'empty') return null
@@ -438,13 +443,11 @@ export function Game() {
 
     socket.on('game_timeout', () => {
       setLastResult(buildAbandonedResult())
-      setActiveMatch(null)
-      navigate('/results')
+      setShowResultsModal(true)
     })
     socket.on('game_expired', () => {
       setLastResult(buildAbandonedResult())
-      setActiveMatch(null)
-      navigate('/results')
+      setShowResultsModal(true)
     })
 
     socket.on('error', (msg: string) => {
@@ -537,13 +540,13 @@ export function Game() {
       .filter((p) => p.status !== 'inactive')
       .map((p) => ({
         color: p.color,
-        username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+        username: localNames[p.color] || (p as any).displayName || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
         isBot: p.isBot,
         piecesInGoal: p.piecesInGoal ?? 0,
       }))
 
     if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
-      const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+      const SEAT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
       players = seats
         .map((s, idx) => {
           if (s.type === 'empty') return null
@@ -573,8 +576,7 @@ export function Game() {
       players,
       abandoned: true,
     })
-    setActiveMatch(null)
-    navigate('/results')
+    setShowResultsModal(true)
   }
 
   // Lock body/html scrollbars on Game page
@@ -1665,6 +1667,49 @@ export function Game() {
           onKeyPress={clashInput}
           onComplete={clearClash}
         />
+      )}
+
+      {/* Game Results Modal Popup */}
+      {showResultsModal && lastResult && (
+        <ResultsModal
+          result={lastResult}
+          onReturnToLobby={() => {
+            setLastResult(null)
+            setShowResultsModal(false)
+            setActiveMatch(null)
+            navigate('/gamelobby')
+          }}
+          onClose={() => setShowResultsModal(false)}
+        />
+      )}
+
+      {/* Floating Reopen Results Button when modal is dismissed but match is ended */}
+      {lastResult && !showResultsModal && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 900,
+          }}
+        >
+          <button
+            className="retro-btn"
+            onClick={() => setShowResultsModal(true)}
+            style={{
+              padding: '12px 20px',
+              fontSize: '0.82rem',
+              background: 'linear-gradient(135deg, #ff007f, #9d00ff)',
+              borderColor: 'var(--accent-pink)',
+              color: '#ffffff',
+              boxShadow: '0 0 20px var(--accent-pink)',
+              animation: 'pulse 1.6s infinite',
+              cursor: 'pointer',
+            }}
+          >
+            {t('game.viewResultsBtn', 'VIEW RESULTS')}
+          </button>
+        </div>
       )}
     </>
   )

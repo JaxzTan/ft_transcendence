@@ -8,7 +8,7 @@ import { Leaderboard } from './pages/Leaderboard'
 import { Lobby } from './pages/Lobby'
 import { LudoLobby } from './pages/LudoLobby'
 import { Login } from './pages/Login'
-import { Results } from './pages/Results'
+// import { Results } from './pages/Results'
 import { Signup } from './pages/Signup'
 import { Profile } from './pages/Profile'
 import { TwoFactor } from './pages/TwoFactor'
@@ -36,7 +36,7 @@ const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/gamelobby': () => <LudoLobby />,
   '/gamelobby/table': () => <Lobby />,
   '/game': () => <Game />,
-  '/results': () => <Results />,
+  // '/results': () => <Results />,
 }
 
 /** Public routes, can be reached wihout a session */

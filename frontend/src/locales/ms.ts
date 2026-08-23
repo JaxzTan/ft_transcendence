@@ -541,6 +541,8 @@ export const ms = {
     rollDiceBtn: 'GULING DADU',
     reconLogsTitle: '// LOG PENINJAUAN',
     noReconLogged: 'TIADA TELEMETRI DIREKODKAN',
+    viewBoardBtn: 'LIHAT PAPAN',
+    viewResultsBtn: 'LIHAT KEPUTUSAN',
   },
   results: {
     victory: 'MENANG!',
