@@ -81,6 +81,12 @@ function GlobalNotifications() {
 }
 
 export default function App() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('retro_theme') || 'synthwave'
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    document.body.setAttribute('data-theme', savedTheme)
+  }, [])
+
   return (
     <AppProvider>
       <Screen />

@@ -36,17 +36,14 @@ function MiniDie({ value }: { value: number }) {
   const on = MINI_PIP_MAP[value] || []
   return (
     <div
+      className="retro-die-cube"
       style={{
-        width: 38,
-        height: 38,
-        borderRadius: 8,
-        background: '#190a38',
-        boxShadow: '0 0 8px rgba(0, 240, 255, 0.3), inset 0 0 4px rgba(255, 0, 127, 0.3)',
-        border: '1.5px solid var(--accent-cyan)',
+        width: 34,
+        height: 34,
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr',
         gridTemplateRows: '1fr 1fr 1fr',
-        padding: 4,
+        padding: 3,
         gap: 2,
         flex: 'none',
       }}
@@ -55,12 +52,11 @@ function MiniDie({ value }: { value: number }) {
         <div key={i} style={{ display: 'grid', placeItems: 'center' }}>
           {on.includes(i) ? (
             <div
+              className="retro-die-pip"
               style={{
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: '#ffe600',
-                boxShadow: '0 0 4px #ffe600',
               }}
             />
           ) : null}
@@ -85,6 +81,10 @@ export function Game() {
   const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem('retro_theme') || 'synthwave'
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    document.body.setAttribute('data-theme', savedTheme)
+
     const savedCrt = localStorage.getItem('retro_crt')
     if (savedCrt === 'false') {
       setCrtEnabled(false)
@@ -947,8 +947,8 @@ export function Game() {
                               ? `1.5px solid ${colorAccent}44`
                               : '1.5px dashed rgba(255, 255, 255, 0.12)',
                           background: isActive
-                            ? `rgba(35, 12, 70, 0.95)`
-                            : 'rgba(25, 10, 56, 0.65)',
+                            ? `var(--bg-card)`
+                            : 'var(--bg-secondary)',
                           boxShadow: isActive
                             ? `0 0 20px ${colorAccent}aa, inset 0 0 12px ${colorAccent}44`
                             : 'none',
@@ -1022,7 +1022,7 @@ export function Game() {
                             style={{
                               fontWeight: 'bold',
                               fontSize: '0.84rem',
-                              color: '#ffffff',
+                              color: 'var(--text-main)',
                               display: 'flex',
                               alignItems: 'center',
                               gap: 6,
