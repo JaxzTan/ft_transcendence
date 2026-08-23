@@ -506,6 +506,7 @@ export const en = {
     playerAborted: '{{name}} aborted the game',
     thirdSixForfeit: '{{name}} rolled a third 6 — turn forfeited',
     turnSwapNotice: '▶ TURN SWAP // {{name}} [{{color}}] IS NOW IN CONTROL ◀',
+    inControl: 'IN CONTROL',
     noActiveSessionTitle: '// SYSTEM ALERT // NO ACTIVE SESSION',
     returnToLobbyBtn: 'RETURN TO LOBBY',
     heroTitle: 'RETROLUDO // COMBAT ARENA',

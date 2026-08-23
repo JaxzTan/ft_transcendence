@@ -132,11 +132,14 @@ export function Game() {
     if (prevTurnRef.current && prevTurnRef.current !== view.currentTurn) {
       const nextTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
       const isNextBot = nextTurnPlayer?.isBot ?? false
-      const nextName = nextTurnPlayer?.username?.toUpperCase() || (isNextBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
-      const colorName = view.currentTurn.toUpperCase()
+      const colorKey = `lobby.color${view.currentTurn.charAt(0).toUpperCase() + view.currentTurn.slice(1)}` as 'lobby.colorRed' | 'lobby.colorGreen' | 'lobby.colorYellow' | 'lobby.colorBlue'
+      const translatedColor = t(colorKey).toUpperCase()
+      const nextName = localNames[view.currentTurn]?.toUpperCase() ||
+        nextTurnPlayer?.username?.toUpperCase() ||
+        (isNextBot ? `${t('common.bot').toUpperCase()} (${translatedColor})` : translatedColor)
 
       retroAudio.playUiBeep(640, 0.08, 'sine')
-      setTurnSwapNotice(`▶ TURN SWAP // ${nextName} [${colorName}] IS NOW IN CONTROL ◀`)
+      setTurnSwapNotice(t('game.turnSwapNotice', { name: nextName, color: translatedColor }))
 
       const timer = setTimeout(() => {
         setTurnSwapNotice(null)
@@ -146,7 +149,7 @@ export function Game() {
       return () => clearTimeout(timer)
     }
     prevTurnRef.current = view.currentTurn
-  }, [view?.currentTurn, view?.players])
+  }, [view?.currentTurn, view?.players, localNames, t])
 
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
@@ -976,7 +979,7 @@ export function Game() {
                               boxShadow: `0 0 10px ${colorAccent}`,
                             }}
                           >
-                            ▶ IN CONTROL ◀
+                            ▶ {t('game.inControl')} ◀
                           </span>
                         )}
 

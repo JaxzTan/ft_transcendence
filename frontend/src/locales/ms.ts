@@ -505,6 +505,7 @@ export const ms = {
     playerAborted: '{{name}} membatalkan permainan',
     thirdSixForfeit: '{{name}} mendapat 6 kali ketiga — giliran dilucutkan',
     turnSwapNotice: '▶ PERTUKARAN GILIRAN // {{name}} [{{color}}] KINI MENGAWAL ◀',
+    inControl: 'MENGAWAL',
     noActiveSessionTitle: '// AMARAN SISTEM // TIADA SESI AKTIF',
     returnToLobbyBtn: 'KEMBALI KE LOBI',
     heroTitle: 'RETROLUDO // ARENA PERTEMPURAN',
