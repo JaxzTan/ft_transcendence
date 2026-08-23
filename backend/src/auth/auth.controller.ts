@@ -167,6 +167,7 @@ export class AuthController {
       (req.user as { id: string }).id,
       dto.currentPassword,
       dto.newPassword,
+      req.cookies?.[REFRESH_COOKIE],
     );
   }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getApi, patchApi } from '../api'
+import { passwordError } from '../validatePassword'
 import { useApp } from '../store'
 
 const OTP = { '42': '/forty_two.png', github: '/github.png', google: '/google.png' } as const
@@ -9,7 +10,7 @@ const PROVIDERS = ['google', 'github', '42'] as const
 
 type Providers = string[]
 interface ProfileResp {
-  user?: { id: string; username: string; email?: string | null; providers?: Providers }
+  user?: { id: string; username: string; email?: string | null; providers?: Providers; hasPassword?: boolean }
   emailVerificationSent?: boolean
   oauthRedirectUrl?: string
   message?: string
@@ -28,13 +29,15 @@ function inputStyle(): CSSProperties {
 
 export function ProfileEditModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
-  const { user, setUser, logout } = useApp()
+  const { user, setUser } = useApp()
 
   const [username, setUsername] = useState(user?.username ?? '')
   const [email, setEmail] = useState('')
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [hasPassword, setHasPassword] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [providers, setProviders] = useState<Providers>([])
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
@@ -47,6 +50,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
       if (cancelled || !data?.user) return
       setEmail(data.user.email ?? '')
       setProviders(data.user.providers ?? [])
+      setHasPassword(!!data.user.hasPassword)
       setTwoFactorEnabled(!!(data.user as { twoFactorEnabled?: boolean }).twoFactorEnabled)
     })
     return () => { cancelled = true }
@@ -57,8 +61,15 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
     const body: Record<string, unknown> = {}
     if (username.trim() && username.trim() !== user?.username) body.username = username.trim()
     if (email.trim()) body.email = email.trim()
-    if (currentPassword || newPassword) { body.currentPassword = currentPassword; body.newPassword = newPassword }
     body.twoFactorEnabled = twoFactorEnabled
+    const isPasswordChange = !!(currentPassword || newPassword || confirmPassword)
+    if (isPasswordChange) {
+      const pwErr = newPassword ? passwordError(newPassword) : t('profileEdit.newPasswordRequired')
+      if (pwErr) { setBusy(false); setError(pwErr); return }
+      if (newPassword !== confirmPassword) {
+        setBusy(false); setError(t('profileEdit.passwordMismatch')); return
+      }
+    }
     try {
       const data = await patchApi<ProfileResp>('/api/auth/profile', body)
       if (data?.user) {
@@ -69,14 +80,18 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
       }
       if (data?.emailVerificationSent) setNotice(t('profileEdit.emailVerificationSent'))
       if (data?.message) setNotice(data.message)
-      if (currentPassword || newPassword) {
-        // Backend revoked all sessions — sign out client-side and go to login.
-        await logout()
-        window.location.href = '/login'
+      if (isPasswordChange) {
+        const pwBody: Record<string, string> = { newPassword }
+        if (hasPassword) pwBody.currentPassword = currentPassword
+        const pwResp = await patchApi<{ message?: string }>('/api/auth/profile/password', pwBody)
+        if (pwResp?.message) setNotice(pwResp.message)
+        // Password change keeps the CURRENT session alive — stay signed in.
+        setHasPassword(true)
+        setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
         return
       }
       // Clear password fields after a successful non-password save.
-      setCurrentPassword(''); setNewPassword('')
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
     } catch (e) {
       const msg = (e as { message?: string })?.message ?? ''
       setError(/last sign-in|keep at least one/i.test(msg) ? t('profileEdit.lastMethod')
@@ -109,7 +124,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
     background: 'rgba(5,2,18,0.72)', backdropFilter: 'blur(4px)',
   }
   const panel: CSSProperties = {
-    width: 'min(92vw, 460px)', maxHeight: '88vh', overflowY: 'auto', borderRadius: 10,
+    width: 'min(92vw, 560px)', maxHeight: '88vh', overflowY: 'auto', borderRadius: 10,
     background: 'var(--bg-card)', border: '1px solid var(--border-color)',
     boxShadow: 'var(--box-shadow)', padding: 22,
   }
@@ -148,12 +163,21 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
 
         <div style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}>
           <div style={{ fontSize: '0.8rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: 'var(--text-main)', marginBottom: 8 }}>
-            {t('profileEdit.password')}
+            {hasPassword ? t('profileEdit.password') : t('profileEdit.passwordSet')}
           </div>
-          <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.currentPassword')}</label>
-          <input style={inputStyle()} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t('profileEdit.currentPasswordPlaceholder')} />
+          {hasPassword && (
+            <>
+            <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.currentPassword')}</label>
+            <input style={inputStyle()} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t('profileEdit.currentPasswordPlaceholder')} />
+            </>
+          )}
           <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.newPassword')}</label>
-          <input style={inputStyle()} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t('profileEdit.newPasswordPlaceholder')} />
+          <input style={inputStyle()} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder={t('profileEdit.newPasswordPlaceholder')} autoComplete="new-password" />
+          <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.confirmPassword')}</label>
+          <input style={inputStyle()} type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder={t('profileEdit.confirmPasswordPlaceholder')} autoComplete="new-password" />
+          <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', lineHeight: 1.5, marginBottom: 12 }}>
+            {t('profileEdit.passwordHint')}
+          </div>
         </div>
 
         <div style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}>

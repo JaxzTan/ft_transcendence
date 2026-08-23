@@ -236,6 +236,7 @@ export class AuthService {
         id: user.id,
         username: user.username,
         email: user.email,
+        hasPassword: !!user.password_hash,
         providers: accounts.map((a) => a.provider),
       },
     };
@@ -369,6 +370,7 @@ export class AuthService {
         id: updated.id,
         username: updated.username,
         email: updated.email,
+        hasPassword: !!updated.password_hash,
         providers: accounts.map((a) => a.provider),
       },
       emailVerificationSent: emailChanged,
@@ -379,18 +381,18 @@ export class AuthService {
 
   /**
    * Logged-in password change: verify the current password, then set the new
-   * one and revoke every existing session (same as resetPassword does).
-   * Requires a password_hash — OAuth-only accounts have none and are rejected.
+   * one and keep the CURRENT device signed in while revoking every other session.
+   * OAuth-only accounts have no password_hash — they set their FIRST password
+   * here, so `currentPassword` is only checked when one already exists.
    */
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+  async changePassword(userId: string, currentPassword: string | undefined, newPassword: string, currentRefreshToken?: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
-    if (!user.password_hash) {
-      throw new ForbiddenException('This account signs in with a provider — no password to change');
-    }
 
-    const matches = await bcrypt.compare(currentPassword, user.password_hash);
-    if (!matches) throw new UnauthorizedException('Current password is incorrect');
+    if (user.password_hash) {
+      const matches = await bcrypt.compare(currentPassword ?? '', user.password_hash);
+      if (!matches) throw new UnauthorizedException('Current password is incorrect');
+    }
 
     const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await this.prisma.db.user.update({
@@ -399,8 +401,8 @@ export class AuthService {
     });
 
     // Log the user out everywhere — other devices must re-auth with the new password.
-    await this.session.revokeAll(userId);
-    return { message: 'Password updated — you have been signed out everywhere.' };
+    await this.session.revokeAllExcept(userId, currentRefreshToken);
+    return { message: 'Password updated — other devices were signed out.' };
   }
 
   /**
@@ -416,6 +418,13 @@ export class AuthService {
     },
     linkUserId?: string,
   ) {
+    // EMAIL OWNERSHIP RULE: a provider's email may only set the account's
+    // `email` + `emailVerified` during the FIRST sign-in (new account, or an
+    // OAuth login matched by email). The "add sign-in method" flow below
+    // (linkUserId) deliberately ignores the provider's email entirely — e.g.
+    // an account created with Google (123@gmail.com) that links 42
+    // (4321@42.com) keeps 123@gmail.com and its verification state.
+
     // If provider account exist just log them in
     const existingAccount = await this.prisma.db.account.findUnique({
       where: {
