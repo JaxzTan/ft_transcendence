@@ -35,7 +35,7 @@ EOF
   echo "🚀 Starting Redis with authentication..."
   
   # Use requirepass instead of ACL (simpler, works in Redis 7)
-  exec redis-server --requirepass "${REDIS_PASS}" "$@"
+  exec redis-server /tmp/redis.conf --requirepass "${REDIS_PASS}" "$@"
 else
   echo "⚠️  No Redis password found, starting without auth (NOT recommended for production)"
   exec redis-server "$@"
