@@ -243,143 +243,143 @@ export function RetroNavbar({
               zIndex: 10005,
             }}
           >
-              {/* 1. Language Selection (Cyber Segmented Tabs) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.76rem', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
-                    🌐 LANGUAGE // LANGUE
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 6,
-                    background: 'rgba(0, 0, 0, 0.45)',
-                    padding: 4,
-                    borderRadius: 8,
-                    border: '1px solid rgba(0, 240, 255, 0.2)',
-                  }}
-                >
-                  {[
-                    { code: 'en' as const, label: 'EN', full: 'ENGLISH' },
-                    { code: 'ms' as const, label: 'MS', full: 'MELAYU' },
-                    { code: 'fr' as const, label: 'FR', full: 'FRANÇAIS' },
-                  ].map((item) => {
-                    const isSelected = (lang || 'en') === item.code
-                    return (
-                      <button
-                        key={item.code}
-                        type="button"
-                        onClick={() => {
-                          setLang(item.code)
-                          retroAudio.playUiBeep(880, 0.05)
-                        }}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '7px 4px',
-                          borderRadius: 6,
-                          border: isSelected ? '1.5px solid var(--accent-cyan)' : '1px solid transparent',
-                          background: isSelected
-                            ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(255, 0, 127, 0.2))'
-                            : 'transparent',
-                          color: isSelected ? '#ffffff' : 'var(--text-muted)',
-                          cursor: 'pointer',
-                          boxShadow: isSelected ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
-                          transition: 'all 0.18s ease',
-                          outline: 'none',
-                        }}
-                      >
-                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '0.88rem' }}>
-                          {item.label}
-                        </span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', opacity: 0.85, marginTop: 2 }}>
-                          {item.full}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* 2. 2FA Security Toggle Option */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  background: twoFactor ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                  border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
-                  boxShadow: twoFactor ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.18s ease',
-                }}
-                onClick={() => {
-                  toggleTwoFactor()
-                  retroAudio.playUiBeep(twoFactor ? 440 : 880, 0.06)
-                }}
-                title="Toggle Two-Factor Authentication"
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: '1rem' }}>🛡️</span>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
-                    2FA AUTH
-                  </span>
-                </div>
-                <span
-                  style={{
-                    fontSize: '0.68rem',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 900,
-                    padding: '3px 8px',
-                    borderRadius: 4,
-                    background: twoFactor ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
-                    color: twoFactor ? '#0b021a' : 'var(--text-muted)',
-                    border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
-                  }}
-                >
-                  {twoFactor ? 'ENABLED' : 'DISABLED'}
+            {/* 1. Language Selection (Cyber Segmented Tabs) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.76rem', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+                  🌐 LANGUAGE // LANGUE
                 </span>
               </div>
-
-              {/* 3. Logout / Disconnect Button */}
-              <button
-                className="retro-btn"
-                onClick={async () => {
-                  setIsAccountPopoverOpen(false)
-                  retroAudio.playUiBeep(330, 0.08)
-                  await logout()
-                  navigate('/login')
-                }}
+              <div
                 style={{
-                  width: '100%',
-                  padding: '10px 0',
-                  fontSize: '0.84rem',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 900,
-                  background: 'linear-gradient(90deg, rgba(255, 0, 85, 0.25), rgba(255, 0, 127, 0.35))',
-                  border: '1.5px solid #ff0055',
-                  color: '#ffffff',
-                  boxShadow: '0 0 12px rgba(255, 0, 85, 0.3)',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 6,
+                  background: 'rgba(0, 0, 0, 0.45)',
+                  padding: 4,
                   borderRadius: 8,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  transition: 'all 0.18s ease',
+                  border: '1px solid rgba(0, 240, 255, 0.2)',
                 }}
               >
-                <span>⏻</span>
-                <span>DISCONNECT // LOGOUT</span>
-              </button>
+                {[
+                  { code: 'en' as const, label: 'EN', full: 'ENGLISH' },
+                  { code: 'ms' as const, label: 'MS', full: 'MELAYU' },
+                  { code: 'fr' as const, label: 'FR', full: 'FRANÇAIS' },
+                ].map((item) => {
+                  const isSelected = (lang || 'en') === item.code
+                  return (
+                    <button
+                      key={item.code}
+                      type="button"
+                      onClick={() => {
+                        setLang(item.code)
+                        retroAudio.playUiBeep(880, 0.05)
+                      }}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '7px 4px',
+                        borderRadius: 6,
+                        border: isSelected ? '1.5px solid var(--accent-cyan)' : '1px solid transparent',
+                        background: isSelected
+                          ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(255, 0, 127, 0.2))'
+                          : 'transparent',
+                        color: isSelected ? '#ffffff' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        boxShadow: isSelected ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
+                        transition: 'all 0.18s ease',
+                        outline: 'none',
+                      }}
+                    >
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '0.88rem' }}>
+                        {item.label}
+                      </span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', opacity: 0.85, marginTop: 2 }}>
+                        {item.full}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
+
+            {/* 2. 2FA Security Toggle Option */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: twoFactor ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: twoFactor ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease',
+              }}
+              onClick={() => {
+                toggleTwoFactor()
+                retroAudio.playUiBeep(twoFactor ? 440 : 880, 0.06)
+              }}
+              title="Toggle Two-Factor Authentication"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '1rem' }}>🛡️</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
+                  2FA AUTH
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 900,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  background: twoFactor ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
+                  color: twoFactor ? '#0b021a' : 'var(--text-muted)',
+                  border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
+                }}
+              >
+                {twoFactor ? 'ENABLED' : 'DISABLED'}
+              </span>
+            </div>
+
+            {/* 3. Logout / Disconnect Button */}
+            <button
+              className="retro-btn"
+              onClick={async () => {
+                setIsAccountPopoverOpen(false)
+                retroAudio.playUiBeep(330, 0.08)
+                await logout()
+                navigate('/login')
+              }}
+              style={{
+                width: '100%',
+                padding: '10px 0',
+                fontSize: '0.84rem',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 900,
+                background: 'linear-gradient(90deg, rgba(255, 0, 85, 0.25), rgba(255, 0, 127, 0.35))',
+                border: '1.5px solid #ff0055',
+                color: '#ffffff',
+                boxShadow: '0 0 12px rgba(255, 0, 85, 0.3)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                transition: 'all 0.18s ease',
+              }}
+            >
+              <span>⏻</span>
+              <span>DISCONNECT // LOGOUT</span>
+            </button>
           </div>
+        </div>
       </div>
 
       {/* Navigation Slider Window (Middle of Y-Axis) */}
@@ -404,7 +404,7 @@ export function RetroNavbar({
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
-            transform: `translateY(${-( (navItems.findIndex((it) => {
+            transform: `translateY(${-((navItems.findIndex((it) => {
               if (it.path === '/home') return currentPath === '/home' || currentPath === '/'
               if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
               if (it.path === '/profile') return currentPath.startsWith('/profile')
@@ -414,7 +414,7 @@ export function RetroNavbar({
               if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
               if (it.path === '/profile') return currentPath.startsWith('/profile')
               return currentPath === it.path
-            }) : 0) - 2.5 ) * 38}px)`,
+            }) : 0) - 2.5) * 38}px)`,
             transition: 'transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
             zIndex: 2,
           }}

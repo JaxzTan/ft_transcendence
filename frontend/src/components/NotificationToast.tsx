@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Notification } from '../hooks/useNotifications'
 import { useApp } from '../store'
 import { navigate } from '../router'
@@ -9,7 +10,7 @@ import { retroAudio } from '../utils/audio'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getToastInfo(n: Notification): {
+function getToastInfo(n: Notification, t: (key: string, options?: any) => string): {
   tag: string
   badgeLabel: string
   badgeColor: string
@@ -28,48 +29,48 @@ function getToastInfo(n: Notification): {
   switch (n?.type) {
     case 'friend_request':
       return {
-        tag: '[FRIEND_LINK_REQ]',
+        tag: t('notifications.linkReqTag'),
         badgeLabel: 'LINK',
         badgeColor: 'var(--accent-pink, #ff007f)',
         badgeBg: 'rgba(255, 0, 127, 0.18)',
         fromUser: from,
-        actionMessage: 'Transmitted a cyber friend link request',
+        actionMessage: t('notifications.actionFriendReq'),
       }
     case 'friend_accepted':
       return {
-        tag: '[LINK_ESTABLISHED]',
+        tag: t('notifications.linkEstablishedTag'),
         badgeLabel: 'SYNC',
         badgeColor: 'var(--accent-yellow, #ffe600)',
         badgeBg: 'rgba(255, 230, 0, 0.18)',
         fromUser: from,
-        actionMessage: 'Accepted your cyber comms link request',
+        actionMessage: t('notifications.actionFriendAccepted'),
       }
     case 'game_invite':
       return {
-        tag: '[MATCH_CHALLENGE]',
+        tag: t('notifications.matchChallengeTag'),
         badgeLabel: payload?.playerCount === 4 ? '4P' : '1v1',
         badgeColor: 'var(--accent-cyan, #00f0ff)',
         badgeBg: 'rgba(0, 240, 255, 0.18)',
         fromUser: from,
-        actionMessage: 'Issued a match challenge in the arena',
+        actionMessage: t('notifications.actionMatchChallenge'),
       }
     case 'achievement':
       return {
-        tag: '[ACHIEVEMENT]',
+        tag: t('notifications.achievementTag'),
         badgeLabel: 'ACHV',
         badgeColor: '#00ff88',
         badgeBg: 'rgba(0, 255, 136, 0.18)',
         fromUser: null,
-        actionMessage: 'New achievement logged to pilot profile dossier',
+        actionMessage: t('notifications.actionAchievement'),
       }
     default:
       return {
-        tag: '[SYS_BROADCAST]',
+        tag: t('notifications.sysBroadcastTag'),
         badgeLabel: 'SYS',
         badgeColor: 'var(--accent-cyan, #00f0ff)',
         badgeBg: 'rgba(0, 240, 255, 0.18)',
         fromUser: null,
-        actionMessage: 'New system telemetry transmission received',
+        actionMessage: t('notifications.actionSysBroadcast'),
       }
   }
 }
@@ -85,6 +86,7 @@ function Toast({
   onDismiss: (id: string) => void
   index: number
 }) {
+  const { t } = useTranslation()
   const { setActiveMatch } = useApp()
   const [visible, setVisible] = useState(false)
 
@@ -183,7 +185,7 @@ function Toast({
     dismiss()
   }
 
-  const { tag, badgeLabel, badgeColor, badgeBg, fromUser, actionMessage } = getToastInfo(notification)
+  const { tag, badgeLabel, badgeColor, badgeBg, fromUser, actionMessage } = getToastInfo(notification, t)
   const isInvite = notification.type === 'game_invite'
 
   const toastStyle: CSSProperties = {
@@ -366,7 +368,7 @@ function Toast({
                 margin: 0,
               }}
             >
-              ACCEPT
+              {t('nav.acceptInvite').toUpperCase()}
             </button>
             <button
               onClick={dismiss}
@@ -387,7 +389,7 @@ function Toast({
                 margin: 0,
               }}
             >
-              DECLINE
+              {t('nav.declineInvite').toUpperCase()}
             </button>
           </div>
         )}
@@ -414,7 +416,7 @@ function Toast({
                 margin: 0,
               }}
             >
-              ACCEPT
+              {t('nav.acceptInvite').toUpperCase()}
             </button>
             <button
               onClick={declineFriend}
@@ -435,7 +437,7 @@ function Toast({
                 margin: 0,
               }}
             >
-              DECLINE
+              {t('nav.declineInvite').toUpperCase()}
             </button>
           </div>
         )}
@@ -466,7 +468,7 @@ function Toast({
                 margin: 0,
               }}
             >
-              ACCEPT
+              {t('nav.acceptInvite').toUpperCase()}
             </button>
             <button
               onClick={dismiss}

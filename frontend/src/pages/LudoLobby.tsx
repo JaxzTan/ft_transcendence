@@ -278,307 +278,276 @@ export function LudoLobby() {
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 14,
+                gap: 20,
               }}
             >
               {/* ════════════════════════════════════════════════════════════════════════════
                   LEVEL 1: HOST NEW TABLE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'linear-gradient(90deg, rgba(255, 0, 127, 0.16) 0%, rgba(15, 6, 32, 0.95) 100%)',
-                  border: '1.5px solid #ff007f',
-                  boxShadow: '0 0 16px rgba(255, 0, 127, 0.2), inset 0 0 12px rgba(255, 0, 127, 0.08)',
-                  borderRadius: 8,
-                  padding: '14px 18px',
-                  gap: 16,
-                  flexWrap: 'wrap',
-                  transition: 'all 0.2s ease',
+                className={`retro-ticket-pass ticket-pink ${hostBusy ? 'disabled' : ''}`}
+                onClick={hostBusy ? undefined : createRoom}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    if (!hostBusy) createRoom()
+                  }
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
-                      padding: '6px 12px',
-                      background: 'rgba(255, 0, 127, 0.25)',
-                      border: '1px solid #ff007f',
-                      borderRadius: 4,
+                      padding: '12px 20px',
+                      background: 'rgba(255, 0, 127, 0.28)',
+                      border: '1.5px solid #ff007f',
+                      borderRadius: 8,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: '0.98rem',
                       color: '#ff007f',
                       whiteSpace: 'nowrap',
-                      letterSpacing: '1px',
+                      letterSpacing: '1.2px',
+                      boxShadow: '0 0 12px rgba(255, 0, 127, 0.3)',
                     }}
                   >
-                    [ LEVEL 01 ]
+                    {t('ludoLobbyPasses.level1')}
                   </div>
-                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(255, 0, 127, 0.4)' }} />
+                  <div style={{ width: 1, height: 56, borderRight: '2px dashed rgba(255, 0, 127, 0.45)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '0.92rem',
+                        fontSize: '1.22rem',
                         fontWeight: 900,
                         color: '#ffffff',
-                        letterSpacing: '1px',
-                        marginBottom: 3,
+                        letterSpacing: '1.8px',
+                        marginBottom: 6,
                       }}
                     >
-                      HOST NEW TABLE
+                      {t('ludoLobbyPasses.hostNewTable')}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                      INITIALIZE A PUBLIC OR PRIVATE MULTIPLAYER ARENA ROOM
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                      {t('ludoLobbyPasses.hostNewTableDesc')}
                     </div>
                   </div>
                 </div>
 
-                <button
-                  className="retro-btn"
-                  onClick={createRoom}
-                  disabled={hostBusy}
+                <div
+                  className="ticket-action-pill"
                   style={{
-                    width: 175,
-                    height: 42,
-                    padding: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.78rem',
                     background: 'var(--accent-pink)',
-                    borderColor: '#ff007f',
-                    boxShadow: '0 0 12px rgba(255, 0, 127, 0.4)',
+                    color: '#ffffff',
+                    boxShadow: '0 0 18px rgba(255, 0, 127, 0.5)',
                     opacity: hostBusy ? 0.6 : 1,
-                    flexShrink: 0,
                   }}
                 >
-                  {hostBusy ? '▶ CREATING...' : '▶ HOST NEW TABLE'}
-                </button>
+                  {hostBusy ? `▶ ${t('ludoLobbyPasses.creating')}` : `▶ ${t('ludoLobbyPasses.hostNewTable')}`}
+                </div>
               </div>
 
               {/* ════════════════════════════════════════════════════════════════════════════
                   LEVEL 2: HOTSEAT MODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'linear-gradient(90deg, rgba(255, 230, 0, 0.14) 0%, rgba(15, 6, 32, 0.95) 100%)',
-                  border: '1.5px solid #ffe600',
-                  boxShadow: '0 0 16px rgba(255, 230, 0, 0.18), inset 0 0 12px rgba(255, 230, 0, 0.08)',
-                  borderRadius: 8,
-                  padding: '14px 18px',
-                  gap: 16,
-                  flexWrap: 'wrap',
-                  transition: 'all 0.2s ease',
+                className="retro-ticket-pass ticket-yellow"
+                onClick={() => {
+                  retroAudio.playUiBeep(640, 0.05)
+                  navigate('/gamelobby/table?mode=4&bots=0&local=1')
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    retroAudio.playUiBeep(640, 0.05)
+                    navigate('/gamelobby/table?mode=4&bots=0&local=1')
+                  }
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
-                      padding: '6px 12px',
-                      background: 'rgba(255, 230, 0, 0.2)',
-                      border: '1px solid #ffe600',
-                      borderRadius: 4,
+                      padding: '12px 20px',
+                      background: 'rgba(255, 230, 0, 0.24)',
+                      border: '1.5px solid #ffe600',
+                      borderRadius: 8,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: '0.98rem',
                       color: '#ffe600',
                       whiteSpace: 'nowrap',
-                      letterSpacing: '1px',
+                      letterSpacing: '1.2px',
+                      boxShadow: '0 0 12px rgba(255, 230, 0, 0.3)',
                     }}
                   >
-                    [ LEVEL 02 ]
+                    {t('ludoLobbyPasses.level2')}
                   </div>
-                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(255, 230, 0, 0.4)' }} />
+                  <div style={{ width: 1, height: 56, borderRight: '2px dashed rgba(255, 230, 0, 0.45)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '0.92rem',
+                        fontSize: '1.22rem',
                         fontWeight: 900,
                         color: '#ffffff',
-                        letterSpacing: '1px',
-                        marginBottom: 3,
+                        letterSpacing: '1.8px',
+                        marginBottom: 6,
                       }}
                     >
-                      HOTSEAT MODE
+                      {t('ludoLobbyPasses.hotseatMode')}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                      PLAY MULTIPLAYER LOCALLY WITH FRIENDS ON A SINGLE DEVICE
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                      {t('ludoLobbyPasses.hotseatModeDesc')}
                     </div>
                   </div>
                 </div>
 
-                <button
-                  className="retro-btn"
-                  onClick={() => {
-                    retroAudio.playUiBeep(640, 0.05)
-                    navigate('/gamelobby/table?mode=4&bots=0&local=1')
-                  }}
+                <div
+                  className="ticket-action-pill"
                   style={{
-                    width: 175,
-                    height: 42,
-                    padding: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.78rem',
-                    background: 'rgba(255, 230, 0, 0.2)',
-                    borderColor: '#ffe600',
+                    background: 'rgba(255, 230, 0, 0.22)',
+                    border: '1.5px solid #ffe600',
                     color: '#ffe600',
-                    boxShadow: '0 0 10px rgba(255, 230, 0, 0.3)',
-                    flexShrink: 0,
+                    boxShadow: '0 0 16px rgba(255, 230, 0, 0.4)',
                   }}
                 >
-                  ▶ LAUNCH HOTSEAT
-                </button>
+                  ▶ {t('ludoLobbyPasses.launchHotseat')}
+                </div>
               </div>
 
               {/* ════════════════════════════════════════════════════════════════════════════
                   LEVEL 3: BOT MODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'linear-gradient(90deg, rgba(0, 255, 136, 0.14) 0%, rgba(15, 6, 32, 0.95) 100%)',
-                  border: '1.5px solid #00ff88',
-                  boxShadow: '0 0 16px rgba(0, 255, 136, 0.18), inset 0 0 12px rgba(0, 255, 136, 0.08)',
-                  borderRadius: 8,
-                  padding: '14px 18px',
-                  gap: 16,
-                  flexWrap: 'wrap',
-                  transition: 'all 0.2s ease',
+                className="retro-ticket-pass ticket-green"
+                onClick={() => {
+                  retroAudio.playUiBeep(640, 0.05)
+                  navigate('/gamelobby/table?mode=4&bots=1')
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    retroAudio.playUiBeep(640, 0.05)
+                    navigate('/gamelobby/table?mode=4&bots=1')
+                  }
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
-                      padding: '6px 12px',
-                      background: 'rgba(0, 255, 136, 0.2)',
-                      border: '1px solid #00ff88',
-                      borderRadius: 4,
+                      padding: '12px 20px',
+                      background: 'rgba(0, 255, 136, 0.24)',
+                      border: '1.5px solid #00ff88',
+                      borderRadius: 8,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: '0.98rem',
                       color: '#00ff88',
                       whiteSpace: 'nowrap',
-                      letterSpacing: '1px',
+                      letterSpacing: '1.2px',
+                      boxShadow: '0 0 12px rgba(0, 255, 136, 0.3)',
                     }}
                   >
-                    [ LEVEL 03 ]
+                    {t('ludoLobbyPasses.level3')}
                   </div>
-                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(0, 255, 136, 0.4)' }} />
+                  <div style={{ width: 1, height: 56, borderRight: '2px dashed rgba(0, 255, 136, 0.45)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '0.92rem',
+                        fontSize: '1.22rem',
                         fontWeight: 900,
                         color: '#ffffff',
-                        letterSpacing: '1px',
-                        marginBottom: 3,
+                        letterSpacing: '1.8px',
+                        marginBottom: 6,
                       }}
                     >
-                      BOT MODE
+                      {t('ludoLobbyPasses.botMode')}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                      CHALLENGE TACTICAL AI BOTS IN SOLO PRACTICE ARENA
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                      {t('ludoLobbyPasses.botModeDesc')}
                     </div>
                   </div>
                 </div>
 
-                <button
-                  className="retro-btn"
-                  onClick={() => {
-                    retroAudio.playUiBeep(640, 0.05)
-                    navigate('/gamelobby/table?mode=4&bots=1')
-                  }}
+                <div
+                  className="ticket-action-pill"
                   style={{
-                    width: 175,
-                    height: 42,
-                    padding: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.78rem',
-                    background: 'rgba(0, 255, 136, 0.2)',
-                    borderColor: '#00ff88',
+                    background: 'rgba(0, 255, 136, 0.22)',
+                    border: '1.5px solid #00ff88',
                     color: '#00ff88',
-                    boxShadow: '0 0 10px rgba(0, 255, 136, 0.3)',
-                    flexShrink: 0,
+                    boxShadow: '0 0 16px rgba(0, 255, 136, 0.4)',
                   }}
                 >
-                  ▶ PLAY VS BOTS
-                </button>
+                  ▶ {t('ludoLobbyPasses.playVsBots')}
+                </div>
               </div>
 
               {/* ════════════════════════════════════════════════════════════════════════════
                   LEVEL 4 (LAST): ACCESS VIA ROOM CODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'linear-gradient(90deg, rgba(0, 240, 255, 0.16) 0%, rgba(15, 6, 32, 0.95) 100%)',
-                  border: '1.5px solid var(--accent-cyan)',
-                  boxShadow: '0 0 16px rgba(0, 240, 255, 0.2), inset 0 0 12px rgba(0, 240, 255, 0.08)',
-                  borderRadius: 8,
-                  padding: '14px 18px',
-                  gap: 16,
-                  flexWrap: 'wrap',
-                  transition: 'all 0.2s ease',
+                className="retro-ticket-pass ticket-cyan"
+                onClick={() => {
+                  if (roomCodeInput.trim().length > 0 && !joiningByCode) {
+                    joinByCode(roomCodeInput)
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && roomCodeInput.trim().length > 0 && !joiningByCode) {
+                    e.preventDefault()
+                    joinByCode(roomCodeInput)
+                  }
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, minWidth: 280 }}>
                   <div
                     style={{
-                      padding: '6px 12px',
-                      background: 'rgba(0, 240, 255, 0.2)',
-                      border: '1px solid var(--accent-cyan)',
-                      borderRadius: 4,
+                      padding: '12px 20px',
+                      background: 'rgba(0, 240, 255, 0.24)',
+                      border: '1.5px solid var(--accent-cyan)',
+                      borderRadius: 8,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
-                      fontSize: '0.82rem',
+                      fontSize: '0.98rem',
                       color: 'var(--accent-cyan)',
                       whiteSpace: 'nowrap',
-                      letterSpacing: '1px',
+                      letterSpacing: '1.2px',
+                      boxShadow: '0 0 12px rgba(0, 240, 255, 0.3)',
                     }}
                   >
-                    [ LEVEL 04 ]
+                    {t('ludoLobbyPasses.level4')}
                   </div>
-                  <div style={{ width: 1, height: 36, borderRight: '2px dashed rgba(0, 240, 255, 0.4)' }} />
+                  <div style={{ width: 1, height: 56, borderRight: '2px dashed rgba(0, 240, 255, 0.45)' }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        fontSize: '0.92rem',
+                        fontSize: '1.22rem',
                         fontWeight: 900,
                         color: '#ffffff',
-                        letterSpacing: '1px',
-                        marginBottom: 3,
+                        letterSpacing: '1.8px',
+                        marginBottom: 6,
                       }}
                     >
-                      ACCESS VIA ROOM CODE
+                      {t('ludoLobbyPasses.accessViaCode')}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
-                      ENTER A SECRET 6-CHARACTER INVITATION TOKEN TO WARP IN
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.86rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                      {t('ludoLobbyPasses.accessViaCodeDesc')}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0, flexWrap: 'wrap' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <input
                     value={roomCodeInput}
                     onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
@@ -587,47 +556,51 @@ export function LudoLobby() {
                         joinByCode(roomCodeInput)
                       }
                     }}
-                    placeholder="ENTER CODE"
+                    placeholder={t('ludoLobbyPasses.enterCodePlaceholder')}
                     maxLength={8}
                     style={{
-                      width: 130,
-                      height: 42,
-                      background: 'rgba(5, 2, 18, 0.9)',
+                      width: 150,
+                      height: 50,
+                      background: 'rgba(5, 2, 18, 0.92)',
                       border: '1.5px solid var(--accent-cyan)',
-                      borderRadius: 4,
+                      borderRadius: 6,
                       color: '#ffe600',
-                      padding: '0 10px',
-                      fontSize: '0.88rem',
+                      padding: '0 14px',
+                      fontSize: '1rem',
                       fontWeight: 'bold',
                       fontFamily: 'var(--font-mono)',
                       letterSpacing: '2px',
                       textAlign: 'center',
                       outline: 'none',
-                      boxShadow: 'inset 0 0 8px rgba(0, 240, 255, 0.2)',
+                      boxShadow: 'inset 0 0 10px rgba(0, 240, 255, 0.25)',
                       boxSizing: 'border-box',
                     }}
                   />
                   <button
                     className="retro-btn"
-                    onClick={() => joinByCode(roomCodeInput)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      joinByCode(roomCodeInput)
+                    }}
                     disabled={!roomCodeInput.trim() || joiningByCode}
                     style={{
-                      width: 175,
-                      height: 42,
-                      padding: 0,
+                      minWidth: 170,
+                      height: 50,
+                      padding: '0 20px',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '0.78rem',
-                      background: 'rgba(0, 240, 255, 0.2)',
+                      fontSize: '0.86rem',
+                      background: 'rgba(0, 240, 255, 0.22)',
                       borderColor: 'var(--accent-cyan)',
                       color: 'var(--accent-cyan)',
                       opacity: !roomCodeInput.trim() || joiningByCode ? 0.5 : 1,
                       cursor: !roomCodeInput.trim() || joiningByCode ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 0 16px rgba(0, 240, 255, 0.4)',
                       flexShrink: 0,
                     }}
                   >
-                    {joiningByCode ? '▶ WARPING...' : '▶ ACCESS ROOM'}
+                    {joiningByCode ? `▶ ${t('ludoLobbyPasses.warping')}` : `▶ ${t('ludoLobbyPasses.accessRoom')}`}
                   </button>
                 </div>
               </div>
@@ -657,7 +630,7 @@ export function LudoLobby() {
             <section className="retro-window" id="roomsWindow">
               <div className="window-header" style={{ background: '#190a38', borderBottom: '1px solid rgba(0, 240, 255, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>OPEN QUANTUM ROOMS ({filteredRooms.length})</span>
+                  <span>{t('ludoLobbyPasses.openQuantumRooms')} ({filteredRooms.length})</span>
                 </div>
               </div>
 
@@ -665,7 +638,7 @@ export function LudoLobby() {
                 {/* Filter Sub-Bar */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 4px' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                    // FILTER SECTOR:
+                    {t('ludoLobbyPasses.filterSector')}
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
@@ -680,7 +653,7 @@ export function LudoLobby() {
                         setRoomFilter('all')
                       }}
                     >
-                      ALL
+                      {t('ludoLobbyPasses.filterAll')}
                     </button>
                     <button
                       className="retro-btn"
@@ -694,7 +667,7 @@ export function LudoLobby() {
                         setRoomFilter('classic')
                       }}
                     >
-                      CLASSIC 4P
+                      {t('ludoLobbyPasses.filterClassic4p')}
                     </button>
                     <button
                       className="retro-btn"
@@ -708,7 +681,7 @@ export function LudoLobby() {
                         setRoomFilter('duel')
                       }}
                     >
-                      DUEL 2P
+                      {t('ludoLobbyPasses.filterDuel2p')}
                     </button>
                   </div>
                 </div>
@@ -737,11 +710,11 @@ export function LudoLobby() {
                       fontFamily: 'var(--font-mono)',
                     }}
                   >
-                    <div>SECTOR CODE</div>
-                    <div>HOST CALLSIGN</div>
-                    <div>CAPACITY</div>
-                    <div>STAKES</div>
-                    <div>ACTION</div>
+                    <div>{t('ludoLobbyPasses.colSectorCode')}</div>
+                    <div>{t('ludoLobbyPasses.colHostCallsign')}</div>
+                    <div>{t('ludoLobbyPasses.colCapacity')}</div>
+                    <div>{t('ludoLobbyPasses.colStakes')}</div>
+                    <div>{t('ludoLobbyPasses.colAction')}</div>
                   </div>
 
                   {/* Room Rows */}
@@ -752,9 +725,10 @@ export function LudoLobby() {
                       </div>
                     ) : filteredRooms.length === 0 ? (
                       <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                        NO OPEN COMBAT ROOMS FOUND. INITIALIZE ONE USING PASS #01 ABOVE!
+                        {t('ludoLobbyPasses.noOpenRooms')}
                       </div>
                     ) : (
+
                       filteredRooms.map((room) => {
                         const isOwn = room.hostUsername === user?.username
                         const full = room.seats >= room.maxSeats

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import type { RankTier } from '../utils/ranks'
 
 interface RankBadgeProps {
@@ -20,11 +21,14 @@ export function RankBadge({
   showCrosshairs = true,
   showParticles = true,
 }: RankBadgeProps) {
+  const { t } = useTranslation()
   const isMamee = tier.key === 'mamee'
   const isMilo = tier.key === 'milo'
   const isPaddle = tier.key === 'paddle' || tier.key === 'super'
   const isHoney = tier.key === 'honey'
   const isChoki = tier.key === 'choki'
+
+  const tierName = t(`ranks.${tier.key}`, tier.name)
 
   const tierClass = isMamee
     ? 'badge-mamee-monster'
@@ -70,7 +74,7 @@ export function RankBadge({
         boxSizing: 'border-box',
         ...style,
       }}
-      title={`Rank Tier: ${tier.name}`}
+      title={t('ranks.rankTierTooltip', { name: tierName })}
     >
       {/* Floating Animated Ember Particles (MAMEE MONSTER ONLY) */}
       {isMamee && showParticles && (
@@ -284,7 +288,7 @@ export function RankBadge({
           zIndex: 2,
         }}
       >
-        {tier.name}
+        {tierName}
       </span>
     </span>
   )

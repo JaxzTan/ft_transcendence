@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { RetroNavbar } from '../components/RetroNavbar'
 import { UserAvatar } from '../components/UserAvatar'
 import { navigate } from '../router'
@@ -29,6 +30,7 @@ type LeaderboardResponse = {
 }
 
 export function Leaderboard() {
+  const { t } = useTranslation()
   const { user } = useApp()
 
   // ------------------------------------------------------------------------
@@ -126,7 +128,7 @@ export function Leaderboard() {
           {/* Hero Title (Clean, original font & color, taller Y-axis) */}
           <header className="hero-section" style={{ padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className="hero-title" style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
-              GLOBAL RANKING // LEADERBOARD
+              {t('leaderboard.globalRankingHero')}
             </h1>
           </header>
 
@@ -154,7 +156,7 @@ export function Leaderboard() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
-                <span>// LEADERBOARD ({data?.total ?? 0} ACTIVE PLAYERS)</span>
+                <span>{t('leaderboard.leaderboardHeader', { count: data?.total ?? 0 })}</span>
               </div>
               <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="window-btn min" />
@@ -260,8 +262,8 @@ export function Leaderboard() {
                             letterSpacing: '0.03em',
                           }}
                         >
-                          <span>MATCHES: <strong style={{ color: '#ffffff' }}>{top2.gamesPlayed}</strong></span>
-                          <span>WIN RATE: <strong style={{ color: '#ffffff' }}>{top2.winRate}%</strong></span>
+                          <span>{t('leaderboard.matchesLabel')} <strong style={{ color: '#ffffff' }}>{top2.gamesPlayed}</strong></span>
+                          <span>{t('leaderboard.winRateLabel')} <strong style={{ color: '#ffffff' }}>{top2.winRate}%</strong></span>
                         </div>
                       </div>
                     )
@@ -290,7 +292,7 @@ export function Leaderboard() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: '1.5rem', fontFamily: 'var(--font-display)', fontWeight: 900, color: '#ffe600', textShadow: '0 0 10px rgba(255, 230, 0, 0.6)' }}>#1</span>
                             <span style={{ fontSize: '0.72rem', color: '#ffe600', fontFamily: 'var(--font-display)', fontWeight: 900, letterSpacing: '0.5px' }}>
-                              ★ APEX CHAMPION
+                              {t('leaderboard.apexChampion')}
                             </span>
                           </div>
                           <RankBadge tier={tier1} fontSize="13px" padding="4px 12px" />
@@ -344,8 +346,8 @@ export function Leaderboard() {
                             letterSpacing: '0.03em',
                           }}
                         >
-                          <span>MATCHES: <strong style={{ color: '#ffffff', fontSize: '0.88rem' }}>{top1.gamesPlayed}</strong></span>
-                          <span>WIN RATE: <strong style={{ color: '#00ff88', fontSize: '0.88rem' }}>{top1.winRate}%</strong></span>
+                          <span>{t('leaderboard.matchesLabel')} <strong style={{ color: '#ffffff', fontSize: '0.88rem' }}>{top1.gamesPlayed}</strong></span>
+                          <span>{t('leaderboard.winRateLabel')} <strong style={{ color: '#00ff88', fontSize: '0.88rem' }}>{top1.winRate}%</strong></span>
                         </div>
                       </div>
                     )
@@ -416,8 +418,8 @@ export function Leaderboard() {
                             letterSpacing: '0.03em',
                           }}
                         >
-                          <span>MATCHES: <strong style={{ color: '#ffffff' }}>{top3.gamesPlayed}</strong></span>
-                          <span>WIN RATE: <strong style={{ color: '#ffffff' }}>{top3.winRate}%</strong></span>
+                          <span>{t('leaderboard.matchesLabel')} <strong style={{ color: '#ffffff' }}>{top3.gamesPlayed}</strong></span>
+                          <span>{t('leaderboard.winRateLabel')} <strong style={{ color: '#ffffff' }}>{top3.winRate}%</strong></span>
                         </div>
                       </div>
                     )
@@ -458,11 +460,11 @@ export function Leaderboard() {
                     zIndex: 3,
                   }}
                 >
-                  <div>RANK & TIER</div>
-                  <div>PLAYER</div>
-                  <div>RATING</div>
-                  <div>MATCHES</div>
-                  <div style={{ textAlign: 'right' }}>WIN RATE</div>
+                  <div>{t('leaderboard.colRankTier')}</div>
+                  <div>{t('leaderboard.colPlayer')}</div>
+                  <div>{t('leaderboard.colRating')}</div>
+                  <div>{t('leaderboard.colMatches')}</div>
+                  <div style={{ textAlign: 'right' }}>{t('leaderboard.colWinRate')}</div>
                 </div>
 
                 {/* Scrollable Table Rows */}
@@ -475,11 +477,11 @@ export function Leaderboard() {
                 >
                   {loading ? (
                     <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.95rem', fontFamily: 'var(--font-mono)' }}>
-                      ACCESSING QUANTUM LADDER TELEMETRY...
+                      {t('leaderboard.accessingTelemetry')}
                     </div>
                   ) : !data || data.entries.length === 0 ? (
                     <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.95rem', fontFamily: 'var(--font-mono)' }}>
-                      NO LADDER RECORDS LOGGED YET.
+                      {t('leaderboard.noRecords')}
                     </div>
                   ) : (
                     data.entries.map((entry) => {
@@ -579,7 +581,7 @@ export function Leaderboard() {
                                   textOverflow: 'ellipsis',
                                 }}
                               >
-                                {entry.displayName || entry.username} {isYou && <span style={{ color: 'var(--accent-pink)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>[YOU]</span>}
+                                {entry.displayName || entry.username} {isYou && <span style={{ color: 'var(--accent-pink)', fontSize: '0.78rem', fontFamily: 'var(--font-mono)' }}>{t('leaderboard.youBadge')}</span>}
                               </div>
                             </div>
                           </div>
@@ -599,7 +601,7 @@ export function Leaderboard() {
 
                           {/* Games Played */}
                           <div style={{ color: '#ffffff', fontSize: isRankOne ? '0.98rem' : '0.88rem', fontFamily: 'var(--font-display)', letterSpacing: '0.03em' }}>
-                            {entry.gamesPlayed} MATCHES
+                            {t('leaderboard.matchesCount', { count: entry.gamesPlayed })}
                           </div>
 
                           {/* Win Rate */}
