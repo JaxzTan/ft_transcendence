@@ -129,7 +129,6 @@ export function Home() {
 	const [isPlayingAudio, setIsPlayingAudio] = useState(retroAudio.isPlaying)
 	const [audioTrackIndex, setAudioTrackIndex] = useState(retroAudio.currentTrackIndex)
 	const [audioVolume, setAudioVolume] = useState(Math.round(retroAudio.volume * 100))
-	const [isAudioMuted, setIsAudioMuted] = useState(retroAudio.muted)
 	const [eqHeights, setEqHeights] = useState([8, 14, 20, 26, 18, 12, 22, 16, 10, 24, 15, 9])
 
 	const handleToggleAudio = () => {
@@ -161,14 +160,6 @@ export function Home() {
 		setAudioVolume(newVol)
 		retroAudio.setVolume(newVol / 100)
 		retroAudio.playUiBeep(440 + newVol * 4, 0.03)
-	}
-
-	const handleToggleMute = () => {
-		const muted = retroAudio.toggleMute()
-		setIsAudioMuted(muted)
-		if (!muted) {
-			retroAudio.playUiBeep(600, 0.05)
-		}
 	}
 
 	// Equalizer spectrum visualizer animation
@@ -255,10 +246,10 @@ export function Home() {
 				],
 				sparks: ['#00f0ff', '#ff007f'],
 				pawns: [
-					{ label: 'RED', color: '#ff0055', x: 85, y: 350 },
-					{ label: 'GREEN', color: '#00ff88', x: 230, y: 360 },
-					{ label: 'YELLOW', color: '#ffe600', x: 490, y: 360 },
-					{ label: 'BLUE', color: '#00f0ff', x: 635, y: 350 },
+					{ label: 'RED', color: '#ff0055', x: 85, y: 370 },
+					{ label: 'GREEN', color: '#00ff88', x: 230, y: 380 },
+					{ label: 'YELLOW', color: '#ffe600', x: 490, y: 380 },
+					{ label: 'BLUE', color: '#00f0ff', x: 635, y: 370 },
 				],
 				marquee: '[ TRANSCENDENCE // CYBER LUDO ]',
 				marqueeColor: '#00f0ff',
@@ -285,10 +276,10 @@ export function Home() {
 				],
 				sparks: ['#ffffff', '#00ffff'],
 				pawns: [
-					{ label: 'P1-RED', color: '#ff2222', x: 85, y: 350 },
-					{ label: 'P2-GRN', color: '#00cc33', x: 230, y: 360 },
-					{ label: 'P3-YLW', color: '#ffee00', x: 490, y: 360 },
-					{ label: 'P4-BLU', color: '#2255ff', x: 635, y: 350 },
+					{ label: 'P1-RED', color: '#ff2222', x: 85, y: 370 },
+					{ label: 'P2-GRN', color: '#00cc33', x: 230, y: 380 },
+					{ label: 'P3-YLW', color: '#ffee00', x: 490, y: 380 },
+					{ label: 'P4-BLU', color: '#2255ff', x: 635, y: 370 },
 				],
 				marquee: '[ DIRECTX 3D // CYBER LUDO 95 ]',
 				marqueeColor: '#00ffff',
@@ -315,10 +306,10 @@ export function Home() {
 				],
 				sparks: ['#00ff66', '#33ff88'],
 				pawns: [
-					{ label: 'NODE:RED', color: '#00ff66', x: 85, y: 350 },
-					{ label: 'NODE:GRN', color: '#33ff88', x: 230, y: 360 },
-					{ label: 'NODE:YLW', color: '#00ff66', x: 490, y: 360 },
-					{ label: 'NODE:BLU', color: '#33ff88', x: 635, y: 350 },
+					{ label: 'NODE:RED', color: '#00ff66', x: 85, y: 370 },
+					{ label: 'NODE:GRN', color: '#33ff88', x: 230, y: 380 },
+					{ label: 'NODE:YLW', color: '#00ff66', x: 490, y: 380 },
+					{ label: 'NODE:BLU', color: '#33ff88', x: 635, y: 370 },
 				],
 				marquee: '> SYS_EXEC: TRANSCENDENCE_LUDO_CORE.SH',
 				marqueeColor: '#00ff66',
@@ -330,14 +321,14 @@ export function Home() {
 		// Background stars
 		const stars = Array.from({ length: 65 }, () => ({
 			x: Math.random() * 720,
-			y: Math.random() * 260,
+			y: Math.random() * 270,
 			size: Math.random() * 1.8 + 0.5,
 			speed: Math.random() * 0.3 + 0.1,
 			alpha: Math.random() * 0.7 + 0.3,
 		}))
 
-		// 3D Cube vertices (centered at origin, side length = 108)
-		const cubeSize = 54
+		// 3D Cube vertices (centered at origin, side length = 112)
+		const cubeSize = 56
 		const rawVertices = [
 			[-cubeSize, -cubeSize, -cubeSize],
 			[cubeSize, -cubeSize, -cubeSize],
@@ -379,23 +370,23 @@ export function Home() {
 
 			// 2. Distant Sun (only for themes with sun)
 			if (currentCfg.hasSun !== false) {
-				const sunY = 250
-				const sunGrad = ctx.createRadialGradient(360, sunY, 7, 360, sunY, 90)
+				const sunY = 210
+				const sunGrad = ctx.createRadialGradient(360, sunY, 7, 360, sunY, 95)
 				sunGrad.addColorStop(0, currentCfg.sunC1)
 				sunGrad.addColorStop(0.5, currentCfg.sunC2)
 				sunGrad.addColorStop(1, 'rgba(0, 0, 0, 0)')
 				ctx.fillStyle = sunGrad
 				ctx.beginPath()
-				ctx.arc(360, sunY, 90, Math.PI, 0, false)
+				ctx.arc(360, sunY, 95, Math.PI, 0, false)
 				ctx.fill()
 
 				// Sun horizon scanlines
 				ctx.strokeStyle = currentCfg.sunScanline
 				ctx.lineWidth = 2
-				for (let sy = sunY - 60; sy < sunY; sy += 8) {
+				for (let sy = sunY - 65; sy < sunY; sy += 8) {
 					ctx.beginPath()
-					ctx.moveTo(265, sy)
-					ctx.lineTo(455, sy)
+					ctx.moveTo(260, sy)
+					ctx.lineTo(460, sy)
 					ctx.stroke()
 				}
 			}
@@ -403,7 +394,7 @@ export function Home() {
 			// 3. Floating Stars
 			stars.forEach((st) => {
 				st.y += st.speed
-				if (st.y > 260) st.y = 0
+				if (st.y > 210) st.y = 0
 				ctx.fillStyle = `rgba(${currentCfg.starRgb}, ${st.alpha * (0.8 + 0.2 * Math.sin(time * 3 + st.x))})`
 				ctx.beginPath()
 				ctx.arc(st.x, st.y, st.size, 0, Math.PI * 2)
@@ -411,14 +402,14 @@ export function Home() {
 			})
 
 			// 4. Horizon Perspective Grid
-			const horizonY = 260
+			const horizonY = 210
 			ctx.save()
 			ctx.strokeStyle = currentCfg.gridColor
 			ctx.lineWidth = 1
 
 			// Horizontal grid lines moving toward camera
-			for (let gy = 0; gy < 140; gy += 14) {
-				const y = horizonY + Math.pow((gy + gridOffset) / 145, 1.8) * 140
+			for (let gy = 0; gy < 210; gy += 18) {
+				const y = horizonY + Math.pow((gy + gridOffset) / 210, 1.8) * 210
 				if (y <= canvas.height) {
 					ctx.beginPath()
 					ctx.moveTo(0, y)
@@ -427,7 +418,7 @@ export function Home() {
 				}
 			}
 
-			// Perspective radiating vertical lines from vanishing point (360, 260)
+			// Perspective radiating vertical lines from vanishing point (360, 210)
 			for (let x = -250; x <= canvas.width + 250; x += 45) {
 				ctx.beginPath()
 				ctx.moveTo(360, horizonY)
@@ -438,8 +429,8 @@ export function Home() {
 
 			// 5. 3D Tumbling Ludo Dice in Center
 			const centerX = 360
-			const centerY = 135 + Math.sin(time * 2.2) * 10
-			const cameraDist = 260
+			const centerY = 210 + Math.sin(time * 2.2) * 8
+			const cameraDist = 280
 
 			// 3D rotation matrix calculation
 			const cosX = Math.cos(rotX), sinX = Math.sin(rotX)
@@ -472,7 +463,7 @@ export function Home() {
 			// Render glowing particle sparks behind dice
 			for (let i = 0; i < 8; i++) {
 				const sparkAngle = time * 3 + (i * Math.PI) / 4
-				const sparkR = 74 + Math.sin(time * 4 + i) * 15
+				const sparkR = 76 + Math.sin(time * 4 + i) * 15
 				const sx = centerX + Math.cos(sparkAngle) * sparkR
 				const sy = centerY + Math.sin(sparkAngle * 1.3) * (sparkR * 0.5)
 				const sparkCol = currentCfg.sparks[i % currentCfg.sparks.length]
@@ -480,7 +471,7 @@ export function Home() {
 				ctx.shadowColor = sparkCol
 				ctx.shadowBlur = 9
 				ctx.beginPath()
-				ctx.arc(sx, sy, 2.4, 0, Math.PI * 2)
+				ctx.arc(sx, sy, 2.5, 0, Math.PI * 2)
 				ctx.fill()
 				ctx.shadowBlur = 0
 			}
@@ -529,6 +520,7 @@ export function Home() {
 				pips.forEach(([u, v]: any) => {
 					const su = u + 0.5
 					const sv = v + 0.5
+
 					const topX = p0.px + (p1.px - p0.px) * su
 					const topY = p0.py + (p1.py - p0.py) * su
 					const botX = p3.px + (p2.px - p3.px) * su
@@ -627,13 +619,22 @@ export function Home() {
 						<p className="hero-subtitle">
 							{t('home.greeting', { name: username.toUpperCase() })} // PACE 24
 						</p>
-
 					</header>
 
 					{/* Main Interactive Dashboard Grid */}
 					<main className="dashboard-grid">
 						{/* Widget 1: 3D Attract Mode Arcade Cabinet & Press Start */}
-						<section className="retro-window col-8" id="arcadeWindow">
+						<section
+							className="retro-window col-8"
+							id="arcadeWindow"
+							style={{
+								height: 450,
+								maxHeight: 450,
+								display: 'flex',
+								flexDirection: 'column',
+								boxSizing: 'border-box',
+							}}
+						>
 							<div className="window-header">
 								<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 									<span>{t('homeExtended.arcadeArenaTitle')}</span>
@@ -643,22 +644,45 @@ export function Home() {
 									<span className="window-btn max" />
 								</div>
 							</div>
-							<div className="window-body arcade-container">
+							<div
+								className="window-body arcade-container"
+								style={{
+									padding: 0,
+									display: 'flex',
+									flexDirection: 'column',
+									alignItems: 'center',
+									justifyContent: 'center',
+									flex: 1,
+									minHeight: 0,
+									overflow: 'hidden',
+								}}
+							>
 								{/* Arcade Canvas Frame & Interactive Press Start Overlay */}
 								<div
 									className="arcade-screen-frame"
-									style={
-										isWarpingToLobby
+									style={{
+										height: '100%',
+										width: '100%',
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										...(isWarpingToLobby
 											? {
 													border: '4px solid #ffffff',
 													boxShadow: '0 0 35px #ffffff, 0 0 50px var(--accent-cyan)',
 											  }
-											: undefined
-									}
+											: {}),
+									}}
 									onClick={launchToLobby}
 									title="Click or press Spacebar to enter Ludo Lobby"
 								>
-									<canvas id="arcadeCanvas" ref={canvasRef} width={720} height={400} />
+									<canvas
+										id="arcadeCanvas"
+										ref={canvasRef}
+										width={720}
+										height={420}
+										style={{ width: '100%', height: '100%', display: 'block', objectFit: 'fill' }}
+									/>
 
 									{/* Interactive Translucent Press Start Banner Overlay */}
 									<div className="arcade-start-overlay">
@@ -702,7 +726,17 @@ export function Home() {
 						</section>
 
 						{/* Widget 2: Friends List */}
-						<section className="retro-window col-4" id="friendsWindow">
+						<section
+							className="retro-window col-4"
+							id="friendsWindow"
+							style={{
+								height: 450,
+								maxHeight: 450,
+								display: 'flex',
+								flexDirection: 'column',
+								boxSizing: 'border-box',
+							}}
+						>
 							<div className="window-header">
 								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 									<span>{t('friends.title').toUpperCase()} ({friends?.length ?? 0})</span>
@@ -759,141 +793,152 @@ export function Home() {
 							</div>
 
 							<div
+								className="window-body"
 								style={{
-									padding: '12px 14px',
+									padding: 0,
 									display: 'flex',
 									flexDirection: 'column',
-									gap: 9,
 									flex: 1,
-									overflowY: 'auto',
 									minHeight: 0,
-									maxHeight: 280,
+									overflow: 'hidden',
 								}}
 							>
-								{isFriendsLoading && friends === null ? (
-									<div style={{ padding: 28, textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
-										{t('homeExtended.scanningComms')}
-									</div>
-								) : !friends || friends.length === 0 ? (
-									<div style={{ padding: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
-										{t('homeExtended.noFriendsLinked')}
-									</div>
-								) : (
-									friends.map((f) => {
-										const fRank = leaderboardMap[f.username]
-										const fTier = getRankTier(f.rating ?? 1200, fRank)
-										const fStatus = STATUS_STYLE[f.status || 'offline'] || STATUS_STYLE.offline
-										const isPace24 =
-											f.username.toLowerCase().includes('harleynghx') ||
-											f.username.toLowerCase().includes('harleyhx')
+								<div
+									style={{
+										padding: '10px 12px',
+										display: 'flex',
+										flexDirection: 'column',
+										gap: 8,
+										flex: 1,
+										overflowY: 'auto',
+										minHeight: 0,
+									}}
+								>
+									{isFriendsLoading && friends === null ? (
+										<div style={{ padding: 28, textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
+											{t('homeExtended.scanningComms')}
+										</div>
+									) : !friends || friends.length === 0 ? (
+										<div style={{ padding: 28, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem', fontFamily: 'var(--font-display)' }}>
+											{t('homeExtended.noFriendsLinked')}
+										</div>
+									) : (
+										friends.map((f) => {
+											const fRank = leaderboardMap[f.username]
+											const fTier = getRankTier(f.rating ?? 1200, fRank)
+											const fStatus = STATUS_STYLE[f.status || 'offline'] || STATUS_STYLE.offline
+											const isPace24 =
+												f.username.toLowerCase().includes('harleynghx') ||
+												f.username.toLowerCase().includes('harleyhx')
 
-										return (
-											<div
-												key={f.id}
-												style={{
-													display: 'flex',
-													alignItems: 'center',
-													justifyContent: 'space-between',
-													padding: '10px 14px',
-													borderRadius: 6,
-													background: 'var(--bg-secondary)',
-													border: '1px solid var(--border-color)',
-													cursor: 'pointer',
-													transition: 'all 0.18s ease',
-													gap: 12,
-												}}
-												onClick={() => {
-													retroAudio.playUiBeep(640, 0.04)
-													navigate(`/profile?u=${encodeURIComponent(f.username)}`)
-												}}
-												onMouseEnter={(e) => {
-													e.currentTarget.style.background = 'var(--bg-card)'
-													e.currentTarget.style.borderColor = 'var(--accent-cyan)'
-													e.currentTarget.style.transform = 'translateX(2px)'
-												}}
-												onMouseLeave={(e) => {
-													e.currentTarget.style.background = 'var(--bg-secondary)'
-													e.currentTarget.style.borderColor = 'var(--border-color)'
-													e.currentTarget.style.transform = 'translateX(0)'
-												}}
-											>
-												<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-													<div style={{ position: 'relative', flexShrink: 0 }}>
-														<div
-															style={{
-																padding: 2,
-																borderRadius: 5,
-																background: `linear-gradient(135deg, ${fTier.color}, var(--accent-cyan))`,
-																boxShadow: `0 0 8px ${fTier.glow}`,
-															}}
-														>
-															<UserAvatar
-																username={f.username}
-																avatarStyle={f.avatarStyle}
-																size={38}
-																fallbackStyle={{
-																	width: 38,
-																	height: 38,
-																	borderRadius: 4,
-																	background: 'rgba(10, 2, 28, 0.95)',
-																	color: 'var(--accent-cyan)',
-																	display: 'grid',
-																	placeItems: 'center',
-																	fontWeight: 900,
-																	fontSize: '0.95rem',
+											return (
+												<div
+													key={f.id}
+													style={{
+														display: 'flex',
+														alignItems: 'center',
+														justifyContent: 'space-between',
+														padding: '10px 14px',
+														borderRadius: 6,
+														background: 'var(--bg-secondary)',
+														border: '1px solid var(--border-color)',
+														cursor: 'pointer',
+														transition: 'all 0.18s ease',
+														gap: 12,
+													}}
+													onClick={() => {
+														retroAudio.playUiBeep(640, 0.04)
+														navigate(`/profile?u=${encodeURIComponent(f.username)}`)
+													}}
+													onMouseEnter={(e) => {
+														e.currentTarget.style.background = 'var(--bg-card)'
+														e.currentTarget.style.borderColor = 'var(--accent-cyan)'
+														e.currentTarget.style.transform = 'translateX(2px)'
+													}}
+													onMouseLeave={(e) => {
+														e.currentTarget.style.background = 'var(--bg-secondary)'
+														e.currentTarget.style.borderColor = 'var(--border-color)'
+														e.currentTarget.style.transform = 'translateX(0)'
+													}}
+												>
+													<div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+														<div style={{ position: 'relative', flexShrink: 0 }}>
+															<div
+																style={{
+																	padding: 2,
+																	borderRadius: 5,
+																	background: `linear-gradient(135deg, ${fTier.color}, var(--accent-cyan))`,
+																	boxShadow: `0 0 8px ${fTier.glow}`,
+																}}
+															>
+																<UserAvatar
+																	username={f.username}
+																	avatarStyle={f.avatarStyle}
+																	size={38}
+																	fallbackStyle={{
+																		width: 38,
+																		height: 38,
+																		borderRadius: 4,
+																		background: 'rgba(10, 2, 28, 0.95)',
+																		color: 'var(--accent-cyan)',
+																		display: 'grid',
+																		placeItems: 'center',
+																		fontWeight: 900,
+																		fontSize: '0.95rem',
+																	}}
+																/>
+															</div>
+															<span
+																style={{
+																	position: 'absolute',
+																	right: -2,
+																	bottom: -2,
+																	width: 9,
+																	height: 9,
+																	borderRadius: '50%',
+																	background: fStatus.color,
+																	border: '2px solid #0d0221',
+																	boxShadow: `0 0 6px ${fStatus.color}`,
 																}}
 															/>
 														</div>
-														<span
-															style={{
-																position: 'absolute',
-																right: -2,
-																bottom: -2,
-																width: 9,
-																height: 9,
-																borderRadius: '50%',
-																background: fStatus.color,
-																border: '2px solid #0d0221',
-																boxShadow: `0 0 6px ${fStatus.color}`,
-															}}
-														/>
-													</div>
-													<div style={{ minWidth: 0, flex: 1 }}>
-														<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-															<span
-																style={{
-																	fontSize: '0.92rem',
-																	fontWeight: 900,
-																	color: 'var(--text-main)',
-																	fontFamily: 'var(--font-display)',
-																	whiteSpace: 'nowrap',
-																	overflow: 'hidden',
-																	textOverflow: 'ellipsis',
-																	letterSpacing: '0.02em',
-																}}
-															>
-																{f.username}
-															</span>
-															<RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
-														</div>
-														<div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
-															● {fStatus.label.toUpperCase()} // {t('homeExtended.alliedPilot')}{isPace24 ? ' // PACE 24' : ''}
+														<div style={{ minWidth: 0, flex: 1 }}>
+															<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+																<span
+																	style={{
+																		fontSize: '0.92rem',
+																		fontWeight: 900,
+																		color: 'var(--text-main)',
+																		fontFamily: 'var(--font-display)',
+																		whiteSpace: 'nowrap',
+																		overflow: 'hidden',
+																		textOverflow: 'ellipsis',
+																		letterSpacing: '0.02em',
+																	}}
+																>
+																	{f.username}
+																</span>
+																<RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
+															</div>
+															<div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
+																● {fStatus.label.toUpperCase()} // {t('homeExtended.alliedPilot')}{isPace24 ? ' // PACE 24' : ''}
+															</div>
 														</div>
 													</div>
-												</div>
 
-												<div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-													<span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
-														{f.rating ?? 1200}
-													</span>
-													<span style={{ fontSize: '0.64rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
-														ELO
-													</span>
+													<div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+														<span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-main)', fontFamily: 'var(--font-display)', lineHeight: 1 }}>
+															{f.rating ?? 1200}
+														</span>
+														<span style={{ fontSize: '0.64rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
+															ELO
+														</span>
+													</div>
 												</div>
-											</div>
-										)
-									})
-								)}
+											)
+										})
+									)}
+								</div>
 							</div>
 						</section>
 
@@ -1132,17 +1177,6 @@ export function Home() {
 							>
 								{/* Cyber Cassette Chassis */}
 								<div className="cyber-cassette-chassis">
-									{/* Cassette Tape Viewport */}
-									<div className="cassette-window">
-										<div className={`tape-reel ${isPlayingAudio ? 'active' : ''}`}>
-											⚙
-										</div>
-										<div className="tape-bridge" />
-										<div className={`tape-reel ${isPlayingAudio ? 'active' : ''}`}>
-											⚙
-										</div>
-									</div>
-
 									{/* OLED Track HUD Display */}
 									<div className="oled-screen">
 										<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1222,28 +1256,6 @@ export function Home() {
 
 								{/* Cyber Master Volume Console & 10-Segment LED Meter */}
 								<div className="cyber-vol-console">
-									<div className="cyber-vol-header">
-										<span className="cyber-vol-label">GAIN // MASTER VU</span>
-										<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-											<span className="cyber-vol-badge">
-												{isAudioMuted ? 'MUTED' : `${audioVolume}%`}
-											</span>
-											<button
-												type="button"
-												className="cyber-mute-btn"
-												style={{
-													background: isAudioMuted ? 'rgba(255, 0, 127, 0.2)' : 'rgba(0, 240, 255, 0.15)',
-													border: isAudioMuted ? '1px solid var(--accent-pink)' : '1px solid var(--accent-cyan)',
-													color: isAudioMuted ? 'var(--accent-pink)' : 'var(--accent-cyan)',
-												}}
-												onClick={handleToggleMute}
-												title="Toggle Mute"
-											>
-												{isAudioMuted ? '🔇 MUTED' : '🔊 LIVE'}
-											</button>
-										</div>
-									</div>
-
 									<div className="cyber-fader-track-row">
 										<button
 											type="button"
@@ -1260,7 +1272,7 @@ export function Home() {
 											title={`Volume: ${audioVolume}% (Click segment to set)`}
 										>
 											{Array.from({ length: 10 }).map((_, idx) => {
-												const isLit = !isAudioMuted && audioVolume >= (idx + 1) * 10 - 5
+												const isLit = audioVolume >= (idx + 1) * 10 - 5
 												const colorClass = idx < 5 ? 'lit-cyan' : idx < 8 ? 'lit-amber' : 'lit-pink'
 												return (
 													<div
