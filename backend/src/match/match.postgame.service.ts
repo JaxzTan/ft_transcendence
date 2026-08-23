@@ -7,8 +7,15 @@ import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.servic
 import { AchievementsService } from '../achievements/achievements.service';
 
 const BOT_PREFIX = 'bot-';
-const WIN_POINTS = 10;
-const LOSS_POINTS = 5;
+
+/**
+ * POST-GAME POINTS (piece-based)
+ * Each piece home = 2 pts (PvP) or 1 pt (PvE vs bots = half).
+ * Winner gets +1 bonus piece, so a perfect PvP win = (4+1)*2 = 10.
+ * Losers still earn points for pieces brought home. Bots are skipped.
+ */
+const POINTS_PER_PIECE = 2;      // pts per piece home: 2 (PvP), 1 (PvE)
+const WIN_BONUS_PIECE = 1;       // winner bonus piece: (4+1)*2 = 10 pts max
 
 function isBotUserId(userId: string | undefined): boolean {
 	return !!userId && userId.startsWith(BOT_PREFIX);
@@ -33,7 +40,8 @@ export class MatchPostgameService {
 
 	// Write final game results to Postgres and update player ratings.
 	// Called by the game engine when a match ends. Creates game + participant rows,
-	// updates ratings (points-based: +10 win / -5 loss), and pushes a leaderboard snapshot.
+	// then awards rating based on piecesInGoal (2 pts per piece in PvP, 1 pt per
+	// piece in PvE, +1 bonus piece for the winner) and pushes a leaderboard snapshot.
 	async processGameEnd(data: { gameId: string; participants: Array<{ userId: string; color: string; rank: number; piecesCaptured?: number; piecesInGoal?: number; clashDefends?: number; clashAttacksWon?: number }> }) {
 		const { gameId, participants } = data;
 		if (!gameId) throw new BadRequestException('gameId is required');
@@ -41,6 +49,10 @@ export class MatchPostgameService {
 			throw new BadRequestException('participants array is required (min 2)');
 		}
 
+		// Idempotency guard: if this game was already processed, do nothing.
+		// Example: the engine retries the callback after a network blip -> the
+		// second call hits `existing` and returns early, so points are NOT
+		// double-awarded to the players.
 		const existing = await this.prisma.db.game.findUnique({ where: { id: gameId } });
 		if (existing) return { message: 'Game already processed', gameId };
 
@@ -96,14 +108,25 @@ export class MatchPostgameService {
 					},
 				});
 
-				// Points-based rating (no ELO). Bots are skipped.
+				// ------------------------------------------------------------------
+				// POINTS CALCULATION (per participant, human players only)
+				// ------------------------------------------------------------------
+				// Bots never earn or lose points — a bot participant is still
+				// recorded for history/FK purposes, but its rating is NOT touched.
 				if (isBotUserId(p.userId)) continue;
+
 				const isWinner = p.rank === 1;
-				// Beating bots is worth HALF the points of beating humans: a PvE win
-							// nets the winner ~50% of the normal PvP win reward (10 -> 5).
-							const isBotGame = gameType === 'PVE';
-							const winPoints = isBotGame ? Math.round(WIN_POINTS / 2) : WIN_POINTS;
-							const ratingDelta = isWinner ? winPoints : -LOSS_POINTS;
+
+				// Piece-based scoring: 2 pts per piece (PvP) / 1 pt per piece (PvE),
+				// winner gets +1 bonus piece. Losers still earn points — no penalty.
+				const piecesInGoal = p.piecesInGoal ?? 0;
+				const effectivePieces = piecesInGoal + (isWinner ? WIN_BONUS_PIECE : 0);
+				const perPiece = gameType === 'PVE' ? POINTS_PER_PIECE / 2 : POINTS_PER_PIECE;
+				const ratingDelta = effectivePieces * perPiece;
+
+				// Example: rating 100, winner, 4 pieces -> +10 => newRating 110,
+				//          highestRating 110, wins++, winStreak 1.
+				//          Rating is clamped at zero (never negative).
 				const user = await tx.user.findUnique({ where: { id: p.userId } });
 				if (user) {
 					const newRating = Math.max(0, user.rating + ratingDelta);
@@ -122,6 +145,8 @@ export class MatchPostgameService {
 							pveGameStreak: gameType === 'PVE' ? { increment: 1 } : 0,
 						},
 					});
+					// Push the player's fresh rating into the global Redis leaderboard.
+					// Example: zadd('leaderboard:global', 110, 'alice-id')
 					try {
 						await this.redis.zadd('leaderboard:global', newRating, p.userId);
 					} catch { /* ignore */ }
