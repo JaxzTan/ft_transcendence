@@ -52,7 +52,15 @@ export class SocketHandlers {
 
         let state = await this.store.loadGameState(effectiveGameId);
         if (!state) {
-          await this.store.createGame(effectiveGameId, true);
+          const creationMatchData = await this.store.getMatchData(effectiveGameId);
+          const playerCount = parseInt(creationMatchData?.playerCount || '4', 10);
+          // Prefer the persisted seatColors (exact ordered seats, including
+          // skipped colors in hotseat, e.g. blue + green + yellow with no red).
+          // Falls back to the dense slot fill for older rooms / direct engine use.
+          const seatColors = creationMatchData?.seatColors
+            ? (creationMatchData.seatColors.split(',') as PlayerColor[])
+            : SLOT_COLORS.slice(0, playerCount);
+          await this.store.createGame(effectiveGameId, true, seatColors);
           state = await this.store.loadGameState(effectiveGameId);
         }
 
@@ -79,10 +87,14 @@ export class SocketHandlers {
             if (player) player.status = 'active';
           }
 
-          // Populate PlayerMeta with frontend-compatible fields
+          // Populate PlayerMeta with frontend-compatible fields.
+          // `username` is the immutable identity (used for login/avatar/URLs);
+          // `displayName` is what the UI actually shows in-game.
           const meta = state.players.find(p => p.color === playerColor);
           if (meta) {
-            meta.username = effectiveUsername || effectiveUserId || (playerColor.charAt(0).toUpperCase() + playerColor.slice(1));
+            const resolvedUsername = effectiveUsername || effectiveUserId || (playerColor.charAt(0).toUpperCase() + playerColor.slice(1));
+            meta.username = resolvedUsername;
+            meta.displayName = displayName || socket.data.displayName || resolvedUsername;
             meta.isBot = isBotUserId(effectiveUserId);
             meta.isConnected = true;
             meta.status = 'active';

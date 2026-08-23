@@ -91,12 +91,6 @@ export function Game() {
     }
   }, [])
 
-  const toggleCrt = () => {
-    const next = !crtEnabled
-    setCrtEnabled(next)
-    localStorage.setItem('retro_crt', next ? 'true' : 'false')
-    retroAudio.playUiBeep(440, 0.05)
-  }
 
   const toggleSound = () => {
     retroAudio.muted = !retroAudio.muted
@@ -138,11 +132,16 @@ export function Game() {
     if (prevTurnRef.current && prevTurnRef.current !== view.currentTurn) {
       const nextTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
       const isNextBot = nextTurnPlayer?.isBot ?? false
-      const nextName = nextTurnPlayer?.username?.toUpperCase() || (isNextBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
-      const colorName = view.currentTurn.toUpperCase()
+      const colorKey = `lobby.color${view.currentTurn.charAt(0).toUpperCase() + view.currentTurn.slice(1)}` as 'lobby.colorRed' | 'lobby.colorGreen' | 'lobby.colorYellow' | 'lobby.colorBlue'
+      const translatedColor = t(colorKey).toUpperCase()
+      const nextName = localNames[view.currentTurn]?.toUpperCase() ||
+        nextTurnPlayer?.displayName?.toUpperCase() ||
+        nextTurnPlayer?.username?.toUpperCase() ||
+        nextTurnPlayer?.color?.toUpperCase() ||
+        (isNextBot ? `${t('common.bot').toUpperCase()} (${translatedColor})` : translatedColor)
 
       retroAudio.playUiBeep(640, 0.08, 'sine')
-      setTurnSwapNotice(`▶ TURN SWAP // ${nextName} [${colorName}] IS NOW IN CONTROL ◀`)
+      setTurnSwapNotice(t('game.turnSwapNotice', { name: nextName, color: translatedColor }))
 
       const timer = setTimeout(() => {
         setTurnSwapNotice(null)
@@ -152,7 +151,7 @@ export function Game() {
       return () => clearTimeout(timer)
     }
     prevTurnRef.current = view.currentTurn
-  }, [view?.currentTurn, view?.players])
+  }, [view?.currentTurn, view?.players, localNames, t])
 
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
@@ -226,7 +225,7 @@ export function Game() {
           socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
         }
       }
-      socket.emit('join_game', activeMatch.gameId, activeMatch.color)
+      socket.emit('join_game', activeMatch.gameId, activeMatch.color, user?.id, user?.displayName)
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -245,18 +244,18 @@ export function Game() {
 
     const handleEngineEvent = (state: unknown) => {
       const type = (state as { type?: string }).type
-      dispatch({ type: 'state_update', ...(state as object) })
 
       if (type === 'dice_rolled') {
         const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
         const rollerColor = viewRef.current.currentTurn
         const roller = viewRef.current.players.find((p) => p.color === rollerColor)
-        const rollerName = roller?.username || rollerColor
+        const rollerName = roller?.displayName || roller?.username || rollerColor
         retroAudio.playLaserSound()
         setIsRolling(true)
         setTimeout(() => {
           setIsRolling(false)
           isRollingRef.current = false
+          dispatch({ type: 'dice_rolled', ...(state as object) })
           setDisplayedLastRolls((prev) => ({ ...prev, [rollerColor]: e.value }))
           setMoveLogs((prev) => [
             {
@@ -268,7 +267,12 @@ export function Game() {
             ...prev.slice(0, 11),
           ])
         }, 750)
-      } else if (type === 'piece_moved') {
+        return
+      }
+
+      dispatch({ type: type || 'state_update', ...(state as object) })
+
+      if (type === 'piece_moved') {
         const e = state as unknown as {
           pieceId: string
           color: PlayerColor
@@ -343,22 +347,26 @@ export function Game() {
         const mine = e.players.find((p) => p.username === user?.username)
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
-          socket.emit('join_game', activeMatch.gameId, mine.color)
+          socket.emit('join_game', activeMatch.gameId, mine.color, user?.id, user?.displayName)
           setActiveMatch({ ...activeMatch, color: mine.color })
         }
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
         retroAudio.playUiBeep(1100, 0.3, 'sawtooth')
+        let endedPlayers = viewRef.current.players
+          .filter((p) => p.status !== 'inactive')
+          .map((p) => ({
+            color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+          }))
+        if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
+          endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
+        }
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
           mode: activeMatch?.mode ?? 'pvp',
-          playerCount: activeMatch?.playerCount ?? 4,
-          players: viewRef.current.players
-            .filter((p) => p.status === 'active')
-            .map((p) => ({
-              color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
-            })),
+          playerCount: activeMatch?.playerCount ?? endedPlayers.length,
+          players: endedPlayers,
         })
         setTimeout(() => navigate('/results'), 2500)
       }
@@ -377,34 +385,63 @@ export function Game() {
     socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
 
-    socket.on('player_aborted', (e: { color: PlayerColor; username: string }) => {
+    socket.on('player_aborted', (e: { color: PlayerColor; username: string; displayName?: string }) => {
       setMoveLogs((prev) => [
-        { ck: e.color, text: t('game.playerAborted', { name: e.username }) },
+        { ck: e.color, text: t('game.playerAborted', { name: e.displayName || e.username }) },
         ...prev.slice(0, 11),
       ])
     })
 
-    socket.on('game_timeout', () => {
-      setLastResult({
-        winner: viewRef.current.currentTurn,
+    const buildAbandonedResult = () => {
+      let players = viewRef.current.players
+        .filter((p) => p.status !== 'inactive')
+        .map((p) => ({
+          color: p.color,
+          username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+          isBot: p.isBot,
+          piecesInGoal: p.piecesInGoal ?? 0,
+        }))
+
+      if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
+        const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+        players = seats
+          .map((s, idx) => {
+            if (s.type === 'empty') return null
+            const color = SEAT_COLORS[idx] || 'red'
+            let username = 'Pilot'
+            if (s.type === 'you') username = user?.username || 'You'
+            else if (s.type === 'bot' || s.type === 'player') username = s.name
+            return {
+              color,
+              username,
+              isBot: s.type === 'bot',
+              piecesInGoal: 0,
+            }
+          })
+          .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
+      }
+
+      if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
+        players = players.slice(0, activeMatch.playerCount)
+      }
+
+      return {
+        winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
         resultDetail: 'abandoned',
         mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? 4,
-        players: [],
+        playerCount: activeMatch?.playerCount ?? players.length,
+        players,
         abandoned: true,
-      })
+      }
+    }
+
+    socket.on('game_timeout', () => {
+      setLastResult(buildAbandonedResult())
       setActiveMatch(null)
       navigate('/results')
     })
     socket.on('game_expired', () => {
-      setLastResult({
-        winner: viewRef.current.currentTurn,
-        resultDetail: 'abandoned',
-        mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? 4,
-        players: [],
-        abandoned: true,
-      })
+      setLastResult(buildAbandonedResult())
       setActiveMatch(null)
       navigate('/results')
     })
@@ -432,7 +469,7 @@ export function Game() {
     const seat = viewRef.current.players.find((p) => p.color === view.currentTurn)
     if (!seat || seat.isBot || seat.status !== 'active') return
     dispatch({ type: 'my_color_changed', color: view.currentTurn })
-    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, undefined, localNames[view.currentTurn])
+    socketRef.current?.emit('join_game', activeMatch.gameId, view.currentTurn, user?.id, localNames[view.currentTurn] || user?.displayName)
   }, [view.currentTurn, view.status, activeMatch])
 
   useEffect(() => {
@@ -442,19 +479,30 @@ export function Game() {
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
       const v = viewRef.current
       if (v.status !== 'active') return
-      if (v.currentTurn !== v.myColor) return
-      if (v.turnPhase !== 'WAITING_FOR_ROLL') return
-      if (v.clash || v.legalMoves.length > 0) return
+      const isHotseatMode = activeMatch?.mode === 'hotseat'
+      const curTurnPlayer = v.players.find((p) => p.color === v.currentTurn)
+      const myTurnNow = isHotseatMode
+        ? (curTurnPlayer?.status === 'active' && !curTurnPlayer?.isBot)
+        : (v.currentTurn === v.myColor || (user?.username ? curTurnPlayer?.username === user?.username : false))
+      if (!myTurnNow) return
+      if (v.turnPhase === 'WAITING_FOR_MOVE' || v.legalMoves.length > 0) return
+      if (v.clash) return
       if (isRollingRef.current) return
       e.preventDefault()
       isRollingRef.current = true
       setIsRolling(true)
       retroAudio.playUiBeep(980, 0.08, 'sawtooth')
       socketRef.current?.emit('roll_dice')
+      setTimeout(() => {
+        if (isRollingRef.current) {
+          isRollingRef.current = false
+          setIsRolling(false)
+        }
+      }, 2000)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [activeMatch, user?.username])
 
   const rollDice = () => {
     if (!canRoll || isRolling || isRollingRef.current) return
@@ -462,6 +510,12 @@ export function Game() {
     setIsRolling(true)
     retroAudio.playUiBeep(980, 0.08, 'sawtooth')
     socketRef.current?.emit('roll_dice')
+    setTimeout(() => {
+      if (isRollingRef.current) {
+        isRollingRef.current = false
+        setIsRolling(false)
+      }
+    }, 2000)
   }
 
   const movePiece = (pieceId: string) => {
@@ -498,12 +552,45 @@ export function Game() {
   const endGame = () => {
     retroAudio.playExplosionSound()
     socketRef.current?.emit('end_game')
+
+    let players = viewRef.current.players
+      .filter((p) => p.status !== 'inactive')
+      .map((p) => ({
+        color: p.color,
+        username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+        isBot: p.isBot,
+        piecesInGoal: p.piecesInGoal ?? 0,
+      }))
+
+    if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
+      const SEAT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue']
+      players = seats
+        .map((s, idx) => {
+          if (s.type === 'empty') return null
+          const color = SEAT_COLORS[idx] || 'red'
+          let username = 'Pilot'
+          if (s.type === 'you') username = user?.username || 'You'
+          else if (s.type === 'bot' || s.type === 'player') username = s.name
+          return {
+            color,
+            username,
+            isBot: s.type === 'bot',
+            piecesInGoal: 0,
+          }
+        })
+        .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
+    }
+
+    if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
+      players = players.slice(0, activeMatch.playerCount)
+    }
+
     setLastResult({
-      winner: viewRef.current.currentTurn,
+      winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
       resultDetail: 'abandoned',
       mode: activeMatch?.mode ?? 'pvp',
-      playerCount: activeMatch?.playerCount ?? 4,
-      players: [],
+      playerCount: activeMatch?.playerCount ?? players.length,
+      players,
       abandoned: true,
     })
     setActiveMatch(null)
@@ -529,7 +616,7 @@ export function Game() {
           <div className="app-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <section className="retro-window" style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
               <div className="window-header">
-                <span>// SYSTEM ALERT // NO ACTIVE SESSION</span>
+                <span>{t('game.noActiveSessionTitle')}</span>
               </div>
               <div className="window-body" style={{ textAlign: 'center', padding: '30px 24px' }}>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', color: 'var(--accent-yellow)', marginBottom: 10 }}>
@@ -546,7 +633,7 @@ export function Game() {
                     navigate('/gamelobby')
                   }}
                 >
-                  &gt;_ RETURN TO GAME LOBBY
+                  &gt;_ {t('game.returnToLobbyBtn')}
                 </button>
               </div>
             </section>
@@ -556,8 +643,12 @@ export function Game() {
     )
   }
 
-  const isMyTurn = view.currentTurn === view.myColor
-  const canRoll = isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
+  const isHotseat = activeMatch?.mode === 'hotseat'
+  const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+  const isMyTurn = isHotseat
+    ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
+    : (view.currentTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
+  const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
     : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
@@ -588,7 +679,7 @@ export function Game() {
           <header className="hero-section" style={{ padding: '12px 0 10px', textAlign: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <h1 className="hero-title" style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
-                RETROLUDO // COMBAT ARENA
+                {t('game.heroTitle')}
               </h1>
 
               {/* Live Turn Announcement Pill */}
@@ -664,14 +755,14 @@ export function Game() {
               >
                 {turnSwapNotice || (
                   view.status === 'waiting'
-                    ? '>>> WAITING FOR PILOTS TO READY UP <<<'
+                    ? t('game.readyNeedsOpponent')
                     : isRolling
-                      ? '>>> ROLLING DICE... <<<'
+                      ? t('game.statusRolling')
                       : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
-                        ? '>>> YOUR TURN: PRESS SPACEBAR OR ROLL DICE <<<'
+                        ? t('game.statusRollNow')
                         : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
-                          ? '>>> SELECT HIGHLIGHTED PIECE TO ADVANCE <<<'
-                          : `>>> WAITING FOR PILOT ${view.currentTurn.toUpperCase()}... <<<`
+                          ? t('game.statusSelectPiece')
+                          : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })
                 )}
               </div>
             </div>
@@ -695,7 +786,7 @@ export function Game() {
                   onClick={copyRoomCode}
                   title="Click to copy Room Code"
                 >
-                  // ROOM: {activeMatch.inviteCode} [{codeCopied ? 'COPIED OK' : 'COPY'}]
+                  {t('game.roomLabel', { code: activeMatch.inviteCode, status: codeCopied ? t('game.roomCopiedOk') : t('game.roomCopy') })}
                 </button>
               </div>
             )}
@@ -719,17 +810,17 @@ export function Game() {
               <section className="retro-window" id="playersWindow">
                 <div className="window-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>// PILOT ROSTER</span>
+                    <span>{t('game.pilotRosterTitle')}</span>
                   </div>
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                      SEAT // PILOT CALLSIGN
+                      {t('game.seatPilotHeader')}
                     </span>
                     <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      ROLL / GOALS
+                      {t('game.lastRolled').toUpperCase()}
                     </span>
                   </div>
 
@@ -826,7 +917,7 @@ export function Game() {
                               }}
                             >
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {occupied && playerMeta?.username ? playerMeta.username : t('game.emptySeat')}
+                                {occupied && playerMeta?.username ? (playerMeta.displayName || playerMeta.username) : t('game.emptySeat')}
                               </span>
                             </div>
                           </div>
@@ -857,6 +948,7 @@ export function Game() {
                       : !playerMeta.isBot && playerMeta.username === user?.username
                     const name =
                       localNames[ck] ||
+                      playerMeta.displayName ||
                       playerMeta.username ||
                       (playerMeta.isBot
                         ? t('common.bot')
@@ -865,7 +957,7 @@ export function Game() {
                           : isHotseat
                             ? t('game.localPlayer')
                             : 'Pilot')
-                    const lastRoll = (isRolling && view.currentTurn === ck) ? displayedLastRolls[ck] : (displayedLastRolls[ck] ?? view.lastRolls[ck])
+                    const lastRoll = displayedLastRolls[ck]
 
                     return (
                       <div
@@ -911,13 +1003,13 @@ export function Game() {
                               boxShadow: `0 0 10px ${colorAccent}`,
                             }}
                           >
-                            ▶ IN CONTROL ◀
+                            ▶ {t('game.inControl')} ◀
                           </span>
                         )}
 
                         {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
-                            username={name}
+                            username={playerMeta.username}
                             size={36}
                             fallbackStyle={{
                               width: 36,
@@ -988,37 +1080,37 @@ export function Game() {
               <section className="retro-window" id="sectorControlWindow">
                 <div className="window-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>// SYSTEM CONTROL</span>
+                    <span>{t('game.systemControlTitle')}</span>
                   </div>
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    // COMBAT KEYBINDS & RULES
+                    {t('game.combatKeybindsRules')}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>DICE ROLL:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR / CLICK</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('game.spaceToRoll')}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>SELECT PIECE:</span>
                       <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>VICTORY GOAL:</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES IN GOAL</span>
+                      <span>{t('game.victoryGoal')}</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
                     </div>
                   </div>
 
                   <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
 
                   <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    // DISPLAY & AUDIO PREFERENCES
+                    {t('game.audioPreferences')}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
                     <button
                       className="retro-badge"
                       style={{
@@ -1034,25 +1126,7 @@ export function Game() {
                       }}
                       onClick={toggleSound}
                     >
-                      {soundMuted ? '// AUDIO: OFF' : '// AUDIO: ON'}
-                    </button>
-
-                    <button
-                      className="retro-badge"
-                      style={{
-                        cursor: 'pointer',
-                        padding: '8px 10px',
-                        background: crtEnabled ? 'rgba(0, 240, 255, 0.12)' : 'rgba(255, 255, 255, 0.08)',
-                        border: crtEnabled ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.2)',
-                        color: crtEnabled ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.7rem',
-                        textAlign: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={toggleCrt}
-                    >
-                      {crtEnabled ? '// CRT: ON' : '// CRT: OFF'}
+                      {soundMuted ? t('game.audioOff') : t('game.audioOn')}
                     </button>
                   </div>
                 </div>
@@ -1087,13 +1161,13 @@ export function Game() {
                 /* WAITING ROOM SETUP WINDOW */
                 <section className="retro-window" id="waitingSetupWindow">
                   <div className="window-header">
-                    <span>// WAITING BAY SETUP</span>
+                    <span>{t('game.waitingBayTitle')}</span>
                   </div>
 
                   <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                        // SELECT SEAT COLOR:
+                        {t('game.selectSeatColor')}
                       </div>
                       <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
                         {SEAT_COLORS.map((ck) => {
@@ -1159,33 +1233,26 @@ export function Game() {
                           }}
                         >
                           {alreadyReady
-                            ? '[READY] (WAITING)'
+                            ? `[${t('game.readyBadge').toUpperCase()}] (${t('game.waitingForHost')})`
                             : soloRoom
-                              ? 'WAITING OPPONENT'
-                              : 'READY TO LAUNCH'}
+                              ? t('game.readyNeedsOpponent')
+                              : t('game.startMatchBtn')}
                         </button>
                       )
                     })()}
 
                     <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
-                      // READY PILOTS:{' '}
-                      <span style={{ color: '#ffe600', fontWeight: 'bold' }}>
-                        {view.readyPlayers.length}
-                      </span>{' '}
-                      /{' '}
-                      <span style={{ color: '#ffffff' }}>
-                        {view.players.filter((p) => p.status === 'active').length}
-                      </span>
+                      {t('game.readyPilots', { current: view.readyPlayers.length, total: view.players.filter((p) => p.status === 'active').length })}
                     </div>
 
                     {activeMatch?.mode === 'pvp' && (
                       <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                          // INVITE COMMS:
+                          {t('game.inviteComms')}
                         </div>
                         {friends.length === 0 ? (
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            No online friends available to invite.
+                            {t('game.noFriendsToInvite')}
                           </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 110, overflowY: 'auto' }}>
@@ -1212,7 +1279,7 @@ export function Game() {
                                     disabled={st !== 'idle'}
                                     style={{ padding: '3px 8px', fontSize: '0.62rem' }}
                                   >
-                                    {st === 'busy' ? '...' : st === 'sent' ? 'SENT OK' : '+ INVITE'}
+                                    {st === 'busy' ? '...' : st === 'sent' ? t('game.inviteSent') : `+ ${t('game.inviteBtn')}`}
                                   </button>
                                 </div>
                               )
@@ -1227,7 +1294,7 @@ export function Game() {
                 /* IN-GAME DICE CONTROLS WINDOW */
                 <section className="retro-window" id="diceControlWindow">
                   <div className="window-header">
-                    <span>// DICE SYSTEM</span>
+                    <span>{t('game.diceSystemTitle')}</span>
                   </div>
 
                   <div
@@ -1244,20 +1311,21 @@ export function Game() {
                     {(() => {
                       const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                       const isBot = activeTurnPlayer?.isBot ?? false
-                      const activeName = activeTurnPlayer?.username?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
+                      const activeName = (activeTurnPlayer?.displayName || activeTurnPlayer?.username || activeTurnPlayer?.color)?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
                       const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
 
                       return (
                         <div
                           style={{
                             width: '100%',
-                            padding: '6px 10px',
-                            background: isMyTurn ? 'rgba(255, 0, 127, 0.2)' : `${turnColorHex}18`,
+                            padding: '8px 12px',
+                            background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : `${turnColorHex}18`,
                             border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
-                            boxShadow: isMyTurn ? '0 0 12px rgba(255, 0, 127, 0.5)' : `0 0 8px ${turnColorHex}44`,
+                            boxShadow: isMyTurn ? '0 0 16px rgba(255, 0, 127, 0.6)' : `0 0 8px ${turnColorHex}44`,
+                            animation: isMyTurn ? 'pulse-turn-banner 1.6s infinite' : 'none',
                             borderRadius: 4,
                             textAlign: 'center',
-                            fontSize: '0.74rem',
+                            fontSize: '0.78rem',
                             fontFamily: 'var(--font-mono)',
                             fontWeight: 'bold',
                             color: '#ffffff',
@@ -1265,8 +1333,8 @@ export function Game() {
                           }}
                         >
                           {isMyTurn
-                            ? '▶ YOUR TURN IN CONTROL ◀'
-                            : `▶ ACTIVE PILOT: ${activeName} ◀`}
+                            ? `▶ ${t('game.yourTurn').toUpperCase()} ◀`
+                            : `▶ ${t('game.botTurn', { name: activeName }).toUpperCase()} ◀`}
                         </div>
                       )
                     })()}
@@ -1279,12 +1347,12 @@ export function Game() {
                       }}
                     >
                       {isRolling
-                        ? '// ROLLING...'
+                        ? t('game.statusRolling')
                         : canRoll
-                          ? '// PILOT TURN: ROLL NOW'
+                          ? t('game.statusRollNow')
                           : view.turnPhase === 'WAITING_FOR_MOVE'
-                            ? '// SELECT HIGHLIGHTED PIECE'
-                            : `// WAITING FOR ${view.currentTurn.toUpperCase()}`}
+                            ? t('game.statusSelectPiece')
+                            : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })}
                     </div>
 
                     <div style={{ height: 90, display: 'grid', placeItems: 'center' }}>
@@ -1292,28 +1360,11 @@ export function Game() {
                     </div>
 
                     <button
-                      className="retro-btn"
+                      className={`roll-dice-btn ${canRoll && !isRolling ? 'is-active-turn' : 'is-inactive-turn'}`}
                       onClick={rollDice}
                       disabled={!canRoll || isRolling}
-                      style={{
-                        width: '100%',
-                        padding: '12px 0',
-                        fontSize: '0.85rem',
-                        fontFamily: 'var(--font-heading)',
-                        letterSpacing: '1px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
-                        borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
-                        boxShadow: canRoll && !isRolling ? '0 0 15px var(--accent-pink)' : 'none',
-                        cursor: canRoll && !isRolling ? 'pointer' : 'default',
-                        opacity: canRoll && !isRolling ? 1 : 0.5,
-                        boxSizing: 'border-box',
-                      }}
                     >
-                      {isRolling ? 'ROLLING...' : 'ROLL DICE'}
+                      {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
                     </button>
 
                     <div
@@ -1324,7 +1375,7 @@ export function Game() {
                         textAlign: 'center',
                       }}
                     >
-                      [ SHORTCUT: PRESS SPACEBAR ]
+                      [ {t('game.spaceToRoll')} ]
                     </div>
                   </div>
                 </section>
@@ -1333,7 +1384,7 @@ export function Game() {
               {/* MISSION TELEMETRY LOG WINDOW */}
               <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div className="window-header" style={{ flex: 'none' }}>
-                  <span>// MISSION TELEMETRY</span>
+                  <span>{t('game.reconLogsTitle')}</span>
                 </div>
 
                 <div
@@ -1354,7 +1405,7 @@ export function Game() {
                 >
                   {moveLogs.length === 0 ? (
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      Telemetric events will stream here...
+                      {t('game.noReconLogged')}
                     </div>
                   ) : (
                     moveLogs.map((ml, i) => {
@@ -1387,55 +1438,65 @@ export function Game() {
                 </div>
               </section>
 
-              {/* RETURN TO LOBBY BUTTON */}
-              <button
-                className="retro-btn"
-                onClick={() => {
-                  retroAudio.playUiBeep(440, 0.05)
-                  navigate('/gamelobby')
-                }}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  fontSize: '0.78rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 'bold',
-                  letterSpacing: '1px',
-                  lineHeight: '1.4',
-                  background: 'rgba(0, 240, 255, 0.12)',
-                  border: '1px solid var(--accent-cyan)',
-                  color: 'var(--accent-cyan)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  boxSizing: 'border-box',
-                }}
-                title="Return to Ludo Lobby"
-              >
-                &lt; RETURN TO LOBBY
-              </button>
+              {/* RETURN TO LOBBY BUTTON (Only for online PvP matches) */}
+              {activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat' && (
+                <button
+                  className="retro-btn"
+                  onClick={() => {
+                    retroAudio.playUiBeep(440, 0.05)
+                    navigate('/gamelobby')
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    fontSize: '0.78rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 'bold',
+                    letterSpacing: '1px',
+                    lineHeight: '1.4',
+                    background: 'rgba(0, 240, 255, 0.12)',
+                    border: '1px solid var(--accent-cyan)',
+                    color: 'var(--accent-cyan)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    boxSizing: 'border-box',
+                  }}
+                  title="Return to Ludo Lobby"
+                >
+                  &lt; {t('game.returnToLobbyBtn')}
+                </button>
+              )}
 
               {/* ABORT MISSION / END GAME BUTTON */}
-              <button
-                className="retro-btn"
-                onClick={endGame}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px',
-                  fontSize: '0.78rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 'bold',
-                  letterSpacing: '1px',
-                  lineHeight: '1.4',
-                  background: 'rgba(255, 0, 85, 0.15)',
-                  border: '1px solid #ff0055',
-                  color: '#ff0055',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  boxSizing: 'border-box',
-                }}
-              >
-                // ABORT MATCH // END GAME
-              </button>
+              {(() => {
+                const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
+                return (
+                  <button
+                    className="retro-btn"
+                    onClick={endGame}
+                    style={{
+                      width: '100%',
+                      padding: isBotOrHotseat ? '18px 20px' : '12px 14px',
+                      fontSize: isBotOrHotseat ? '0.92rem' : '0.78rem',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      letterSpacing: isBotOrHotseat ? '1.5px' : '1px',
+                      lineHeight: '1.4',
+                      background: 'rgba(255, 0, 85, 0.18)',
+                      border: '1.5px solid #ff0055',
+                      color: '#ff0055',
+                      boxShadow: isBotOrHotseat ? '0 0 16px rgba(255, 0, 85, 0.3)' : 'none',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    // {t('game.abortMatchBtn')}
+                  </button>
+                )
+              })()}
+
             </div>
           </main>
         </div>

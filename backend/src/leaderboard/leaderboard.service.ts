@@ -5,6 +5,7 @@ import { LeaderboardRedisService } from './leaderboard-redis.service';
 export interface LeaderboardEntry {
   rank: number;
   username: string;
+  displayName: string;
   rating: number;
   gamesPlayed: number;
   wins: number;
@@ -19,7 +20,7 @@ export interface LeaderboardResponse {
   total: number;
   page: number;
   limit: number;
-  myRank?: { rank: number; username: string; rating: number } | null;
+  myRank?: { rank: number; username: string; displayName: string; rating: number } | null;
   source?: 'redis' | 'postgres';
 }
 
@@ -62,6 +63,7 @@ export class LeaderboardService {
           select: {
             id: true,
             username: true,
+            displayName: true,
             rating: true,
             wins: true,
             losses: true,
@@ -82,6 +84,7 @@ export class LeaderboardService {
             return {
               rank: (page - 1) * limit + i + 1,
               username: user.username,
+              displayName: user.displayName,
               rating: entry.rating,
               gamesPlayed,
               wins,
@@ -105,12 +108,13 @@ export class LeaderboardService {
           if (myRank) {
             const user = await this.prisma.db.user.findUnique({
               where: { id: userId },
-              select: { username: true, rating: true },
+              select: { username: true, displayName: true, rating: true },
             });
             if (user) {
               response.myRank = {
                 rank: myRank,
                 username: user.username,
+                displayName: user.displayName,
                 rating: user.rating,
               };
             }
@@ -147,6 +151,7 @@ export class LeaderboardService {
       where: { username: { in: userUsernames } },
       select: {
         username: true,
+        displayName: true,
         wins: true,
         losses: true,
         avatarStyle: true,
@@ -164,6 +169,7 @@ export class LeaderboardService {
       return {
         rank: entry.rank,
         username: entry.username,
+        displayName: u?.displayName ?? entry.username,
         rating: entry.rating,
         gamesPlayed,
         wins,
@@ -187,9 +193,14 @@ export class LeaderboardService {
         where: { mode_userId: { mode: modeFilter, userId } },
       });
       if (mySnapshot) {
+        const myUser = await this.prisma.db.user.findUnique({
+          where: { id: userId },
+          select: { displayName: true },
+        });
         response.myRank = {
           rank: mySnapshot.rank,
           username: mySnapshot.username,
+          displayName: myUser?.displayName ?? mySnapshot.username,
           rating: mySnapshot.rating,
         };
       }

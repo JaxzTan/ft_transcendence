@@ -15,10 +15,11 @@ export class NgrokGithubStrategy extends PassportStrategy(Strategy, 'github-tunn
       // Default mode returns only the primary email and DROPS the verified
       // flag; raw mode keeps { value, verified, primary } for every address.
       allRawEmails: true,
+      passReqToCallback: true,
     });
   }
 
-  async validate(_accessToken: string, _refreshToken: string, profile: Profile) {
+  async validate(req: any, _accessToken: string, _refreshToken: string, profile: Profile) {
     const emails = (profile.emails ?? []) as Array<{
       value: string;
       verified?: boolean;
@@ -26,11 +27,14 @@ export class NgrokGithubStrategy extends PassportStrategy(Strategy, 'github-tunn
     }>;
     const email = (emails.find((e) => e.primary && e.verified) ?? emails.find((e) => e.verified))
       ?.value;
-    return this.authService.validateOAuthLogin({
-      provider: 'github',
-      providerAccountId: profile.id,
-      email,
-      usernameSeed: profile.username ?? `github_${profile.id}`,
-    });
+    return this.authService.validateOAuthLogin(
+      {
+        provider: 'github',
+        providerAccountId: profile.id,
+        email,
+        usernameSeed: profile.username ?? `github_${profile.id}`,
+      },
+      this.authService.resolveOAuthLink(req?.query?.state, 'github'),
+    );
   }
 }

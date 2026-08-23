@@ -1,200 +1,216 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { postApi } from '../api'
-import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
-import { btnGold, btnOutline, card, COL, goldText } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
-
-const PLACE_COLORS = ['#f0c24e', '#cfd3d8', '#c98a4a', '#7a6c56']
+import { retroAudio } from '../utils/audio'
+import '../styles/retrowave.css'
 
 export function Results() {
   const { t } = useTranslation()
-  const { user, playerCount, seats, lastResult, setActiveMatch } = useApp()
-  const [rematching, setRematching] = useState(false)
-  const [rematchError, setRematchError] = useState<string | null>(null)
+  const { user, lastResult } = useApp()
+  const [crtEnabled] = useState(true)
 
-  if (!lastResult) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#12100a', color: '#f0e2c4' }}>
-        <div style={{ ...card, padding: 32, textAlign: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>{t('results.noRecentResult')}</div>
-          <div style={{ color: '#a99a83', marginBottom: 20 }}>{t('results.noRecentResultDesc')}</div>
-          <button onClick={() => navigate('/gamelobby')} style={{ ...btnGold, padding: '12px 24px' }}>
-            {t('home.goToLobby')}
-          </button>
-        </div>
-      </div>
-    )
+  // Trigger vending machine chiptune mechanical sound on mount
+  useEffect(() => {
+    retroAudio.playUiBeep(450, 0.06)
+    const timer = setTimeout(() => {
+      retroAudio.playUiBeep(850, 0.07)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Demo fallback when user visits /results directly without a live game session
+  const fallbackResult = {
+    winner: 'red' as const,
+    resultDetail: 'ALL 4 TOKENS REACHED HOME',
+    mode: 'pvp' as const,
+    playerCount: 4,
+    players: [
+      { color: 'red' as const, username: user?.username || 'You', isBot: false, piecesInGoal: 4 },
+      { color: 'green' as const, username: 'CyberPilot_99', isBot: true, piecesInGoal: 3 },
+      { color: 'yellow' as const, username: 'NeonRider', isBot: true, piecesInGoal: 2 },
+      { color: 'blue' as const, username: 'GridRunner', isBot: true, piecesInGoal: 1 },
+    ],
+    abandoned: false,
   }
 
-  const ranked = [...lastResult.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
-  const myColor = lastResult.players.find((p) => !p.isBot && p.username === user?.username)?.color
-  const won = lastResult.winner === myColor
-  // On a loss, show how many of the player's own pieces made it home before
-  // the game ended (the raw engine resultDetail is the winner's end reason).
-  const myPiecesHome = ranked.find((p) => p.color === myColor)?.piecesInGoal ?? 0
-  const winnerPlayer = lastResult.players.find((p) => p.color === lastResult.winner)
-  // Color-name fallback must be translated: the raw color string (e.g. "blue")
-  // is what leaks when no winner player row exists.
-  // Translate every possible winner color (the four PlayerColors + a defensive
-  // fallback so t() never receives undefined or leaks a raw string).
+  const activeResult = lastResult || fallbackResult
+
+  const ranked = [...activeResult.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
+
+  // A match is only completed with a real champion if it wasn't abandoned and a player reached the win condition
+  const hasRealWinner = !activeResult.abandoned && activeResult.players.some((p) => p.piecesInGoal >= 4)
+
+  // Find current player's color or fallback to first human/player
+  const myPlayer = activeResult.players.find((p) => !p.isBot && p.username === user?.username) || activeResult.players.find((p) => !p.isBot) || activeResult.players[0]
+  const myColor = myPlayer?.color || 'red'
+  const won = hasRealWinner && activeResult.winner === myColor
+  const winnerPlayer = activeResult.players.find((p) => p.color === activeResult.winner)
+
   const COLOR_NAME_KEYS: Record<string, string> = {
     red: 'lobby.colorRed',
     green: 'lobby.colorGreen',
     yellow: 'lobby.colorYellow',
     blue: 'lobby.colorBlue',
   }
-  const winnerColorName = COLOR_NAME_KEYS[lastResult.winner] ?? COLOR_NAME_KEYS.red
+  const winnerColorName = COLOR_NAME_KEYS[activeResult.winner] ?? COLOR_NAME_KEYS.red
   const winnerName = winnerPlayer ? (winnerPlayer.color === myColor ? t('common.you') : winnerPlayer.username) : t(winnerColorName)
-  const winnerInitials = (winnerPlayer?.username ?? lastResult.winner).slice(0, 2).toUpperCase()
 
-  // "Rematch" votes (client → 'rematch' → server 'game_created') only work while still
-  // connected to the finished game's socket room; Game.tsx disconnects on navigating here.
-  // Until that's redesigned, "Play Again" creates a fresh match the same way Lobby does.
-  const onRematch = async () => {
-    setRematchError(null)
-    setRematching(true)
-    try {
-      // "Play Again" must replay the mode that just finished. The REST
-      // /api/match/rematch route is unusable here (processGameEnd deletes the
-      // match hash, so the rematch lookup can't find the finished game), so
-      // PvP creates a fresh WAITING room via create — same as Create Room.
-      const finishedMode = lastResult?.mode ?? (seats.some((s) => s.type === 'bot') ? 'pve' : 'pvp')
-      const res = await postApi<{ gameId: string; token: string; color: PlayerColor; mode: 'pvp' | 'pve' | 'hotseat'; playerCount: number }>('/api/match/create', {
-        mode: finishedMode,
-        playerCount: finishedMode === 'hotseat' ? (lastResult?.playerCount ?? playerCount) : (lastResult?.playerCount ?? playerCount),
-        botCount: finishedMode === 'pve' ? seats.slice(0, playerCount).filter((s) => s.type === 'bot').length : 0,
-        clashEnabled: true,
-      })
-      setActiveMatch(res)
-      navigate(`/game?gameId=${res.gameId}`)
-    } catch (err) {
-      setRematchError(err instanceof Error ? err.message : 'Failed to create match')
-      setRematching(false)
+  const modeLabels: Record<string, string> = {
+    pvp: t('results.modePvp'),
+    pve: t('results.modePve'),
+    hotseat: t('results.modeHotseat'),
+  }
+  const modeLabel = modeLabels[activeResult.mode] || t('results.modeDefault')
+
+  // Calculate outcome display title
+  let outcomeTitle = t('results.outcomeCompleted')
+  if (activeResult.abandoned || !hasRealWinner) {
+    outcomeTitle = t('results.outcomeAbandoned')
+  } else if (activeResult.mode === 'hotseat') {
+    outcomeTitle = t('results.outcomeMatchComplete')
+  } else if (won) {
+    outcomeTitle = t('results.outcomeVictory')
+  } else {
+    outcomeTitle = t('results.outcomeDefeat')
+  }
+
+  // Render rank badge with correct 1st, 2nd, 3rd, 4th ordinal suffixes (only when not abandoned)
+  const renderRankBadge = (rank: number, isWinner: boolean) => {
+    if (!hasRealWinner) return null
+    if (isWinner) {
+      return (
+        <span className="pay-tag win">
+          {t('results.firstPlace')}
+        </span>
+      )
     }
+    if (rank === 2) {
+      return (
+        <span className="pay-tag runner">
+          {t('results.secondPlace')}
+        </span>
+      )
+    }
+    if (rank === 3) {
+      return (
+        <span className="pay-tag third">
+          {t('results.thirdPlace')}
+        </span>
+      )
+    }
+    return (
+      <span className="pay-tag fourth">
+        {t('results.fourthPlace')}
+      </span>
+    )
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 40,
-        background: 'radial-gradient(90% 80% at 50% 0%,#22432f,#12100a 70%)',
-      }}
-    >
-      <div
-        style={{
-          width: '100%', maxWidth: 560, borderRadius: 22, padding: 38, textAlign: 'center',
-          background: 'linear-gradient(180deg,#241b13,#171009)', border: '1px solid #4a3826',
-          boxShadow: '0 40px 80px -30px #000',
-        }}
-      >
-        <div style={{ fontFamily: "'Cinzel',serif", fontSize: 14, letterSpacing: '.34em', color: lastResult.abandoned ? '#a99a83' : '#c99b45' }}>
-          {lastResult.abandoned ? t('results.abandoned') : t('results.matchComplete')}
-        </div>
-        <div style={{ fontFamily: "'Cinzel',serif", fontSize: 48, lineHeight: 1, margin: '14px 0 6px', ...(lastResult.abandoned ? { color: '#a99a83' } : goldText) }}>
-          {lastResult.abandoned ? t('results.abandoned') : (won ? t('results.victory') : t('results.defeat'))}
-        </div>
-        <div style={{ color: '#c9bda3', fontSize: 15 }}>
-          {lastResult.abandoned
-            ? t('results.abandonedDesc')
-            : won ? t('results.victoryDesc') : t('results.piecesHome', { count: myPiecesHome })}
-        </div>
-        {winnerPlayer && !winnerPlayer.isBot ? (
-          <div style={{ display: 'flex', justifyContent: 'center', margin: '26px auto 10px' }}>
-            <UserAvatar
-              username={winnerPlayer.username}
-              size={96}
-              fallbackStyle={{
-                width: 96, height: 96, borderRadius: '50%',
-                background: `linear-gradient(180deg,${COL[lastResult.winner].base},${COL[lastResult.winner].dark})`,
-                fontSize: 34, fontWeight: 800, color: '#0d1b28',
-              }}
-              style={{
-                boxShadow: '0 0 0 4px #f0d18a,0 0 40px rgba(240,209,138,.4)',
-              }}
-            />
-          </div>
-        ) : (
-          <div
-            style={{
-              width: 96, height: 96, margin: '26px auto 10px', borderRadius: '50%',
-              background: `linear-gradient(180deg,${COL[lastResult.winner].base},${COL[lastResult.winner].dark})`,
-              display: 'grid', placeItems: 'center', fontSize: 34, fontWeight: 800, color: '#0d1b28',
-              boxShadow: '0 0 0 4px #f0d18a,0 0 40px rgba(240,209,138,.4)',
-            }}
-          >
-            {winnerInitials}
-          </div>
-        )}
-        <div style={{ fontWeight: 800, fontSize: 16, color: '#f0e2c4', marginBottom: 16 }}>
-          {winnerName}
-        </div>
-        {!lastResult.abandoned && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '0 auto 22px', maxWidth: 340 }}>
-          {ranked.map((p, i) => (
-            <div
-              key={p.color}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12,
-                background: i === 0 ? 'linear-gradient(90deg,rgba(240,209,138,.16),#1a130d)' : '#1a130d',
-                border: '1px solid ' + (i === 0 ? '#c99b45' : '#2e2115'),
-              }}
-            >
-              <div
-                style={{
-                  width: 26, height: 26, borderRadius: 8, display: 'grid', placeItems: 'center',
-                  fontWeight: 800, fontSize: 13, color: '#241a0c', background: PLACE_COLORS[i],
-                }}
-              >
-                {i + 1}
+    <>
+      {/* Animated 3D Grid & Sun Background */}
+      <div className="grid-background">
+        <div className="synthwave-sun" />
+        <div className="grid-horizon" />
+        <div className="perspective-grid" />
+        <div className="win95-starfield" />
+        <div className="terminal-vector-core" />
+      </div>
+
+      {/* CRT FX Overlay */}
+      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+        <div className="crt-scanlines" id="crtOverlay" style={{ display: crtEnabled ? 'block' : 'none' }} />
+        <div className="crt-flicker" />
+
+        <div className="results-page-wrapper">
+          {/* Ticket Dispenser Container */}
+          <section className="container ticket-container">
+            <section className="invoice-container">
+              {/* Bottom part of slot chassis (BEHIND ticket: z-index 2) */}
+              <div className="invoice-slot-bottom">
+                <div className="slot-hole-bottom"></div>
               </div>
-              <div style={{ width: 14, height: 14, borderRadius: '50%', background: COL[p.color].base }} />
-              <div style={{ flex: 1, textAlign: 'left', fontWeight: 700, fontSize: 14, color: '#f0e2c4' }}>
-                {p.color === myColor ? t('common.you') : p.username}
+
+              {/* Mask Container - Dispenses directly out of slot (z-index 10) */}
+              <div className="ticket-paper-wrapper">
+                {/* Animated Dispensed Invoice Ticket */}
+                <div className="invoice">
+                  <span className="ticket-notch-left"></span>
+                  <span className="ticket-notch-right"></span>
+                  <h2 className="title">{t('results.matchInvoiceTitle')}</h2>
+
+                  <p className="amount">
+                    {t('results.outcomeLabel')} <span className="value">{outcomeTitle}</span>
+                  </p>
+                  <p className="amount">
+                    {t('results.modeLabel')} <span className="value">{modeLabel}</span>
+                  </p>
+                  {hasRealWinner && (
+                    <p className="amount">
+                      {t('results.championLabel')} <span className="value">{winnerName.toUpperCase()}</span>
+                    </p>
+                  )}
+
+                  <hr style={{ border: 'none', height: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', margin: '0.75em 0' }} />
+
+                  {/* Player Roster Breakdown List */}
+                  <ul className="payers-list">
+                    {ranked.map((p, index) => {
+                      const isWinner = index === 0 && hasRealWinner
+                      const isMe = p.color === myColor
+                      const pName = isMe ? t('common.you') : p.username
+
+                      return (
+                        <li key={p.color}>
+                          <div className="payer-image-container">
+                            <UserAvatar
+                              username={p.username}
+                              size={40}
+                              fallbackStyle={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: '50%',
+                                background: 'rgba(0, 240, 255, 0.2)',
+                                color: 'var(--accent-cyan)',
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontWeight: 'bold',
+                                fontSize: '0.9rem',
+                              }}
+                            />
+                          </div>
+                          <p>
+                            <span>{pName} ({p.piecesInGoal}/4)</span>
+                            {renderRankBadge(index + 1, isWinner)}
+                          </p>
+                        </li>
+                      )
+                    })}
+                  </ul>
+
+                  {/* Action Button: Return to Lobby Only */}
+                  <button
+                    className="pay-now-btn"
+                    onClick={() => {
+                      retroAudio.playUiBeep(600, 0.05)
+                      navigate('/gamelobby')
+                    }}
+                  >
+                    {t('results.returnToLobbyBtn')}
+                  </button>
+                </div>
               </div>
-              <div style={{ color: '#a99a83', fontSize: 13, fontWeight: 600 }}>
-                {t('results.piecesHome', { count: p.piecesInGoal })}
+
+              {/* Top part of slot chassis (IN FRONT OF ticket: z-index 20) */}
+              <div className="invoice-slot-top">
+                <div className="vending-header-bar"></div>
+                <div className="slot-hole-top"></div>
               </div>
-            </div>
-          ))}
-        </div>
-        )}
-        {rematchError && (
-          <div style={{ color: '#e05050', fontSize: 13, marginBottom: 12 }}>{rematchError}</div>
-        )}
-        <div style={{ display: 'flex', gap: 12 }}>
-          {lastResult.abandoned ? (
-            <>
-              <button onClick={() => navigate('/gamelobby')} style={{ ...btnGold, flex: 1, padding: 14 }}>
-                {t('home.goToLobby')}
-              </button>
-              <button onClick={() => navigate('/home')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
-                {t('nav.home')}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={onRematch}
-                disabled={rematching}
-                style={{ flex: 1, border: 'none', borderRadius: 12, padding: 14, font: "800 15px 'Hanken Grotesk'",
-                  color: '#2a1c07', cursor: rematching ? 'default' : 'pointer', opacity: rematching ? 0.6 : 1,
-                  background: 'linear-gradient(180deg,#f0d18a,#c99b45)' }}
-              >
-                {rematching ? '…' : t('results.rematchBtn')}
-              </button>
-              <button onClick={() => navigate('/leaderboard')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
-                {t('nav.leaderboard')}
-              </button>
-              <button onClick={() => navigate('/home')} style={{ ...btnOutline, flex: 1, padding: 14 }}>
-                {t('nav.home')}
-              </button>
-            </>
-          )}
+            </section>
+          </section>
         </div>
       </div>
-    </div>
+    </>
   )
 }

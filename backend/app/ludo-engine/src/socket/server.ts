@@ -12,6 +12,8 @@ import { verifyToken, GameSocket } from './auth';
 import { LobbyManager } from '../lobby';
 import type { PlayerColor } from '../types';
 
+const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
+
 // A WAITING PvP room with fewer than 2 seated players is idle; once it has
 // been idle this long the room is aborted (friend on the way? give them time).
 const IDLE_LOBBY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -88,8 +90,9 @@ export class SocketServer {
 				this.triggerBotTurn(event.gameId, animMs + BOT_THINK_MS);
 			} else if (event.type === 'dice_rolled') {
 				// Only trigger bot turn if no legal moves (turn auto-advanced)
+				// Wait for the 750ms frontend dice-roll animation plus thinking pause
 				if (event.legalMoves.length === 0) {
-					this.triggerBotTurn(event.gameId, BOT_THINK_MS);
+					this.triggerBotTurn(event.gameId, 750 + BOT_THINK_MS);
 				}
 			}
 		});
@@ -199,7 +202,14 @@ export class SocketServer {
 		if (this.rematchVotes.get(gameId)!.size >= 2) {
 			// Create new game with only rematching players
 			const newGameId = `${gameId}-rematch`;
-			await this.store.createGame(newGameId, true);
+			const oldMatchData = await this.store.getMatchData(gameId);
+			const playerCount = parseInt(oldMatchData?.playerCount || '4', 10);
+			// Reuse the original seat order (skipped colors in hotseat etc.)
+			// rather than re-densifying the first playerCount colors.
+			const seatColors = oldMatchData?.seatColors
+				? (oldMatchData.seatColors.split(',') as PlayerColor[])
+				: SLOT_COLORS.slice(0, playerCount);
+			await this.store.createGame(newGameId, true, seatColors);
 
 			// Transfer players who voted
 			const voters = this.rematchVotes.get(gameId)!;
@@ -320,6 +330,7 @@ export class SocketServer {
 
 			socket.data.userId = payload.userId;
 			socket.data.username = payload.username;
+			socket.data.displayName = payload.displayName;
 			socket.data.gameId = payload.gameId;
 			socket.data.role = payload.role as 'player' | 'spectator';
 			next();

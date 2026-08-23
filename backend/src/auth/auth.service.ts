@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma.service';
@@ -34,7 +34,7 @@ type LoginResult =
       twoFactorRequired: false;
       accessToken: string;
       refreshToken: string;
-      user: { id: string; username: string };
+      user: { id: string; username: string; displayName: string };
     };
 
 @Injectable()
@@ -47,7 +47,7 @@ export class AuthService {
     private readonly session: SessionService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, baseUrl: string = BASE_URL) {
     const existing = await this.prisma.db.user.findUnique({ where: { username: dto.username } });
     if (existing) {
       throw new ConflictException('Username is already taken');
@@ -57,7 +57,7 @@ export class AuthService {
     if (email) {
       const emailTaken = await this.prisma.db.user.findUnique({ where: { email } });
       if (emailTaken) {
-        throw new ConflictException('Email is already registered');
+        throw new ConflictException('Email already registered. Use a different email');
       }
     }
 
@@ -66,6 +66,7 @@ export class AuthService {
       data: {
         id: crypto.randomUUID(),
         username: dto.username,
+        displayName: dto.username,
         email,
         password_hash: passwordHash,
       },
@@ -75,7 +76,7 @@ export class AuthService {
     const token = await this.twoFactor.createVerifyToken(user.id);
     await this.mail.sendVerification(
       user.email!,
-      `${BASE_URL}/api/auth/verify-email?token=${token}`,
+      `${baseUrl}/api/auth/verify-email?token=${token}`,
     );
     return { message: 'Account created — check your email to verify your address.' };
   }
@@ -130,14 +131,14 @@ export class AuthService {
    * case — unknown email, OAuth-only account, or success — so a caller can't
    * use this endpoint to discover which emails are registered.
    */
-  async forgotPassword(rawEmail: string) {
+  async forgotPassword(rawEmail: string, baseUrl: string = BASE_URL) {
     const email = normalizeEmail(rawEmail);
     const user = await this.prisma.db.user.findUnique({ where: { email } });
     // Only local accounts have a password to reset; OAuth-only users (no
     // password_hash) sign in through their provider instead.
     if (user?.password_hash) {
       const token = await this.twoFactor.createResetToken(user.id);
-      await this.mail.sendPasswordReset(email, `${BASE_URL}/reset-password?token=${token}`);
+      await this.mail.sendPasswordReset(email, `${baseUrl}/reset-password?token=${token}`);
     }
     return { message: 'If that email is registered, a reset link is on its way.' };
   }
@@ -197,7 +198,15 @@ export class AuthService {
   async issueSession(userId: string, username: string) {
     const accessToken = this.signAccess(userId, username);
     const refreshToken = await this.session.issue(userId);
-    return { accessToken, refreshToken, user: { id: userId, username } };
+    const user = await this.prisma.db.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true },
+    });
+    return {
+      accessToken,
+      refreshToken,
+      user: { id: userId, username, displayName: user?.displayName ?? username },
+    };
   }
 
   /**
@@ -214,13 +223,46 @@ export class AuthService {
     return {
       accessToken: this.signAccess(user.id, user.username),
       refreshToken: rotated.newToken,
-      user: { id: user.id, username: user.username },
+      user: { id: user.id, username: user.username, displayName: user.displayName },
     };
   }
 
   /** Revoke the given refresh token — logout on this device. */
   async logout(refreshToken?: string) {
     if (refreshToken) await this.session.revoke(refreshToken);
+  }
+
+  /** Full profile for the Edit-Profile card (incl. linked OAuth providers). */
+  async getProfile(userId: string) {
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+    const accounts = await this.prisma.db.account.findMany({
+      where: { userId },
+      select: { provider: true },
+    });
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        email: user.email,
+        hasPassword: !!user.password_hash,
+        providers: accounts.map((a) => a.provider),
+      },
+    };
+  }
+
+  /** Validates a short-lived access-token JWT (the `token` cookie). Returns the
+   *  user id when valid, else null. Used to confirm an OAuth callback is a
+   *  genuine "add method" round-trip from an already-authenticated browser. */
+  verifyAccessToken(token: string | undefined): string | null {
+    if (!token) return null;
+    try {
+      const payload = this.jwt.verify(token) as { sub?: string };
+      return payload.sub ?? null;
+    } catch {
+      return null;
+    }
   }
 
   /** Read the user's current 2FA preference. */
@@ -243,15 +285,153 @@ export class AuthService {
   }
 
   /**
+   * Complete profile update — edit display name, email, and/or the email-code
+   * 2FA method in one call. Only provided fields change.
+   *
+   * The username is auto-generated and cannot be changed; only the display
+   * name is editable.
+   *
+   * Email changes REUSE the signup verification path: the new address is
+   * saved, `emailVerified` is cleared (the login gate requires a verified
+   * address), and a fresh verification link is emailed via the same
+   * createVerifyToken → sendVerification flow as register().
+   */
+  async updateProfile(
+    userId: string,
+    dto: {
+      displayName?: string;
+      email?: string;
+      twoFactorEnabled?: boolean;
+      oauthToAdd?: string;
+      oauthToRemove?: string;
+    },
+  ) {
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const data: Record<string, unknown> = {};
+    let emailChanged = false;
+    let newEmail: string | undefined;
+
+    if (dto.displayName !== undefined && dto.displayName !== user.displayName) {
+      const taken = await this.prisma.db.user.findUnique({
+        where: { displayName: dto.displayName },
+      });
+      if (taken) throw new ConflictException('Display name is already taken');
+      data.displayName = dto.displayName;
+    }
+
+    if (dto.email !== undefined) {
+      const email = normalizeEmail(dto.email);
+      if (email !== user.email) {
+        const emailTaken = await this.prisma.db.user.findUnique({ where: { email } });
+        if (emailTaken) {
+          throw new ConflictException('Email already registered. Use a different email');
+        }
+        data.email = email;
+        // New address must be re-confirmed before it can be used to log in.
+        data.emailVerified = null;
+        emailChanged = true;
+        newEmail = email;
+      }
+    }
+
+    if (dto.twoFactorEnabled !== undefined) {
+      data.twoFactorEnabled = dto.twoFactorEnabled;
+    }
+
+    // OAuth: remove a linked sign-in method (lockout-guarded).
+    if (dto.oauthToRemove !== undefined) {
+      await this.removeOAuthMethod(userId, dto.oauthToRemove);
+    }
+
+    // OAuth: adding a method needs the browser round-trip — mint a 10m
+    // oauth-link token and hand back the provider authorize URL with it in
+    // `state`; the callback then links the provider to this user.
+    let oauthRedirectUrl: string | undefined;
+    if (dto.oauthToAdd !== undefined) {
+      const state = this.createOAuthLinkToken(userId, dto.oauthToAdd);
+      // Relative path (same as the login page's OAuthButtons) so it resolves on
+      // whatever host the user is actually connected through (LAN IP, tunnel, etc.).
+      oauthRedirectUrl = `/api/auth/${encodeURIComponent(dto.oauthToAdd)}?state=${encodeURIComponent(state)}`;
+    }
+
+    const updated =
+      Object.keys(data).length > 0
+        ? await this.prisma.db.user.update({ where: { id: userId }, data })
+        : user;
+
+    // Email change → auto-send a fresh verification link (reuse register's path).
+    if (emailChanged && newEmail) {
+      const token = await this.twoFactor.createVerifyToken(userId);
+      await this.mail.sendVerification(newEmail, `${BASE_URL}/api/auth/verify-email?token=${token}`);
+    }
+
+    const accounts = await this.prisma.db.account.findMany({
+      where: { userId },
+      select: { provider: true },
+    });
+
+    return {
+      user: {
+        id: updated.id,
+        username: updated.username,
+        displayName: updated.displayName,
+        email: updated.email,
+        hasPassword: !!updated.password_hash,
+        providers: accounts.map((a) => a.provider),
+      },
+      emailVerificationSent: emailChanged,
+      oauthRedirectUrl,
+    };
+  }
+
+  /**
+   * Logged-in password change: verify the current password, then set the new
+   * one and keep the CURRENT device signed in while revoking every other session.
+   * OAuth-only accounts have no password_hash — they set their FIRST password
+   * here, so `currentPassword` is only checked when one already exists.
+   */
+  async changePassword(userId: string, currentPassword: string | undefined, newPassword: string, currentRefreshToken?: string) {
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    if (user.password_hash) {
+      const matches = await bcrypt.compare(currentPassword ?? '', user.password_hash);
+      if (!matches) throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await this.prisma.db.user.update({
+      where: { id: userId },
+      data: { password_hash: passwordHash },
+    });
+
+    // Log the user out everywhere — other devices must re-auth with the new password.
+    await this.session.revokeAllExcept(userId, currentRefreshToken);
+    return { message: 'Password updated — other devices were signed out.' };
+  }
+
+  /**
    * Called after a provider (Google/GitHub) has verified the user.
    * Finds the matching user, or links/creates one, then returns it.
    */
-  async validateOAuthLogin(input: {
-    provider: string;
-    providerAccountId: string;
-    email?: string;
-    usernameSeed: string;
-  }) {
+  async validateOAuthLogin(
+    input: {
+      provider: string;
+      providerAccountId: string;
+      email?: string;
+      usernameSeed: string;
+    },
+    linkUserId?: string,
+  ) {
+    // EMAIL OWNERSHIP RULE: a provider's email may only set the account's
+    // `email` + `emailVerified` during the FIRST sign-in (new account, or an
+    // OAuth login matched by email). The "add sign-in method" flow below
+    // (linkUserId) deliberately ignores the provider's email entirely — e.g.
+    // an account created with Google (123@gmail.com) that links 42
+    // (4321@42.com) keeps 123@gmail.com and its verification state.
+
     // If provider account exist just log them in
     const existingAccount = await this.prisma.db.account.findUnique({
       where: {
@@ -263,28 +443,64 @@ export class AuthService {
       include: { user: true },
     });
     if (existingAccount) {
+      // "Add method" intent: same user -> no-op, different user -> conflict.
+      if (linkUserId && existingAccount.userId !== linkUserId) {
+        throw new ConflictException('This provider account is linked to another user');
+      }
       return existingAccount.user;
     }
 
-    //  If first time with this provider, and email matches an existing
-    //  user, link to that user.
-    const email = input.email ? normalizeEmail(input.email) : undefined;
-    let user = email
-      ? await this.prisma.db.user.findUnique({ where: { email } })
-      : null;
-
-    // Create new
-    if (!user) {
-      const username = await this.generateUniqueUsername(input.usernameSeed);
-      user = await this.prisma.db.user.create({
-        data: {
-          id: crypto.randomUUID(),
-          username,
-          email,
-          emailVerified: email ? new Date() : null,
-        },
-      });
+    // "Add method" intent with a new provider account: link it straight to
+    // the requesting user (provider identity is already vouched by OAuth).
+    if (linkUserId) {
+      const linked = await this.prisma.db.user.findUnique({ where: { id: linkUserId } });
+      if (linked) {
+        await this.prisma.db.account.create({
+          data: {
+            id: crypto.randomUUID(),
+            userId: linkUserId,
+            provider: input.provider,
+            providerAccountId: input.providerAccountId,
+          },
+        });
+        return linked;
+      }
+      // The "add method" user no longer exists — e.g. this browser's session
+      // survived a DB reset/wipe (db push --accept-data-loss). Don't try to
+      // link a provider to a ghost userId (that would throw an FK violation);
+      // fall through and treat this OAuth callback as a normal first-time login.
     }
+
+    //  If first time with this provider, and the email matches an existing
+    //  user, REJECT the OAuth login — the email already belongs to another
+    //  account. (The "add sign-in method" flow above is exempt: it never
+    //  claims the provider's email for the account.)
+    const email = input.email ? normalizeEmail(input.email) : undefined;
+    if (email) {
+      const emailOwner = await this.prisma.db.user.findUnique({ where: { email } });
+      if (emailOwner) {
+        // Don't leak the exact owner — same generic message as register().
+        throw new ConflictException(
+          'This email is already being used. Use a different email or log in using the same method you used to create this account.',
+        );
+      }
+    }
+
+    // Create new — the provider-verified email populates the email field; if
+    // the provider returned no email (GitHub/42 with no verified address), the
+    // account is still created with an empty email and the user can add one
+    // later via Edit Profile.
+    const username = await this.generateUniqueUsername(input.usernameSeed);
+    const displayName = await this.generateUniqueDisplayName(username);
+    const user = await this.prisma.db.user.create({
+      data: {
+        id: crypto.randomUUID(),
+        username,
+        displayName,
+        email,
+        emailVerified: email ? new Date() : null,
+      },
+    });
 
     await this.prisma.db.account.create({
       data: {
@@ -298,13 +514,82 @@ export class AuthService {
     return user;
   }
 
+  /**
+   * Issue a short-lived signed token carried in the OAuth `state` field when a
+   * logged-in user wants to ADD a provider sign-in method. 10m bounds how long
+   * an abandoned connect flow stays valid.
+   */
+  createOAuthLinkToken(userId: string, provider: string): string {
+    return this.jwt.sign({ sub: userId, p: provider, purpose: 'oauth-link' }, { expiresIn: '10m' });
+  }
+
+  /**
+   * Verify a `state` token returned by the provider callback. Returns the
+   * userId when the token is ours and matches `provider`, else undefined (a
+   * missing/foreign state is treated as a normal login, never a link).
+   */
+  resolveOAuthLink(state: string | string[] | undefined, provider: string): string | undefined {
+    if (typeof state !== 'string' || !state) return undefined;
+    try {
+      const payload = this.jwt.verify(state) as { sub?: string; p?: string; purpose?: string };
+      if (payload.purpose !== 'oauth-link' || payload.p !== provider) return undefined;
+      return payload.sub;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Unlink a provider sign-in method. Lockout guard: the user must keep at
+   * least one other way to sign in — a password OR another linked provider.
+   */
+  async removeOAuthMethod(userId: string, provider: string) {
+    const account = await this.prisma.db.account.findFirst({ where: { userId, provider } });
+    if (!account) throw new NotFoundException('That provider is not linked to this account');
+
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const remainingAccounts = await this.prisma.db.account.count({
+      where: { userId, NOT: { provider } },
+    });
+    if (!user.password_hash && remainingAccounts === 0) {
+      throw new ForbiddenException('You must keep at least one sign-in method');
+    }
+
+    await this.prisma.db.account.delete({ where: { id: account.id } });
+    return { removed: provider };
+  }
+
   // Turning usernames into unique seeds
   private async generateUniqueUsername(seed: string) {
     const base = seed.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'user';
     let candidate = base;
     while (await this.prisma.db.user.findUnique({ where: { username: candidate } })) {
-      candidate = `${base}_${Math.floor(1000 + Math.random() * 9000)}`;
+      candidate = `${base}_${this.randomChars(5)}`;
     }
     return candidate;
+  }
+
+  // Display names are unique too, so a freshly generated display name that
+  // collides with an existing one also gets 5 random characters appended.
+  private async generateUniqueDisplayName(seed: string) {
+    const base = seed.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20) || 'user';
+    let candidate = base;
+    while (await this.prisma.db.user.findUnique({ where: { displayName: candidate } })) {
+      candidate = `${base}_${this.randomChars(5)}`;
+    }
+    return candidate;
+  }
+
+  // 5 random alphanumeric characters (e.g. "3kF9z"). Avoids ambiguous
+  // characters (0/O, 1/l/I) so generated suffixes are easy to read aloud.
+  private randomChars(length: number): string {
+    const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let out = '';
+    for (let i = 0; i < length; i++) {
+      out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
   }
 }

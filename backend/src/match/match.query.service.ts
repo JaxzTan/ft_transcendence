@@ -67,18 +67,25 @@ export class MatchQueryService {
 		const hostIds = [...new Set(rooms.map((r) => r.hostId))];
 		const hosts = await this.prisma.db.user.findMany({
 			where: { id: { in: hostIds } },
-			select: { id: true, username: true },
+			select: { id: true, username: true, displayName: true },
 		});
-		const usernames = new Map(hosts.map((u) => [u.id, u.username]));
+		const hostMap = new Map(hosts.map((u) => [u.id, u]));
 
-		return rooms.map((r) => ({
-			id: r.id,
-			roomCode: r.roomCode,
-			host: usernames.get(r.hostId) || 'Unknown',
-			seats: r.seats,
-			maxSeats: r.maxSeats,
-			mode: r.maxSeats === 2 ? 'duel' : 'classic',
-		}));
+		return rooms.map((r) => {
+			const h = hostMap.get(r.hostId);
+			return {
+				id: r.id,
+				roomCode: r.roomCode,
+				// Display name shown in the room listing; the immutable username is
+				// also returned separately so the frontend can keep using it for
+				// avatar URLs and ownership checks.
+				host: h?.displayName ?? h?.username ?? 'Unknown',
+				hostUsername: h?.username ?? r.hostId,
+				seats: r.seats,
+				maxSeats: r.maxSeats,
+				mode: r.maxSeats === 2 ? 'duel' : 'classic',
+			};
+		});
 	}
 
 	// List WAITING or ACTIVE matches that the given user is seated in.

@@ -5,7 +5,7 @@ import { BOT_POOL } from './theme'
 import { apiFetch } from './api'
 import type { PlayerColor } from './game/types'
 
-export type AuthUser = { id: string; username: string }
+export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean }
 
 /** Pulls a readable message out of nestjs error body  */
 function apiError(body: unknown, fallback: string): string {
@@ -41,6 +41,8 @@ function storedLang(): Lang {
 }
 
 const HEARTBEAT_INTERVAL_MS = 20_000
+/** settingOn/toggleSetting key for "show the rules popup when a match starts" — read by Lobby's Rules button and Game.tsx. */
+export const RULES_ON_START_KEY = 'rulesShowOnStart'
 /** Defaults for the settings toggles, keyed "<group>-<row>". */
 export const SETTING_DEFAULTS: Record<string, boolean> = {
   '0-0': true, // Sound effects
@@ -82,6 +84,7 @@ export type LastResult = {
 
 type AppState = {
   user: AuthUser | null
+  setUser: (u: AuthUser | null) => void
   authReady: boolean
   /** Factor one. `identifier` is a username or email. Success = { pendingToken } (code emailed); failure = { error }. */
   login: (identifier: string, password: string) => Promise<{ error?: string; pendingToken?: string }>
@@ -427,12 +430,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
+      user, setUser, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
     playerCount, seats, dice, rolling, turn, settings,
     setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting,
       lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch, lastResult, setLastResult,
     }),
-    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
+    [user, setUser, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Notification } from '../hooks/useNotifications'
 import { navigate } from '../router'
 import { useApp } from '../store'
@@ -8,76 +9,55 @@ import { retroAudio } from '../utils/audio'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getNotificationTypeBadge(type: string): { tag: string; color: string } {
+function getNotificationTypeBadge(type: string): { tagKey: string; defaultTag: string; color: string } {
   switch (type) {
     case 'game_invite':
-      return { tag: '[MATCH_INVITE]', color: 'var(--accent-cyan, #00f0ff)' }
+      return { tagKey: 'notifications.matchChallengeTag', defaultTag: '[MATCH_INVITE]', color: 'var(--accent-cyan, #00f0ff)' }
     case 'friend_request':
-      return { tag: '[FRIEND_REQ]', color: 'var(--accent-pink, #ff007f)' }
+      return { tagKey: 'notifications.linkReqTag', defaultTag: '[FRIEND_REQ]', color: 'var(--accent-pink, #ff007f)' }
     case 'friend_accepted':
-      return { tag: '[FRIEND_ACK]', color: 'var(--accent-yellow, #ffe600)' }
+      return { tagKey: 'notifications.linkEstablishedTag', defaultTag: '[FRIEND_ACK]', color: 'var(--accent-yellow, #ffe600)' }
     case 'achievement':
-      return { tag: '[ACHIEVEMENT]', color: '#00ff88' }
+      return { tagKey: 'notifications.achievementTag', defaultTag: '[ACHIEVEMENT]', color: '#00ff88' }
     default:
-      return { tag: '[SYS_MSG]', color: 'var(--accent-cyan, #00f0ff)' }
+      return { tagKey: 'notifications.sysBroadcastTag', defaultTag: '[SYS_MSG]', color: 'var(--accent-cyan, #00f0ff)' }
   }
 }
 
-function renderNotificationBody(n: Notification) {
+function renderNotificationBody(n: Notification, t: (key: string, options?: any) => string) {
   let payload: Record<string, any> = {}
   try {
     payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : (n?.payload || {})
   } catch {
     payload = {}
   }
-  const from = payload?.fromUsername ? String(payload.fromUsername) : null
+  const from = payload?.fromUsername ? String(payload.fromUsername) : 'UNKNOWN'
 
   switch (n?.type) {
     case 'friend_request':
-      return (
-        <span>
-          Pilot{' '}
-          <span style={{ color: 'var(--accent-yellow, #ffe600)', fontWeight: 'bold' }}>
-            @{from ?? 'UNKNOWN'}
-          </span>{' '}
-          sent a friend link request
-        </span>
-      )
+      return <span>{t('notifications.friendRequestText', { username: from })}</span>
     case 'friend_accepted':
-      return (
-        <span>
-          Pilot{' '}
-          <span style={{ color: 'var(--accent-yellow, #ffe600)', fontWeight: 'bold' }}>
-            @{from ?? 'UNKNOWN'}
-          </span>{' '}
-          linked to your cyber network
-        </span>
-      )
+      return <span>{t('notifications.friendAcceptedText', { username: from })}</span>
     case 'game_invite':
-      return (
-        <span>
-          Pilot{' '}
-          <span style={{ color: 'var(--accent-yellow, #ffe600)', fontWeight: 'bold' }}>
-            @{from ?? 'UNKNOWN'}
-          </span>{' '}
-          issued a match challenge
-        </span>
-      )
-    case 'achievement':
-      return <span>New achievement unlocked in system database!</span>
+      return <span>{t('notifications.matchChallengeText', { username: from })}</span>
+    case 'achievement': {
+      const nameKey = payload?.nameKey as string | undefined
+      const name = nameKey ? t(nameKey) : ''
+      return name ? <span>{name}!</span> : <span>{t('notifications.achievementUnlocked')}</span>
+    }
     default:
-      return <span>New incoming telemetry transmission</span>
+      return <span>{t('notifications.systemTransmissionText')}</span>
   }
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: (key: string, options?: any) => string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'JUST NOW'
-  if (mins < 60) return `${mins}M AGO`
+  if (mins < 1) return t('notifications.justNow')
+  if (mins < 60) return t('notifications.minsAgo', { count: mins })
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}H AGO`
-  return `${Math.floor(hrs / 24)}D AGO`
+  if (hrs < 24) return t('notifications.hoursAgo', { count: hrs })
+  return t('notifications.daysAgo', { count: Math.floor(hrs / 24) })
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -101,6 +81,7 @@ export function NotificationBell({
   containerStyle?: CSSProperties
   buttonStyle?: CSSProperties
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { setActiveMatch } = useApp()
@@ -232,7 +213,7 @@ export function NotificationBell({
         <button
           className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
           onClick={toggleOpen}
-          title="Comms Telemetry & Notifications"
+          title={t('notifications.title')}
           style={{
             width: '100%',
             height: 44,
@@ -248,7 +229,7 @@ export function NotificationBell({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
-              NOTIFICATIONS
+              {t('notifications.title')}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -275,7 +256,7 @@ export function NotificationBell({
         <button
           className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
           onClick={toggleOpen}
-          title="Notifications"
+          title={t('notifications.title')}
           style={{
             justifyContent: 'center',
             gap: 8,
@@ -300,7 +281,7 @@ export function NotificationBell({
           />
 
           <span className="theme-btn-text" style={{ fontSize: '0.62rem' }}>
-            NOTIFICATIONS{count > 0 ? ` [${count < 10 ? `0${count}` : count}]` : ''}
+            {t('notifications.title')}{count > 0 ? ` [${count < 10 ? `0${count}` : count}]` : ''}
           </span>
         </button>
       )}
@@ -328,7 +309,7 @@ export function NotificationBell({
                 fontWeight: 'bold',
               }}
             >
-              TRANSMISSION LOG // NOTIFICATIONS
+              {t('notifications.transmissionLogTitle')}
             </span>
           </div>
 
@@ -351,7 +332,7 @@ export function NotificationBell({
                 lineHeight: 1,
               }}
             >
-              [ACK ALL]
+              {t('notifications.ackAllBtn')}
             </button>
           )}
         </div>
@@ -377,7 +358,7 @@ export function NotificationBell({
                 letterSpacing: 0.5,
               }}
             >
-              [NO TRANSMISSIONS LOGGED IN BUFFER]
+              {t('notifications.noTransmissions')}
             </div>
           ) : (
             list.slice(0, 30).map((n) => {
@@ -424,7 +405,7 @@ export function NotificationBell({
                           fontWeight: 'bold',
                         }}
                       >
-                        {badge.tag}
+                        {t(badge.tagKey, badge.defaultTag)}
                       </span>
                       <span
                         style={{
@@ -433,7 +414,7 @@ export function NotificationBell({
                           fontFamily: 'var(--font-mono, monospace)',
                         }}
                       >
-                        {timeAgo(n.createdAt)}
+                        {timeAgo(n.createdAt, t)}
                       </span>
                     </div>
 
@@ -446,7 +427,7 @@ export function NotificationBell({
                         fontFamily: 'var(--font-mono, monospace)',
                       }}
                     >
-                      {renderNotificationBody(n)}
+                      {renderNotificationBody(n, t)}
                     </div>
                   </div>
                 </div>
