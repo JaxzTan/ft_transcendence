@@ -67,22 +67,41 @@ const STATUS_KEYS: Record<PresenceStatus, string> = {
   offline: 'friends.offline',
 }
 
+/**
+ * The 13 visible achievements. achSteadyDefender + achMercilessAttacker exist
+ * backend-side (clash-mode only) but are hidden until the clash system is
+ * wired into the UI — see achievement-revamp.md §1/§4.4.
+ *
+ * Requirements match the revamp thresholds (achievement-revamp.md v3):
+ *   achFirstBlood     — 1 win (any PVP/PVE)
+ *   achOnFire         — 2 consecutive wins (User.winStreak >= 2)
+ *   achDiceMaster     — 3 wins
+ *   achBabySteps      — 1 bot win
+ *   achTheDiceLoveMe  — 3 bot wins
+ *   achTactician      — 5 wins
+ *   achMaster         — 8 wins
+ *   achGrandBotMaster — 12 wins
+ *   achWorldChampion  — 15 wins
+ *   achft_Transcendence — 10 PvP wins (PvE never counts)
+ *   achLoveTheMachine — 3 consecutive PvE games (any outcome; PVP resets)
+ *   achSpeedDemon     — win in < 30 min (unknown duration ⇒ no unlock)
+ *   achUnstoppable    — 3 captures in a single game
+ * Hotseat is never counted for any achievement.
+ */
 const ACHIEVEMENTS_DEF = [
-  { key: 'achFirstBlood', fallbackTitle: 'FIRST BLOOD', desc: 'Secure your 1st match victory', icon: '◈' },
-  { key: 'achOnFire', fallbackTitle: 'ON FIRE', desc: 'Achieve a 3-game win streak', icon: '▲' },
-  { key: 'achDiceMaster', fallbackTitle: 'DICE MASTER', desc: 'Reach 50 total match victories', icon: '⚄' },
-  { key: 'achBabySteps', fallbackTitle: 'BABY STEPS', desc: 'Win 1st game vs training bots', icon: '⚙' },
-  { key: 'achTheDiceLoveMe', fallbackTitle: 'DICE LOVER', desc: 'Win 10 games vs training bots', icon: '✦' },
-  { key: 'achTactician', fallbackTitle: 'TACTICIAN', desc: 'Reach 100 combat victories', icon: '♟' },
-  { key: 'achMaster', fallbackTitle: 'MASTER', desc: 'Reach 250 combat victories', icon: '◆' },
-  { key: 'achGrandBotMaster', fallbackTitle: 'GRAND MASTER', desc: 'Reach 500 combat victories', icon: '❖' },
-  { key: 'achWorldChampion', fallbackTitle: 'CHAMPION', desc: 'Reach 1,000 combat victories', icon: '✦' },
-  { key: 'achLoveTheMachine', fallbackTitle: 'VETERAN', desc: 'Complete 100 total matches', icon: '⬡' },
-  { key: 'achft_Transcendence', fallbackTitle: 'TRANSCENDENCE', desc: 'Win 100 PvP human matches', icon: '◈' },
-  { key: 'achSpeedDemon', fallbackTitle: 'SPEED DEMON', desc: 'Win match in under 30 mins', icon: '⏱' },
-  { key: 'achUnstoppable', fallbackTitle: 'UNSTOPPABLE', desc: 'Capture 3 pieces in 1 game', icon: '▲' },
-  { key: 'achCleanSweep', fallbackTitle: 'CLEAN SWEEP', desc: 'Win 4 pieces while rivals have 0', icon: '◈' },
-  { key: 'achLastLaugh', fallbackTitle: 'LAST LAUGH', desc: 'Win while all rivals have goal pieces', icon: '❖' },
+  { key: 'achFirstBlood', fallbackTitle: 'FIRST BLOOD', desc: 'Secure your 1st match victory', icon: '🩸' },
+  { key: 'achOnFire', fallbackTitle: 'ON FIRE', desc: 'Achieve a 2-game win streak', icon: '🔥' },
+  { key: 'achDiceMaster', fallbackTitle: 'DICE MASTER', desc: 'Reach 3 total match victories', icon: '🎲' },
+  { key: 'achBabySteps', fallbackTitle: 'BABY STEPS', desc: 'Win 1st game vs training bots', icon: '👣' },
+  { key: 'achTheDiceLoveMe', fallbackTitle: 'DICE LOVER', desc: 'Win 3 games vs training bots', icon: '🍀' },
+  { key: 'achTactician', fallbackTitle: 'TACTICIAN', desc: 'Reach 5 combat victories', icon: '♟' },
+  { key: 'achMaster', fallbackTitle: 'MASTER', desc: 'Reach 8 combat victories', icon: '👑' },
+  { key: 'achGrandBotMaster', fallbackTitle: 'GRAND MASTER', desc: 'Reach 12 combat victories', icon: '🤖' },
+  { key: 'achWorldChampion', fallbackTitle: 'CHAMPION', desc: 'Reach 15 combat victories', icon: '🏆' },
+  { key: 'achft_Transcendence', fallbackTitle: 'TRANSCENDENCE', desc: 'Win 10 PvP human matches', icon: '✨' },
+  { key: 'achLoveTheMachine', fallbackTitle: 'LOVE THE MACHINE', desc: 'Play 3 PvE games in a row (any outcome)', icon: '❤️' },
+  { key: 'achSpeedDemon', fallbackTitle: 'SPEED DEMON', desc: 'Win a match in under 30 mins', icon: '⚡' },
+  { key: 'achUnstoppable', fallbackTitle: 'UNSTOPPABLE', desc: 'Capture 3 pieces in one game', icon: '⚔️' },
 ]
 
 export function Profile() {
@@ -118,7 +137,9 @@ export function Profile() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [gamesData, setGamesData] = useState<MatchHistory | null>(null)
   const [friendsData, setFriendsData] = useState<Friend[] | null>(null)
-  const [achievements, setAchievements] = useState<Record<string, boolean>>({})
+  type AchievementReport = { unlocked: boolean; progress: number; target: number }
+  type AchievementsResponse = Record<string, AchievementReport>
+  const [achievements, setAchievements] = useState<AchievementsResponse>({})
   const [mainTab, setMainTab] = useState<'history' | 'achievements'>('history')
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null)
   const [leaderboardMap, setLeaderboardMap] = useState<Record<string, number>>({})
@@ -273,7 +294,7 @@ export function Profile() {
     ? getRankTier(peakRating, leaderboardRank)
     : getRankTier(peakRating)
 
-  const unlockedCount = ACHIEVEMENTS_DEF.filter((a) => !!achievements[a.key]).length
+  const unlockedCount = ACHIEVEMENTS_DEF.filter((a) => !!achievements[a.key]?.unlocked).length
   const totalAchievements = ACHIEVEMENTS_DEF.length
   const achievementPercent = Math.round((unlockedCount / totalAchievements) * 100)
 
@@ -1012,23 +1033,28 @@ export function Profile() {
                             }}
                           >
                             {ACHIEVEMENTS_DEF.map((ach) => {
-                              const isUnlocked = !!achievements[ach.key]
+                              const report = achievements[ach.key]
+                              const isUnlocked = report?.unlocked ?? false
+                              const progress = Math.min(report?.progress ?? 0, report?.target ?? 0)
+                              const target = report?.target ?? 0
+                              const pct = target > 0 ? Math.round((progress / target) * 100) : 0
                               const title = t(`dashboard.${ach.key}`, ach.fallbackTitle)
                               return (
                                 <div
                                   key={ach.key}
                                   style={{
-                                    padding: '10px 12px',
+                                    padding: '13px 12px',
                                     borderRadius: 6,
                                     background: isUnlocked ? 'rgba(38, 16, 72, 0.88)' : 'rgba(10, 4, 25, 0.45)',
                                     border: isUnlocked ? '1.5px solid #ffe600' : '1px dashed rgba(255, 255, 255, 0.12)',
                                     boxShadow: isUnlocked ? '0 0 10px rgba(255, 230, 0, 0.18)' : 'none',
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    opacity: isUnlocked ? 1 : 0.4,
+                                    flexDirection: 'column',
+                                    gap: 8,
+                                    opacity: isUnlocked ? 1 : 0.55,
                                   }}
                                 >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                   <div
                                     style={{
                                       width: 36,
@@ -1062,16 +1088,38 @@ export function Profile() {
                                     </div>
                                     <div
                                       style={{
-                                        fontSize: '0.66rem',
+                                        fontSize: '0.76rem',
                                         fontFamily: 'var(--font-display)',
                                         color: isUnlocked ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.35)',
                                         marginTop: 2,
                                         lineHeight: 1.2,
                                       }}
                                     >
-                                      {ach.desc}
+                                      {t(`dashboard.${ach.key}Desc`, ach.desc)}
                                     </div>
                                   </div>
+                                  </div>
+
+                                  {/* Per-achievement progress bar (from { unlocked, progress, target }) */}
+                                  {target > 0 && (
+                                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                      <div style={{ height: 4, borderRadius: 2, background: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden' }}>
+                                        <div
+                                          style={{
+                                            height: '100%',
+                                            borderRadius: 2,
+                                            width: `${pct}%`,
+                                            background: isUnlocked ? 'linear-gradient(90deg, #ffe600, #00ff88)' : 'linear-gradient(90deg, var(--accent-cyan), #ffe600)',
+                                            boxShadow: isUnlocked ? '0 0 6px #ffe600' : '0 0 6px rgba(0, 240, 255, 0.5)',
+                                            transition: 'width 0.4s ease',
+                                          }}
+                                        />
+                                      </div>
+                                      <div style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', color: isUnlocked ? '#ffe600' : 'var(--text-muted)' }}>
+                                        {isUnlocked ? `${target}/${target}` : `${progress}/${target}`}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )
                             })}

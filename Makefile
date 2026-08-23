@@ -64,11 +64,7 @@ SECRETS_VOLUME = secrets_data
 
 seed-secrets: check-secrets
 	@docker volume create $(SECRETS_VOLUME) >/dev/null
-	@docker rm -f secrets-seed >/dev/null 2>&1 || true
-	@docker run -d --rm --name secrets-seed -v $(SECRETS_VOLUME):/secrets alpine sleep 60 >/dev/null
-	@docker cp $(SECRET_DIR)/. secrets-seed:/secrets/
-	@docker exec secrets-seed sh -c 'chmod 600 /secrets/*.txt'
-	@docker stop secrets-seed >/dev/null
+	@tar -C $(SECRET_DIR) -cf - . | docker run --rm -i -v $(SECRETS_VOLUME):/secrets alpine sh -c 'tar -xf - -C /secrets && chmod 600 /secrets/*.txt'
 	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
 
 start: seed-secrets

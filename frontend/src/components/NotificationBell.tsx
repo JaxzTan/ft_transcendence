@@ -40,8 +40,11 @@ function renderNotificationBody(n: Notification, t: (key: string, options?: any)
       return <span>{t('notifications.friendAcceptedText', { username: from })}</span>
     case 'game_invite':
       return <span>{t('notifications.matchChallengeText', { username: from })}</span>
-    case 'achievement':
-      return <span>{t('notifications.achievementUnlockedText')}</span>
+    case 'achievement': {
+      const nameKey = payload?.nameKey as string | undefined
+      const name = nameKey ? t(nameKey) : ''
+      return name ? <span>{name}!</span> : <span>{t('notifications.achievementUnlocked')}</span>
+    }
     default:
       return <span>{t('notifications.systemTransmissionText')}</span>
   }
