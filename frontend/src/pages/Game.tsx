@@ -79,7 +79,6 @@ export function Game() {
   // CRT & AUDIO CONTROLS
   // ------------------------------------------------------------------------
   const [crtEnabled, setCrtEnabled] = useState(true)
-  const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
   const [isAbortModalOpen, setIsAbortModalOpen] = useState(false)
 
   useEffect(() => {
@@ -92,14 +91,6 @@ export function Game() {
       setCrtEnabled(false)
     }
   }, [])
-
-  const toggleSound = () => {
-    retroAudio.muted = !retroAudio.muted
-    setSoundMuted(retroAudio.muted)
-    if (!retroAudio.muted) {
-      retroAudio.playUiBeep(520, 0.06)
-    }
-  }
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
@@ -164,6 +155,8 @@ export function Game() {
   const [friends, setFriends] = useState<Array<{ id: string; username: string }>>([])
   const [inviteStates, setInviteStates] = useState<Record<string, 'idle' | 'busy' | 'sent'>>({})
   const [roomCode, setRoomCode] = useState<string | null>(activeMatch?.inviteCode ?? null)
+  const [isSystemModalOpen, setIsSystemModalOpen] = useState(false)
+  const [rulesPage, setRulesPage] = useState(0)
 
   // Fetch room code if not present in activeMatch
   useEffect(() => {
@@ -1352,31 +1345,19 @@ export function Game() {
                     </div>
                   </div>
 
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
 
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    {t('game.audioPreferences')}
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
-                    <button
-                      className="retro-badge"
-                      style={{
-                        cursor: 'pointer',
-                        padding: '8px 10px',
-                        background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
-                        border: soundMuted ? '1px solid #ff0055' : '1px solid #00ff88',
-                        color: soundMuted ? '#ff0055' : '#00ff88',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.7rem',
-                        textAlign: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={toggleSound}
-                    >
-                      {soundMuted ? t('game.audioOff') : t('game.audioOn')}
-                    </button>
-                  </div>
+                  <CyberButton
+                    label="HOW TO PLAY / RULES"
+                    shortcut="?"
+                    variant="cyan"
+                    onClick={() => {
+                      retroAudio.playUiBeep(600, 0.05)
+                      setRulesPage(0)
+                      setIsSystemModalOpen(true)
+                    }}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  />
                 </div>
               </section>
 
@@ -1491,6 +1472,187 @@ export function Game() {
         cancelShortcut="ESC"
         proceedShortcut="↵"
         isDanger
+      />
+
+      {/* Cyberpunk System Control & Multi-Page Rules Modal (6 Pages) */}
+      <CyberModal
+        isOpen={isSystemModalOpen}
+        title="ARENA PROTOCOLS & RULES"
+        versionTag="RULES.v42.SYS"
+        cancelLabel="CLOSE"
+        proceedLabel={rulesPage < 5 ? 'NEXT PAGE ▶' : 'START PLAYING'}
+        cancelShortcut="ESC"
+        proceedShortcut={rulesPage < 5 ? '→' : '↵'}
+        closeOnProceed={rulesPage >= 5}
+        onCancel={() => setIsSystemModalOpen(false)}
+        onProceed={() => {
+          if (rulesPage < 5) {
+            retroAudio.playUiBeep(700, 0.05)
+            setRulesPage((p) => p + 1)
+          } else {
+            setIsSystemModalOpen(false)
+          }
+        }}
+        message={
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 380, maxWidth: 520 }}>
+            {/* Page Navigation Tabs: Compact 1-row layout */}
+            <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid rgba(0, 240, 255, 0.25)', paddingBottom: 10 }}>
+              {[
+                { id: 0, label: '1. GOAL' },
+                { id: 1, label: '2. ROLL 6' },
+                { id: 2, label: '3. ENEMY' },
+                { id: 3, label: '4. STAR' },
+                { id: 4, label: '5. BLOCK' },
+                { id: 5, label: '6. HOME' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    retroAudio.playUiBeep(520, 0.04)
+                    setRulesPage(p.id)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '6px 2px',
+                    fontSize: '0.68rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 'bold',
+                    background: rulesPage === p.id ? 'rgba(0, 240, 255, 0.22)' : 'rgba(255, 255, 255, 0.04)',
+                    border: rulesPage === p.id ? '1.5px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: rulesPage === p.id ? '#ffffff' : 'var(--text-muted)',
+                    boxShadow: rulesPage === p.id ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* PAGE 0: Objective & Controls */}
+            {rulesPage === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // MISSION OBJECTIVE
+                </div>
+                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  Be the first pilot to move all four of your combat pieces from the Starting Area to the Home Triangle in the center!
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(5, 2, 18, 0.65)', padding: 14, borderRadius: 6, border: '1px solid rgba(255, 0, 127, 0.3)' }}>
+                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.5px' }}>COMBAT CONTROLS:</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Roll Quantum Dice:</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem' }}>SPACEBAR</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Select / Warp Piece:</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '0.85rem' }}>LEFT CLICK</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 1: Rolling a 6 */}
+            {rulesPage === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // ROLLING A 6
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-yellow)', border: '1px solid rgba(255, 230, 0, 0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>⚡</span>
+                    <span>Roll a <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> → you get to roll again!</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>🚀</span>
+                    <span>A <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> lets you bring a new piece onto the board.</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: '#ff0055', fontSize: '1.2rem' }}>⛔</span>
+                    <span>Roll <strong style={{ color: '#ff0055', fontSize: '1.05rem' }}>three 6s in a row</strong> → your turn immediately ends!</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 2: Landing on Enemy Piece */}
+            {rulesPage === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // LANDING ON ENEMY PIECE
+                </div>
+                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  If you land on another player's piece:
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-pink)', border: '1px solid rgba(255, 0, 127, 0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-pink)', fontSize: '1.2rem' }}>⚔</span>
+                    <span>Their piece gets <strong style={{ color: 'var(--accent-pink)', fontSize: '1.05rem' }}>kicked home</strong> back to their base!</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: '#00ff88', fontSize: '1.2rem' }}>✦</span>
+                    <span>You get a combat bonus: <strong style={{ color: '#00ff88', fontSize: '1.05rem' }}>roll again!</strong></span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 3: The Star */}
+            {rulesPage === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // THE STAR
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    ★ Star spaces are safe!
+                  </div>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    Nobody can knock your piece off a star. Multiple pilots can safely occupy the same star space without combat captures.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 4: Two Pieces Together (Blockade) */}
+            {rulesPage === 4 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#00ff88', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // TWO PIECES TOGETHER (BLOCKADE)
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #00ff88', border: '1px solid rgba(0, 255, 136, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: '#00ff88', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    🛡 Impassable Shield
+                  </div>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    Having <strong style={{ color: '#00ff88' }}>two pieces together</strong> will stop other players from crossing or landing on that space!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 5: Home Lane */}
+            {rulesPage === 5 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#9d00ff', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // HOME LANE & FINISH
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #9d00ff', border: '1px solid rgba(157, 0, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    You are <strong style={{ color: '#00ff88' }}>safe</strong> once you reach your coloured lane. Opponents cannot enter your home stretch!
+                  </p>
+                  <p style={{ margin: 0, color: '#ffe600', fontWeight: 'bold', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                    🎯 Just get to the center! (if you can get the exact steps!)
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        }
       />
 
       {/* QTE Clash overlay */}

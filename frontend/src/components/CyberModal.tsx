@@ -82,6 +82,7 @@ interface CyberModalProps {
   cancelShortcut?: string
   proceedShortcut?: string
   isDanger?: boolean
+  closeOnProceed?: boolean
 }
 
 export function CyberModal({
@@ -97,6 +98,7 @@ export function CyberModal({
   cancelShortcut = 'ESC',
   proceedShortcut = '↵',
   isDanger = false,
+  closeOnProceed = true,
 }: CyberModalProps) {
   const [mounted, setMounted] = useState(isOpen)
   const [isOpenActive, setIsOpenActive] = useState(false)
@@ -166,6 +168,10 @@ export function CyberModal({
 
   const handleProceed = () => {
     retroAudio.playCyberAccept()
+    if (!closeOnProceed) {
+      onProceed()
+      return
+    }
     setIsOpenActive(false)
     setTimeout(() => {
       onProceed()
