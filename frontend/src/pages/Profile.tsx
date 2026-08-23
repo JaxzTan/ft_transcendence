@@ -948,7 +948,7 @@ export function Profile() {
                                           lineHeight: 1,
                                         }}
                                       >
-                                        {isWin ? '+25 ELO' : '-5 ELO'}
+                                        {isWin ? '+10 ELO' : '-5 ELO'}
                                       </div>
                                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>
                                         {t('profile.goalProgressText', { count: g.piecesInGoal })}
