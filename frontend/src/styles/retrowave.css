@@ -8,7 +8,8 @@
    THEME DESIGN SYSTEM TOKENS
    -------------------------------------------------------------------------- */
 
-:root {
+:root,
+[data-theme="synthwave"] {
   /* Default Theme: Synthwave '84 */
   --bg-primary: #0d0221;
   --bg-secondary: #190a38;
@@ -49,8 +50,8 @@
   --border-color: #ffffff;
   --box-shadow: 2px 2px 0px #000000, inset -1px -1px 0px #000000, inset 1px 1px 0px #dfdfdf;
   --font-heading: 'Press Start 2P', cursive;
-  --font-display: 'VT323', monospace;
-  --font-mono: 'VT323', monospace;
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
   --grid-line-color: transparent;
   --grid-bg-glow: transparent;
   --btn-bg: #c0c0c0;
@@ -75,9 +76,9 @@
   --text-muted: #22aa22;
   --border-color: #33ff33;
   --box-shadow: 0 0 10px rgba(51, 255, 51, 0.4), inset 0 0 10px rgba(51, 255, 51, 0.15);
-  --font-heading: 'VT323', monospace;
-  --font-display: 'VT323', monospace;
-  --font-mono: 'VT323', monospace;
+  --font-heading: 'Press Start 2P', cursive;
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
   --grid-line-color: rgba(51, 255, 51, 0.1);
   --grid-bg-glow: rgba(51, 255, 51, 0.05);
   --btn-bg: #0a1f0a;
@@ -158,7 +159,12 @@ body {
 
 [data-theme="win95"] .synthwave-sun,
 [data-theme="terminal"] .synthwave-sun {
-  display: none;
+  display: none !important;
+}
+
+[data-theme="win95"] .perspective-grid,
+[data-theme="win95"] .grid-horizon {
+  display: none !important;
 }
 
 .perspective-grid {
@@ -279,88 +285,6 @@ body {
   to {
     filter: drop-shadow(0 0 12px var(--accent-pink));
   }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(255, 0, 127, 0.6);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(255, 0, 127, 0.9), 0 0 10px #ff007f;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes pulse-turn-banner {
-  0%, 100% {
-    box-shadow: 0 0 12px rgba(255, 0, 127, 0.5), inset 0 0 8px rgba(255, 0, 127, 0.2);
-    border-color: var(--accent-pink);
-  }
-  50% {
-    box-shadow: 0 0 24px rgba(255, 0, 127, 0.9), inset 0 0 16px rgba(255, 0, 127, 0.4);
-    border-color: #ff3399;
-  }
-}
-
-@keyframes roll-btn-glow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(255, 0, 127, 0.8), 0 0 30px rgba(255, 0, 127, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.3);
-    border-color: #ff007f;
-    text-shadow: 0 0 8px #ffffff, 0 0 12px #ff007f;
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(255, 0, 127, 1), 0 0 45px rgba(255, 0, 127, 0.7), inset 0 0 15px rgba(255, 0, 127, 0.5);
-    border-color: #ffe600;
-    text-shadow: 0 0 12px #ffffff, 0 0 18px #ffe600;
-    transform: scale(1.02);
-  }
-}
-
-.roll-dice-btn {
-  width: 100%;
-  padding: 12px 0;
-  font-size: 0.85rem;
-  font-family: var(--font-heading);
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-radius: 4px;
-  box-sizing: border-box;
-  outline: none;
-  text-transform: uppercase;
-}
-
-.roll-dice-btn.is-active-turn {
-  background: linear-gradient(135deg, #ff007f, #9d00ff) !important;
-  color: #ffffff !important;
-  border: 2px solid #ff007f !important;
-  cursor: pointer !important;
-  opacity: 1 !important;
-  animation: roll-btn-glow 1.2s infinite ease-in-out !important;
-  transition: none !important;
-}
-
-.roll-dice-btn.is-active-turn:hover {
-  transform: scale(1.03) !important;
-  box-shadow: 0 0 30px rgba(255, 0, 127, 1), 0 0 50px rgba(255, 230, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.6) !important;
-}
-
-.roll-dice-btn.is-active-turn:active {
-  transform: scale(0.98) !important;
-}
-
-.roll-dice-btn.is-inactive-turn {
-  background: rgba(25, 10, 56, 0.5) !important;
-  color: rgba(255, 255, 255, 0.4) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
-  box-shadow: none !important;
-  cursor: default !important;
-  opacity: 0.5 !important;
-  animation: none !important;
 }
 
 .brand-title {
@@ -575,11 +499,11 @@ body {
 
 .hero-section {
   text-align: center;
-  padding: 40px 20px;
+  padding: 18px 20px 16px;
   background: var(--bg-card);
   border: var(--card-border-style);
   box-shadow: var(--box-shadow);
-  margin-bottom: 30px;
+  margin-bottom: 18px;
   position: relative;
   overflow: hidden;
   border-radius: 4px;
@@ -588,34 +512,34 @@ body {
 .hero-title {
   font-family: var(--font-heading);
   font-size: 2.2rem;
-  line-height: 1.4;
+  line-height: 1.25;
   color: #ffffff;
-  text-shadow: 3px 3px 0px var(--accent-pink), -2px -2px 0px var(--accent-cyan), 0 0 20px rgba(255, 0, 127, 0.8);
-  margin-bottom: 15px;
+  text-shadow: 3px 3px 0px var(--accent-pink), -2px -2px 0px var(--accent-cyan), 0 0 22px rgba(255, 0, 127, 0.85);
+  margin-bottom: 8px;
   letter-spacing: 2px;
 }
 
 .hero-subtitle {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   color: var(--accent-yellow);
-  text-shadow: 0 0 10px var(--accent-yellow);
-  margin-bottom: 25px;
+  text-shadow: 0 0 12px var(--accent-yellow);
+  margin-bottom: 0;
 }
 
 .badge-bar {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-top: 15px;
+  margin-top: 8px;
 }
 
 .retro-badge {
   background: var(--bg-secondary);
   border: 1px dashed var(--accent-cyan);
-  padding: 6px 12px;
-  font-size: 0.8rem;
+  padding: 4px 10px;
+  font-size: 0.74rem;
   color: var(--accent-cyan);
 }
 
@@ -1051,12 +975,36 @@ body {
   flex-direction: column;
 }
 
-/* Pac-Man Arcade Maze Outline Styling for Game Page */
-.game-page .retro-window {
-  background: rgba(15, 6, 38, 0.95);
-  border: 2px solid #2121ff;
-  border-radius: 10px;
-  box-shadow: 0 0 20px rgba(33, 33, 255, 0.6), inset 0 0 15px rgba(0, 240, 255, 0.25);
+.app-wrapper.game-page {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+body:has(.game-page),
+html:has(.game-page) {
+  overflow: hidden !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+body:has(.game-page) *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+body:has(.game-page) * {
+  scrollbar-width: none !important;
+}
+
+body:has(.game-page) .crt-screen {
+  min-height: unset !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
 }
 
 .window-header {
@@ -1097,6 +1045,48 @@ body {
 
 .window-btn.max {
   background: #27c93f;
+}
+
+/* Reusable Retro Friend Card Item */
+.retro-friend-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.retro-friend-card:hover {
+  background: rgba(0, 240, 255, 0.08) !important;
+  border-color: var(--accent-cyan) !important;
+  transform: translateX(2px);
+}
+
+[data-theme="win95"] .retro-friend-card {
+  background: #c0c0c0 !important;
+  border: 1px solid #808080 !important;
+}
+
+[data-theme="win95"] .retro-friend-card:hover {
+  background: #000080 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+[data-theme="terminal"] .retro-friend-card {
+  background: rgba(10, 31, 10, 0.6) !important;
+  border: 1px solid rgba(51, 255, 51, 0.35) !important;
+}
+
+[data-theme="terminal"] .retro-friend-card:hover {
+  background: rgba(51, 255, 51, 0.15) !important;
+  border-color: #33ff33 !important;
 }
 
 .window-body {
@@ -1229,7 +1219,7 @@ body {
   position: relative;
   overflow: hidden;
   width: 100%;
-  max-width: 720px;
+  height: 100%;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1550,6 +1540,169 @@ canvas#snakeCanvas {
     opacity: 1;
     transform: perspective(600px) rotateX(0deg) translateY(0) scale(1);
   }
+}
+
+/* --------------------------------------------------------------------------
+   THEME-SPECIFIC COMPONENT OVERRIDES (WIN95 & TERMINAL)
+   -------------------------------------------------------------------------- */
+
+/* Win95 Floating Dock (Navbar) */
+[data-theme="win95"] .retro-floating-dock {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #000000, inset 1px 1px 0px #dfdfdf !important;
+  backdrop-filter: none !important;
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .retro-floating-dock .theme-trigger-btn {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  color: #000000 !important;
+  box-shadow: 1px 1px 0px #000000 !important;
+}
+
+[data-theme="win95"] .retro-floating-dock .theme-trigger-btn.active {
+  background: #000080 !important;
+  color: #ffffff !important;
+  border-top: 2px solid #000000 !important;
+  border-left: 2px solid #000000 !important;
+  border-right: 2px solid #ffffff !important;
+  border-bottom: 2px solid #ffffff !important;
+  box-shadow: inset 1px 1px 0px #000000 !important;
+}
+
+/* Terminal Floating Dock (Navbar) */
+[data-theme="terminal"] .retro-floating-dock {
+  background: rgba(5, 16, 5, 0.95) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 25px rgba(51, 255, 51, 0.3), inset 0 0 15px rgba(51, 255, 51, 0.15) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+[data-theme="terminal"] .retro-floating-dock .theme-trigger-btn {
+  background: #0a1f0a !important;
+  border: 1px solid rgba(51, 255, 51, 0.4) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .retro-floating-dock .theme-trigger-btn.active {
+  background: #116611 !important;
+  border-color: #33ff33 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px #33ff33, inset 0 0 8px #33ff33 !important;
+}
+
+/* Win95 Popovers */
+[data-theme="win95"] .theme-popover-menu {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  border-radius: 0px !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  color: #000000 !important;
+  backdrop-filter: none !important;
+}
+
+/* Terminal Popovers */
+[data-theme="terminal"] .theme-popover-menu {
+  background: rgba(5, 16, 5, 0.98) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 25px rgba(51, 255, 51, 0.35) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+}
+
+/* Win95 Windows & Cards */
+[data-theme="win95"] .retro-window {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  border-radius: 0px !important;
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .window-header {
+  background: linear-gradient(90deg, #000080, #1084d0) !important;
+  color: #ffffff !important;
+  padding: 6px 10px !important;
+  border-radius: 0px !important;
+}
+
+[data-theme="win95"] .window-body {
+  background: #c0c0c0 !important;
+  color: #000000 !important;
+}
+
+/* Terminal Windows & Cards */
+[data-theme="terminal"] .retro-window {
+  background: rgba(10, 31, 10, 0.95) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 18px rgba(51, 255, 51, 0.25) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .window-header {
+  background: #116611 !important;
+  color: #33ff33 !important;
+  border-bottom: 1px solid #33ff33 !important;
+}
+
+[data-theme="terminal"] .window-body {
+  background: rgba(5, 16, 5, 0.92) !important;
+  color: #33ff33 !important;
+}
+
+/* Win95 & Terminal Ticket Passes */
+[data-theme="win95"] .retro-ticket-pass {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  border-radius: 0px !important;
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .ticket-action-pill {
+  background: #000080 !important;
+  color: #ffffff !important;
+  border: 2px outset #ffffff !important;
+  border-radius: 0px !important;
+  box-shadow: 1px 1px 0px #000000 !important;
+}
+
+[data-theme="terminal"] .retro-ticket-pass {
+  background: rgba(10, 31, 10, 0.9) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 15px rgba(51, 255, 51, 0.2) !important;
+  border-radius: 4px !important;
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .ticket-action-pill {
+  background: #116611 !important;
+  color: #33ff33 !important;
+  border: 1px solid #33ff33 !important;
+  box-shadow: 0 0 12px rgba(51, 255, 51, 0.4) !important;
 }
 
 #color-scheme {
@@ -2908,7 +3061,7 @@ canvas#snakeCanvas {
   border: 2.5px solid var(--accent-cyan);
   border-top: 2px dashed rgba(0, 240, 255, 0.6);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
-  animation: printVendingTicketSmooth 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: printVendingTicketJitter 1.85s cubic-bezier(0.22, 0.85, 0.36, 1) forwards;
   transform-origin: top center;
   box-sizing: border-box;
   will-change: transform, opacity;
@@ -2917,13 +3070,46 @@ canvas#snakeCanvas {
   transform: translate3d(0, 0, 0);
 }
 
-/* Smooth, fast and jitter-free Vending Machine Dispense Animation */
-@keyframes printVendingTicketSmooth {
+/* Slower Vending Machine Mechanical Stepper Dispense Animation with Slow Jitter */
+@keyframes printVendingTicketJitter {
   0% {
     transform: translate3d(0, -102%, 0);
     opacity: 0;
   }
-
+  6% {
+    transform: translate3d(0.8px, -90%, 0);
+    opacity: 1;
+  }
+  14% {
+    transform: translate3d(-0.9px, -78%, 0);
+  }
+  22% {
+    transform: translate3d(1.1px, -66%, 0);
+  }
+  30% {
+    transform: translate3d(-0.8px, -54%, 0);
+  }
+  40% {
+    transform: translate3d(1px, -42%, 0);
+  }
+  50% {
+    transform: translate3d(-0.7px, -30%, 0);
+  }
+  60% {
+    transform: translate3d(0.8px, -20%, 0);
+  }
+  70% {
+    transform: translate3d(-0.6px, -11%, 0);
+  }
+  80% {
+    transform: translate3d(0.5px, -5%, 0);
+  }
+  90% {
+    transform: translate3d(-0.3px, -1.5%, 0);
+  }
+  95% {
+    transform: translate3d(0.2px, 0.5px, 0);
+  }
   100% {
     transform: translate3d(0, 0, 0);
     opacity: 1;
@@ -3465,4 +3651,1262 @@ canvas#snakeCanvas {
   background: rgba(10, 31, 10, 0.96) !important;
   border: 2px solid #33ff33 !important;
   box-shadow: 0 0 16px rgba(51, 255, 51, 0.25) !important;
+}
+
+/* ==========================================================================
+   GAME BOARD THEME STYLES (SYNTHWAVE, WIN95, CRT TERMINAL)
+   ========================================================================== */
+
+/* 1. Board Chassis */
+.retro-board-chassis {
+  background: rgba(15, 6, 38, 0.95);
+  border: 2px solid #00f0ff;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.35), inset 0 0 25px rgba(255, 0, 127, 0.15);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+[data-theme="win95"] .retro-board-chassis {
+  background: #c0c0c0 !important;
+  border-top: 3px solid #ffffff !important;
+  border-left: 3px solid #ffffff !important;
+  border-right: 3px solid #000000 !important;
+  border-bottom: 3px solid #000000 !important;
+  box-shadow: 3px 3px 0px #000000, inset 2px 2px 0px #ffffff !important;
+  border-radius: 0px !important;
+}
+
+[data-theme="terminal"] .retro-board-chassis {
+  background: rgba(5, 16, 5, 0.98) !important;
+  border: 2px solid #33ff33 !important;
+  box-shadow: 0 0 30px rgba(51, 255, 51, 0.35), inset 0 0 20px rgba(51, 255, 51, 0.12) !important;
+  border-radius: 4px !important;
+}
+
+/* 2. Home Bays (Yards) */
+.retro-yard-box {
+  background: rgba(10, 2, 28, 0.95);
+  border: 1.5px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.25);
+  border-radius: 8px;
+}
+
+[data-theme="win95"] .retro-yard-box {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #808080 !important;
+  border-left: 2px solid #808080 !important;
+  border-right: 2px solid #ffffff !important;
+  border-bottom: 2px solid #ffffff !important;
+  box-shadow: inset 1px 1px 0px #000000 !important;
+  border-radius: 0px !important;
+}
+
+[data-theme="terminal"] .retro-yard-box {
+  background: rgba(10, 31, 10, 0.95) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 12px rgba(51, 255, 51, 0.25) !important;
+  border-radius: 4px !important;
+}
+
+/* 3. Inner Yards */
+.retro-yard-inner {
+  background: rgba(10, 2, 28, 0.95);
+  border-radius: 8px;
+}
+
+[data-theme="win95"] .retro-yard-inner {
+  background: #ffffff !important;
+  border-top: 2px solid #000000 !important;
+  border-left: 2px solid #000000 !important;
+  border-right: 2px solid #dfdfdf !important;
+  border-bottom: 2px solid #dfdfdf !important;
+  box-shadow: inset 1px 1px 0px #808080 !important;
+  border-radius: 0px !important;
+}
+
+[data-theme="terminal"] .retro-yard-inner {
+  background: #020a02 !important;
+  border: 1px solid #33ff33 !important;
+  border-radius: 4px !important;
+}
+
+/* 4. Goal Counter Chips */
+.retro-goal-chip {
+  background: rgba(5, 5, 20, 0.9);
+  color: #ffffff;
+  border-radius: 3px;
+}
+
+[data-theme="win95"] .retro-goal-chip {
+  background: #c0c0c0 !important;
+  border-top: 1px solid #ffffff !important;
+  border-left: 1px solid #ffffff !important;
+  border-right: 1px solid #000000 !important;
+  border-bottom: 1px solid #000000 !important;
+  box-shadow: 1px 1px 0px #000000 !important;
+  color: #000000 !important;
+  border-radius: 0px !important;
+}
+
+[data-theme="terminal"] .retro-goal-chip {
+  background: #020a02 !important;
+  border: 1px solid #33ff33 !important;
+  color: #33ff33 !important;
+  border-radius: 2px !important;
+}
+
+/* 5. Center Triangle Cross */
+.retro-center-triangles {
+  border: 2px solid #00f0ff;
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.5);
+}
+
+[data-theme="win95"] .retro-center-triangles {
+  border: 2px solid #808080 !important;
+  box-shadow: inset 1px 1px 0px #000000 !important;
+}
+
+[data-theme="terminal"] .retro-center-triangles {
+  border: 2px solid #33ff33 !important;
+  box-shadow: 0 0 15px rgba(51, 255, 51, 0.4) !important;
+}
+
+/* 6. Track Cells */
+[data-theme="win95"] .retro-track-cell-default {
+  background: #ffffff !important;
+  border: 1px solid #808080 !important;
+}
+
+[data-theme="terminal"] .retro-track-cell-default {
+  background: #020a02 !important;
+  border: 1px solid #33ff33 !important;
+}
+
+/* 7. Die Styling */
+.retro-die-cube {
+  border-radius: 17px;
+  background: linear-gradient(150deg, #fbf5e6, #e4d8bf);
+  box-shadow: inset 0 2px 4px rgba(255,255,255,.8), inset 0 -6px 10px rgba(140,120,80,.35), 0 14px 24px -10px rgba(0,0,0,.7);
+  border: 1px solid #cbb99a;
+}
+
+[data-theme="win95"] .retro-die-cube {
+  background: #ffffff !important;
+  border-top: 3px solid #ffffff !important;
+  border-left: 3px solid #ffffff !important;
+  border-right: 3px solid #000000 !important;
+  border-bottom: 3px solid #000000 !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  border-radius: 0px !important;
+}
+
+[data-theme="terminal"] .retro-die-cube {
+  background: #020a02 !important;
+  border: 2px solid #33ff33 !important;
+  box-shadow: 0 0 20px rgba(51, 255, 51, 0.4), inset 0 0 10px rgba(51, 255, 51, 0.2) !important;
+  border-radius: 4px !important;
+}
+
+.retro-die-pip {
+  background: radial-gradient(circle at 35% 30%, #5a4a2e, #241a0c);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.5);
+}
+
+[data-theme="win95"] .retro-die-pip {
+  background: #000000 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="terminal"] .retro-die-pip {
+  background: #33ff33 !important;
+  box-shadow: 0 0 8px #33ff33 !important;
+}
+
+/* ==========================================================================
+   CYBERPUNK GLITCH POPOVER MODAL & CYBER BUTTON DESIGN SYSTEM
+   ========================================================================== */
+
+:root {
+  --flicker: linear(
+    0 0%,
+    0.1864 6.17%,
+    0.0001 14.41%,
+    0.5244 20.97%,
+    0.3927 37.91%,
+    0.8115 60.62%,
+    0.9416 61.92%,
+    0.9928 67.98%,
+    0.5032 70.42%,
+    0.9077 96.96%,
+    0.6736 98.74%,
+    1 100%
+  );
+}
+
+.cyber-btn {
+  --corner: 10px;
+  --border: 1.5px;
+  --clip: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--corner)),
+    calc(100% - var(--corner)) 100%,
+    0% 100%
+  );
+  --btn-accent: var(--accent-cyan, #00f0ff);
+  --btn-shadow: var(--accent-pink, #ff007f);
+  --shimmy-distance: 4;
+  font-family: var(--font-display, 'Orbitron', sans-serif);
+  font-weight: 900;
+  letter-spacing: 1px;
+  min-width: 140px;
+  text-align: left;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  border: 0;
+  background: transparent;
+  position: relative;
+  color: var(--btn-accent);
+  cursor: pointer;
+  box-sizing: border-box;
+  user-select: none;
+  transition: transform 0.15s ease;
+  overflow: visible;
+}
+
+.cyber-btn.cyber-btn-pink {
+  --btn-accent: var(--accent-pink, #ff007f);
+  --btn-shadow: #9d00ff;
+}
+
+.cyber-btn.cyber-btn-yellow {
+  --btn-accent: var(--accent-yellow, #ffe600);
+  --btn-shadow: #ff5500;
+}
+
+.cyber-btn.cyber-btn-danger {
+  --btn-accent: #ff0055;
+  --btn-shadow: #ff0000;
+}
+
+.cyber-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cyber-btn:not(:disabled):hover,
+.cyber-btn:not(:disabled):focus-visible {
+  color: #0d0221;
+}
+
+.cyber-btn:not(:disabled):hover .backdrop,
+.cyber-btn:not(:disabled):focus-visible .backdrop {
+  background: var(--btn-accent);
+  box-shadow: 0 0 16px var(--btn-accent);
+}
+
+.cyber-btn:not(:disabled):hover kbd,
+.cyber-btn:not(:disabled):focus-visible kbd {
+  color: var(--btn-accent);
+  background: #0d0221;
+}
+
+.cyber-btn .backdrop {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgba(15, 5, 32, 0.85);
+  backdrop-filter: blur(8px) saturate(180%);
+  clip-path: var(--clip);
+  pointer-events: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cyber-btn .backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--btn-accent);
+  border: var(--border) solid transparent;
+  clip-path: var(--clip);
+  mask: linear-gradient(#0000 0% 100%), linear-gradient(#fff 0% 100%);
+  mask-clip: padding-box, border-box;
+  mask-repeat: no-repeat;
+  mask-composite: intersect;
+  z-index: 2;
+}
+
+.cyber-btn .backdrop .corner {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  height: var(--corner);
+  width: var(--corner);
+}
+
+.cyber-btn .backdrop .corner::after {
+  content: '';
+  height: calc(var(--border) * 2);
+  width: 200%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  transform: rotate(135deg);
+  background: var(--btn-accent);
+}
+
+.cyber-btn kbd {
+  position: relative;
+  z-index: 3;
+  color: #0d0221;
+  font-family: var(--font-mono, monospace);
+  font-weight: bold;
+  height: 20px;
+  min-width: 20px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.65rem;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--btn-accent);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.cyber-btn span.cyber-label {
+  position: relative;
+  z-index: 3;
+  font-size: 0.76rem;
+  letter-spacing: 0.5px;
+}
+
+.cyber-btn .glitch-btn-layer {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  pointer-events: none;
+  color: var(--btn-accent);
+  text-shadow: 0 1px var(--btn-shadow);
+  z-index: 4;
+}
+
+.cyber-btn:not(:disabled):hover .glitch-btn-layer {
+  display: inline-flex;
+  animation: cyberBtnGlitch 1.8s infinite;
+}
+
+.cyber-btn:not(:disabled):hover .glitch-btn-layer .backdrop {
+  background: #0d0221;
+}
+
+.cyber-btn .letters {
+  display: flex;
+}
+
+.cyber-btn .letters span:nth-of-type(2),
+.cyber-btn .letters span:nth-of-type(5) {
+  scale: 1 -1;
+}
+
+.cyber-btn .letters span:nth-of-type(3),
+.cyber-btn .letters span:nth-of-type(6),
+.cyber-btn .letters span:nth-of-type(7) {
+  scale: -1 -1;
+}
+
+/* ==========================================================================
+   CYBER MODAL OVERLAY & MULTI-STAGE ENTRANCE CHOREOGRAPHY
+   ========================================================================== */
+
+.cyber-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 2, 14, 0.78);
+  backdrop-filter: blur(12px) saturate(180%);
+  z-index: 10002;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.cyber-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cyber-modal-box {
+  --corner: 12px;
+  --border: 2px;
+  --clip: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--corner)),
+    calc(100% - var(--corner)) 100%,
+    0% 100%
+  );
+  --modal-accent: var(--accent-cyan, #00f0ff);
+  --modal-shadow: var(--accent-pink, #ff007f);
+  color: var(--modal-accent);
+  width: clamp(340px, 90vw, 500px);
+  position: relative;
+  box-sizing: border-box;
+  font-family: var(--font-display, sans-serif);
+  overflow: visible;
+  background: transparent;
+}
+
+/* 1. Side vertical glowing indicator bar */
+.cyber-modal-box::after,
+.cyber-modal-box::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  right: 100%;
+  width: 1rem;
+  border: var(--border) solid var(--modal-accent);
+  translate: -25% 0;
+  opacity: 0;
+  backdrop-filter: saturate(180%) blur(6px);
+  transition-property: opacity, translate;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-out;
+  transition-delay: 0.325s;
+}
+
+.cyber-modal-box::before {
+  background: var(--modal-accent);
+  mask: linear-gradient(#fff, hsl(0 0% 100% / 0.6) 15% 95%, #fff);
+}
+
+.cyber-modal-box.is-open::after,
+.cyber-modal-box.is-open::before {
+  opacity: 1;
+  translate: var(--border) 0;
+}
+
+.cyber-modal-box.is-open::before {
+  animation: cyberModalFlicker 0.625s var(--flicker) none;
+  animation-delay: 0.2s;
+  transition-delay: 0s;
+}
+
+/* 2. Modal Body & Sliding Backdrop */
+.cyber-modal-box .modal__body {
+  position: relative;
+  backdrop-filter: saturate(180%) blur(8px);
+  clip-path: inset(0 calc(100% + (2 * var(--border))) 0 0);
+  transition-property: clip-path;
+  transition-duration: 0.26s;
+  transition-delay: 0.075s;
+}
+
+.cyber-modal-box.is-open .modal__body {
+  clip-path: inset(0 calc(var(--border) * -1) 0 0);
+  transition-delay: 0.22s;
+}
+
+.cyber-modal-box .body__backdrop {
+  position: absolute;
+  inset: 0;
+  transition-property: translate;
+  transition-duration: 0.26s;
+  translate: calc(-100% - (2 * var(--border))) 0;
+  transition-delay: 0.075s;
+}
+
+.cyber-modal-box.is-open .body__backdrop {
+  translate: 0 0;
+  transition-delay: 0.22s;
+}
+
+.cyber-modal-box .body__backdrop .backdrop-plate {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: rgba(14, 4, 32, 0.95);
+  clip-path: var(--clip);
+  border: var(--border) solid var(--modal-accent);
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.35), inset 0 0 20px rgba(255, 0, 127, 0.15);
+}
+
+.cyber-modal-box .body__backdrop::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 2rem;
+  width: calc(2 * var(--border));
+  height: 40%;
+  background: var(--modal-accent);
+  opacity: 0.7;
+  clip-path: polygon(0 0, 0 100%, 100% calc(100% - 6px), 100% 6px);
+}
+
+.cyber-modal-box .body__content {
+  padding: 1.4rem 1.4rem 1.2rem;
+  position: relative;
+  clip-path: inset(0 calc(100% + (2 * var(--border))) 0 0);
+  transition-property: clip-path;
+  transition-duration: 0.26s;
+  transition-delay: 0.075s;
+}
+
+.cyber-modal-box.is-open .body__content {
+  clip-path: inset(0 calc(var(--border) * -1) 0 0);
+  transition-delay: 0.22s;
+}
+
+.cyber-modal-box .version {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  font-size: 0.62rem;
+  font-family: var(--font-mono, monospace);
+  opacity: 0.65;
+  color: var(--modal-accent);
+}
+
+/* 3. Heading & Underline drawing across */
+.cyber-modal-box h2 {
+  padding-bottom: 0.6rem;
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+  position: relative;
+  font-size: 1.15rem;
+  font-family: var(--font-heading);
+  letter-spacing: 1px;
+  color: #ffffff;
+}
+
+.cyber-modal-box h2 span {
+  opacity: 0;
+  transition-property: opacity;
+  transition-timing-function: ease-out;
+  transition-duration: 0.26s;
+}
+
+.cyber-modal-box.is-open h2 span {
+  opacity: 1;
+  transition-delay: 0.325s;
+}
+
+.cyber-modal-box h2::after {
+  content: '';
+  height: var(--border);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--modal-accent);
+  box-shadow: 0 0 8px var(--modal-accent);
+  position: absolute;
+  transform-origin: 0 50%;
+  transition-duration: 0.26s;
+  transition-property: scale;
+  transition-timing-function: ease-in;
+  scale: 0 1;
+}
+
+.cyber-modal-box.is-open h2::after {
+  scale: 1 1;
+  transition-delay: 0.325s;
+  transition-timing-function: ease-out;
+}
+
+/* 4. Text paragraphs sliding down */
+.cyber-modal-box .body__text {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.88);
+  opacity: 0;
+  translate: 0 -1lh;
+  transition-property: opacity, translate;
+  transition-duration: 0.26s;
+  transition-timing-function: ease-out;
+}
+
+.cyber-modal-box.is-open .body__text {
+  translate: 0 0;
+  opacity: 1;
+  transition-delay: 0.325s;
+}
+
+.cyber-modal-box .body__text p {
+  margin: 0 0 0.8rem 0;
+}
+
+.cyber-modal-box .body__text p:last-child {
+  margin-bottom: 0;
+  font-weight: bold;
+  color: var(--accent-yellow, #ffe600);
+}
+
+/* 5. Actions button group sliding in last */
+.cyber-modal-box .modal__actions {
+  display: flex;
+  align-items: center;
+  justifyContent: flex-end;
+  gap: 0.8rem;
+  padding-top: 1.2rem;
+  transition-property: translate, opacity;
+  transition-duration: 0.1s;
+  transition-timing-function: ease-out;
+  opacity: 0;
+  translate: -24px 0;
+}
+
+.cyber-modal-box.is-open .modal__actions {
+  opacity: 1;
+  translate: 0 0;
+  transition-delay: 0.5s;
+}
+
+/* 6. Multi-stage Glitch keyframes */
+.cyber-modal-box .modal__glitch {
+  --shimmy-distance: 2;
+  --clip-one: polygon(0 2%, 100% 2%, 100% 95%, 95% 95%, 95% 90%, 85% 90%, 85% 95%, 8% 95%, 0 70%);
+  --clip-two: polygon(0 78%, 100% 78%, 100% 100%, 95% 100%, 95% 90%, 85% 90%, 85% 100%, 8% 100%, 0 78%);
+  --clip-three: polygon(0 44%, 100% 44%, 100% 54%, 95% 54%, 95% 54%, 85% 54%, 85% 54%, 8% 54%, 0 54%);
+  --clip-four: polygon(0 0, 100% 0, 100% 0, 95% 0, 95% 0, 85% 0, 85% 0, 8% 0, 0 0);
+  --clip-five: polygon(0 0, 100% 0, 100% 0, 95% 0, 95% 0, 85% 0, 85% 0, 8% 0, 0 0);
+  --clip-six: polygon(0 40%, 100% 40%, 100% 85%, 95% 85%, 95% 85%, 85% 85%, 85% 85%, 8% 85%, 0 70%);
+  --clip-seven: polygon(0 63%, 100% 63%, 100% 80%, 95% 80%, 95% 80%, 85% 80%, 85% 80%, 8% 80%, 0 70%);
+  position: absolute;
+  inset: 0;
+  padding: 1.4rem;
+  color: var(--modal-shadow);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+}
+
+.cyber-modal-box.glitching .modal__glitch {
+  opacity: 1;
+  animation: cyberModalFullGlitch 1.6s ease forwards;
+}
+
+@keyframes cyberModalFullGlitch {
+  0% {
+    clip-path: var(--clip-one);
+  }
+  2%, 8% {
+    clip-path: var(--clip-two);
+    transform: translate(calc(var(--shimmy-distance) * -1%), 0);
+  }
+  6% {
+    clip-path: var(--clip-two);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  9% {
+    clip-path: var(--clip-two);
+    transform: translate(0, 0);
+  }
+  10% {
+    clip-path: var(--clip-three);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  13% {
+    clip-path: var(--clip-three);
+    transform: translate(0, 0);
+  }
+  14%, 21% {
+    clip-path: var(--clip-four);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  25% {
+    clip-path: var(--clip-five);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  30% {
+    clip-path: var(--clip-five);
+    transform: translate(calc(var(--shimmy-distance) * -1%), 0);
+  }
+  35%, 45% {
+    clip-path: var(--clip-six);
+    transform: translate(calc(var(--shimmy-distance) * -1%), 0);
+  }
+  40% {
+    clip-path: var(--clip-six);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  50% {
+    clip-path: var(--clip-six);
+    transform: translate(0, 0);
+  }
+  55% {
+    clip-path: var(--clip-seven);
+    transform: translate(calc(var(--shimmy-distance) * 1%), 0);
+  }
+  60% {
+    clip-path: var(--clip-seven);
+    transform: translate(0, 0);
+  }
+  31%, 61%, 100% {
+    clip-path: var(--clip-four);
+    opacity: 0;
+  }
+}
+
+@keyframes cyberBtnGlitch {
+  0% {
+    clip-path: polygon(0 2%, 100% 2%, 100% 95%, 85% 95%, 0 70%);
+    transform: translate(-2px, 1px);
+  }
+  25% {
+    clip-path: polygon(0 44%, 100% 44%, 100% 54%, 85% 54%, 0 54%);
+    transform: translate(2px, -1px);
+  }
+  50% {
+    clip-path: polygon(0 63%, 100% 63%, 100% 80%, 85% 80%, 0 70%);
+    transform: translate(-1px, 2px);
+  }
+  75% {
+    clip-path: polygon(0 15%, 100% 15%, 100% 30%, 85% 30%, 0 25%);
+    transform: translate(1px, -1px);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 0, 95% 0, 0 0);
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes cyberModalFlicker {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Theme adaptation for Win95 and Terminal */
+[data-theme="win95"] .cyber-modal-box .body__backdrop .backdrop-plate {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  border-radius: 0px !important;
+  clip-path: none !important;
+}
+
+[data-theme="win95"] .cyber-modal-box::before,
+[data-theme="win95"] .cyber-modal-box::after {
+  display: none !important;
+}
+
+[data-theme="win95"] .cyber-modal-box h2 {
+  color: #000080 !important;
+}
+
+[data-theme="win95"] .cyber-modal-box .body__text {
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .cyber-btn .backdrop {
+  background: #c0c0c0 !important;
+  clip-path: none !important;
+}
+
+[data-theme="win95"] .cyber-btn {
+  clip-path: none !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  color: #000000 !important;
+}
+
+[data-theme="terminal"] .cyber-modal-box .body__backdrop .backdrop-plate {
+  background: rgba(5, 16, 5, 0.98) !important;
+  border: 1.5px solid #33ff33 !important;
+  box-shadow: 0 0 25px rgba(51, 255, 51, 0.4) !important;
+}
+
+[data-theme="terminal"] .cyber-modal-box h2 {
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-modal-box .body__text {
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-btn {
+  color: #33ff33 !important;
+  --btn-accent: #33ff33;
+}
+
+/* ==========================================================================
+   CYBERPUNK HI-FI SOUND DECK & CASSETTE PLAYER WIDGET
+   ========================================================================== */
+
+.cyber-deck-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.cyber-cassette-chassis {
+  background: linear-gradient(180deg, #18092e 0%, #0c021a 100%);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(0, 240, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cyber-cassette-chassis::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink), var(--accent-yellow));
+}
+
+.cassette-window {
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.tape-reel {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px dashed var(--accent-pink);
+  background: rgba(255, 0, 127, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--accent-pink);
+  box-shadow: 0 0 8px rgba(255, 0, 127, 0.3);
+  transition: transform 0.1s linear;
+}
+
+.tape-reel.active {
+  animation: reelSpin 2s linear infinite;
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+@keyframes reelSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.tape-bridge {
+  flex: 1;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(255, 0, 127, 0.4), rgba(0, 240, 255, 0.4));
+  margin: 0 8px;
+  border-radius: 2px;
+  position: relative;
+}
+
+.tape-bridge::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 7px;
+  background: #2b0b4a;
+  border: 1px solid var(--accent-yellow);
+  border-radius: 2px;
+}
+
+.oled-screen {
+  background: #020008;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 4px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.oled-title {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  color: var(--accent-yellow);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 8px rgba(255, 230, 0, 0.5);
+}
+
+.oled-meta {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--accent-cyan);
+  display: flex;
+  justify-content: space-between;
+}
+
+.cyber-eq-deck {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 28px;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  gap: 2px;
+}
+
+.cyber-eq-col {
+  flex: 1;
+  background: linear-gradient(0deg, #00f0ff 0%, #ffe600 65%, #ff007f 100%);
+  border-radius: 1px;
+  min-height: 3px;
+  transition: height 0.1s ease;
+}
+
+/* ==========================================================================
+   CYBER TRANSPORT HARDWARE BUTTON CLUSTER
+   ========================================================================== */
+
+.cyber-transport-cluster {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cyber-deck-key {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 4px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, rgba(35, 15, 70, 0.8) 0%, rgba(15, 5, 35, 0.95) 100%);
+  border: 1.5px solid rgba(0, 240, 255, 0.35);
+  color: var(--text-main);
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.cyber-deck-key:hover {
+  border-color: var(--accent-cyan);
+  background: linear-gradient(180deg, rgba(50, 25, 95, 0.9) 0%, rgba(20, 8, 45, 0.95) 100%);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.cyber-deck-key:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.cyber-deck-key-play {
+  background: linear-gradient(180deg, rgba(255, 0, 127, 0.3) 0%, rgba(13, 2, 33, 0.95) 100%);
+  border: 1.5px solid var(--accent-pink);
+  box-shadow: 0 0 12px rgba(255, 0, 127, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.cyber-deck-key-play.active {
+  background: linear-gradient(180deg, rgba(255, 0, 127, 0.6) 0%, rgba(120, 0, 60, 0.95) 100%);
+  border-color: #ffffff;
+  box-shadow: 0 0 18px rgba(255, 0, 127, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.3);
+}
+
+.cyber-deck-key-play:hover {
+  border-color: #ffffff;
+  box-shadow: 0 0 18px rgba(255, 0, 127, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.cyber-key-icon {
+  font-size: 0.8rem;
+  line-height: 1;
+  margin-bottom: 1px;
+  text-shadow: 0 0 8px currentColor;
+}
+
+.cyber-key-label {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.6rem;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.cyber-key-sub {
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  opacity: 0.7;
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+
+[data-theme="win95"] .cyber-transport-cluster {
+  background: #c0c0c0 !important;
+  border: 1px solid #808080 !important;
+}
+
+[data-theme="win95"] .cyber-deck-key,
+[data-theme="win95"] .cyber-deck-key-play {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #808080 !important;
+  border-bottom: 2px solid #808080 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: #000000 !important;
+}
+
+[data-theme="win95"] .cyber-deck-key:active,
+[data-theme="win95"] .cyber-deck-key-play:active {
+  border-top: 2px solid #808080 !important;
+  border-left: 2px solid #808080 !important;
+  border-right: 2px solid #ffffff !important;
+  border-bottom: 2px solid #ffffff !important;
+}
+
+[data-theme="terminal"] .cyber-transport-cluster {
+  background: #000800 !important;
+  border: 1px solid #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-deck-key,
+[data-theme="terminal"] .cyber-deck-key-play {
+  background: #001200 !important;
+  border: 1px solid #33ff33 !important;
+  color: #33ff33 !important;
+  box-shadow: 0 0 8px rgba(51, 255, 51, 0.3) !important;
+}
+
+.track-matrix-btn {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: rgba(25, 10, 56, 0.5);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.track-matrix-btn:hover {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: var(--accent-cyan);
+  transform: translateX(2px);
+}
+
+.track-matrix-btn.active {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.2), rgba(255, 0, 127, 0.15));
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+}
+
+[data-theme="win95"] .cyber-cassette-chassis {
+  background: #c0c0c0 !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #808080 !important;
+  border-bottom: 2px solid #808080 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="win95"] .oled-screen {
+  background: #000000 !important;
+  border: 1px solid #808080 !important;
+}
+
+[data-theme="win95"] .cyber-eq-col {
+  background: #00ff00 !important;
+}
+
+[data-theme="terminal"] .cyber-cassette-chassis {
+  background: #000500 !important;
+  border: 1px solid #33ff33 !important;
+  box-shadow: 0 0 12px rgba(51, 255, 51, 0.25) !important;
+}
+
+[data-theme="terminal"] .oled-screen {
+  background: #000a00 !important;
+  border: 1px solid #33ff33 !important;
+}
+
+[data-theme="terminal"] .oled-title,
+[data-theme="terminal"] .oled-meta {
+  color: #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-eq-col {
+  background: #33ff33 !important;
+  box-shadow: 0 0 4px #33ff33 !important;
+}
+
+/* ==========================================================================
+   CYBER VOLUME MASTER CONSOLE & 10-SEGMENT LED FADER
+   ========================================================================== */
+
+.cyber-vol-console {
+  background: rgba(10, 2, 28, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.7);
+}
+
+.cyber-vol-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cyber-vol-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.cyber-vol-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: var(--accent-yellow);
+  text-shadow: 0 0 6px var(--accent-yellow);
+}
+
+.cyber-fader-track-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cyber-vol-step-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.cyber-vol-step-btn:hover {
+  background: var(--accent-cyan);
+  color: #0d0221;
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+/* 10-Segment Interactive VU LED Bar */
+.cyber-vol-led-bar {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 3px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.cyber-vol-led-segment {
+  flex: 1;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.12s ease;
+}
+
+.cyber-vol-led-segment.lit-cyan {
+  background: #00f0ff;
+  box-shadow: 0 0 6px #00f0ff;
+}
+
+.cyber-vol-led-segment.lit-amber {
+  background: #ffe600;
+  box-shadow: 0 0 6px #ffe600;
+}
+
+.cyber-vol-led-segment.lit-pink {
+  background: #ff007f;
+  box-shadow: 0 0 8px #ff007f;
+}
+
+.cyber-mute-btn {
+  padding: 3px 8px;
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+[data-theme="win95"] .cyber-vol-console {
+  background: #c0c0c0 !important;
+  border: 1px solid #808080 !important;
+}
+
+[data-theme="win95"] .cyber-vol-led-segment.lit-cyan,
+[data-theme="win95"] .cyber-vol-led-segment.lit-amber,
+[data-theme="win95"] .cyber-vol-led-segment.lit-pink {
+  background: #00ff00 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="terminal"] .cyber-vol-console {
+  background: #000a00 !important;
+  border: 1px solid #33ff33 !important;
+}
+
+[data-theme="terminal"] .cyber-vol-led-segment.lit-cyan,
+[data-theme="terminal"] .cyber-vol-led-segment.lit-amber,
+[data-theme="terminal"] .cyber-vol-led-segment.lit-pink {
+  background: #33ff33 !important;
+  box-shadow: 0 0 4px #33ff33 !important;
 }
