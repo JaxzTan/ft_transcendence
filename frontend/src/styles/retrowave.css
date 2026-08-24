@@ -3089,7 +3089,7 @@ canvas#snakeCanvas {
   border: 2.5px solid var(--accent-cyan);
   border-top: 2px dashed rgba(0, 240, 255, 0.6);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
-  animation: printVendingTicketJitter 1.85s cubic-bezier(0.22, 0.85, 0.36, 1) forwards;
+  animation: printVendingTicketJitter 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   transform-origin: top center;
   box-sizing: border-box;
   will-change: transform, opacity;
@@ -3098,56 +3098,44 @@ canvas#snakeCanvas {
   transform: translate3d(0, 0, 0);
 }
 
-/* Slower Vending Machine Mechanical Stepper Dispense Animation with Slow Jitter */
+/* Smooth Vending Machine Mechanical Stepper Dispense Animation with Micro-Jitter */
 @keyframes printVendingTicketJitter {
   0% {
-    transform: translate3d(0, -102%, 0);
+    transform: translate3d(0, -100%, 0);
     opacity: 0;
   }
 
-  6% {
-    transform: translate3d(0.8px, -90%, 0);
+  8% {
+    transform: translate3d(1.2px, -82%, 0);
     opacity: 1;
   }
 
-  14% {
-    transform: translate3d(-0.9px, -78%, 0);
+  18% {
+    transform: translate3d(-1px, -62%, 0);
   }
 
-  22% {
-    transform: translate3d(1.1px, -66%, 0);
-  }
-
-  30% {
-    transform: translate3d(-0.8px, -54%, 0);
+  28% {
+    transform: translate3d(0.9px, -44%, 0);
   }
 
   40% {
-    transform: translate3d(1px, -42%, 0);
+    transform: translate3d(-0.8px, -28%, 0);
   }
 
-  50% {
-    transform: translate3d(-0.7px, -30%, 0);
+  54% {
+    transform: translate3d(0.6px, -15%, 0);
   }
 
-  60% {
-    transform: translate3d(0.8px, -20%, 0);
+  68% {
+    transform: translate3d(-0.4px, -6%, 0);
   }
 
-  70% {
-    transform: translate3d(-0.6px, -11%, 0);
+  82% {
+    transform: translate3d(0.3px, -1.5%, 0);
   }
 
-  80% {
-    transform: translate3d(0.5px, -5%, 0);
-  }
-
-  90% {
-    transform: translate3d(-0.3px, -1.5%, 0);
-  }
-
-  95% {
-    transform: translate3d(0.2px, 0.5px, 0);
+  92% {
+    transform: translate3d(-0.2px, 0.5px, 0);
   }
 
   100% {

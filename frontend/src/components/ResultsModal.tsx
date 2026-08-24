@@ -15,17 +15,17 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
   const { t } = useTranslation()
   const { user } = useApp()
 
-  // Trigger vending machine mechanical stepping feed sounds during 1.85s print animation
+  // Trigger vending machine mechanical stepping feed sounds during 0.72s print animation
   useEffect(() => {
-    const steps = [0, 220, 480, 750, 1050, 1350, 1600]
+    const steps = [0, 80, 180, 290, 410, 540]
     const stepTimers = steps.map((ms, i) =>
       setTimeout(() => {
-        retroAudio.playUiBeep(320 + (i % 3) * 50, 0.035, 'sawtooth')
+        retroAudio.playUiBeep(340 + (i % 3) * 60, 0.025, 'sawtooth')
       }, ms)
     )
     const finalTimer = setTimeout(() => {
       retroAudio.playUiBeep(880, 0.08, 'sine')
-    }, 1850)
+    }, 720)
     return () => {
       stepTimers.forEach(clearTimeout)
       clearTimeout(finalTimer)

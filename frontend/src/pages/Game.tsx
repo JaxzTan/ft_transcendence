@@ -1507,28 +1507,36 @@ export function Game() {
                 </div>
               </section>
 
-              {/* RETURN TO LOBBY BUTTON (Only for online PvP matches) */}
-              {activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat' && (
+              {/* RETURN TO LOBBY BUTTON (Shown whenever game has ended across all modes, or in online PvP) */}
+              {(isGameEnded || (activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat')) && (
                 <button
                   className="retro-btn"
                   onClick={() => {
                     retroAudio.playUiBeep(440, 0.05)
+                    setLastResult(null)
+                    setShowResultsModal(false)
+                    setActiveMatch(null)
                     navigate('/gamelobby')
                   }}
                   style={{
                     width: '100%',
-                    padding: '12px 14px',
-                    fontSize: '0.78rem',
+                    padding: isGameEnded ? '14px 18px' : '12px 14px',
+                    fontSize: isGameEnded ? '0.88rem' : '0.78rem',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 'bold',
                     letterSpacing: '1px',
                     lineHeight: '1.4',
-                    background: 'rgba(0, 240, 255, 0.12)',
-                    border: '1px solid var(--accent-cyan)',
-                    color: 'var(--accent-cyan)',
+                    background: isGameEnded
+                      ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(157, 0, 255, 0.25))'
+                      : 'rgba(0, 240, 255, 0.12)',
+                    border: '1.5px solid var(--accent-cyan)',
+                    color: '#ffffff',
+                    boxShadow: isGameEnded ? '0 0 16px rgba(0, 240, 255, 0.4)' : 'none',
                     cursor: 'pointer',
                     textAlign: 'center',
+                    justifyContent: 'center',
                     boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
                   }}
                   title="Return to Ludo Lobby"
                 >
