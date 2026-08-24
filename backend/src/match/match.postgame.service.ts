@@ -90,6 +90,7 @@ export class MatchPostgameService {
 							// displayName is required + unique on User (feature-update-profile
 							// branch); bot rows reuse the same id so it stays unique.
 							displayName: p.userId,
+							achievement: { create: { id: crypto.randomUUID() } },
 						},
 					});
 				}
@@ -127,19 +128,19 @@ export class MatchPostgameService {
 				// Example: rating 100, winner, 4 pieces -> +10 => newRating 110,
 				//          highestRating 110, wins++, winStreak 1.
 				//          Rating is clamped at zero (never negative).
-				const user = await tx.user.findUnique({ where: { id: p.userId } });
+				const user = await tx.user.findUnique({ where: { id: p.userId }, include: { achievement: true } });
 				if (user) {
-					const newRating = Math.max(0, user.rating + ratingDelta);
-					await tx.user.update({
-						where: { id: p.userId },
+					const newRating = Math.max(0, user.achievement.rating + ratingDelta);
+					await tx.achievement.update({
+						where: { userId: p.userId },
 						data: {
 							rating: newRating,
-							highestRating: Math.max(user.highestRating, newRating),
+							highestRating: Math.max(user.achievement.highestRating, newRating),
 							wins: isWinner ? { increment: 1 } : undefined,
 							humanWins: isWinner ? { increment: 1 } : undefined,
 							botWins: gameType === 'PVE' && isWinner ? { increment: 1 } : undefined,
 							winStreak: isWinner ? { increment: 1 } : 0,
-							bestWinStreak: isWinner ? Math.max(user.winStreak + 1, user.bestWinStreak) : undefined,
+							bestWinStreak: isWinner ? Math.max(user.achievement.winStreak + 1, user.achievement.bestWinStreak) : undefined,
 							// pveGameStreak: PVE increments (any rank), PVP resets to 0.
 							// Hotseat never reaches the backend (demo-and-forget).
 							pveGameStreak: gameType === 'PVE' ? { increment: 1 } : 0,

@@ -16,16 +16,20 @@ export class UserService {
         id: true,
         username: true,
         displayName: true,
-        avatarStyle: true,
-        rating: true,
-        highestRating: true,
-        wins: true,
-        losses: true,
-        winStreak: true,
-        bestWinStreak: true,
-        botWins: true,
-        humanWins: true,
         createdAt: true,
+        achievement: {
+          select: {
+            avatarStyle: true,
+            rating: true,
+            highestRating: true,
+            wins: true,
+            losses: true,
+            winStreak: true,
+            bestWinStreak: true,
+            botWins: true,
+            humanWins: true,
+          },
+        },
       },
     });
 
@@ -33,8 +37,9 @@ export class UserService {
       throw new NotFoundException(`User "${username}" not found`);
     }
 
+    const { achievement, ...rest } = user;
     const status = await this.presence.getStatus(user.id);
-    return { ...user, status };
+    return { ...rest, ...achievement, status };
   }
 
   async uploadAvatar(userId: string, data: Buffer, contentType: string) {
@@ -42,8 +47,8 @@ export class UserService {
     if (!user) throw new NotFoundException('User not found');
 
     // Prisma 7 uses Bytes type for avatarPhoto
-    await this.prisma.db.user.update({
-      where: { id: userId },
+    await this.prisma.db.achievement.update({
+      where: { userId },
       data: { avatarPhoto: data as any, avatarPhotoContentType: contentType },
     });
 
@@ -53,18 +58,18 @@ export class UserService {
   async getAvatar(username: string): Promise<{ data: Buffer; contentType: string } | null> {
     const user = await this.prisma.db.user.findUnique({
       where: { username },
-      select: { avatarPhoto: true, avatarPhotoContentType: true },
+      select: { achievement: { select: { avatarPhoto: true, avatarPhotoContentType: true } } },
     });
-    if (!user || !user.avatarPhoto || !user.avatarPhotoContentType) return null;
-    return { data: Buffer.from(user.avatarPhoto), contentType: user.avatarPhotoContentType };
+    if (!user || !user.achievement.avatarPhoto || !user.achievement.avatarPhotoContentType) return null;
+    return { data: Buffer.from(user.achievement.avatarPhoto), contentType: user.achievement.avatarPhotoContentType };
   }
 
   async deleteAvatar(userId: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    await this.prisma.db.user.update({
-      where: { id: userId },
+    await this.prisma.db.achievement.update({
+      where: { userId },
       data: { avatarPhoto: null, avatarPhotoContentType: null },
     });
 
@@ -87,7 +92,15 @@ export class UserService {
           game: {
             include: {
               participants: {
-                include: { user: { select: { username: true, displayName: true, avatarStyle: true } } },
+                include: {
+                  user: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      achievement: { select: { avatarStyle: true } },
+                    },
+                  },
+                },
               },
             },
           },
@@ -109,7 +122,7 @@ export class UserService {
         participants: p.game.participants.map((gp) => ({
           username: gp.user.username,
           displayName: gp.user.displayName,
-          avatarStyle: gp.user.avatarStyle,
+          avatarStyle: gp.user.achievement.avatarStyle,
           color: gp.color,
           rank: gp.rank,
           piecesInGoal: gp.piecesInGoal,

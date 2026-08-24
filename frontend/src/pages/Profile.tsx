@@ -68,9 +68,7 @@ const STATUS_KEYS: Record<PresenceStatus, string> = {
 }
 
 /**
- * The 13 visible achievements. achSteadyDefender + achMercilessAttacker exist
- * backend-side (clash-mode only) but are hidden until the clash system is
- * wired into the UI — see achievement-revamp.md §1/§4.4.
+ * The 15 visible achievements.
  *
  * Requirements match the revamp thresholds (achievement-revamp.md v3):
  *   achFirstBlood     — 1 win (any PVP/PVE)
@@ -86,6 +84,8 @@ const STATUS_KEYS: Record<PresenceStatus, string> = {
  *   achLoveTheMachine — 3 consecutive PvE games (any outcome; PVP resets)
  *   achSpeedDemon     — win in < 30 min (unknown duration ⇒ no unlock)
  *   achUnstoppable    — 3 captures in a single game
+ *   achSteadyDefender — 2 clash defends in one clash-mode game
+ *   achMercilessAttacker — 2 clash attack wins in one clash-mode game
  * Hotseat is never counted for any achievement.
  */
 const ACHIEVEMENTS_DEF = [
@@ -102,6 +102,8 @@ const ACHIEVEMENTS_DEF = [
   { key: 'achLoveTheMachine', fallbackTitle: 'LOVE THE MACHINE', desc: 'Play 3 PvE games in a row (any outcome)', icon: '❤️' },
   { key: 'achSpeedDemon', fallbackTitle: 'SPEED DEMON', desc: 'Win a match in under 30 mins', icon: '⚡' },
   { key: 'achUnstoppable', fallbackTitle: 'UNSTOPPABLE', desc: 'Capture 3 pieces in one game', icon: '⚔️' },
+  { key: 'achSteadyDefender', fallbackTitle: 'STEADY DEFENDER', desc: 'Defend 2 clashes in one clash-mode game', icon: '🛡️' },
+  { key: 'achMercilessAttacker', fallbackTitle: 'MERCILESS ATTACKER', desc: 'Win 2 clashes as attacker in one clash-mode game', icon: '🗡️' },
 ]
 
 export function Profile() {

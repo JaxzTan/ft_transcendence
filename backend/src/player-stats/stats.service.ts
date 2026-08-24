@@ -6,7 +6,7 @@ export class StatsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStats(userId: string) {
-    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId }, include: { achievement: true } });
     if (!user) {
       return { error: 'User not found' };
     }
@@ -21,8 +21,8 @@ export class StatsService {
     const totalPiecesInGoal = participations.reduce((s, p) => s + p.piecesInGoal, 0);
 
     return {
-      rating: user.rating,
-      highestRating: user.highestRating,
+      rating: user.achievement.rating,
+      highestRating: user.achievement.highestRating,
       totalGames,
       wins,
       losses: totalGames - wins,
