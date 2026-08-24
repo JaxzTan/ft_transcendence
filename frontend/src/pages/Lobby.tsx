@@ -63,18 +63,19 @@ export function Lobby() {
     try {
       const gameMode = allowAddPlayers ? 'pve' : (isLocal || isSolo || playerCount === 2) ? 'hotseat' : 'pvp'
       const filledCount = visible.filter((s) => s.type === 'you' || s.type === 'player').length
+      const botCount = allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0
       // The bot seats are fixed by index (0=blue,1=red,2=green,3=yellow). Send
       // the actual chosen bot colors so the backend places bots on the exact
       // seats picked here instead of always filling red first.
       const botColors = visible
         .map((s, i) => (s.type === 'bot' ? SEAT_COLORS[i] : null))
         .filter((c): c is ColorKey => c !== null)
-      // Hotseat: the game consists of exactly the occupied seats (host is
-      // always seat 0/blue, then each added local pilot in seat order). Send
-      // the exact color list so skipped seats (e.g. red) aren't resurrected as
+      // Hotseat / PvE: the game consists of exactly the occupied seats (host is
+      // always seat 0/blue, then each added local pilot or bot in seat order). Send
+      // the exact color list so skipped seats aren't resurrected as
       // dense slots by the engine's playerCount-based default.
       const seatColors = visible
-        .map((s, i) => (s.type === 'you' || s.type === 'player' ? SEAT_COLORS[i] : null))
+        .map((s, i) => (s.type === 'you' || s.type === 'player' || (gameMode === 'pve' && s.type === 'bot') ? SEAT_COLORS[i] : null))
         .filter((c): c is ColorKey => c !== null)
       const res = await postApi<{
         gameId: string
@@ -86,10 +87,10 @@ export function Lobby() {
         playerCount: number
       }>('/api/match/create', {
         mode: gameMode,
-        playerCount: gameMode === 'hotseat' ? filledCount : playerCount,
-        botCount: allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0,
+        playerCount: gameMode === 'hotseat' ? filledCount : gameMode === 'pve' ? (1 + botCount) : playerCount,
+        botCount,
         botColors: botColors.length > 0 ? botColors : undefined,
-        seatColors: gameMode === 'hotseat' && seatColors.length > 0 ? seatColors : undefined,
+        seatColors: (gameMode === 'hotseat' || gameMode === 'pve') && seatColors.length > 0 ? seatColors : undefined,
         clashEnabled: true,
       })
       setActiveMatch(res)

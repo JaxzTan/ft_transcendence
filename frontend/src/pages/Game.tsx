@@ -843,6 +843,9 @@ export function Game() {
                             : '#00f0ff'
 
                     if (view.status === 'waiting') {
+                      if (activeMatch?.playerCount && SEAT_COLORS.indexOf(ck) >= activeMatch.playerCount) {
+                        return null
+                      }
                       const isYou = ck === view.myColor
                       const isReady = view.readyPlayers.includes(ck)
                       return (
@@ -942,8 +945,8 @@ export function Game() {
                       )
                     }
 
-                    // Active game pilot card
-                    if (!playerMeta) return null
+                    // Active game pilot card — only render participating pilots
+                    if (!playerMeta || playerMeta.status === 'inactive') return null
                     const isDisconnected = playerMeta.status === 'disconnected'
                     const isHotseat = activeMatch.mode === 'hotseat'
                     const isYou = isHotseat
@@ -1391,9 +1394,27 @@ export function Game() {
                     </div>
 
                     <button
-                      className={`roll-dice-btn ${canRoll && !isRolling ? 'is-active-turn' : 'is-inactive-turn'}`}
+                      className="retro-btn"
                       onClick={rollDice}
                       disabled={!canRoll || isRolling}
+                      style={{
+                        width: '100%',
+                        padding: '14px 20px',
+                        fontSize: '0.96rem',
+                        fontFamily: 'var(--font-heading)',
+                        letterSpacing: '1.5px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        background: canRoll && !isRolling ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
+                        borderColor: canRoll && !isRolling ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
+                        boxShadow: canRoll && !isRolling ? '0 0 20px var(--accent-pink)' : 'none',
+                        animation: canRoll && !isRolling ? 'pulse-glow 1.5s infinite' : 'none',
+                        cursor: canRoll && !isRolling ? 'pointer' : 'default',
+                        opacity: canRoll && !isRolling ? 1 : 0.5,
+                        boxSizing: 'border-box',
+                      }}
                     >
                       {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
                     </button>
