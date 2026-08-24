@@ -161,6 +161,8 @@ export function Game() {
   // piece_moved handler below, which steps through the server's `path`.
   const [animatingPiece, setAnimatingPiece] = useState<{ pieceId: string; step: number } | null>(null)
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [isMovingPiece, setIsMovingPiece] = useState(false)
+  const isMovingPieceRef = useRef(false)
   const STEP_ANIM_MS = 180
   // Capture burst FX: a short cosmetic ring + sparks on the landing square
   // when a piece is captured. Set at the end of the mover's walk, cleared
@@ -276,6 +278,8 @@ export function Game() {
       dispatch({ type: type || 'state_update', ...(state as object) })
 
       if (type === 'piece_moved') {
+        isMovingPieceRef.current = true
+        setIsMovingPiece(true)
         const e = state as unknown as {
           pieceId: string
           color: PlayerColor
@@ -304,6 +308,25 @@ export function Game() {
           setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
         }
 
+        const finishMove = () => {
+          if (animTimerRef.current) {
+            clearInterval(animTimerRef.current)
+            animTimerRef.current = null
+          }
+          setAnimatingPiece(null)
+          const settleMs = e.captured ? 600 : 350
+          if (e.captured) {
+            retroAudio.playExplosionSound()
+            setCaptureFx({ color: e.color, to: e.to })
+          }
+          if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
+          captureFxTimerRef.current = setTimeout(() => {
+            setCaptureFx(null)
+            isMovingPieceRef.current = false
+            setIsMovingPiece(false)
+          }, settleMs)
+        }
+
         const runStepAnimation = () => {
           retroAudio.playUiBeep(580, 0.06, 'sine')
           if (e.captured) {
@@ -319,24 +342,18 @@ export function Game() {
             animTimerRef.current = setInterval(() => {
               i++
               if (i >= path.length) {
-                if (animTimerRef.current) clearInterval(animTimerRef.current)
-                animTimerRef.current = null
-                setAnimatingPiece(null)
+                finishMove()
                 return
               }
               setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
             }, STEP_ANIM_MS)
           } else {
-            setAnimatingPiece(null)
-          }
-
-          if (e.captured) {
-            retroAudio.playExplosionSound()
-            if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
-            captureFxTimerRef.current = setTimeout(() => {
-              setCaptureFx({ color: e.color, to: e.to })
-              setTimeout(() => setCaptureFx(null), 600)
-            }, (path.length || 1) * STEP_ANIM_MS)
+            if (path.length === 1) {
+              setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
+            }
+            setTimeout(() => {
+              finishMove()
+            }, STEP_ANIM_MS)
           }
         }
 
@@ -491,7 +508,7 @@ export function Game() {
       if (!myTurnNow) return
       if (v.turnPhase === 'WAITING_FOR_MOVE' || v.legalMoves.length > 0) return
       if (v.clash) return
-      if (isRollingRef.current) return
+      if (isRollingRef.current || isMovingPieceRef.current) return
       e.preventDefault()
       isRollingRef.current = true
       setIsRolling(true)
@@ -509,7 +526,7 @@ export function Game() {
   }, [activeMatch, user?.username])
 
   const rollDice = () => {
-    if (!canRoll || isRolling || isRollingRef.current) return
+    if (!canRoll || isRolling || isRollingRef.current || isMovingPieceRef.current) return
     isRollingRef.current = true
     setIsRolling(true)
     retroAudio.playUiBeep(980, 0.08, 'sawtooth')
@@ -651,7 +668,7 @@ export function Game() {
   const isMyTurn = isHotseat
     ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
     : (view.currentTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
-  const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece
+  const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece && !isMovingPiece && !captureFx
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
     : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
