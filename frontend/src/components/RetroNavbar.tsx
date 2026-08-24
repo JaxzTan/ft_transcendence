@@ -247,7 +247,7 @@ export function RetroNavbar({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.76rem', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
-                  🌐 LANGUAGE // LANGUE
+                  🌐 {t('navbar.languageLabel')}
                 </span>
               </div>
               <div
@@ -328,7 +328,7 @@ export function RetroNavbar({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '1rem' }}>🛡️</span>
                 <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
-                  2FA AUTH
+                  {t('navbar.twoFactorLabel')}
                 </span>
               </div>
               <span
@@ -343,7 +343,7 @@ export function RetroNavbar({
                   border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
                 }}
               >
-                {twoFactor ? 'ENABLED' : 'DISABLED'}
+                {twoFactor ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
               </span>
             </div>
 
@@ -376,7 +376,7 @@ export function RetroNavbar({
               }}
             >
               <span>⏻</span>
-              <span>DISCONNECT // LOGOUT</span>
+              <span>{t('navbar.logoutBtn')}</span>
             </button>
           </div>
         </div>
@@ -605,7 +605,7 @@ export function RetroNavbar({
                 &lt;/&gt;
               </span>
               <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
-                THEME
+                {t('navbar.themeBtn')}
               </span>
             </div>
             <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
@@ -640,7 +640,7 @@ export function RetroNavbar({
               }}
             >
               <legend style={{ fontSize: '0.82rem', padding: '0 8px', fontWeight: 'bold' }}>
-                THEME SELECTOR
+                {t('navbar.themeSelectorLegend')}
               </legend>
               <label
                 htmlFor="theme-synthwave"
@@ -666,7 +666,7 @@ export function RetroNavbar({
                   }}
                   style={{ width: 17, height: 17, cursor: 'pointer' }}
                 />
-                <span style={{ fontWeight: 'bold' }}>CYBERPUNK</span>
+                <span style={{ fontWeight: 'bold' }}>{t('navbar.themeCyberpunk')}</span>
               </label>
               <label
                 htmlFor="theme-win95"
@@ -692,7 +692,7 @@ export function RetroNavbar({
                   }}
                   style={{ width: 17, height: 17, cursor: 'pointer' }}
                 />
-                <span style={{ fontWeight: 'bold' }}>WIN95</span>
+                <span style={{ fontWeight: 'bold' }}>{t('navbar.themeWin95')}</span>
               </label>
               <label
                 htmlFor="theme-terminal"
@@ -718,7 +718,7 @@ export function RetroNavbar({
                   }}
                   style={{ width: 17, height: 17, cursor: 'pointer' }}
                 />
-                <span style={{ fontWeight: 'bold' }}>TERMINAL</span>
+                <span style={{ fontWeight: 'bold' }}>{t('navbar.themeTerminal')}</span>
               </label>
             </fieldset>
           </div>

@@ -39,7 +39,7 @@ export function TwoFactor() {
       >
         <div>
           <div className="retro-auth-title" style={{ fontSize: 32 }}>
-            TWO-FACTOR AUTH
+            {t('authExtra.twoFactorAuthTitle')}
           </div>
           <div className="retro-auth-subtitle">
             {t('auth.codeSentDesc')}
@@ -74,7 +74,7 @@ export function TwoFactor() {
           disabled={submitting || code.length !== 6}
           className="retro-auth-btn"
         >
-          {submitting ? t('auth.checkingBtn') : 'VERIFY & ENTER ARENA'}
+          {submitting ? t('auth.checkingBtn') : t('authExtra.verifyEnterArenaBtn')}
         </button>
         <div className="retro-auth-muted" style={{ textAlign: 'center' }}>
           {t('auth.codeExpired')}{' '}

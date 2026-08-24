@@ -606,7 +606,7 @@ export function Profile() {
                                 borderRadius: 4,
                               }}
                             >
-                              EDIT PROFILE
+                              {t('profileExtra.editProfileBtn')}
                             </button>
                             {uploadError && (
                               <span style={{ color: '#ff0055', fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>

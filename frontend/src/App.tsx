@@ -32,7 +32,7 @@ const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/forgot-password': () => <ForgotPassword />,
   '/reset-password': () => <ResetPassword />,
   '/gamelobby': () => <LudoLobby />,
-  '/gamelobby/table': () => <Lobby />,
+  '/gamelobby/table': () => <Lobby />,	
   '/game': () => <Game />,
   '/results': () => <Results />,
 }
