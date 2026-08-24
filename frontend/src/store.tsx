@@ -23,6 +23,7 @@ export type Seat =
 export type PlayerCount = 1 | 2 | 3 | 4
 
 export type Lang = 'en' | 'fr' | 'ms'
+export type ThemeType = 'synthwave' | 'win95' | 'terminal'
 
 /** Languages offered in the account menu. */
 export const LANGUAGES: Array<{ code: Lang; label: string; flag: string }> = [
@@ -32,12 +33,18 @@ export const LANGUAGES: Array<{ code: Lang; label: string; flag: string }> = [
 ]
 
 const LANG_KEY = 'lr.lang'
+const THEME_KEY = 'retro_theme'
 const ACTIVE_MATCH_KEY = 'lr.activeMatch'
 const SEATS_KEY = 'lr.seats'
 
 function storedLang(): Lang {
   const raw = localStorage.getItem(LANG_KEY)
   return LANGUAGES.some((l) => l.code === raw) ? (raw as Lang) : 'en'
+}
+
+function storedTheme(): ThemeType {
+  const raw = localStorage.getItem(THEME_KEY)
+  return raw === 'win95' || raw === 'terminal' || raw === 'synthwave' ? raw : 'synthwave'
 }
 
 const HEARTBEAT_INTERVAL_MS = 20_000
@@ -117,6 +124,8 @@ type AppState = {
   endTurn: () => void
   settingOn: (key: string) => boolean
   toggleSetting: (key: string) => void
+  theme: ThemeType
+  setTheme: (t: ThemeType) => void
   lang: Lang
   setLang: (l: Lang) => void
   twoFactor: boolean
@@ -131,6 +140,20 @@ type AppState = {
 const Ctx = createContext<AppState | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<ThemeType>(storedTheme)
+
+  const setTheme = useCallback((newTheme: ThemeType) => {
+    setThemeState(newTheme)
+    localStorage.setItem(THEME_KEY, newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+    document.body.setAttribute('data-theme', newTheme)
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    document.body.setAttribute('data-theme', theme)
+  }, [theme])
+
   const [user, setUser] = useState<AuthUser | null>(null)
   const [authReady, setAuthReady] = useState(false)
 
@@ -431,11 +454,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       user, setUser, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
-    playerCount, seats, dice, rolling, turn, settings,
-    setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting,
+      theme, setTheme,
+      playerCount, seats, dice, rolling, turn, settings,
+      setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting,
       lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch, lastResult, setLastResult,
     }),
-    [user, setUser, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
+    [user, setUser, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, theme, setTheme, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

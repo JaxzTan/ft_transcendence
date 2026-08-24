@@ -12,7 +12,6 @@ import { getRankTier } from '../utils/ranks'
 import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 
-type ThemeType = 'synthwave' | 'win95' | 'terminal'
 type Friend = {
 	id: string
 	username: string
@@ -31,7 +30,7 @@ const STATUS_STYLE: Record<string, { label: string; color: string; border: strin
 
 export function Home() {
 	const { t } = useTranslation()
-	const { user } = useApp()
+	const { user, theme } = useApp()
 	const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } = useNotifications()
 
 	// ------------------------------------------------------------------------
@@ -84,15 +83,9 @@ export function Home() {
 	// ------------------------------------------------------------------------
 	// 3. THEME & CRT CONTROLS
 	// ------------------------------------------------------------------------
-	const [theme, setTheme] = useState<ThemeType>('synthwave')
 	const [crtEnabled, setCrtEnabled] = useState(true)
 
 	useEffect(() => {
-		const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
-		setTheme(savedTheme)
-		document.documentElement.setAttribute('data-theme', savedTheme)
-		document.body.setAttribute('data-theme', savedTheme)
-
 		const savedCrt = localStorage.getItem('retro_crt')
 		if (savedCrt === 'false') {
 			setCrtEnabled(false)

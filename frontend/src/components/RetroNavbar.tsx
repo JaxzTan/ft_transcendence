@@ -30,7 +30,7 @@ export function RetroNavbar({
 }: RetroNavbarProps) {
   const { t } = useTranslation()
   const route = useRoute()
-  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp()
+  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor, theme, setTheme } = useApp()
   const currentPath = activeRoute || route.path
 
   const navItems = [
@@ -49,7 +49,6 @@ export function RetroNavbar({
   const activeMarkRead = onMarkRead ?? fallbackNotifs.markRead
   const activeMarkAllRead = onMarkAllRead ?? fallbackNotifs.markAllRead
 
-  const [theme, setTheme] = useState<ThemeType>('synthwave')
   const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
   const [isAccountPopoverOpen, setIsAccountPopoverOpen] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -57,18 +56,8 @@ export function RetroNavbar({
 
   const applyTheme = (newTheme: ThemeType) => {
     setTheme(newTheme)
-    document.documentElement.setAttribute('data-theme', newTheme)
-    document.body.setAttribute('data-theme', newTheme)
-    localStorage.setItem('retro_theme', newTheme)
     retroAudio.playUiBeep(880, 0.05)
   }
-
-  useEffect(() => {
-    const savedTheme = (localStorage.getItem('retro_theme') as ThemeType) || 'synthwave'
-    setTheme(savedTheme)
-    document.documentElement.setAttribute('data-theme', savedTheme)
-    document.body.setAttribute('data-theme', savedTheme)
-  }, [])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

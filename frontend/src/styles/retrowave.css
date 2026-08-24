@@ -1257,8 +1257,21 @@ body:has(.game-page) .crt-screen {
   align-items: center;
   gap: 6px;
   pointer-events: none;
-  animation: pulse 1.8s infinite;
+  animation: arcade-start-pulse 1.8s infinite ease-in-out;
   transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+@keyframes arcade-start-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 0, 127, 0.35), inset 0 0 12px rgba(0, 240, 255, 0.2);
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 0, 127, 0.7), inset 0 0 18px rgba(0, 240, 255, 0.4), 0 0 10px #ff007f;
+    transform: translateX(-50%) scale(1.02);
+  }
 }
 
 .arcade-start-title {
@@ -1278,12 +1291,13 @@ body:has(.game-page) .crt-screen {
 }
 
 [data-theme="win95"] .arcade-start-overlay {
-  background: rgba(192, 192, 192, 0.65);
+  background: rgba(192, 192, 192, 0.85);
   border: 2px solid;
   border-color: #ffffff #808080 #808080 #ffffff;
   box-shadow: inset 1px 1px 0px #ffffff, inset -1px -1px 0px #000000, 2px 2px 6px rgba(0, 0, 0, 0.3);
   border-radius: 0;
   animation: none;
+  transform: translateX(-50%);
   width: 70%;
 }
 
@@ -1299,10 +1313,24 @@ body:has(.game-page) .crt-screen {
 }
 
 [data-theme="terminal"] .arcade-start-overlay {
-  background: rgba(2, 16, 2, 0.55);
+  background: rgba(2, 16, 2, 0.75);
   border: 1.5px solid var(--accent-cyan);
   box-shadow: 0 0 15px rgba(51, 255, 51, 0.35), inset 0 0 10px rgba(51, 255, 51, 0.15);
   border-radius: 0;
+  animation: terminal-start-pulse 1.8s infinite ease-in-out;
+  transform: translateX(-50%);
+}
+
+@keyframes terminal-start-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(51, 255, 51, 0.35), inset 0 0 10px rgba(51, 255, 51, 0.15);
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(51, 255, 51, 0.65), inset 0 0 15px rgba(51, 255, 51, 0.3);
+    transform: translateX(-50%) scale(1.02);
+  }
 }
 
 [data-theme="terminal"] .arcade-start-title {
@@ -3076,40 +3104,52 @@ canvas#snakeCanvas {
     transform: translate3d(0, -102%, 0);
     opacity: 0;
   }
+
   6% {
     transform: translate3d(0.8px, -90%, 0);
     opacity: 1;
   }
+
   14% {
     transform: translate3d(-0.9px, -78%, 0);
   }
+
   22% {
     transform: translate3d(1.1px, -66%, 0);
   }
+
   30% {
     transform: translate3d(-0.8px, -54%, 0);
   }
+
   40% {
     transform: translate3d(1px, -42%, 0);
   }
+
   50% {
     transform: translate3d(-0.7px, -30%, 0);
   }
+
   60% {
     transform: translate3d(0.8px, -20%, 0);
   }
+
   70% {
     transform: translate3d(-0.6px, -11%, 0);
   }
+
   80% {
     transform: translate3d(0.5px, -5%, 0);
   }
+
   90% {
     transform: translate3d(-0.3px, -1.5%, 0);
   }
+
   95% {
     transform: translate3d(0.2px, 0.5px, 0);
   }
+
   100% {
     transform: translate3d(0, 0, 0);
     opacity: 1;
@@ -3565,9 +3605,9 @@ canvas#snakeCanvas {
   cursor: pointer;
   user-select: none;
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.22s ease,
-              background 0.22s ease;
+    box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.22s ease,
+    background 0.22s ease;
 }
 
 .retro-ticket-pass:hover:not(.disabled) {
@@ -3786,7 +3826,7 @@ canvas#snakeCanvas {
 .retro-die-cube {
   border-radius: 17px;
   background: linear-gradient(150deg, #fbf5e6, #e4d8bf);
-  box-shadow: inset 0 2px 4px rgba(255,255,255,.8), inset 0 -6px 10px rgba(140,120,80,.35), 0 14px 24px -10px rgba(0,0,0,.7);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, .8), inset 0 -6px 10px rgba(140, 120, 80, .35), 0 14px 24px -10px rgba(0, 0, 0, .7);
   border: 1px solid #cbb99a;
 }
 
@@ -3809,7 +3849,7 @@ canvas#snakeCanvas {
 
 .retro-die-pip {
   background: radial-gradient(circle at 35% 30%, #5a4a2e, #241a0c);
-  box-shadow: inset 0 1px 1px rgba(0,0,0,.5);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, .5);
 }
 
 [data-theme="win95"] .retro-die-pip {
@@ -3827,32 +3867,28 @@ canvas#snakeCanvas {
    ========================================================================== */
 
 :root {
-  --flicker: linear(
-    0 0%,
-    0.1864 6.17%,
-    0.0001 14.41%,
-    0.5244 20.97%,
-    0.3927 37.91%,
-    0.8115 60.62%,
-    0.9416 61.92%,
-    0.9928 67.98%,
-    0.5032 70.42%,
-    0.9077 96.96%,
-    0.6736 98.74%,
-    1 100%
-  );
+  --flicker: linear(0 0%,
+      0.1864 6.17%,
+      0.0001 14.41%,
+      0.5244 20.97%,
+      0.3927 37.91%,
+      0.8115 60.62%,
+      0.9416 61.92%,
+      0.9928 67.98%,
+      0.5032 70.42%,
+      0.9077 96.96%,
+      0.6736 98.74%,
+      1 100%);
 }
 
 .cyber-btn {
   --corner: 10px;
   --border: 1.5px;
-  --clip: polygon(
-    0 0,
-    100% 0,
-    100% calc(100% - var(--corner)),
-    calc(100% - var(--corner)) 100%,
-    0% 100%
-  );
+  --clip: polygon(0 0,
+      100% 0,
+      100% calc(100% - var(--corner)),
+      calc(100% - var(--corner)) 100%,
+      0% 100%);
   --btn-accent: var(--accent-cyan, #00f0ff);
   --btn-shadow: var(--accent-pink, #ff007f);
   --shimmy-distance: 4;
@@ -4046,13 +4082,11 @@ canvas#snakeCanvas {
 .cyber-modal-box {
   --corner: 12px;
   --border: 2px;
-  --clip: polygon(
-    0 0,
-    100% 0,
-    100% calc(100% - var(--corner)),
-    calc(100% - var(--corner)) 100%,
-    0% 100%
-  );
+  --clip: polygon(0 0,
+      100% 0,
+      100% calc(100% - var(--corner)),
+      calc(100% - var(--corner)) 100%,
+      0% 100%);
   --modal-accent: var(--accent-cyan, #00f0ff);
   --modal-shadow: var(--accent-pink, #ff007f);
   color: var(--modal-accent);
@@ -4254,7 +4288,7 @@ canvas#snakeCanvas {
 .cyber-modal-box .modal__actions {
   display: flex;
   align-items: center;
-  justifyContent: flex-end;
+  /* justifyContent: flex-end; */
   gap: 0.8rem;
   padding-top: 1.2rem;
   transition-property: translate, opacity;
@@ -4298,59 +4332,78 @@ canvas#snakeCanvas {
   0% {
     clip-path: var(--clip-one);
   }
-  2%, 8% {
+
+  2%,
+  8% {
     clip-path: var(--clip-two);
     transform: translate(calc(var(--shimmy-distance) * -1%), 0);
   }
+
   6% {
     clip-path: var(--clip-two);
     transform: translate(calc(var(--shimmy-distance) * 1%), 0);
   }
+
   9% {
     clip-path: var(--clip-two);
     transform: translate(0, 0);
   }
+
   10% {
     clip-path: var(--clip-three);
     transform: translate(calc(var(--shimmy-distance) * 1%), 0);
   }
+
   13% {
     clip-path: var(--clip-three);
     transform: translate(0, 0);
   }
-  14%, 21% {
+
+  14%,
+  21% {
     clip-path: var(--clip-four);
     transform: translate(calc(var(--shimmy-distance) * 1%), 0);
   }
+
   25% {
     clip-path: var(--clip-five);
     transform: translate(calc(var(--shimmy-distance) * 1%), 0);
   }
+
   30% {
     clip-path: var(--clip-five);
     transform: translate(calc(var(--shimmy-distance) * -1%), 0);
   }
-  35%, 45% {
+
+  35%,
+  45% {
     clip-path: var(--clip-six);
     transform: translate(calc(var(--shimmy-distance) * -1%), 0);
   }
+
   40% {
     clip-path: var(--clip-six);
     transform: translate(calc(var(--shimmy-distance) * 1%), 0);
   }
+
   50% {
     clip-path: var(--clip-six);
     transform: translate(0, 0);
   }
+
   55% {
     clip-path: var(--clip-seven);
     transform: translate(calc(var(--shimmy-distance) * 1%), 0);
   }
+
   60% {
     clip-path: var(--clip-seven);
     transform: translate(0, 0);
   }
-  31%, 61%, 100% {
+
+  31%,
+  61%,
+  100% {
     clip-path: var(--clip-four);
     opacity: 0;
   }
@@ -4361,18 +4414,22 @@ canvas#snakeCanvas {
     clip-path: polygon(0 2%, 100% 2%, 100% 95%, 85% 95%, 0 70%);
     transform: translate(-2px, 1px);
   }
+
   25% {
     clip-path: polygon(0 44%, 100% 44%, 100% 54%, 85% 54%, 0 54%);
     transform: translate(2px, -1px);
   }
+
   50% {
     clip-path: polygon(0 63%, 100% 63%, 100% 80%, 85% 80%, 0 70%);
     transform: translate(-1px, 2px);
   }
+
   75% {
     clip-path: polygon(0 15%, 100% 15%, 100% 30%, 85% 30%, 0 25%);
     transform: translate(1px, -1px);
   }
+
   100% {
     clip-path: polygon(0 0, 100% 0, 100% 0, 95% 0, 0 0);
     transform: translate(0, 0);
@@ -4383,6 +4440,7 @@ canvas#snakeCanvas {
   0% {
     opacity: 0;
   }
+
   100% {
     opacity: 1;
   }
@@ -4516,8 +4574,13 @@ canvas#snakeCanvas {
 }
 
 @keyframes reelSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .tape-bridge {
