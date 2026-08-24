@@ -11,6 +11,7 @@ import { getApi, postApi } from '../api'
 import { useApp } from '../store'
 import { SEAT_COLORS } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
+import { ResultsModal } from '../components/ResultsModal'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 
@@ -76,7 +77,7 @@ const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 
 export function Game() {
   const { t } = useTranslation()
-  const { user, activeMatch, seats, setPlaying, setLastResult, setActiveMatch } = useApp()
+  const { user, activeMatch, seats, setPlaying, lastResult, setLastResult, setActiveMatch } = useApp()
 
   // ------------------------------------------------------------------------
   // CRT & AUDIO CONTROLS
@@ -119,7 +120,9 @@ export function Game() {
   const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
   const [codeCopied, setCodeCopied] = useState(false)
   const [turnSwapNotice, setTurnSwapNotice] = useState<string | null>(null)
+  const [showResultsModal, setShowResultsModal] = useState(false)
   const prevTurnRef = useRef<PlayerColor | null>(null)
+  const isGameEnded = Boolean(lastResult || view?.status === 'finished')
 
   useEffect(() => {
     if (moveLogContainerRef.current) {
@@ -356,7 +359,10 @@ export function Game() {
         let endedPlayers = viewRef.current.players
           .filter((p) => p.status !== 'inactive')
           .map((p) => ({
-            color: p.color, username: p.username, isBot: p.isBot, piecesInGoal: p.piecesInGoal,
+            color: p.color,
+            username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+            isBot: p.isBot,
+            piecesInGoal: p.piecesInGoal,
           }))
         if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
           endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
@@ -368,7 +374,7 @@ export function Game() {
           playerCount: activeMatch?.playerCount ?? endedPlayers.length,
           players: endedPlayers,
         })
-        setTimeout(() => navigate('/results'), 2500)
+        setShowResultsModal(true)
       }
     }
 
@@ -437,13 +443,11 @@ export function Game() {
 
     socket.on('game_timeout', () => {
       setLastResult(buildAbandonedResult())
-      setActiveMatch(null)
-      navigate('/results')
+      setShowResultsModal(true)
     })
     socket.on('game_expired', () => {
       setLastResult(buildAbandonedResult())
-      setActiveMatch(null)
-      navigate('/results')
+      setShowResultsModal(true)
     })
 
     socket.on('error', (msg: string) => {
@@ -593,8 +597,7 @@ export function Game() {
       players,
       abandoned: true,
     })
-    setActiveMatch(null)
-    navigate('/results')
+    setShowResultsModal(true)
   }
 
   // If no match credentials exist, redirect back to lobby
@@ -1131,6 +1134,34 @@ export function Game() {
                   </div>
                 </div>
               </section>
+
+              {/* View Results Button below Pilot Roster */}
+              {lastResult && (
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column' }}>
+                  <button
+                    className="retro-btn"
+                    onClick={() => {
+                      retroAudio.playUiBeep(640, 0.06)
+                      setShowResultsModal(true)
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 0',
+                      fontSize: '0.82rem',
+                      fontFamily: 'var(--font-heading)',
+                      letterSpacing: '1px',
+                      background: 'linear-gradient(135deg, #ff007f, #9d00ff)',
+                      borderColor: 'var(--accent-pink)',
+                      color: '#ffffff',
+                      boxShadow: '0 0 16px rgba(255, 0, 127, 0.4)',
+                      borderRadius: 4,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    ★ {t('results.viewResultsBtn', 'VIEW RESULTS')}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
@@ -1468,7 +1499,7 @@ export function Game() {
               )}
 
               {/* ABORT MISSION / END GAME BUTTON */}
-              {(() => {
+              {!isGameEnded && (() => {
                 const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
                 return (
                   <button
@@ -1510,6 +1541,20 @@ export function Game() {
           myColor={view.myColor}
           onKeyPress={clashInput}
           onComplete={clearClash}
+        />
+      )}
+
+      {/* Game Results Modal Popup */}
+      {showResultsModal && lastResult && (
+        <ResultsModal
+          result={lastResult}
+          onReturnToLobby={() => {
+            setLastResult(null)
+            setShowResultsModal(false)
+            setActiveMatch(null)
+            navigate('/gamelobby')
+          }}
+          onClose={() => setShowResultsModal(false)}
         />
       )}
     </>
