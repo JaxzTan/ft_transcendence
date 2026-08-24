@@ -39,7 +39,6 @@ export function RetroNavbar({
     { path: '/profile', label: t('nav.profile').toUpperCase(), icon: '@/' },
     { path: '/friends', label: t('nav.friends').toUpperCase(), icon: '♟' },
     { path: '/gamelobby', label: t('nav.lobby').toUpperCase(), icon: '>_' },
-    { path: '/game', label: 'ARENA', icon: '{}' },
   ]
 
   // Global live notifications fallback so the notification bell works across all pages
@@ -206,7 +205,7 @@ export function RetroNavbar({
                   textAlign: 'left',
                 }}
               >
-                  {displayName}
+                {displayName}
               </span>
             </div>
             <span
