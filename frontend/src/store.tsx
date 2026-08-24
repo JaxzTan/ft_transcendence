@@ -446,7 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
+      user, setUser, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
       playerCount, seats, dice, rolling, turn, settings,
       setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting,
       lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch, lastResult, setLastResult,
