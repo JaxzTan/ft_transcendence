@@ -39,7 +39,6 @@ export function RetroNavbar({
     { path: '/profile', label: t('nav.profile').toUpperCase(), icon: '@/' },
     { path: '/friends', label: t('nav.friends').toUpperCase(), icon: '♟' },
     { path: '/gamelobby', label: t('nav.lobby').toUpperCase(), icon: '>_' },
-    { path: '/game', label: 'ARENA', icon: '{}', disabled: true },
   ]
 
   // Global live notifications fallback so the notification bell works across all pages
@@ -193,7 +192,7 @@ export function RetroNavbar({
                   textAlign: 'left',
                 }}
               >
-                  {displayName}
+                {displayName}
               </span>
             </div>
             <span
@@ -416,17 +415,15 @@ export function RetroNavbar({
               return currentPath === it.path
             })
             const safeActiveIdx = activeIdx >= 0 ? activeIdx : 0
-            const isDisabled = !!item.disabled
             const isActive = idx === safeActiveIdx
             const dist = Math.abs(idx - safeActiveIdx)
-            const itemOpacity = isDisabled ? 0.25 : isActive ? 1.0 : Math.max(0.35, 0.75 - dist * 0.14)
+            const itemOpacity = isActive ? 1.0 : Math.max(0.35, 0.75 - dist * 0.14)
             const itemScale = isActive ? 1.02 : Math.max(0.93, 1.0 - dist * 0.02)
 
             return (
               <button
                 key={item.path}
-                disabled={isDisabled}
-                className={`retro-btn theme-trigger-btn ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
+                className={`retro-btn theme-trigger-btn ${isActive ? 'active' : ''}`}
                 style={{
                   width: '100%',
                   height: 52,
@@ -435,42 +432,32 @@ export function RetroNavbar({
                   padding: '0 14px',
                   fontSize: '1.02rem',
                   borderRadius: 12,
-                  background: isDisabled
-                    ? 'rgba(255, 255, 255, 0.015)'
-                    : isActive
-                      ? 'linear-gradient(90deg, rgba(255, 0, 127, 0.95), rgba(157, 0, 255, 0.95))'
-                      : 'rgba(20, 8, 44, 0.85)',
-                  color: isDisabled
-                    ? 'rgba(255, 255, 255, 0.3)'
-                    : isActive
-                      ? '#ffffff'
-                      : 'var(--text-main)',
-                  border: isDisabled
-                    ? '1px dashed rgba(255, 255, 255, 0.12)'
-                    : isActive
-                      ? '1.5px solid #ff007f'
-                      : '1px solid rgba(0, 240, 255, 0.25)',
+                  background: isActive
+                    ? 'linear-gradient(90deg, rgba(255, 0, 127, 0.95), rgba(157, 0, 255, 0.95))'
+                    : 'rgba(20, 8, 44, 0.85)',
+                  color: isActive
+                    ? '#ffffff'
+                    : 'var(--text-main)',
+                  border: isActive
+                    ? '1.5px solid #ff007f'
+                    : '1px solid rgba(0, 240, 255, 0.25)',
                   boxShadow: isActive
                     ? '0 0 20px rgba(255, 0, 127, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
                     : 'none',
                   fontWeight: 900,
                   letterSpacing: '1px',
-                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   opacity: itemOpacity,
                   transform: `scale(${itemScale})`,
                   transition: 'all 0.35s ease',
                 }}
-                title={isDisabled ? `${item.label} (Enter match via Game Lobby)` : item.label}
+                title={item.label}
                 onClick={() => {
-                  if (isDisabled) {
-                    retroAudio.playUiBeep(220, 0.06)
-                    return
-                  }
                   retroAudio.playUiBeep(isActive ? 480 : 640, 0.05)
                   navigate(item.path)
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive && !isDisabled) {
+                  if (!isActive) {
                     e.currentTarget.style.background = 'rgba(0, 240, 255, 0.18)'
                     e.currentTarget.style.borderColor = 'var(--accent-cyan)'
                     e.currentTarget.style.color = '#ffffff'
@@ -480,7 +467,7 @@ export function RetroNavbar({
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive && !isDisabled) {
+                  if (!isActive) {
                     e.currentTarget.style.background = 'rgba(20, 8, 44, 0.85)'
                     e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.25)'
                     e.currentTarget.style.color = 'var(--text-main)'
@@ -495,20 +482,16 @@ export function RetroNavbar({
                     width: 34,
                     height: 34,
                     borderRadius: 7,
-                    background: isDisabled
-                      ? 'rgba(255, 255, 255, 0.03)'
-                      : isActive
-                        ? 'rgba(255, 255, 255, 0.2)'
-                        : 'rgba(0, 240, 255, 0.08)',
+                    background: isActive
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'rgba(0, 240, 255, 0.08)',
                     display: 'grid',
                     placeItems: 'center',
                     fontFamily: 'var(--font-mono)',
                     fontSize: '1.2rem',
-                    color: isDisabled
-                      ? 'rgba(255, 255, 255, 0.3)'
-                      : isActive
-                        ? '#ffffff'
-                        : 'var(--accent-cyan)',
+                    color: isActive
+                      ? '#ffffff'
+                      : 'var(--accent-cyan)',
                     flexShrink: 0,
                     filter: isActive ? 'drop-shadow(0 0 6px #ffffff)' : 'none',
                   }}
