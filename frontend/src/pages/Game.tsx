@@ -292,7 +292,7 @@ export function Game() {
             const victim = viewRef.current.pieces.find((p) => p.color !== e.color && p.step === e.to)
             if (victim) victimColor = victim.color.toUpperCase()
           }
-          if (!victimColor) victimColor = t('gameExtra.opponentFallback')
+          if (!victimColor) victimColor = 'OPPONENT'
         }
 
         // Set animatingPiece SYNCHRONOUSLY to path[0] so React batches this with dispatch({ type: 'state_update' })
@@ -620,10 +620,10 @@ export function Game() {
               </div>
               <div className="window-body" style={{ textAlign: 'center', padding: '30px 24px' }}>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', color: 'var(--accent-yellow)', marginBottom: 10 }}>
-                  {t('gameExtra.noMatchCredentialsTitle')}
+                  NO MATCH CREDENTIALS DETECTED
                 </div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 24, lineHeight: 1.5 }}>
-                  {t('gameExtra.noActiveSessionDesc')}
+                  Please initialize or join a tactical Ludo arena from the Game Lobby first.
                 </div>
                 <button
                   className="retro-btn"
@@ -646,14 +646,12 @@ export function Game() {
   const isHotseat = activeMatch?.mode === 'hotseat'
   const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
   const isMyTurn = isHotseat
-    ? (view.players.length === 0 || !view.players.find((p) => p.color === view.currentTurn)?.isBot)
-    : view.currentTurn === view.myColor
-  const canRoll = !isGameEnded && isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL' && !view.clash && !animatingPiece && !turnSwapNotice
-  const turnLabel = isGameEnded
-    ? t('results.outcomeCompleted').toUpperCase()
-    : view.status === 'waiting'
-      ? t('game.waitingRoomTitle').toUpperCase()
-      : isMyTurn ? t('game.yourTurnShort').toUpperCase() : t('gameExtra.turnLabelOther', { name: view.currentTurn.toUpperCase() })
+    ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
+    : (view.currentTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
+  const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece
+  const turnLabel = view.status === 'waiting'
+    ? t('game.waitingRoomTitle').toUpperCase()
+    : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
 
   return (
     <>
@@ -720,27 +718,51 @@ export function Game() {
                 </span>
               </div>
 
-                {roomCode && (
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '6px 14px',
-                      borderRadius: 6,
-                      background: 'rgba(5, 2, 18, 0.75)',
-                      border: '1.5px solid var(--accent-yellow)',
-                      boxShadow: '0 0 10px rgba(255, 230, 0, 0.35)',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.78rem',
-                      fontWeight: 'bold',
-                      color: 'var(--accent-yellow)',
-                      letterSpacing: '1px',
-                    }}
-                  >
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>{t('gameExtra.roomColonLabel')}</span>
-                    <span>{roomCode}</span>
-                  </div>
+              {/* Game Status Marquee Bar */}
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: 740,
+                  minHeight: 38,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '8px 14px',
+                  background: turnSwapNotice
+                    ? 'rgba(255, 230, 0, 0.25)'
+                    : isMyTurn
+                      ? 'rgba(255, 0, 127, 0.2)'
+                      : 'rgba(0, 0, 0, 0.6)',
+                  border: turnSwapNotice
+                    ? '1.5px solid #ffe600'
+                    : isMyTurn
+                      ? '1.5px solid var(--accent-pink)'
+                      : '1.5px solid rgba(0, 240, 255, 0.35)',
+                  boxShadow: turnSwapNotice
+                    ? '0 0 20px #ffe600'
+                    : isMyTurn
+                      ? '0 0 12px rgba(255, 0, 127, 0.4)'
+                      : 'none',
+                  borderRadius: 4,
+                  textAlign: 'center',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.82rem',
+                  fontWeight: 'bold',
+                  color: turnSwapNotice ? '#ffe600' : isMyTurn ? '#ff007f' : 'var(--accent-cyan)',
+                  transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {turnSwapNotice || (
+                  view.status === 'waiting'
+                    ? t('game.readyNeedsOpponent')
+                    : isRolling
+                      ? t('game.statusRolling')
+                      : isMyTurn && view.turnPhase === 'WAITING_FOR_ROLL'
+                        ? t('game.statusRollNow')
+                        : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
+                          ? t('game.statusSelectPiece')
+                          : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })
                 )}
               </div>
             </div>
@@ -790,22 +812,6 @@ export function Game() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>{t('game.pilotRosterTitle')}</span>
                   </div>
-                  {roomCode && (
-                    <div
-                      style={{
-                        fontSize: '0.68rem',
-                        fontFamily: 'var(--font-mono)',
-                        color: 'var(--accent-yellow)',
-                        background: 'rgba(255, 230, 0, 0.12)',
-                        border: '1px solid rgba(255, 230, 0, 0.4)',
-                        padding: '2px 8px',
-                        borderRadius: 3,
-                        letterSpacing: '0.5px',
-                      }}
-                    >
-                      {t('gameExtra.codeColonLabel', { code: roomCode })}
-                    </div>
-                  )}
                 </div>
 
                 <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -911,15 +917,8 @@ export function Game() {
                               }}
                             >
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {isYou
-                                  ? `${user?.username || 'You'} (${ck.toUpperCase()})`
-                                  : occupied && playerMeta?.username
-                                    ? `${playerMeta.username} (${ck.toUpperCase()})`
-                                    : t('gameExtra.selectColorBracket', { color: ck.toUpperCase() })}
+                                {occupied && playerMeta?.username ? (playerMeta.displayName || playerMeta.username) : t('game.emptySeat')}
                               </span>
-                            </div>
-                            <div style={{ fontSize: '0.65rem', color: isYou ? '#ffe600' : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                              {isYou ? t('gameExtra.yourSelectedSeat') : isAvailable ? t('gameExtra.clickToChooseColor') : t('gameExtra.occupiedBadge')}
                             </div>
                           </div>
 
@@ -933,23 +932,7 @@ export function Game() {
                                 color: isReady ? '#00ff88' : '#ff0055',
                               }}
                             >
-                              {isReady ? t('gameExtra.readyOkBadge') : t('gameExtra.waitingBadge')}
-                            </span>
-                          )}
-
-                          {isAvailable && !isYou && (
-                            <span
-                              style={{
-                                padding: '3px 8px',
-                                fontSize: '0.62rem',
-                                borderRadius: 3,
-                                border: `1px solid ${colorAccent}`,
-                                color: colorAccent,
-                                fontFamily: 'var(--font-mono)',
-                                fontWeight: 'bold',
-                              }}
-                            >
-                              {t('gameExtra.selectBadge')}
+                              {isReady ? 'READY OK' : 'WAITING'}
                             </span>
                           )}
                         </div>
@@ -1228,52 +1211,39 @@ export function Game() {
                       </div>
                     </div>
 
-              {/* Ready / Start Match Button */}
-              {view.status === 'waiting' && !isGameEnded && (
-                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {(() => {
-                    const activeCount = view.players.filter((p) => p.status === 'active').length
-                    const alreadyReady = view.readyPlayers.includes(view.myColor)
-                    const soloRoom = activeCount < 2
-                    const disabled = alreadyReady || soloRoom || isGameEnded
-                    return (
-                      <button
-                        className="retro-btn"
-                        onClick={() => {
-                          if (isGameEnded) return
-                          retroAudio.playUiBeep(1100, 0.1)
-                          socketRef.current?.emit('player_ready')
-                        }}
-                        disabled={disabled}
-                        style={{
-                          width: '100%',
-                          padding: '14px 0',
-                          fontSize: '0.85rem',
-                          fontFamily: 'var(--font-heading)',
-                          letterSpacing: '1px',
-                          background: alreadyReady ? 'rgba(0, 255, 136, 0.22)' : 'var(--btn-bg)',
-                          borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
-                          color: alreadyReady ? '#00ff88' : '#ffffff',
-                          boxShadow: alreadyReady ? '0 0 16px rgba(0, 255, 136, 0.4)' : '0 0 15px var(--accent-pink)',
-                          opacity: disabled ? 0.6 : 1,
-                          cursor: disabled ? 'default' : 'pointer',
-                          display: 'flex',
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 10,
-                        }}
-                      >
-                        <span>{alreadyReady ? `[${t('game.readyBadge').toUpperCase()}]` : soloRoom ? t('game.readyNeedsOpponent') : t('game.readyBadge').toUpperCase()}</span>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.85, fontFamily: 'var(--font-mono)' }}>
-                          ({view.readyPlayers.length}/{activeCount})
-                        </span>
-                      </button>
-                    )
-                  })()}
-                </div>
-              )}
-            </div>
+                    {(() => {
+                      const activeCount = view.players.filter((p) => p.status === 'active').length
+                      const alreadyReady = view.readyPlayers.includes(view.myColor)
+                      const soloRoom = activeCount < 2
+                      const disabled = alreadyReady || soloRoom
+                      return (
+                        <button
+                          className="retro-btn"
+                          onClick={markReady}
+                          disabled={disabled}
+                          style={{
+                            width: '100%',
+                            padding: '12px 0',
+                            fontSize: '0.8rem',
+                            background: alreadyReady ? 'rgba(0, 255, 136, 0.2)' : 'var(--btn-bg)',
+                            borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
+                            color: alreadyReady ? '#00ff88' : '#ffffff',
+                            opacity: disabled ? 0.6 : 1,
+                            cursor: disabled ? 'default' : 'pointer',
+                          }}
+                        >
+                          {alreadyReady
+                            ? `[${t('game.readyBadge').toUpperCase()}] (${t('game.waitingForHost')})`
+                            : soloRoom
+                              ? t('game.readyNeedsOpponent')
+                              : t('game.startMatchBtn')}
+                        </button>
+                      )
+                    })()}
+
+                    <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+                      {t('game.readyPilots', { current: view.readyPlayers.length, total: view.players.filter((p) => p.status === 'active').length })}
+                    </div>
 
                     {activeMatch?.mode === 'pvp' && (
                       <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}>
@@ -1344,114 +1314,72 @@ export function Game() {
                       const activeName = (activeTurnPlayer?.displayName || activeTurnPlayer?.username || activeTurnPlayer?.color)?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
                       const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
 
-                    return (
-                      <div
-                        style={{
-                          width: '100%',
-                          padding: '6px 10px',
-                          background: isMyTurn ? 'rgba(255, 0, 127, 0.2)' : `${turnColorHex}18`,
-                          border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
-                          boxShadow: isMyTurn ? '0 0 12px rgba(255, 0, 127, 0.5)' : `0 0 8px ${turnColorHex}44`,
-                          borderRadius: 4,
-                          textAlign: 'center',
-                          fontSize: '0.78rem',
-                          fontFamily: 'var(--font-mono)',
-                          fontWeight: 'bold',
-                          color: '#ffffff',
-                          letterSpacing: '0.5px',
-                        }}
-                      >
-                        {isMyTurn ? t('game.yourTurnShort').toUpperCase() : t('gameExtra.turnLabelOther', { name: activeName })}
-                      </div>
-                    )
-                  })()}
+                      return (
+                        <div
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : `${turnColorHex}18`,
+                            border: isMyTurn ? '1.5px solid var(--accent-pink)' : `1.5px solid ${turnColorHex}`,
+                            boxShadow: isMyTurn ? '0 0 16px rgba(255, 0, 127, 0.6)' : `0 0 8px ${turnColorHex}44`,
+                            animation: isMyTurn ? 'pulse-turn-banner 1.6s infinite' : 'none',
+                            borderRadius: 4,
+                            textAlign: 'center',
+                            fontSize: '0.78rem',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 'bold',
+                            color: '#ffffff',
+                            letterSpacing: '0.5px',
+                          }}
+                        >
+                          {isMyTurn
+                            ? `▶ ${t('game.yourTurn').toUpperCase()} ◀`
+                            : `▶ ${t('game.botTurn', { name: activeName }).toUpperCase()} ◀`}
+                        </div>
+                      )
+                    })()}
 
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.72rem',
-                      color: isMyTurn ? '#ffe600' : 'var(--text-muted)',
-                    }}
-                  >
-                    {isRolling
-                      ? t('game.statusRolling')
-                      : canRoll
-                        ? t('game.statusRollNow')
-                        : view.turnPhase === 'WAITING_FOR_MOVE'
-                          ? t('game.statusSelectPiece')
-                          : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })}
-                  </div>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.72rem',
+                        color: isMyTurn ? '#ffe600' : 'var(--text-muted)',
+                      }}
+                    >
+                      {isRolling
+                        ? t('game.statusRolling')
+                        : canRoll
+                          ? t('game.statusRollNow')
+                          : view.turnPhase === 'WAITING_FOR_MOVE'
+                            ? t('game.statusSelectPiece')
+                            : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })}
+                    </div>
 
                     <div style={{ height: 90, display: 'grid', placeItems: 'center' }}>
                       <Die value={view.diceValue ?? 0} rolling={isRolling} />
                     </div>
 
-                  <button
-                    className="retro-btn"
-                    onClick={rollDice}
-                    disabled={!canRoll || isRolling || isGameEnded}
-                    style={{
-                      width: '100%',
-                      padding: '12px 0',
-                      fontSize: '0.85rem',
-                      fontFamily: 'var(--font-heading)',
-                      letterSpacing: '1px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      textAlign: 'center',
-                      background: canRoll && !isRolling && !isGameEnded ? 'var(--btn-bg)' : 'rgba(25, 10, 56, 0.5)',
-                      borderColor: canRoll && !isRolling && !isGameEnded ? 'var(--accent-pink)' : 'rgba(255, 255, 255, 0.2)',
-                      boxShadow: canRoll && !isRolling && !isGameEnded ? '0 0 15px var(--accent-pink)' : 'none',
-                      cursor: canRoll && !isRolling && !isGameEnded ? 'pointer' : 'default',
-                      opacity: canRoll && !isRolling && !isGameEnded ? 1 : 0.5,
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    {isRolling ? t('game.statusRolling') : t('game.rollDiceBtn')}
-                  </button>
-                </div>
-              </section>
+                    <button
+                      className={`roll-dice-btn ${canRoll && !isRolling ? 'is-active-turn' : 'is-inactive-turn'}`}
+                      onClick={rollDice}
+                      disabled={!canRoll || isRolling}
+                    >
+                      {isRolling ? t('game.rolling').toUpperCase() : t('game.rollDiceBtn')}
+                    </button>
 
-              {/* Arena System Control & Sector Specs */}
-              <section className="retro-window" id="sectorControlWindow">
-                <div className="window-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{t('game.combatKeybindsRules')}</span>
-                  </div>
-                </div>
-
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{t('gameExtra.diceRollLabel')}</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('gameExtra.spacebarKey')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{t('gameExtra.selectPieceLabel')}</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>{t('gameExtra.leftClickKey')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{t('gameExtra.goalColonLabel')}</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.68rem',
+                        color: 'var(--accent-cyan)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      [ {t('game.spaceToRoll')} ]
                     </div>
                   </div>
-
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
-
-                  <CyberButton
-                    label={t('gameExtra.gameRulesBtn')}
-                    shortcut="?"
-                    variant="cyan"
-                    onClick={() => {
-                      retroAudio.playUiBeep(600, 0.05)
-                      setRulesPage(0)
-                      setIsSystemModalOpen(true)
-                    }}
-                    style={{ width: '100%', justifyContent: 'center' }}
-                  />
-                </div>
-              </section>
+                </section>
+              )}
 
               {/* MISSION TELEMETRY LOG WINDOW */}
               <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1543,13 +1471,29 @@ export function Game() {
               {(() => {
                 const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
                 return (
-                  <CyberButton
-                    label={isBotOrHotseat ? t('gameExtra.abortSimulationBtn') : t('game.abortMatchBtn')}
-                    shortcut="ESC"
-                    variant="danger"
-                    onClick={() => setIsAbortModalOpen(true)}
-                    style={{ width: '100%', justifyContent: 'center' }}
-                  />
+                  <button
+                    className="retro-btn"
+                    onClick={endGame}
+                    style={{
+                      width: '100%',
+                      padding: isBotOrHotseat ? '18px 20px' : '12px 14px',
+                      fontSize: isBotOrHotseat ? '0.92rem' : '0.78rem',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      letterSpacing: isBotOrHotseat ? '1.5px' : '1px',
+                      lineHeight: '1.4',
+                      background: 'rgba(255, 0, 85, 0.18)',
+                      border: '1.5px solid #ff0055',
+                      color: '#ff0055',
+                      boxShadow: isBotOrHotseat ? '0 0 16px rgba(255, 0, 85, 0.3)' : 'none',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    // {t('game.abortMatchBtn')}
+                  </button>
                 )
               })()}
 
@@ -1557,210 +1501,6 @@ export function Game() {
           </main>
         </div>
       </div>
-
-      {/* Cyberpunk Glitch Confirmation Modal */}
-      <CyberModal
-        isOpen={isAbortModalOpen}
-        title={t('gameExtra.protocolTerminationTitle')}
-        versionTag={activeMatch?.gameId ? `ARENA.${activeMatch.gameId.slice(0, 8)}` : 'v001.e1349837856'}
-        message={
-          activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
-            ? t('gameExtra.abortConfirmPve')
-            : t('gameExtra.abortConfirmPvp')
-        }
-        subMessage={t('gameExtra.abortSubMessage')}
-        onCancel={() => setIsAbortModalOpen(false)}
-        onProceed={() => {
-          setIsAbortModalOpen(false)
-          endGame()
-        }}
-        cancelLabel={t('gameExtra.cancelBtn')}
-        proceedLabel={t('gameExtra.confirmAbortBtn')}
-        cancelShortcut="ESC"
-        proceedShortcut="↵"
-        isDanger
-      />
-
-      {/* Cyberpunk System Control & Multi-Page Rules Modal (6 Pages) */}
-      <CyberModal
-        isOpen={isSystemModalOpen}
-        title={t('gameExtra.rulesModalTitle')}
-        versionTag="RULES.v42.SYS"
-        cancelLabel={t('gameExtra.closeBtn')}
-        proceedLabel={rulesPage < 5 ? t('gameExtra.nextPageBtn') : t('gameExtra.startPlayingBtn')}
-        cancelShortcut="ESC"
-        proceedShortcut={rulesPage < 5 ? '→' : '↵'}
-        closeOnProceed={rulesPage >= 5}
-        onCancel={() => setIsSystemModalOpen(false)}
-        onProceed={() => {
-          if (rulesPage < 5) {
-            retroAudio.playUiBeep(700, 0.05)
-            setRulesPage((p) => p + 1)
-          } else {
-            setIsSystemModalOpen(false)
-          }
-        }}
-        message={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 380, maxWidth: 520 }}>
-            {/* Page Navigation Tabs: Compact 1-row layout */}
-            <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid rgba(0, 240, 255, 0.25)', paddingBottom: 10 }}>
-              {[
-                { id: 0, label: t('gameExtra.rulesTab0') },
-                { id: 1, label: t('gameExtra.rulesTab1') },
-                { id: 2, label: t('gameExtra.rulesTab2') },
-                { id: 3, label: t('gameExtra.rulesTab3') },
-                { id: 4, label: t('gameExtra.rulesTab4') },
-                { id: 5, label: t('gameExtra.rulesTab5') },
-              ].map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    retroAudio.playUiBeep(520, 0.04)
-                    setRulesPage(p.id)
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '6px 2px',
-                    fontSize: '0.68rem',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 'bold',
-                    background: rulesPage === p.id ? 'rgba(0, 240, 255, 0.22)' : 'rgba(255, 255, 255, 0.04)',
-                    border: rulesPage === p.id ? '1.5px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.1)',
-                    color: rulesPage === p.id ? '#ffffff' : 'var(--text-muted)',
-                    boxShadow: rulesPage === p.id ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            {/* PAGE 0: Objective & Controls */}
-            {rulesPage === 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  {t('gameExtra.rulesPage0Header')}
-                </div>
-                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                  {t('gameExtra.rulesPage0Body')}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(5, 2, 18, 0.65)', padding: 14, borderRadius: 6, border: '1px solid rgba(255, 0, 127, 0.3)' }}>
-                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.5px' }}>{t('gameExtra.rulesCombatControls')}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('gameExtra.rulesRollDiceLabel')}</span>
-                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem' }}>{t('gameExtra.spacebarKey')}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('gameExtra.rulesSelectWarpLabel')}</span>
-                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '0.85rem' }}>{t('gameExtra.leftClickKey')}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PAGE 1: Rolling a 6 */}
-            {rulesPage === 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  {t('gameExtra.rulesPage1Header')}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-yellow)', border: '1px solid rgba(255, 230, 0, 0.2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>⚡</span>
-                    <span>{t('gameExtra.rulesPage1Line1')}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>🚀</span>
-                    <span>{t('gameExtra.rulesPage1Line2')}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: '#ff0055', fontSize: '1.2rem' }}>⛔</span>
-                    <span>{t('gameExtra.rulesPage1Line3')}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PAGE 2: Landing on Enemy Piece */}
-            {rulesPage === 2 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  {t('gameExtra.rulesPage2Header')}
-                </div>
-                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                  {t('gameExtra.rulesPage2Intro')}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-pink)', border: '1px solid rgba(255, 0, 127, 0.2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: 'var(--accent-pink)', fontSize: '1.2rem' }}>⚔</span>
-                    <span>{t('gameExtra.rulesPage2Line1')}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: '#00ff88', fontSize: '1.2rem' }}>✦</span>
-                    <span>{t('gameExtra.rulesPage2Line2')}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PAGE 3: The Star */}
-            {rulesPage === 3 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  {t('gameExtra.rulesPage3Header')}
-                </div>
-                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                    {t('gameExtra.rulesPage3Title')}
-                  </div>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    {t('gameExtra.rulesPage3Body')}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* PAGE 4: Two Pieces Together (Blockade) */}
-            {rulesPage === 4 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#00ff88', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  {t('gameExtra.rulesPage4Header')}
-                </div>
-                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #00ff88', border: '1px solid rgba(0, 255, 136, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ color: '#00ff88', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                    {t('gameExtra.rulesPage4Title')}
-                  </div>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    {t('gameExtra.rulesPage4Body')}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* PAGE 5: Home Lane */}
-            {rulesPage === 5 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#9d00ff', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  {t('gameExtra.rulesPage5Header')}
-                </div>
-                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #9d00ff', border: '1px solid rgba(157, 0, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    {t('gameExtra.rulesPage5Line1')}
-                  </p>
-                  <p style={{ margin: 0, color: '#ffe600', fontWeight: 'bold', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                    🎯 {t('gameExtra.rulesPage5Line2')}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        }
-      />
 
       {/* QTE Clash overlay */}
       {view.clash && (
