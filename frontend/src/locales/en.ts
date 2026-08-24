@@ -794,6 +794,7 @@ export const en = {
   navbar: {
     languageLabel: 'LANGUAGE // LANGUE',
     twoFactorLabel: '2FA AUTH',
+    audioLabel: 'AUDIO',
     enabledBadge: 'ENABLED',
     disabledBadge: 'DISABLED',
     logoutBtn: 'DISCONNECT // LOGOUT',

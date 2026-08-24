@@ -793,6 +793,7 @@ export const fr = {
   navbar: {
     languageLabel: 'LANGUE // LANGUAGE',
     twoFactorLabel: 'AUTH 2FA',
+    audioLabel: 'AUDIO',
     enabledBadge: 'ACTIVÉ',
     disabledBadge: 'DÉSACTIVÉ',
     logoutBtn: 'DÉCONNEXION // LOGOUT',

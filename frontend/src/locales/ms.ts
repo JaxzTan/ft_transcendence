@@ -793,6 +793,7 @@ export const ms = {
   navbar: {
     languageLabel: 'BAHASA // LANGUAGE',
     twoFactorLabel: 'AUTH 2FA',
+    audioLabel: 'AUDIO',
     enabledBadge: 'DIAKTIFKAN',
     disabledBadge: 'DINYAHAKTIFKAN',
     logoutBtn: 'PUTUS SAMBUNGAN // LOG KELUAR',
