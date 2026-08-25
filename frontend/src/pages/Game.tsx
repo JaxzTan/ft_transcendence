@@ -11,6 +11,7 @@ import { getApi, postApi } from '../api'
 import { useApp } from '../store'
 import { SEAT_COLORS } from '../theme'
 import { UserAvatar } from '../components/UserAvatar'
+import { CyberButton, CyberModal } from '../components/CyberModal'
 import { ResultsModal } from '../components/ResultsModal'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
@@ -83,7 +84,9 @@ export function Game() {
   // CRT & AUDIO CONTROLS
   // ------------------------------------------------------------------------
   const [crtEnabled, setCrtEnabled] = useState(true)
-  const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
+  const [isAbortModalOpen, setIsAbortModalOpen] = useState(false)
+  const [isSystemModalOpen, setIsSystemModalOpen] = useState(false)
+  const [rulesPage, setRulesPage] = useState(0)
 
   useEffect(() => {
     const savedCrt = localStorage.getItem('retro_crt')
@@ -91,15 +94,6 @@ export function Game() {
       setCrtEnabled(false)
     }
   }, [])
-
-
-  const toggleSound = () => {
-    retroAudio.muted = !retroAudio.muted
-    setSoundMuted(retroAudio.muted)
-    if (!retroAudio.muted) {
-      retroAudio.playUiBeep(520, 0.06)
-    }
-  }
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
@@ -1107,62 +1101,6 @@ export function Game() {
                 </div>
               </section>
 
-              {/* Arena System Control & Sector Specs */}
-              <section className="retro-window" id="sectorControlWindow">
-                <div className="window-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{t('game.systemControlTitle')}</span>
-                  </div>
-                </div>
-
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    {t('game.combatKeybindsRules')}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>DICE ROLL:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('game.spaceToRoll')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>SELECT PIECE:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>{t('game.victoryGoal')}</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.fourPiecesGoal')}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '4px 0' }} />
-
-                  <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-                    {t('game.audioPreferences')}
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
-                    <button
-                      className="retro-badge"
-                      style={{
-                        cursor: 'pointer',
-                        padding: '8px 10px',
-                        background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
-                        border: soundMuted ? '1px solid #ff0055' : '1px solid #00ff88',
-                        color: soundMuted ? '#ff0055' : '#00ff88',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.7rem',
-                        textAlign: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={toggleSound}
-                    >
-                      {soundMuted ? t('game.audioOff') : t('game.audioOn')}
-                    </button>
-                  </div>
-                </div>
-              </section>
-
               {/* View Results Button below Pilot Roster */}
               {lastResult && (
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column' }}>
@@ -1458,6 +1396,46 @@ export function Game() {
                 </section>
               )}
 
+              {/* Arena System Control & Sector Specs */}
+              <section className="retro-window" id="sectorControlWindow">
+                <div className="window-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>CONTROLS & SHORTCUTS</span>
+                  </div>
+                </div>
+
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>DICE ROLL:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>SELECT PIECE:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>GOAL:</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES HOME</span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
+
+                  <CyberButton
+                    label="GAME RULES"
+                    shortcut="?"
+                    variant="cyan"
+                    onClick={() => {
+                      retroAudio.playUiBeep(600, 0.05)
+                      setRulesPage(0)
+                      setIsSystemModalOpen(true)
+                    }}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  />
+                </div>
+              </section>
+
               {/* MISSION TELEMETRY LOG WINDOW */}
               <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <div className="window-header" style={{ flex: 'none' }}>
@@ -1556,29 +1534,13 @@ export function Game() {
               {!isGameEnded && (() => {
                 const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
                 return (
-                  <button
-                    className="retro-btn"
-                    onClick={endGame}
-                    style={{
-                      width: '100%',
-                      padding: isBotOrHotseat ? '18px 20px' : '12px 14px',
-                      fontSize: isBotOrHotseat ? '0.92rem' : '0.78rem',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 900,
-                      letterSpacing: isBotOrHotseat ? '1.5px' : '1px',
-                      lineHeight: '1.4',
-                      background: 'rgba(255, 0, 85, 0.18)',
-                      border: '1.5px solid #ff0055',
-                      color: '#ff0055',
-                      boxShadow: isBotOrHotseat ? '0 0 16px rgba(255, 0, 85, 0.3)' : 'none',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      boxSizing: 'border-box',
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    // {t('game.abortMatchBtn')}
-                  </button>
+                  <CyberButton
+                    label={isBotOrHotseat ? 'ABORT SIMULATION' : t('game.abortMatchBtn')}
+                    shortcut="ESC"
+                    variant="danger"
+                    onClick={() => setIsAbortModalOpen(true)}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  />
                 )
               })()}
 
@@ -1586,6 +1548,210 @@ export function Game() {
           </main>
         </div>
       </div>
+
+      {/* Cyberpunk Glitch Confirmation Modal */}
+      <CyberModal
+        isOpen={isAbortModalOpen}
+        title="PROTOCOL TERMINATION"
+        versionTag={activeMatch?.gameId ? `ARENA.${activeMatch.gameId.slice(0, 8)}` : 'v001.e1349837856'}
+        message={
+          activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
+            ? 'You are about to terminate this tactical simulation. Combat records for this session will be halted.'
+            : 'You are about to withdraw and forfeit this ranked arena match. Match telemetry will be finalized as a defeat.'
+        }
+        subMessage="Do you want to confirm protocol abort?"
+        onCancel={() => setIsAbortModalOpen(false)}
+        onProceed={() => {
+          setIsAbortModalOpen(false)
+          endGame()
+        }}
+        cancelLabel="CANCEL"
+        proceedLabel="CONFIRM ABORT"
+        cancelShortcut="ESC"
+        proceedShortcut="↵"
+        isDanger
+      />
+
+      {/* Cyberpunk System Control & Multi-Page Rules Modal (6 Pages) */}
+      <CyberModal
+        isOpen={isSystemModalOpen}
+        title="ARENA PROTOCOLS & RULES"
+        versionTag="RULES.v42.SYS"
+        cancelLabel="CLOSE"
+        proceedLabel={rulesPage < 5 ? 'NEXT PAGE ▶' : 'START PLAYING'}
+        cancelShortcut="ESC"
+        proceedShortcut={rulesPage < 5 ? '→' : '↵'}
+        closeOnProceed={rulesPage >= 5}
+        onCancel={() => setIsSystemModalOpen(false)}
+        onProceed={() => {
+          if (rulesPage < 5) {
+            retroAudio.playUiBeep(700, 0.05)
+            setRulesPage((p) => p + 1)
+          } else {
+            setIsSystemModalOpen(false)
+          }
+        }}
+        message={
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 380, maxWidth: 520 }}>
+            {/* Page Navigation Tabs: Compact 1-row layout */}
+            <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid rgba(0, 240, 255, 0.25)', paddingBottom: 10 }}>
+              {[
+                { id: 0, label: '1. GOAL' },
+                { id: 1, label: '2. ROLL 6' },
+                { id: 2, label: '3. ENEMY' },
+                { id: 3, label: '4. STAR' },
+                { id: 4, label: '5. BLOCK' },
+                { id: 5, label: '6. HOME' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    retroAudio.playUiBeep(520, 0.04)
+                    setRulesPage(p.id)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '6px 2px',
+                    fontSize: '0.68rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 'bold',
+                    background: rulesPage === p.id ? 'rgba(0, 240, 255, 0.22)' : 'rgba(255, 255, 255, 0.04)',
+                    border: rulesPage === p.id ? '1.5px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: rulesPage === p.id ? '#ffffff' : 'var(--text-muted)',
+                    boxShadow: rulesPage === p.id ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* PAGE 0: Objective & Controls */}
+            {rulesPage === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // MISSION OBJECTIVE
+                </div>
+                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  Be the first pilot to move all four of your combat pieces from the Starting Area to the Home Triangle in the center!
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(5, 2, 18, 0.65)', padding: 14, borderRadius: 6, border: '1px solid rgba(255, 0, 127, 0.3)' }}>
+                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.5px' }}>COMBAT CONTROLS:</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Roll Quantum Dice:</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem' }}>SPACEBAR</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Select / Warp Piece:</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '0.85rem' }}>LEFT CLICK</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 1: Rolling a 6 */}
+            {rulesPage === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // ROLLING A 6
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-yellow)', border: '1px solid rgba(255, 230, 0, 0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>⚡</span>
+                    <span>Roll a <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> → you get to roll again!</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>🚀</span>
+                    <span>A <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> lets you bring a new piece onto the board.</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: '#ff0055', fontSize: '1.2rem' }}>⛔</span>
+                    <span>Roll <strong style={{ color: '#ff0055', fontSize: '1.05rem' }}>three 6s in a row</strong> → your turn immediately ends!</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 2: Landing on Enemy Piece */}
+            {rulesPage === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // LANDING ON ENEMY PIECE
+                </div>
+                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  If you land on another player's piece:
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-pink)', border: '1px solid rgba(255, 0, 127, 0.2)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: 'var(--accent-pink)', fontSize: '1.2rem' }}>⚔</span>
+                    <span>Their piece gets <strong style={{ color: 'var(--accent-pink)', fontSize: '1.05rem' }}>kicked home</strong> back to their base!</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
+                    <span style={{ color: '#00ff88', fontSize: '1.2rem' }}>✦</span>
+                    <span>You get a combat bonus: <strong style={{ color: '#00ff88', fontSize: '1.05rem' }}>roll again!</strong></span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 3: The Star */}
+            {rulesPage === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // THE STAR
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    ★ Star spaces are safe!
+                  </div>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    Nobody can knock your piece off a star. Multiple pilots can safely occupy the same star space without combat captures.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 4: Two Pieces Together (Blockade) */}
+            {rulesPage === 4 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#00ff88', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // TWO PIECES TOGETHER (BLOCKADE)
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #00ff88', border: '1px solid rgba(0, 255, 136, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: '#00ff88', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    🛡 Impassable Shield
+                  </div>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    Having <strong style={{ color: '#00ff88' }}>two pieces together</strong> will stop other players from crossing or landing on that space!
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 5: Home Lane */}
+            {rulesPage === 5 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#9d00ff', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  // HOME LANE & FINISH
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #9d00ff', border: '1px solid rgba(157, 0, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    You are <strong style={{ color: '#00ff88' }}>safe</strong> once you reach your coloured lane. Opponents cannot enter your home stretch!
+                  </p>
+                  <p style={{ margin: 0, color: '#ffe600', fontWeight: 'bold', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                    🎯 Just get to the center! (if you can get the exact steps!)
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        }
+      />
 
       {/* QTE Clash overlay */}
       {view.clash && (

@@ -98,6 +98,90 @@ export class RetroAudioEngine {
     }
   }
 
+  // Play Cyber Slide FX when CyberModal opens
+  playCyberSlide() {
+    if (this.muted) return
+    try {
+      this.initContext()
+      if (!this.ctx) return
+      const osc = this.ctx.createOscillator()
+      const gain = this.ctx.createGain()
+
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(180, this.ctx.currentTime)
+      osc.frequency.exponentialRampToValueAtTime(740, this.ctx.currentTime + 0.18)
+
+      gain.gain.setValueAtTime(this.volume * 0.7, this.ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2)
+
+      osc.connect(gain)
+      gain.connect(this.ctx.destination)
+
+      osc.start()
+      osc.stop(this.ctx.currentTime + 0.2)
+    } catch (e) {
+      console.debug('Audio error:', e)
+    }
+  }
+
+  // Play Cyber Accept FX
+  playCyberAccept() {
+    if (this.muted) return
+    try {
+      this.initContext()
+      if (!this.ctx) return
+      const osc1 = this.ctx.createOscillator()
+      const osc2 = this.ctx.createOscillator()
+      const gain = this.ctx.createGain()
+
+      osc1.type = 'triangle'
+      osc2.type = 'sine'
+      osc1.frequency.setValueAtTime(587.3, this.ctx.currentTime)
+      osc1.frequency.setValueAtTime(880.0, this.ctx.currentTime + 0.09)
+      osc2.frequency.setValueAtTime(1174.6, this.ctx.currentTime + 0.09)
+
+      gain.gain.setValueAtTime(this.volume * 0.8, this.ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.24)
+
+      osc1.connect(gain)
+      osc2.connect(gain)
+      gain.connect(this.ctx.destination)
+
+      osc1.start()
+      osc2.start(this.ctx.currentTime + 0.09)
+      osc1.stop(this.ctx.currentTime + 0.24)
+      osc2.stop(this.ctx.currentTime + 0.24)
+    } catch (e) {
+      console.debug('Audio error:', e)
+    }
+  }
+
+  // Play Cyber Reject FX
+  playCyberReject() {
+    if (this.muted) return
+    try {
+      this.initContext()
+      if (!this.ctx) return
+      const osc = this.ctx.createOscillator()
+      const gain = this.ctx.createGain()
+
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(440, this.ctx.currentTime)
+      osc.frequency.exponentialRampToValueAtTime(160, this.ctx.currentTime + 0.16)
+
+      gain.gain.setValueAtTime(this.volume * 0.6, this.ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18)
+
+      osc.connect(gain)
+      gain.connect(this.ctx.destination)
+
+      osc.start()
+      osc.stop(this.ctx.currentTime + 0.18)
+    } catch (e) {
+      console.debug('Audio error:', e)
+    }
+  }
+
   // Play subtle plasma ignition sound for Apex badges
   playIgnitionSound() {
     if (this.muted) return
@@ -218,6 +302,27 @@ export class RetroAudioEngine {
     this.currentTrackIndex = (this.currentTrackIndex + 1) % this.tracks.length
     this.noteStep = 0
     return this.tracks[this.currentTrackIndex].name
+  }
+
+  prevTrack(): string {
+    this.currentTrackIndex = (this.currentTrackIndex - 1 + this.tracks.length) % this.tracks.length
+    this.noteStep = 0
+    return this.tracks[this.currentTrackIndex].name
+  }
+
+  selectTrack(index: number): string {
+    this.currentTrackIndex = Math.max(0, Math.min(this.tracks.length - 1, index))
+    this.noteStep = 0
+    return this.tracks[this.currentTrackIndex].name
+  }
+
+  setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(1, vol))
+  }
+
+  toggleMute(): boolean {
+    this.muted = !this.muted
+    return this.muted
   }
 
   scheduleNextNote() {
