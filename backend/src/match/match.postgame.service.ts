@@ -5,7 +5,8 @@ import { secret } from '../secrets';
 import Redis from 'ioredis';
 import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
 import { AchievementsService } from '../achievements/achievements.service';
-import { isBotUserId } from '../bot';
+import { isBotUserId } from '../common/bot';
+import { ratingDeltaFor } from '../common/scoring'
 
 /**
  * POST-GAME POINTS (piece-based)
@@ -13,8 +14,6 @@ import { isBotUserId } from '../bot';
  * Winner gets +1 bonus piece, so a perfect PvP win = (4+1)*2 = 10.
  * Losers still earn points for pieces brought home. Bots are skipped.
  */
-const POINTS_PER_PIECE = 2;      // pts per piece home: 2 (PvP), 1 (PvE)
-const WIN_BONUS_PIECE = 1;       // winner bonus piece: (4+1)*2 = 10 pts max
 
 @Injectable()
 export class MatchPostgameService {
@@ -111,12 +110,11 @@ export class MatchPostgameService {
 
 				const isWinner = p.rank === 1;
 
-				// Piece-based scoring: 2 pts per piece (PvP) / 1 pt per piece (PvE),
-				// winner gets +1 bonus piece. Losers still earn points — no penalty.
-				const piecesInGoal = p.piecesInGoal ?? 0;
-				const effectivePieces = piecesInGoal + (isWinner ? WIN_BONUS_PIECE : 0);
-				const perPiece = gameType === 'PVE' ? POINTS_PER_PIECE / 2 : POINTS_PER_PIECE;
-				const ratingDelta = effectivePieces * perPiece;
+				const ratingDelta = ratingDeltaFor({
+					piecesInGoal: p.piecesInGoal ?? 0,
+					rank: p.rank,
+					gameType,
+				});
 
 				// Example: rating 100, winner, 4 pieces -> +10 => newRating 110,
 				//          highestRating 110, wins++, winStreak 1.
