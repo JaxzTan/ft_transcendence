@@ -5,8 +5,7 @@ import { secret } from '../secrets';
 import Redis from 'ioredis';
 import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
 import { AchievementsService } from '../achievements/achievements.service';
-
-const BOT_PREFIX = 'bot-';
+import { isBotUserId } from '../bot';
 
 /**
  * POST-GAME POINTS (piece-based)
@@ -16,10 +15,6 @@ const BOT_PREFIX = 'bot-';
  */
 const POINTS_PER_PIECE = 2;      // pts per piece home: 2 (PvP), 1 (PvE)
 const WIN_BONUS_PIECE = 1;       // winner bonus piece: (4+1)*2 = 10 pts max
-
-function isBotUserId(userId: string | undefined): boolean {
-	return !!userId && userId.startsWith(BOT_PREFIX);
-}
 
 @Injectable()
 export class MatchPostgameService {

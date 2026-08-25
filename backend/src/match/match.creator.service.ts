@@ -4,8 +4,8 @@ import { PrismaService } from '../prisma.service';
 import { secret } from '../secrets';
 import Redis from 'ioredis';
 import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
+import { BOT_PREFIX, isBotUserId } from '../bot';
 
-const BOT_PREFIX = 'bot-';
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
@@ -17,10 +17,6 @@ function generateInviteCode(): string {
 		code += chars[Math.floor(Math.random() * chars.length)];
 	}
 	return code;
-}
-
-function isBotUserId(userId: string | undefined): boolean {
-	return !!userId && userId.startsWith(BOT_PREFIX);
 }
 
 @Injectable()
