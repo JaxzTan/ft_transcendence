@@ -38,10 +38,14 @@ type MatchHistory = {
   games: Array<{
     gameId: string
     status: string
+    gameType: 'PVP' | 'PVE'
     color: number
     rank: number | null
     piecesCaptured: number
     piecesInGoal: number
+    // Rating awarded for this game, from the backend. Never negative — a loss
+    // still earns points for pieces brought home.
+    ratingDelta: number
     startedAt: string
     endedAt: string | null
     participants: Participant[]
@@ -978,7 +982,7 @@ export function Profile() {
                                           lineHeight: 1,
                                         }}
                                       >
-                                        {isWin ? '+25 ELO' : '-5 ELO'}
+                                        {`${g.ratingDelta > 0 ? '+' : ''}${g.ratingDelta} ELO`}
                                       </div>
                                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 3 }}>
                                         {t('profile.goalProgressText', { count: g.piecesInGoal })}
