@@ -56,7 +56,7 @@ async function main() {
   if (harleyhxng) {
     console.log(`\n👑 Seeding Account 1: harleyhxng (Top Apex Rank 1450 ELO)`);
 
-    const harleyhxngAchievement = {
+    const harleyhxngStats = {
       rating: 1450,
       highestRating: 1480,
       wins: 12,
@@ -65,9 +65,10 @@ async function main() {
       botWins: 3,
       winStreak: 5,
       bestWinStreak: 7,
-      status: 'online' as const,
       disconnectCount: 0,
       reconnectCount: 0,
+    };
+    const harleyhxngAchievement = {
       achFirstBlood: true,
       achOnFire: true,
       achDiceMaster: true,
@@ -83,6 +84,7 @@ async function main() {
       where: { id: harleyhxng.id },
       data: {
         displayName: 'Harley HX',
+        ...harleyhxngStats,
         achievement: {
           upsert: {
             create: { id: randomUUID(), ...harleyhxngAchievement },
@@ -161,7 +163,7 @@ async function main() {
   if (harleynghxedu) {
     console.log(`\n🛡️ Seeding Account 2: harleynghxedu (Tactical Ace 1190 ELO)`);
 
-    const harleynghxeduAchievement = {
+    const harleynghxeduStats = {
       rating: 1190,
       highestRating: 1240,
       wins: 4,
@@ -170,9 +172,10 @@ async function main() {
       botWins: 1,
       winStreak: 1,
       bestWinStreak: 3,
-      status: 'online' as const,
       disconnectCount: 1,
       reconnectCount: 1,
+    };
+    const harleynghxeduAchievement = {
       achFirstBlood: true,
       achTactician: true,
       achSpeedDemon: true,
@@ -183,6 +186,7 @@ async function main() {
       where: { id: harleynghxedu.id },
       data: {
         displayName: 'Harley NGHX',
+        ...harleynghxeduStats,
         achievement: {
           upsert: {
             create: { id: randomUUID(), ...harleynghxeduAchievement },
@@ -251,8 +255,7 @@ async function main() {
   // ───────────────────────────────────────────────────────────────────────────
   await prisma.leaderboardSnapshot.deleteMany({ where: { mode: 'global' } });
   const allPilots = await prisma.user.findMany({
-    orderBy: { achievement: { rating: 'desc' } },
-    include: { achievement: true },
+    orderBy: { rating: 'desc' },
     take: 10,
   });
   await prisma.leaderboardSnapshot.createMany({
@@ -261,7 +264,7 @@ async function main() {
       mode: 'global',
       userId: p.id,
       username: p.username,
-      rating: p.achievement!.rating,
+      rating: p.rating,
       rank: idx + 1,
     })),
   });

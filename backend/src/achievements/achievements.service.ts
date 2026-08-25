@@ -64,7 +64,7 @@ export class AchievementsService {
     const unlocked: string[] = [];
 
     // LifecycleCounts — computed once per evaluation (PVP/PVE only).
-    const counts = await this.computeLifecycleCounts(userId, user.achievement);
+    const counts = await this.computeLifecycleCounts(userId, user);
 
     // Evaluate lifetime rules (registry-driven), then per-game rules.
     for (const rule of ACHIEVEMENT_RULES) {
@@ -151,7 +151,7 @@ export class AchievementsService {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId }, include: { achievement: true } });
     if (!user) return {};
 
-    const counts = await this.computeLifecycleCounts(userId, user.achievement);
+    const counts = await this.computeLifecycleCounts(userId, user);
     const latestGame = await this.prisma.db.game.findFirst({
       where: { status: 'COMPLETED', participants: { some: { user_id: userId } } },
       orderBy: { endedAt: 'desc' },

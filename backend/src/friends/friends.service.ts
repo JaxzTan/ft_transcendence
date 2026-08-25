@@ -122,18 +122,18 @@ export class FriendsService {
         status: 'pending',
       },
       include: {
-        user: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
-        friend: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
+        user: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
+        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
       },
     });
 
     // Notify the target user that they have a new friend request.
-    const sender = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true, displayName: true, achievement: { select: { avatarStyle: true } } } });
+    const sender = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true, displayName: true, avatarStyle: true } });
     await this.notificationService.notify(targetUserId, 'friend_request', {
       requestId: friendship.id,
       fromUserId: userId,
       fromUsername: sender?.username || 'Someone',
-      fromAvatarStyle: sender?.achievement.avatarStyle || 'bottts',
+      fromAvatarStyle: sender?.avatarStyle || 'bottts',
     });
 
     return friendship;
@@ -147,7 +147,7 @@ export class FriendsService {
         status: 'pending',
       },
       include: {
-        user: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
+        user: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
       },
     });
 
@@ -159,8 +159,8 @@ export class FriendsService {
       where: { id: requestId },
       data: { status: 'accepted' },
       include: {
-        user: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
-        friend: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
+        user: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
+        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
       },
     });
 
@@ -168,7 +168,7 @@ export class FriendsService {
     await this.notificationService.notify(request.userId, 'friend_accepted', {
       fromUserId: userId,
       fromUsername: updated.friend.username,
-      fromAvatarStyle: updated.friend.achievement.avatarStyle,
+      fromAvatarStyle: updated.friend.avatarStyle,
     });
 
     return updated;
@@ -236,8 +236,8 @@ export class FriendsService {
         ],
       },
       include: {
-        user: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true, rating: true } } } },
-        friend: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true, rating: true } } } },
+        user: { select: { id: true, username: true, displayName: true, avatarStyle: true, rating: true } },
+        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true, rating: true } },
       },
     });
 
@@ -247,8 +247,8 @@ export class FriendsService {
         id: friend.id,
         username: friend.username,
         displayName: friend.displayName,
-        avatarStyle: friend.achievement.avatarStyle,
-        rating: friend.achievement.rating,
+        avatarStyle: friend.avatarStyle,
+        rating: friend.rating,
         friendsSince: f.createdAt,
       };
     });
@@ -265,7 +265,7 @@ export class FriendsService {
           status: 'pending',
         },
         include: {
-          friend: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
+          friend: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
         },
       }),
       this.prisma.db.friendship.findMany({
@@ -274,7 +274,7 @@ export class FriendsService {
           status: 'pending',
         },
         include: {
-          user: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
+          user: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
         },
       }),
     ]);
@@ -285,7 +285,7 @@ export class FriendsService {
         userId: r.friend.id,
         username: r.friend.username,
         displayName: r.friend.displayName,
-        avatarStyle: r.friend.achievement.avatarStyle,
+        avatarStyle: r.friend.avatarStyle,
         createdAt: r.createdAt,
       })),
       received: received.map((r) => ({
@@ -293,7 +293,7 @@ export class FriendsService {
         userId: r.user.id,
         username: r.user.username,
         displayName: r.user.displayName,
-        avatarStyle: r.user.achievement.avatarStyle,
+        avatarStyle: r.user.avatarStyle,
         createdAt: r.createdAt,
       })),
     };
@@ -322,8 +322,8 @@ export class FriendsService {
           status: 'blocked',
         },
         include: {
-          user: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
-          friend: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
+          user: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
+          friend: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
         },
       });
       return updated;
@@ -336,8 +336,8 @@ export class FriendsService {
           status: 'blocked',
         },
         include: {
-          user: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
-          friend: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true } } } },
+          user: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
+          friend: { select: { id: true, username: true, displayName: true, avatarStyle: true } },
         },
       });
       return blocked;
@@ -371,7 +371,7 @@ export class FriendsService {
         status: 'blocked',
       },
       include: {
-        friend: { select: { id: true, username: true, displayName: true, achievement: { select: { avatarStyle: true, rating: true } } } },
+        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true, rating: true } },
       },
     });
 
@@ -379,8 +379,8 @@ export class FriendsService {
       id: b.friend.id,
       username: b.friend.username,
       displayName: b.friend.displayName,
-      avatarStyle: b.friend.achievement.avatarStyle,
-      rating: b.friend.achievement.rating,
+      avatarStyle: b.friend.avatarStyle,
+      rating: b.friend.rating,
       blockedSince: b.createdAt,
     }));
   }

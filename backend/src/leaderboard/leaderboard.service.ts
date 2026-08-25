@@ -46,10 +46,10 @@ export class LeaderboardService {
 
       // If Redis has no entries or is missing users, auto-populate from PostgreSQL
       if (redisEntries.length === 0 || total < 5) {
-        const allDbUsers = await this.prisma.db.user.findMany({ select: { id: true, achievement: { select: { rating: true } } } });
+        const allDbUsers = await this.prisma.db.user.findMany({ select: { id: true, rating: true } });
         if (allDbUsers.length > 0) {
           for (const u of allDbUsers) {
-            await this.redisService.updateLeaderboardEntry(u.id, u.achievement.rating, (mode as any) || 'global');
+            await this.redisService.updateLeaderboardEntry(u.id, u.rating, (mode as any) || 'global');
           }
           redisEntries = await this.redisService.getLeaderboardFromRedis(mode, page, limit);
           total = await this.redisService.getLeaderboardCount(mode);
@@ -64,9 +64,10 @@ export class LeaderboardService {
             id: true,
             username: true,
             displayName: true,
-            achievement: {
-              select: { rating: true, wins: true, losses: true, avatarStyle: true },
-            },
+            rating: true,
+            wins: true,
+            losses: true,
+            avatarStyle: true,
           },
         });
 
@@ -75,9 +76,9 @@ export class LeaderboardService {
           .filter(e => userMap.has(e.userId))
           .map((entry, i) => {
             const user = userMap.get(entry.userId)!;
-            const gamesPlayed = user.achievement.wins + user.achievement.losses;
-            const wins = user.achievement.wins;
-            const losses = user.achievement.losses;
+            const gamesPlayed = user.wins + user.losses;
+            const wins = user.wins;
+            const losses = user.losses;
             const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
 
             return {
@@ -90,7 +91,7 @@ export class LeaderboardService {
               losses,
               draws: 0,
               winRate,
-              avatarStyle: user.achievement.avatarStyle,
+              avatarStyle: user.avatarStyle,
             };
           });
 
@@ -107,14 +108,14 @@ export class LeaderboardService {
           if (myRank) {
             const user = await this.prisma.db.user.findUnique({
               where: { id: userId },
-              select: { username: true, displayName: true, achievement: { select: { rating: true } } },
+              select: { username: true, displayName: true, rating: true },
             });
             if (user) {
               response.myRank = {
                 rank: myRank,
                 username: user.username,
                 displayName: user.displayName,
-                rating: user.achievement.rating,
+                rating: user.rating,
               };
             }
           }
@@ -151,15 +152,15 @@ export class LeaderboardService {
       select: {
         username: true,
         displayName: true,
-        achievement: { select: { wins: true, losses: true, avatarStyle: true } },
+        wins: true, losses: true, avatarStyle: true,
       },
     });
     const userMap = new Map(users.map(u => [u.username, u]));
 
     const entries: LeaderboardEntry[] = snapshotEntries.map(entry => {
       const u = userMap.get(entry.username);
-      const wins = u?.achievement.wins ?? 0;
-      const losses = u?.achievement.losses ?? 0;
+      const wins = u?.wins ?? 0;
+      const losses = u?.losses ?? 0;
       const gamesPlayed = wins + losses;
       const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
 
@@ -173,7 +174,7 @@ export class LeaderboardService {
         losses,
         draws: 0,
         winRate,
-        avatarStyle: u?.achievement.avatarStyle ?? null,
+        avatarStyle: u?.avatarStyle ?? null,
       };
     });
 

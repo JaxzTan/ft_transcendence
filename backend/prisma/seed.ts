@@ -112,18 +112,20 @@ async function main() {
         emailVerified: new Date(now - (50 - i) * 24 * HOUR),
         password_hash: pwd,
         twoFactorEnabled: false,
+        rating: p.rating,
+        highestRating: p.rating + Math.floor(Math.random() * 40),
+        wins: p.wins,
+        losses: p.losses,
+        humanWins: Math.max(0, p.wins - 2),
+        botWins: Math.min(2, p.wins),
+        winStreak: Math.max(0, Math.floor(p.wins / 4)),
+        bestWinStreak: Math.max(1, Math.floor(p.wins / 2)),
+        avatarStyle: p.avatar,
+        // pveGameStreak: top players have the 3-PvE-streak
+        pveGameStreak: Math.min(3, Math.max(0, Math.floor(p.wins / 5))),
         achievement: {
           create: {
             id: randomUUID(),
-            rating: p.rating,
-            highestRating: p.rating + Math.floor(Math.random() * 40),
-            wins: p.wins,
-            losses: p.losses,
-            humanWins: Math.max(0, p.wins - 2),
-            botWins: Math.min(2, p.wins),
-            winStreak: Math.max(0, Math.floor(p.wins / 4)),
-            bestWinStreak: Math.max(1, Math.floor(p.wins / 2)),
-            avatarStyle: p.avatar,
             // Achievement flags use the revamp thresholds (achievement-revamp.md v3):
             // lower gate values match the win counts in the seed roster.
             achFirstBlood: p.wins >= 1,
@@ -139,11 +141,9 @@ async function main() {
             achft_Transcendence: Math.max(0, p.wins - 2) >= 10, // humanWins >= 10
             // achLoveTheMachine needs pveGameStreak (not reliably derivable from
             // lifetime counters) — leave to real gameplay + POST /check backfill.
-            pveGameStreak: Math.min(3, Math.max(0, Math.floor(p.wins / 5))), // top players have the 3-PvE-streak
           },
         },
       },
-      include: { achievement: true },
     });
     createdUsers.push(user);
   }
@@ -173,8 +173,7 @@ async function main() {
   // ── Refresh Leaderboard Snapshot for ALL Database Users ────────────────────
   await prisma.leaderboardSnapshot.deleteMany({});
   const allPilots = await prisma.user.findMany({
-    orderBy: { achievement: { rating: 'desc' } },
-    include: { achievement: true },
+    orderBy: { rating: 'desc' },
   });
   await prisma.leaderboardSnapshot.createMany({
     data: allPilots.map((u, i) => ({
@@ -182,7 +181,7 @@ async function main() {
       mode: 'global',
       userId: u.id,
       username: u.username,
-      rating: u.achievement!.rating,
+      rating: u.rating,
       rank: i + 1,
     })),
   });
@@ -200,7 +199,7 @@ async function main() {
     await redis.del('leaderboard:global', 'leaderboard:ranked', 'leaderboard:casual');
 
     for (const u of allPilots) {
-      const rating = u.achievement!.rating;
+      const rating = u.rating;
       await redis.zadd('leaderboard:global', rating, u.id);
       await redis.zadd('leaderboard:ranked', rating, u.id);
       await redis.zadd('leaderboard:casual', rating, u.id);

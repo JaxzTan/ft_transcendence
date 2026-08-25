@@ -55,6 +55,21 @@ model User {
   sentFriendships     Friendship[]      @relation("SentFriendships")
   receivedFriendships Friendship[]      @relation("ReceivedFriendships")
 
+  rating                 Int        @default(0)
+  highestRating          Int        @default(0)
+  wins                   Int        @default(0)
+  losses                 Int        @default(0)
+  winStreak              Int        @default(0)
+  bestWinStreak          Int        @default(0)
+  botWins                Int        @default(0)
+  humanWins              Int        @default(0)
+  avatarStyle            String     @default("bottts")
+  avatarPhoto            Bytes?
+  avatarPhotoContentType String?
+  disconnectCount        Int        @default(0)
+  reconnectCount         Int        @default(0)
+  pveGameStreak          Int        @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -78,21 +93,6 @@ model Achievement {
   achft_Transcendence  Boolean @default(false)
   achSpeedDemon        Boolean @default(false)
   achUnstoppable       Boolean @default(false)
-
-  rating                 Int        @default(0)
-  highestRating          Int        @default(0)
-  wins                   Int        @default(0)
-  losses                 Int        @default(0)
-  winStreak              Int        @default(0)
-  bestWinStreak          Int        @default(0)
-  botWins                Int        @default(0)
-  humanWins              Int        @default(0)
-  avatarStyle            String     @default("bottts")
-  avatarPhoto            Bytes?
-  avatarPhotoContentType String?
-  disconnectCount        Int        @default(0)
-  reconnectCount         Int        @default(0)
-  pveGameStreak          Int        @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
