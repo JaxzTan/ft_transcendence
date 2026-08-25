@@ -41,42 +41,42 @@ const prisma = new PrismaClient({ adapter });
 
 const SEED_PLAYERS = [
   // ── MAMEE MONSTER (Top 3 Contenders) ──────────────────────────────
-  { username: 'Viper_X', rating: 1650, wins: 34, losses: 6, avatar: 'bottts', status: 'online' },
-  
+  { username: 'Viper_X', rating: 1650, wins: 34, losses: 6, avatar: 'bottts' },
+
   // ── MILO DINOSAUR (Rating >= 1350) ──────────────────────────────
-  { username: 'NeonKnight', rating: 1540, wins: 28, losses: 9, avatar: 'avataaars', status: 'playing' },
-  { username: 'Alice', rating: 1480, wins: 25, losses: 10, avatar: 'identicon', status: 'online' },
-  { username: 'ShadowFox', rating: 1440, wins: 22, losses: 11, avatar: 'bottts', status: 'offline' },
-  { username: 'CyberSamurai', rating: 1410, wins: 20, losses: 12, avatar: 'shapes', status: 'online' },
-  { username: 'HyperNova', rating: 1390, wins: 19, losses: 11, avatar: 'bottts', status: 'playing' },
-  { username: 'GhostRunner', rating: 1370, wins: 18, losses: 13, avatar: 'avataaars', status: 'offline' },
-  { username: 'AeroBlade', rating: 1355, wins: 17, losses: 12, avatar: 'identicon', status: 'online' },
+  { username: 'NeonKnight', rating: 1540, wins: 28, losses: 9, avatar: 'avataaars' },
+  { username: 'Alice', rating: 1480, wins: 25, losses: 10, avatar: 'identicon' },
+  { username: 'ShadowFox', rating: 1440, wins: 22, losses: 11, avatar: 'bottts' },
+  { username: 'CyberSamurai', rating: 1410, wins: 20, losses: 12, avatar: 'shapes' },
+  { username: 'HyperNova', rating: 1390, wins: 19, losses: 11, avatar: 'bottts' },
+  { username: 'GhostRunner', rating: 1370, wins: 18, losses: 13, avatar: 'avataaars' },
+  { username: 'AeroBlade', rating: 1355, wins: 17, losses: 12, avatar: 'identicon' },
 
   // ── PADDLE POP (Rating 1200 - 1349) ─────────────────────────────
-  { username: 'StarLord', rating: 1340, wins: 16, losses: 14, avatar: 'bottts', status: 'online' },
-  { username: 'PixelMage', rating: 1320, wins: 15, losses: 13, avatar: 'shapes', status: 'playing' },
-  { username: 'QuantumVolt', rating: 1290, wins: 14, losses: 12, avatar: 'avataaars', status: 'offline' },
-  { username: 'Bob', rating: 1270, wins: 13, losses: 13, avatar: 'bottts', status: 'online' },
-  { username: 'CircuitBreaker', rating: 1250, wins: 12, losses: 14, avatar: 'identicon', status: 'offline' },
-  { username: 'SolarFlare', rating: 1220, wins: 11, losses: 15, avatar: 'shapes', status: 'online' },
-  { username: 'LaserFang', rating: 1205, wins: 10, losses: 14, avatar: 'bottts', status: 'playing' },
+  { username: 'StarLord', rating: 1340, wins: 16, losses: 14, avatar: 'bottts' },
+  { username: 'PixelMage', rating: 1320, wins: 15, losses: 13, avatar: 'shapes' },
+  { username: 'QuantumVolt', rating: 1290, wins: 14, losses: 12, avatar: 'avataaars' },
+  { username: 'Bob', rating: 1270, wins: 13, losses: 13, avatar: 'bottts' },
+  { username: 'CircuitBreaker', rating: 1250, wins: 12, losses: 14, avatar: 'identicon' },
+  { username: 'SolarFlare', rating: 1220, wins: 11, losses: 15, avatar: 'shapes' },
+  { username: 'LaserFang', rating: 1205, wins: 10, losses: 14, avatar: 'bottts' },
 
   // ── HONEY STARS (Rating 1000 - 1199) ────────────────────────────
-  { username: 'CheeseRing', rating: 1180, wins: 10, losses: 16, avatar: 'avataaars', status: 'online' },
-  { username: 'NightOwl', rating: 1150, wins: 9, losses: 16, avatar: 'identicon', status: 'offline' },
-  { username: 'Carol', rating: 1120, wins: 8, losses: 15, avatar: 'shapes', status: 'playing' },
-  { username: 'RetroRider', rating: 1090, wins: 7, losses: 16, avatar: 'bottts', status: 'online' },
-  { username: 'TurboSnack', rating: 1060, wins: 6, losses: 15, avatar: 'avataaars', status: 'offline' },
-  { username: 'VortexRogue', rating: 1030, wins: 5, losses: 16, avatar: 'identicon', status: 'online' },
-  { username: 'MechaPawn', rating: 1005, wins: 5, losses: 18, avatar: 'shapes', status: 'offline' },
+  { username: 'CheeseRing', rating: 1180, wins: 10, losses: 16, avatar: 'avataaars' },
+  { username: 'NightOwl', rating: 1150, wins: 9, losses: 16, avatar: 'identicon' },
+  { username: 'Carol', rating: 1120, wins: 8, losses: 15, avatar: 'shapes' },
+  { username: 'RetroRider', rating: 1090, wins: 7, losses: 16, avatar: 'bottts' },
+  { username: 'TurboSnack', rating: 1060, wins: 6, losses: 15, avatar: 'avataaars' },
+  { username: 'VortexRogue', rating: 1030, wins: 5, losses: 16, avatar: 'identicon' },
+  { username: 'MechaPawn', rating: 1005, wins: 5, losses: 18, avatar: 'shapes' },
 
   // ── CHOKI CHOKI (Rating < 1000) ─────────────────────────────────
-  { username: 'ChocoRookie', rating: 980, wins: 4, losses: 18, avatar: 'bottts', status: 'online' },
-  { username: 'Dave', rating: 920, wins: 3, losses: 19, avatar: 'identicon', status: 'offline' },
-  { username: 'BitDrifter', rating: 860, wins: 2, losses: 20, avatar: 'shapes', status: 'playing' },
-  { username: 'Eve', rating: 780, wins: 1, losses: 22, avatar: 'avataaars', status: 'offline' },
-  { username: 'ZeroCool', rating: 720, wins: 1, losses: 25, avatar: 'bottts', status: 'online' },
-  { username: 'NeonSprout', rating: 650, wins: 0, losses: 24, avatar: 'identicon', status: 'offline' },
+  { username: 'ChocoRookie', rating: 980, wins: 4, losses: 18, avatar: 'bottts' },
+  { username: 'Dave', rating: 920, wins: 3, losses: 19, avatar: 'identicon' },
+  { username: 'BitDrifter', rating: 860, wins: 2, losses: 20, avatar: 'shapes' },
+  { username: 'Eve', rating: 780, wins: 1, losses: 22, avatar: 'avataaars' },
+  { username: 'ZeroCool', rating: 720, wins: 1, losses: 25, avatar: 'bottts' },
+  { username: 'NeonSprout', rating: 650, wins: 0, losses: 24, avatar: 'identicon' },
 ];
 
 const SALT_ROUNDS = 10;
@@ -124,7 +124,6 @@ async function main() {
             winStreak: Math.max(0, Math.floor(p.wins / 4)),
             bestWinStreak: Math.max(1, Math.floor(p.wins / 2)),
             avatarStyle: p.avatar,
-            status: p.status as any,
             // Achievement flags use the revamp thresholds (achievement-revamp.md v3):
             // lower gate values match the win counts in the seed roster.
             achFirstBlood: p.wins >= 1,
