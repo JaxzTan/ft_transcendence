@@ -222,10 +222,10 @@ export function LudoLobby() {
           {/* Hero Telemetry Banner */}
           <header className="hero-section" style={{ padding: '16px 0 14px' }}>
             <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 4 }}>
-              CYBER LUDO // ARENA LOBBY
+              {t('ludoLobbyExtra.heroTitle')}
             </h1>
             <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
-              SELECT COMBAT PROTOCOL OR INITIALIZE QUANTUM MULTIPLAYER ROOM
+              {t('ludoLobbyExtra.heroSubtitle')}
             </p>
 
             <div className="badge-bar" style={{ marginTop: 12 }}>
@@ -239,7 +239,7 @@ export function LudoLobby() {
                   gap: 6,
                 }}
               >
-                // ACTIVE SECTORS: {rooms ? rooms.length : 0}
+                {t('ludoLobbyExtra.activeSectors', { count: rooms ? rooms.length : 0 })}
               </span>
               <span
                 className="retro-badge"
@@ -248,7 +248,7 @@ export function LudoLobby() {
                   color: '#00ff88',
                 }}
               >
-                // PILOT: {(user?.displayName ?? user?.username)?.toUpperCase() ?? 'GUEST'}
+                {t('ludoLobbyExtra.pilotLabel', { name: (user?.displayName ?? user?.username)?.toUpperCase() ?? t('ludoLobbyExtra.guestFallback') })}
               </span>
               <span
                 className="retro-badge"
@@ -257,7 +257,7 @@ export function LudoLobby() {
                   color: hasActiveGame ? 'var(--accent-yellow)' : 'var(--text-muted)',
                 }}
               >
-                // ACTIVE ROOM: {hasActiveGame ? 'YES [IN-FLIGHT]' : 'NONE'}
+                {t('ludoLobbyExtra.activeRoomLabel', { status: hasActiveGame ? t('ludoLobbyExtra.activeRoomYes') : t('ludoLobbyExtra.activeRoomNone') })}
               </span>
             </div>
           </header>
@@ -620,7 +620,7 @@ export function LudoLobby() {
                   fontFamily: 'var(--font-mono)',
                 }}
               >
-                // ERROR: {error}
+                {t('ludoLobbyExtra.errorPrefix', { message: error })}
               </div>
             )}
 
@@ -721,7 +721,7 @@ export function LudoLobby() {
                   <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
                     {rooms === null ? (
                       <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.78rem' }}>
-                        SCANNING OPEN SECTORS...
+                        {t('ludoLobbyExtra.scanningOpenSectors')}
                       </div>
                     ) : filteredRooms.length === 0 ? (
                       <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
@@ -823,12 +823,12 @@ export function LudoLobby() {
                                 {isOwn
                                   ? joiningRoomId === room.id
                                     ? '...'
-                                    : 'REJOIN'
+                                    : t('lobbyBrowser.rejoinBtn')
                                   : full
-                                    ? 'FULL'
+                                    ? t('lobbyBrowser.fullBtn')
                                     : joiningRoomId === room.id
                                       ? '...'
-                                      : 'JOIN'}
+                                      : t('lobbyBrowser.joinBtn')}
                               </button>
                             </div>
                           </div>

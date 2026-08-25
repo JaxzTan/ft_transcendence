@@ -50,8 +50,20 @@ export function RetroNavbar({
 
   const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
   const [isAccountPopoverOpen, setIsAccountPopoverOpen] = useState(false)
+  const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
   const popoverRef = useRef<HTMLDivElement>(null)
   const accountPopoverRef = useRef<HTMLDivElement>(null)
+
+  // Global "all sounds" mute — same retroAudio.muted flag the in-game audio
+  // toggle uses (gates music AND every UI/FX beep), not just the chiptune
+  // background track (that's the separate togglePlay()/isPlayingAudio on Home).
+  const toggleSound = () => {
+    retroAudio.muted = !retroAudio.muted
+    setSoundMuted(retroAudio.muted)
+    if (!retroAudio.muted) {
+      retroAudio.playUiBeep(520, 0.06)
+    }
+  }
 
   const applyTheme = (newTheme: ThemeType) => {
     setTheme(newTheme)
@@ -235,7 +247,7 @@ export function RetroNavbar({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.76rem', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
-                  🌐 LANGUAGE // LANGUE
+                  🌐 {t('navbar.languageLabel')}
                 </span>
               </div>
               <div
@@ -316,7 +328,7 @@ export function RetroNavbar({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '1rem' }}>🛡️</span>
                 <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
-                  2FA AUTH
+                  {t('navbar.twoFactorLabel')}
                 </span>
               </div>
               <span
@@ -331,11 +343,51 @@ export function RetroNavbar({
                   border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
                 }}
               >
-                {twoFactor ? 'ENABLED' : 'DISABLED'}
+                {twoFactor ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
               </span>
             </div>
 
-            {/* 3. Logout / Disconnect Button */}
+            {/* 3. Master Audio Toggle — mutes/unmutes ALL sounds (music + FX),
+                same retroAudio.muted flag as the in-game audio toggle. */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: !soundMuted ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                border: !soundMuted ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: !soundMuted ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease',
+              }}
+              onClick={toggleSound}
+              title="Toggle all game audio (music + sound effects)"
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '1rem' }}>{soundMuted ? '🔇' : '🔊'}</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
+                  {t('navbar.audioLabel')}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 900,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  background: !soundMuted ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
+                  color: !soundMuted ? '#0b021a' : 'var(--text-muted)',
+                  border: !soundMuted ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
+                }}
+              >
+                {!soundMuted ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
+              </span>
+            </div>
+
+            {/* 4. Logout / Disconnect Button */}
             <button
               className="retro-btn"
               onClick={async () => {
@@ -364,7 +416,7 @@ export function RetroNavbar({
               }}
             >
               <span>⏻</span>
-              <span>DISCONNECT // LOGOUT</span>
+              <span>{t('navbar.logoutBtn')}</span>
             </button>
           </div>
         </div>
@@ -577,7 +629,7 @@ export function RetroNavbar({
                 &lt;/&gt;
               </span>
               <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
-                THEME
+                {t('navbar.themeBtn')}
               </span>
             </div>
             <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
@@ -612,7 +664,7 @@ export function RetroNavbar({
               }}
             >
               <legend style={{ fontSize: '0.82rem', padding: '0 8px', fontWeight: 'bold' }}>
-                THEME SELECTOR
+                {t('navbar.themeSelectorLegend')}
               </legend>
               <label
                 htmlFor="theme-synthwave"
@@ -638,7 +690,7 @@ export function RetroNavbar({
                   }}
                   style={{ width: 17, height: 17, cursor: 'pointer' }}
                 />
-                <span style={{ fontWeight: 'bold' }}>CYBERPUNK</span>
+                <span style={{ fontWeight: 'bold' }}>{t('navbar.themeCyberpunk')}</span>
               </label>
               <label
                 htmlFor="theme-win95"
@@ -664,7 +716,7 @@ export function RetroNavbar({
                   }}
                   style={{ width: 17, height: 17, cursor: 'pointer' }}
                 />
-                <span style={{ fontWeight: 'bold' }}>WIN95</span>
+                <span style={{ fontWeight: 'bold' }}>{t('navbar.themeWin95')}</span>
               </label>
               <label
                 htmlFor="theme-terminal"
@@ -690,7 +742,7 @@ export function RetroNavbar({
                   }}
                   style={{ width: 17, height: 17, cursor: 'pointer' }}
                 />
-                <span style={{ fontWeight: 'bold' }}>TERMINAL</span>
+                <span style={{ fontWeight: 'bold' }}>{t('navbar.themeTerminal')}</span>
               </label>
             </fieldset>
           </div>

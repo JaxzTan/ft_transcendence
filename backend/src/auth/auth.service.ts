@@ -69,6 +69,7 @@ export class AuthService {
         displayName: dto.username,
         email,
         password_hash: passwordHash,
+        achievement: { create: { id: crypto.randomUUID() } },
       },
     });
 
@@ -499,6 +500,7 @@ export class AuthService {
         displayName,
         email,
         emailVerified: email ? new Date() : null,
+        achievement: { create: { id: crypto.randomUUID() } },
       },
     });
 

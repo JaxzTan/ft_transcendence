@@ -152,9 +152,7 @@ export class LeaderboardService {
       select: {
         username: true,
         displayName: true,
-        wins: true,
-        losses: true,
-        avatarStyle: true,
+        wins: true, losses: true, avatarStyle: true,
       },
     });
     const userMap = new Map(users.map(u => [u.username, u]));

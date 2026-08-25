@@ -56,31 +56,41 @@ async function main() {
   if (harleyhxng) {
     console.log(`\n👑 Seeding Account 1: harleyhxng (Top Apex Rank 1450 ELO)`);
 
+    const harleyhxngStats = {
+      rating: 1450,
+      highestRating: 1480,
+      wins: 12,
+      losses: 3,
+      humanWins: 9,
+      botWins: 3,
+      winStreak: 5,
+      bestWinStreak: 7,
+      disconnectCount: 0,
+      reconnectCount: 0,
+    };
+    const harleyhxngAchievement = {
+      achFirstBlood: true,
+      achOnFire: true,
+      achDiceMaster: true,
+      achTactician: true,
+      achMaster: true,
+      achGrandBotMaster: true,
+      achWorldChampion: true,
+      achLoveTheMachine: true,
+      achUnstoppable: true,
+      achSpeedDemon: true,
+    };
     await prisma.user.update({
       where: { id: harleyhxng.id },
       data: {
         displayName: 'Harley HX',
-        rating: 1450,
-        highestRating: 1480,
-        wins: 12,
-        losses: 3,
-        humanWins: 9,
-        botWins: 3,
-        winStreak: 5,
-        bestWinStreak: 7,
-        status: 'online',
-        disconnectCount: 0,
-        reconnectCount: 0,
-        achFirstBlood: true,
-        achOnFire: true,
-        achDiceMaster: true,
-        achTactician: true,
-        achMaster: true,
-        achGrandBotMaster: true,
-        achWorldChampion: true,
-        achLoveTheMachine: true,
-        achUnstoppable: true,
-        achSpeedDemon: true,
+        ...harleyhxngStats,
+        achievement: {
+          upsert: {
+            create: { id: randomUUID(), ...harleyhxngAchievement },
+            update: harleyhxngAchievement,
+          },
+        },
       },
     });
 
@@ -153,26 +163,36 @@ async function main() {
   if (harleynghxedu) {
     console.log(`\n🛡️ Seeding Account 2: harleynghxedu (Tactical Ace 1190 ELO)`);
 
+    const harleynghxeduStats = {
+      rating: 1190,
+      highestRating: 1240,
+      wins: 4,
+      losses: 3,
+      humanWins: 3,
+      botWins: 1,
+      winStreak: 1,
+      bestWinStreak: 3,
+      disconnectCount: 1,
+      reconnectCount: 1,
+    };
+    const harleynghxeduAchievement = {
+      achFirstBlood: true,
+      achTactician: true,
+      achSpeedDemon: true,
+      achUnstoppable: false,
+      achMaster: false,
+    };
     await prisma.user.update({
       where: { id: harleynghxedu.id },
       data: {
         displayName: 'Harley NGHX',
-        rating: 1190,
-        highestRating: 1240,
-        wins: 4,
-        losses: 3,
-        humanWins: 3,
-        botWins: 1,
-        winStreak: 1,
-        bestWinStreak: 3,
-        status: 'online',
-        disconnectCount: 1,
-        reconnectCount: 1,
-        achFirstBlood: true,
-        achTactician: true,
-        achSpeedDemon: true,
-        achUnstoppable: false,
-        achMaster: false,
+        ...harleynghxeduStats,
+        achievement: {
+          upsert: {
+            create: { id: randomUUID(), ...harleynghxeduAchievement },
+            update: harleynghxeduAchievement,
+          },
+        },
       },
     });
 
@@ -234,7 +254,10 @@ async function main() {
   // Update Global Leaderboard Snapshot
   // ───────────────────────────────────────────────────────────────────────────
   await prisma.leaderboardSnapshot.deleteMany({ where: { mode: 'global' } });
-  const allPilots = await prisma.user.findMany({ orderBy: { rating: 'desc' }, take: 10 });
+  const allPilots = await prisma.user.findMany({
+    orderBy: { rating: 'desc' },
+    take: 10,
+  });
   await prisma.leaderboardSnapshot.createMany({
     data: allPilots.map((p, idx) => ({
       id: randomUUID(),

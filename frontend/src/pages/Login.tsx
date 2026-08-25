@@ -51,7 +51,7 @@ export function Login() {
             RETROLUDO
           </div>
           <div className="retro-auth-subtitle">
-            ROLL ROLL ROLL ROLL
+            {t('authExtra.brandTagline')}
           </div>
         </div>
         {justVerified && (
@@ -104,7 +104,7 @@ export function Login() {
           </a>
         </div>
         <button type="submit" disabled={submitting} className="retro-auth-btn">
-          {submitting ? t('auth.enteringBtn') : 'SIGN IN'}
+          {submitting ? t('auth.enteringBtn') : t('auth.signInBtn')}
         </button>
 
         {/* OR divider */}

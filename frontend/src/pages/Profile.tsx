@@ -68,9 +68,7 @@ const STATUS_KEYS: Record<PresenceStatus, string> = {
 }
 
 /**
- * The 13 visible achievements. achSteadyDefender + achMercilessAttacker exist
- * backend-side (clash-mode only) but are hidden until the clash system is
- * wired into the UI — see achievement-revamp.md §1/§4.4.
+ * The 15 visible achievements.
  *
  * Requirements match the revamp thresholds (achievement-revamp.md v3):
  *   achFirstBlood     — 1 win (any PVP/PVE)
@@ -606,7 +604,7 @@ export function Profile() {
                                 borderRadius: 4,
                               }}
                             >
-                              EDIT PROFILE
+                              {t('profileExtra.editProfileBtn')}
                             </button>
                             {uploadError && (
                               <span style={{ color: '#ff0055', fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>

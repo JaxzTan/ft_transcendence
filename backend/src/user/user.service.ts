@@ -16,6 +16,7 @@ export class UserService {
         id: true,
         username: true,
         displayName: true,
+        createdAt: true,
         avatarStyle: true,
         rating: true,
         highestRating: true,
@@ -25,7 +26,6 @@ export class UserService {
         bestWinStreak: true,
         botWins: true,
         humanWins: true,
-        createdAt: true,
       },
     });
 
@@ -87,7 +87,15 @@ export class UserService {
           game: {
             include: {
               participants: {
-                include: { user: { select: { username: true, displayName: true, avatarStyle: true } } },
+                include: {
+                  user: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      avatarStyle: true,
+                    },
+                  },
+                },
               },
             },
           },
