@@ -236,7 +236,8 @@ export function Profile() {
         if (!cancelled) setGamesData(null)
       })
 
-    fetch('/api/achievements', { credentials: 'include' })
+    const achUrl = username ? `/api/achievements?username=${encodeURIComponent(username)}` : '/api/achievements'
+    fetch(achUrl, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!cancelled && data) setAchievements(data)
