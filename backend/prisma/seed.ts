@@ -151,6 +151,26 @@ async function main() {
 
   console.log(`  ✅ Created ${createdUsers.length} seed operatives!`);
 
+  // ── Brand-new empty test account (bossku / password) ───────────────────────
+  // No achievement flags, no rating/wins/losses history, no games, no friends —
+  // everything left at schema defaults. Excluded from every seed-player-specific
+  // loop below (game creation, friendship blocks) since it's created outside
+  // SEED_PLAYERS/createdUsers.
+  await prisma.user.deleteMany({ where: { username: 'bossku' } });
+  await prisma.user.create({
+    data: {
+      id: randomUUID(),
+      username: 'bossku',
+      displayName: 'bossku',
+      email: 'bossku@transcendence.cyber',
+      emailVerified: new Date(),
+      password_hash: pwd,
+      twoFactorEnabled: false,
+      achievement: { create: { id: randomUUID() } },
+    },
+  });
+  console.log('  ✅ Created blank test account: bossku (password: password)');
+
   // ── Refresh Leaderboard Snapshot for ALL Database Users ────────────────────
   await prisma.leaderboardSnapshot.deleteMany({});
   const allPilots = await prisma.user.findMany({
@@ -195,10 +215,11 @@ async function main() {
   // ── Seed Friendships & Incoming Friend Requests ──────────────────────────
   await prisma.friendship.deleteMany({});
 
-  // Find all non-seed users (e.g. harleyng, admin, or any registered user)
+  // Find all non-seed users (e.g. harleyng, admin, or any registered user).
+  // 'bossku' is excluded too — it's meant to stay a friendless blank account.
   const nonSeedUsers = await prisma.user.findMany({
     where: {
-      username: { notIn: SEED_PLAYERS.map((p) => p.username) },
+      username: { notIn: [...SEED_PLAYERS.map((p) => p.username), 'bossku'] },
     },
   });
 
