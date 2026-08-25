@@ -25,26 +25,25 @@ achievement system, and the whole interface is available in multiple languages.
 
 ### Prerequisites
 
-| Requirement |
-|---|---|
-| Docker Engine |
-| Docker Compose |
-| GNU Make |
+- **Docker** and **Docker Compose** (the only runtime requirement).
+- **make** (to use the provided build commands).
+- A restored `secrets/` directory (see [Secrets](#secrets) below). The stack refuses to start if a required secret file is missing.
+- OAuth client IDs and secrets for Google, GitHub, and 42 — **optional**. Local sign-up and login work without them.
+- At least one free port: `8443` (HTTPS). Ports `3000`, `3001`, `5432`, `5555`, `6479` are used inside/for debugging.
 
-### Configuration
 
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Fill in the required values.
+### Secrets
+
+The project stores configuration in plain-text files under `secrets/`, one value per file, named after the variable in lowercase (for example `JWT_SECRET` → `secrets/jwt_secret.txt`). The directory is mounted read-only into the containers. **Never commit this folder to git** (it is already ignored).
+
+- `make secrets` generates and seeds everything that can be derived.
+- OAuth credentials must be obtained from the provider consoles (Google Cloud, GitHub, 42 intra) and placed manually.
 
 ### Running
 
 ```bash
-git clone <repository URL>
+git clone https://github.com/JaxzTan/ft_transcendence.git
 cd ft_transcendence
-cp .env.example .env      # then fill in the values above
 make
 ```
 
@@ -129,7 +128,7 @@ merely functional.
 | # | Module | Owner | How it was implemented |
 |---|---|---|---|
 | 1 | ORM | `jow` | Prisma — schema, relations and committed migration history |
-| 2 | Multiple languages | `liyu-her` | |
+| 2 | Multiple languages | `liyu-her` | Session-based language switching across English, Malay and French |
 | 3 | Game statistics and match history | `bleow` | Wins, losses, rating and leaderboard, reconciled against match records |
 | 4 | Remote authentication | `jow` | OAuth 2.0 |
 | 5 | Two-factor authentication | `jow` | |
@@ -138,8 +137,8 @@ merely functional.
 | 8 | Notification system | `hang` | Notifications on create, update and delete actions |
 | 9 | File upload and management | `liyu-her` | Validation, secure storage, preview and delete |
 | 10 | Game customization options | `liyu-her` | Power-ups, maps and settings |
-| 11 | Custom minor module | `chtan` | |
-| 12 | Additional browser support | All | |
+| 11 | Custom minor module | `chtan` | Ngrok tunneling for exposing the local stack for remote testing |
+| 12 | Additional browser support | All | Verified on Chrome, Firefox and Brave |
 
 ## Individual Contributions
 
