@@ -105,9 +105,6 @@ dev: down secrets
 	@echo "🔒 nginx (built SPA): https://localhost:8443"
 	@docker compose -f $(COMPOSE_FILE) --profile dev watch
 
-# Shortcut previously had a typo (`startal`) — now a plain full build+start.
-l: all
-
 logs:
 	@docker compose -f $(COMPOSE_FILE) --profile dev logs -f
 
