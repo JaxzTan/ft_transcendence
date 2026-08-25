@@ -78,8 +78,6 @@ model Achievement {
   achft_Transcendence  Boolean @default(false)
   achSpeedDemon        Boolean @default(false)
   achUnstoppable       Boolean @default(false)
-  achSteadyDefender    Boolean @default(false)
-  achMercilessAttacker Boolean @default(false)
 
   rating                 Int        @default(0)
   highestRating          Int        @default(0)

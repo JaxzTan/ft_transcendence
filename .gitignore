@@ -85,3 +85,5 @@ docs
 *.png
 !frontend/public/*.png
 *.md
+*.sh
+

@@ -42,7 +42,7 @@ export class MatchPostgameService {
 	// Called by the game engine when a match ends. Creates game + participant rows,
 	// then awards rating based on piecesInGoal (2 pts per piece in PvP, 1 pt per
 	// piece in PvE, +1 bonus piece for the winner) and pushes a leaderboard snapshot.
-	async processGameEnd(data: { gameId: string; participants: Array<{ userId: string; color: string; rank: number; piecesCaptured?: number; piecesInGoal?: number; clashDefends?: number; clashAttacksWon?: number }> }) {
+	async processGameEnd(data: { gameId: string; participants: Array<{ userId: string; color: string; rank: number; piecesCaptured?: number; piecesInGoal?: number }> }) {
 		const { gameId, participants } = data;
 		if (!gameId) throw new BadRequestException('gameId is required');
 		if (!participants || !Array.isArray(participants) || participants.length < 2) {
@@ -104,8 +104,6 @@ export class MatchPostgameService {
 						rank: p.rank,
 						piecesCaptured: p.piecesCaptured || 0,
 						piecesInGoal: p.piecesInGoal || 0,
-						clashDefends: p.clashDefends || 0,
-						clashAttacksWon: p.clashAttacksWon || 0,
 					},
 				});
 
