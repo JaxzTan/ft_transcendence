@@ -150,6 +150,29 @@ async function main() {
 
   console.log(`  ✅ Created ${createdUsers.length} seed operatives!`);
 
+  // ── Viper_X: give the top player every achievement, including the ones
+  // the wins-based formulas above can't reach (achTheDiceLoveMe needs
+  // botWins >= 3, achLoveTheMachine needs pveGameStreak, etc.) ───────────────
+  await prisma.achievement.update({
+    where: { userId: createdUsers.find((u) => u.username === 'Viper_X').id },
+    data: {
+      achFirstBlood: true,
+      achOnFire: true,
+      achDiceMaster: true,
+      achBabySteps: true,
+      achTheDiceLoveMe: true,
+      achTactician: true,
+      achMaster: true,
+      achGrandBotMaster: true,
+      achWorldChampion: true,
+      achLoveTheMachine: true,
+      achft_Transcendence: true,
+      achSpeedDemon: true,
+      achUnstoppable: true,
+    },
+  });
+  console.log('  ✅ Viper_X now has every achievement unlocked!');
+
   // ── Brand-new empty test account (bossku / password) ───────────────────────
   // No achievement flags, no rating/wins/losses history, no games, no friends —
   // everything left at schema defaults. Excluded from every seed-player-specific
