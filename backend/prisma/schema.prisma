@@ -19,12 +19,6 @@ enum FriendshipStatus {
   blocked
 }
 
-enum UserStatus {
-  online
-  playing
-  offline
-}
-
 enum PlayerColor {
   RED
   GREEN
@@ -98,7 +92,6 @@ model Achievement {
   avatarStyle            String     @default("bottts")
   avatarPhoto            Bytes?
   avatarPhotoContentType String?
-  status                 UserStatus @default(offline)
   disconnectCount        Int        @default(0)
   reconnectCount         Int        @default(0)
   pveGameStreak          Int        @default(0)
@@ -141,8 +134,6 @@ model GameParticipant {
   rank            Int // 1st, 2nd, 3rd, 4th place
   piecesCaptured  Int         @default(0)
   piecesInGoal    Int         @default(0) // 0-4
-  clashDefends    Int         @default(0) // clash-mode: times defended a clash
-  clashAttacksWon Int         @default(0) // clash-mode: times won a clash as attacker
 
   game Game @relation(fields: [game_id], references: [id], onDelete: Cascade)
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
