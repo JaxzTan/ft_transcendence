@@ -295,9 +295,9 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
   const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
   const activeColors = new Set(players.filter((p) => p.status === 'active' || p.status === 'disconnected').map((p) => p.color))
   const basePieces = (ck: ColorKey) =>
-    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase) : []
+    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase && p.id !== animating?.pieceId) : []
   const goalCount = (ck: ColorKey) =>
-    pieces.filter((p) => p.color === ck && p.isInGoal).length
+    pieces.filter((p) => p.color === ck && p.isInGoal && p.id !== animating?.pieceId).length
 
   const cells: ReactNode[] = []
   for (let r = 0; r < 15; r++) {

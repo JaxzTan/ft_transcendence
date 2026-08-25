@@ -287,7 +287,9 @@ export function Game() {
         return
       }
 
-      dispatch({ type: type || 'state_update', ...(state as object) })
+      if (type !== 'piece_moved') {
+        dispatch({ type: type || 'state_update', ...(state as object) })
+      }
 
       if (type === 'piece_moved') {
         isMovingPieceRef.current = true
@@ -314,23 +316,22 @@ export function Game() {
           if (!victimColor) victimColor = 'OPPONENT'
         }
 
-        // Set animatingPiece SYNCHRONOUSLY to path[0] so React batches this with dispatch({ type: 'state_update' })
-        // This prevents the piece from flickering at e.to on frame 1.
-        if (path.length > 0) {
-          setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
-        }
-
         const finishMove = () => {
           if (animTimerRef.current) {
             clearInterval(animTimerRef.current)
             animTimerRef.current = null
           }
           setAnimatingPiece(null)
-          const settleMs = e.captured ? 600 : 350
+          dispatch({ type: 'piece_moved', ...(state as object) })
           if (e.captured) {
+            setMoveLogs((prev) => [
+              { ck: e.color, text: t('game.capturedPiece', { color: victimColor }) },
+              ...prev.slice(0, 11),
+            ])
             retroAudio.playExplosionSound()
             setCaptureFx({ color: e.color, to: e.to })
           }
+          const settleMs = e.captured ? 600 : 350
           if (captureFxTimerRef.current) clearTimeout(captureFxTimerRef.current)
           captureFxTimerRef.current = setTimeout(() => {
             setCaptureFx(null)
@@ -341,16 +342,11 @@ export function Game() {
 
         const runStepAnimation = () => {
           retroAudio.playUiBeep(580, 0.06, 'sine')
-          if (e.captured) {
-            setMoveLogs((prev) => [
-              { ck: e.color, text: t('game.capturedPiece', { color: victimColor }) },
-              ...prev.slice(0, 11),
-            ])
-          }
 
           if (path.length > 1) {
             if (animTimerRef.current) clearInterval(animTimerRef.current)
             let i = 0
+            setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
             animTimerRef.current = setInterval(() => {
               i++
               if (i >= path.length) {
@@ -359,13 +355,13 @@ export function Game() {
               }
               setAnimatingPiece({ pieceId: e.pieceId, step: path[i] })
             }, STEP_ANIM_MS)
-          } else {
-            if (path.length === 1) {
-              setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
-            }
+          } else if (path.length === 1) {
+            setAnimatingPiece({ pieceId: e.pieceId, step: path[0] })
             setTimeout(() => {
               finishMove()
             }, STEP_ANIM_MS)
+          } else {
+            finishMove()
           }
         }
 
