@@ -9,6 +9,7 @@ import {
   GameParticipantLike,
   GameLike,
 } from './achievements.registry';
+import { isBotUserId } from '../bot';
 
 @Injectable()
 export class AchievementsService {
@@ -36,7 +37,7 @@ export class AchievementsService {
         // them for ratings/counters, so they must not be evaluated for
         // achievements either — otherwise bot rows could accumulate wins and
         // fire phantom notifications for bot user IDs.
-        if (p.user_id.startsWith('bot-')) continue;
+        if (isBotUserId(p.user_id)) continue;
         await this.evaluateForUser(p.user_id, game, true);
       }
     } catch (err) {
