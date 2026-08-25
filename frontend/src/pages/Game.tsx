@@ -84,6 +84,7 @@ export function Game() {
   // CRT & AUDIO CONTROLS
   // ------------------------------------------------------------------------
   const [crtEnabled, setCrtEnabled] = useState(true)
+  const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
   const [isAbortModalOpen, setIsAbortModalOpen] = useState(false)
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false)
   const [rulesPage, setRulesPage] = useState(0)
@@ -94,6 +95,14 @@ export function Game() {
       setCrtEnabled(false)
     }
   }, [])
+
+  const toggleSound = () => {
+    const isMuted = retroAudio.toggleMute()
+    setSoundMuted(isMuted)
+    if (!isMuted) {
+      retroAudio.playUiBeep(520, 0.06)
+    }
+  }
 
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
@@ -1101,6 +1110,77 @@ export function Game() {
                 </div>
               </section>
 
+              {/* Controls, Shortcuts & Audio Window */}
+              <section className="retro-window" id="sectorControlWindow">
+                <div className="window-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>CONTROLS & SHORTCUTS</span>
+                  </div>
+                </div>
+
+                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>DICE ROLL:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>SELECT PIECE:</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>GOAL:</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES HOME</span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
+
+                  {/* Audio Preferences Toggle Button */}
+                  <button
+                    className="retro-badge"
+                    style={{
+                      cursor: 'pointer',
+                      padding: '8px 10px',
+                      background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
+                      border: soundMuted ? '1.5px solid #ff0055' : '1.5px solid #00ff88',
+                      color: soundMuted ? '#ff0055' : '#00ff88',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.72rem',
+                      fontWeight: 'bold',
+                      letterSpacing: '0.8px',
+                      textAlign: 'center',
+                      justifyContent: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      borderRadius: 4,
+                      boxShadow: soundMuted ? 'none' : '0 0 8px rgba(0, 255, 136, 0.25)',
+                      transition: 'all 0.2s ease',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                    onClick={toggleSound}
+                    title="Toggle Audio"
+                  >
+                    <span>{soundMuted ? '🔇' : '🔊'}</span>
+                    <span>{soundMuted ? t('game.audioOff') : t('game.audioOn')}</span>
+                  </button>
+
+                  <CyberButton
+                    label="GAME RULES"
+                    shortcut="?"
+                    variant="cyan"
+                    onClick={() => {
+                      retroAudio.playUiBeep(600, 0.05)
+                      setRulesPage(0)
+                      setIsSystemModalOpen(true)
+                    }}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  />
+                </div>
+              </section>
+
               {/* View Results Button below Pilot Roster */}
               {lastResult && (
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column' }}>
@@ -1395,46 +1475,6 @@ export function Game() {
                   </div>
                 </section>
               )}
-
-              {/* Arena System Control & Sector Specs */}
-              <section className="retro-window" id="sectorControlWindow">
-                <div className="window-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>CONTROLS & SHORTCUTS</span>
-                  </div>
-                </div>
-
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>DICE ROLL:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>SELECT PIECE:</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>GOAL:</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES HOME</span>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', margin: '2px 0' }} />
-
-                  <CyberButton
-                    label="GAME RULES"
-                    shortcut="?"
-                    variant="cyan"
-                    onClick={() => {
-                      retroAudio.playUiBeep(600, 0.05)
-                      setRulesPage(0)
-                      setIsSystemModalOpen(true)
-                    }}
-                    style={{ width: '100%', justifyContent: 'center' }}
-                  />
-                </div>
-              </section>
 
               {/* MISSION TELEMETRY LOG WINDOW */}
               <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
