@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { secret } from '../secrets';
 import Redis from 'ioredis';
-import { isBotUserId } from '../bot';
+import { isBotUserId } from '../common/bot';
 
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 

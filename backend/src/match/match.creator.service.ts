@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { secret } from '../secrets';
 import Redis from 'ioredis';
 import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
-import { BOT_PREFIX, isBotUserId } from '../bot';
+import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';

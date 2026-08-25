@@ -9,7 +9,7 @@ import {
   GameParticipantLike,
   GameLike,
 } from './achievements.registry';
-import { isBotUserId } from '../bot';
+import { isBotUserId } from '../common/bot';
 
 @Injectable()
 export class AchievementsService {

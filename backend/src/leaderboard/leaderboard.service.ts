@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { LeaderboardRedisService } from './leaderboard-redis.service';
-import { BOT_PREFIX, isBotUserId } from '../bot';
+import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
 export interface LeaderboardEntry {
   rank: number;
