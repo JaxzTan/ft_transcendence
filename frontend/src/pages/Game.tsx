@@ -115,6 +115,7 @@ export function Game() {
   viewRef.current = view
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const moveLogContainerRef = useRef<HTMLDivElement>(null)
+  const [displayedTurn, setDisplayedTurn] = useState<PlayerColor>(activeMatch?.color ?? 'red')
   const [isRolling, setIsRolling] = useState(false)
   const isRollingRef = useRef(false)
   const [displayedLastRolls, setDisplayedLastRolls] = useState<Partial<Record<PlayerColor, number>>>({})
@@ -123,38 +124,6 @@ export function Game() {
   const [showResultsModal, setShowResultsModal] = useState(false)
   const prevTurnRef = useRef<PlayerColor | null>(null)
   const isGameEnded = Boolean(lastResult || view?.status === 'finished')
-
-  useEffect(() => {
-    if (moveLogContainerRef.current) {
-      moveLogContainerRef.current.scrollTop = 0
-    }
-  }, [moveLogs.length])
-
-  useEffect(() => {
-    if (!view) return
-    if (prevTurnRef.current && prevTurnRef.current !== view.currentTurn) {
-      const nextTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
-      const isNextBot = nextTurnPlayer?.isBot ?? false
-      const colorKey = `lobby.color${view.currentTurn.charAt(0).toUpperCase() + view.currentTurn.slice(1)}` as 'lobby.colorRed' | 'lobby.colorGreen' | 'lobby.colorYellow' | 'lobby.colorBlue'
-      const translatedColor = t(colorKey).toUpperCase()
-      const nextName = localNames[view.currentTurn]?.toUpperCase() ||
-        nextTurnPlayer?.displayName?.toUpperCase() ||
-        nextTurnPlayer?.username?.toUpperCase() ||
-        nextTurnPlayer?.color?.toUpperCase() ||
-        (isNextBot ? `${t('common.bot').toUpperCase()} (${translatedColor})` : translatedColor)
-
-      retroAudio.playUiBeep(640, 0.08, 'sine')
-      setTurnSwapNotice(t('game.turnSwapNotice', { name: nextName, color: translatedColor }))
-
-      const timer = setTimeout(() => {
-        setTurnSwapNotice(null)
-      }, 700)
-
-      prevTurnRef.current = view.currentTurn
-      return () => clearTimeout(timer)
-    }
-    prevTurnRef.current = view.currentTurn
-  }, [view?.currentTurn, view?.players, localNames, t])
 
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
@@ -168,6 +137,49 @@ export function Game() {
   // when a piece is captured. Set at the end of the mover's walk, cleared
   // after the burst plays out — purely visual, no game state involved.
   const [captureFx, setCaptureFx] = useState<{ color: string; to: number } | null>(null)
+
+  useEffect(() => {
+    if (moveLogContainerRef.current) {
+      moveLogContainerRef.current.scrollTop = 0
+    }
+  }, [moveLogs.length])
+
+  // Only update displayedTurn when the player is actually allowed to roll the dice
+  // (i.e. not while piece is stepping, capture animation is running, or dice is rolling)
+  useEffect(() => {
+    if (!view) return
+    if (!isMovingPiece && !animatingPiece && !captureFx && !isRolling) {
+      setDisplayedTurn(view.currentTurn)
+    }
+  }, [view?.currentTurn, isMovingPiece, animatingPiece, captureFx, isRolling])
+
+  const effectiveTurn = displayedTurn || view?.currentTurn || 'red'
+
+  useEffect(() => {
+    if (!view || view.status === 'waiting') return
+    if (prevTurnRef.current && prevTurnRef.current !== effectiveTurn) {
+      const nextTurnPlayer = view.players.find((p) => p.color === effectiveTurn)
+      const isNextBot = nextTurnPlayer?.isBot ?? false
+      const colorKey = `lobby.color${effectiveTurn.charAt(0).toUpperCase() + effectiveTurn.slice(1)}` as 'lobby.colorRed' | 'lobby.colorGreen' | 'lobby.colorYellow' | 'lobby.colorBlue'
+      const translatedColor = t(colorKey).toUpperCase()
+      const nextName = localNames[effectiveTurn]?.toUpperCase() ||
+        nextTurnPlayer?.displayName?.toUpperCase() ||
+        nextTurnPlayer?.username?.toUpperCase() ||
+        nextTurnPlayer?.color?.toUpperCase() ||
+        (isNextBot ? `${t('common.bot').toUpperCase()} (${translatedColor})` : translatedColor)
+
+      retroAudio.playUiBeep(640, 0.08, 'sine')
+      setTurnSwapNotice(t('game.turnSwapNotice', { name: nextName, color: translatedColor }))
+
+      const timer = setTimeout(() => {
+        setTurnSwapNotice(null)
+      }, 700)
+
+      prevTurnRef.current = effectiveTurn
+      return () => clearTimeout(timer)
+    }
+    prevTurnRef.current = effectiveTurn
+  }, [effectiveTurn, view?.status, view?.players, localNames, t])
   const captureFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Friend-invite picker (waiting room, PvP only): lets the host invite an
   // accepted friend into THIS room (POST /api/game/:id/invite).
@@ -664,14 +676,14 @@ export function Game() {
   }
 
   const isHotseat = activeMatch?.mode === 'hotseat'
-  const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+  const activeTurnPlayer = view.players.find((p) => p.color === effectiveTurn)
   const isMyTurn = isHotseat
     ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
-    : (view.currentTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
+    : (effectiveTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
   const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece && !isMovingPiece && !captureFx
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
-    : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${view.currentTurn.toUpperCase()}'S TURN`
+    : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${effectiveTurn.toUpperCase()}'S TURN`
 
   return (
     <>
@@ -782,7 +794,7 @@ export function Game() {
                         ? t('game.statusRollNow')
                         : isMyTurn && view.turnPhase === 'WAITING_FOR_MOVE'
                           ? t('game.statusSelectPiece')
-                          : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })
+                          : t('game.statusRivalTurn', { name: effectiveTurn.toUpperCase() })
                 )}
               </div>
             </div>
@@ -847,7 +859,7 @@ export function Game() {
                   {SEAT_COLORS.map((ck) => {
                     const playerMeta = view.players.find((p) => p.color === ck)
                     const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
-                    const isActive = view.currentTurn === ck
+                    const isActive = effectiveTurn === ck
 
                     // Color neon accent map
                     const colorAccent =
@@ -1360,10 +1372,10 @@ export function Game() {
                   >
                     {/* Active Turn Pilot Banner */}
                     {(() => {
-                      const activeTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
+                      const activeTurnPlayer = view.players.find((p) => p.color === effectiveTurn)
                       const isBot = activeTurnPlayer?.isBot ?? false
-                      const activeName = (activeTurnPlayer?.displayName || activeTurnPlayer?.username || activeTurnPlayer?.color)?.toUpperCase() || (isBot ? `AI BOT (${view.currentTurn.toUpperCase()})` : view.currentTurn.toUpperCase())
-                      const turnColorHex = SEAT_HUES[view.currentTurn] || '#00f0ff'
+                      const activeName = (activeTurnPlayer?.displayName || activeTurnPlayer?.username || activeTurnPlayer?.color)?.toUpperCase() || (isBot ? `AI BOT (${effectiveTurn.toUpperCase()})` : effectiveTurn.toUpperCase())
+                      const turnColorHex = SEAT_HUES[effectiveTurn] || '#00f0ff'
 
                       return (
                         <div
@@ -1403,7 +1415,7 @@ export function Game() {
                           ? t('game.statusRollNow')
                           : view.turnPhase === 'WAITING_FOR_MOVE'
                             ? t('game.statusSelectPiece')
-                            : t('game.statusRivalTurn', { name: view.currentTurn.toUpperCase() })}
+                            : t('game.statusRivalTurn', { name: effectiveTurn.toUpperCase() })}
                     </div>
 
                     <div style={{ height: 90, display: 'grid', placeItems: 'center' }}>
