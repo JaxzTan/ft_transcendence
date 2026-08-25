@@ -683,6 +683,7 @@ export function Game() {
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
     : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${effectiveTurn.toUpperCase()}'S TURN`
+  const turnAccent = view.status === 'waiting' ? 'var(--accent-cyan)' : (SEAT_HUES[effectiveTurn] || '#00f0ff')
 
   return (
     <>
@@ -721,11 +722,12 @@ export function Game() {
                   gap: 10,
                   padding: '8px 20px',
                   borderRadius: 4,
-                  background: isMyTurn ? 'rgba(255, 0, 127, 0.25)' : 'rgba(0, 240, 255, 0.15)',
-                  border: isMyTurn ? '1.5px solid var(--accent-pink)' : '1.5px solid var(--accent-cyan)',
-                  boxShadow: isMyTurn ? '0 0 15px rgba(255, 0, 127, 0.6)' : 'none',
+                  background: `${turnAccent}25`,
+                  border: `1.5px solid ${turnAccent}`,
+                  boxShadow: `0 0 15px ${turnAccent}66`,
                   animation: isMyTurn ? 'pulse 1.6s infinite' : 'none',
                   boxSizing: 'border-box',
+                  transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
                 }}
               >
                 <span
@@ -733,15 +735,16 @@ export function Game() {
                     width: 10,
                     height: 10,
                     borderRadius: '50%',
-                    background: isMyTurn ? '#ffe600' : 'var(--accent-cyan)',
-                    boxShadow: isMyTurn ? '0 0 8px #ffe600' : '0 0 6px var(--accent-cyan)',
+                    background: turnAccent,
+                    boxShadow: `0 0 8px ${turnAccent}`,
+                    transition: 'background 0.25s ease, box-shadow 0.25s ease',
                   }}
                 />
                 <span
                   style={{
                     fontFamily: 'var(--font-heading)',
                     fontSize: '0.75rem',
-                    color: isMyTurn ? '#ffe600' : '#ffffff',
+                    color: '#ffffff',
                     letterSpacing: '0.5px',
                   }}
                 >
@@ -760,27 +763,19 @@ export function Game() {
                   justifyContent: 'center',
                   padding: '8px 14px',
                   background: turnSwapNotice
-                    ? 'rgba(255, 230, 0, 0.25)'
-                    : isMyTurn
-                      ? 'rgba(255, 0, 127, 0.2)'
-                      : 'rgba(0, 0, 0, 0.6)',
-                  border: turnSwapNotice
-                    ? '1.5px solid #ffe600'
-                    : isMyTurn
-                      ? '1.5px solid var(--accent-pink)'
-                      : '1.5px solid rgba(0, 240, 255, 0.35)',
+                    ? `${turnAccent}38`
+                    : `${turnAccent}18`,
+                  border: `1.5px solid ${turnAccent}`,
                   boxShadow: turnSwapNotice
-                    ? '0 0 20px #ffe600'
-                    : isMyTurn
-                      ? '0 0 12px rgba(255, 0, 127, 0.4)'
-                      : 'none',
+                    ? `0 0 22px ${turnAccent}`
+                    : `0 0 12px ${turnAccent}66`,
                   borderRadius: 4,
                   textAlign: 'center',
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.82rem',
                   fontWeight: 'bold',
-                  color: turnSwapNotice ? '#ffe600' : isMyTurn ? '#ff007f' : 'var(--accent-cyan)',
-                  transition: 'background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease',
+                  color: turnAccent,
+                  transition: 'background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease',
                   boxSizing: 'border-box',
                 }}
               >
