@@ -126,7 +126,7 @@ export function Game() {
 
   useEffect(() => {
     if (moveLogContainerRef.current) {
-      moveLogContainerRef.current.scrollTop = moveLogContainerRef.current.scrollHeight
+      moveLogContainerRef.current.scrollTop = 0
     }
   }, [moveLogs.length])
 
