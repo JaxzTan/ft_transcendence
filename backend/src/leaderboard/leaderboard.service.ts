@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { LeaderboardRedisService } from './leaderboard-redis.service';
+import { BOT_PREFIX, isBotUserId } from '../bot';
 
 export interface LeaderboardEntry {
   rank: number;
@@ -46,7 +47,14 @@ export class LeaderboardService {
 
       // If Redis has no entries or is missing users, auto-populate from PostgreSQL
       if (redisEntries.length === 0 || total < 5) {
-        const allDbUsers = await this.prisma.db.user.findMany({ select: { id: true, rating: true } });
+        // Bots are persisted as real User rows (GameParticipant.user_id has an
+        // FK to User.id), so an unfiltered scan sweeps "bot-red" & co. straight
+        // onto the board. match.postgame.service.ts already skips bots when it
+        // zadds a rating; this fallback has to be just as careful.
+        const allDbUsers = await this.prisma.db.user.findMany({
+          where: { NOT: { id: { startsWith: BOT_PREFIX } } },
+          select: { id: true, rating: true },
+        });
         if (allDbUsers.length > 0) {
           for (const u of allDbUsers) {
             await this.redisService.updateLeaderboardEntry(u.id, u.rating, (mode as any) || 'global');
@@ -73,7 +81,11 @@ export class LeaderboardService {
 
         const userMap = new Map(users.map(u => [u.id, u]));
         const entries: LeaderboardEntry[] = redisEntries
-          .filter(e => userMap.has(e.userId))
+          // Belt and braces: the query above keeps bots out of the sorted set
+          // from here on, but entries written before this fix (or by any future
+          // path) are already in Redis and in LeaderboardSnapshot. Never render
+          // one regardless of how it got in.
+          .filter(e => userMap.has(e.userId) && !isBotUserId(e.userId))
           .map((entry, i) => {
             const user = userMap.get(entry.userId)!;
             const gamesPlayed = user.wins + user.losses;
@@ -129,8 +141,15 @@ export class LeaderboardService {
 
     // Fallback to PostgreSQL snapshot (mirror of Redis, written on every game end)
     const modeFilter = mode || 'global';
+    // Same bot exclusion as the Redis path — snapshot rows were written from a
+    // sorted set that may still hold bots from before the fix, and this table
+    // outlives any Redis flush.
+    const snapshotWhere = {
+      mode: modeFilter,
+      NOT: { userId: { startsWith: BOT_PREFIX } },
+    };
     const snapshotEntries = await this.prisma.db.leaderboardSnapshot.findMany({
-      where: { mode: modeFilter },
+      where: snapshotWhere,
       select: {
         rank: true,
         username: true,
@@ -143,7 +162,7 @@ export class LeaderboardService {
     });
 
     const total = await this.prisma.db.leaderboardSnapshot.count({
-      where: { mode: modeFilter },
+      where: snapshotWhere,
     });
 
     const userUsernames = snapshotEntries.map(e => e.username);

@@ -3,12 +3,9 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { secret } from '../secrets';
 import Redis from 'ioredis';
+import { isBotUserId } from '../bot';
 
-const BOT_PREFIX = 'bot-';
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
-function isBotUserId(userId: string | undefined): boolean {
-	return !!userId && userId.startsWith(BOT_PREFIX);
-}
 
 @Injectable()
 export class MatchPlayerService {
