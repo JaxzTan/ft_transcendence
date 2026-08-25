@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
+import { ratingDeltaFor } from '../common/scoring';
 
 @Injectable()
 export class UserService {
@@ -108,10 +109,16 @@ export class UserService {
       games: participations.map((p) => ({
         gameId: p.game_id,
         status: p.game.status,
+        gameType: p.game.gameType,
         color: p.color,
         rank: p.rank,
         piecesCaptured: p.piecesCaptured,
         piecesInGoal: p.piecesInGoal,
+        ratingDelta: ratingDeltaFor({
+          piecesInGoal: p.piecesInGoal,
+          rank: p.rank,
+          gameType: p.game.gameType,
+        }),
         startedAt: p.game.startedAt,
         endedAt: p.game.endedAt,
         participants: p.game.participants.map((gp) => ({
