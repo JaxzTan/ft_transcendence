@@ -129,11 +129,55 @@ export function Home() {
 		return () => clearInterval(iv)
 	}, [])
 
-	const [isPlayingAudio, setIsPlayingAudio] = useState(false)
+	const [isPlayingAudio, setIsPlayingAudio] = useState(retroAudio.isPlaying)
+	const [audioTrackIndex, setAudioTrackIndex] = useState(retroAudio.currentTrackIndex)
+	const [audioVolume, setAudioVolume] = useState(Math.round(retroAudio.volume * 100))
+	const [eqHeights, setEqHeights] = useState([8, 14, 20, 26, 18, 12, 22, 16, 10, 24, 15, 9])
+
 	const handleToggleAudio = () => {
 		const playing = retroAudio.togglePlay()
 		setIsPlayingAudio(playing)
 	}
+
+	const handleNextTrack = () => {
+		retroAudio.nextTrack()
+		setAudioTrackIndex(retroAudio.currentTrackIndex)
+		retroAudio.playUiBeep(880, 0.04)
+	}
+
+	const handlePrevTrack = () => {
+		retroAudio.prevTrack()
+		setAudioTrackIndex(retroAudio.currentTrackIndex)
+		retroAudio.playUiBeep(660, 0.04)
+	}
+
+	const handleStepVolume = (delta: number) => {
+		const newVol = Math.max(0, Math.min(100, audioVolume + delta))
+		setAudioVolume(newVol)
+		retroAudio.setVolume(newVol / 100)
+		retroAudio.playUiBeep(440 + newVol * 4, 0.03)
+	}
+
+	const handleLedSegmentClick = (segmentIndex: number) => {
+		const newVol = (segmentIndex + 1) * 10
+		setAudioVolume(newVol)
+		retroAudio.setVolume(newVol / 100)
+		retroAudio.playUiBeep(440 + newVol * 4, 0.03)
+	}
+
+	// Equalizer spectrum visualizer animation
+	useEffect(() => {
+		if (!isPlayingAudio) {
+			setEqHeights([4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4])
+			return
+		}
+		const iv = setInterval(() => {
+			setEqHeights((prev) =>
+				prev.map(() => Math.floor(Math.random() * 20) + 4)
+			)
+		}, 120)
+		return () => clearInterval(iv)
+	}, [isPlayingAudio])
 
 	// ------------------------------------------------------------------------
 	// 4b. HERO BADGE BAR: live site-wide counts (online players, active
@@ -1123,10 +1167,38 @@ export function Home() {
 							</div>
 						</section>
 
-						{/* Widget 4: Quick Deploy Arena Modes */}
-						<section className="retro-window col-4" id="quickDeployWindow">
+						{/* Widget 4: Cyber Sound Deck & Cassette Synthesizer */}
+						<section className="retro-window col-4" id="cyberSoundDeckWindow">
 							<div className="window-header">
-								<span>{t('homeExtended.gameModesTitle')}</span>
+								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+									<span>◖ CYBERSOUND DECK ◗</span>
+									<span
+										style={{
+											fontSize: '0.62rem',
+											padding: '2px 6px',
+											borderRadius: 3,
+											background: isPlayingAudio ? 'rgba(0, 240, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+											border: isPlayingAudio ? '1px solid var(--accent-cyan)' : '1px solid rgba(255, 255, 255, 0.15)',
+											color: isPlayingAudio ? 'var(--accent-cyan)' : 'var(--text-muted)',
+											fontFamily: 'var(--font-mono)',
+											fontWeight: 'bold',
+											display: 'inline-flex',
+											alignItems: 'center',
+											gap: 4,
+										}}
+									>
+										<span
+											style={{
+												width: 6,
+												height: 6,
+												borderRadius: '50%',
+												background: isPlayingAudio ? 'var(--accent-cyan)' : 'var(--text-muted)',
+												boxShadow: isPlayingAudio ? '0 0 6px var(--accent-cyan)' : 'none',
+											}}
+										/>
+										{isPlayingAudio ? 'LIVE STEREO' : 'STANDBY'}
+									</span>
+								</div>
 								<div className="window-controls">
 									<span className="window-btn min" />
 									<span className="window-btn max" />
@@ -1137,110 +1209,129 @@ export function Home() {
 								style={{
 									display: 'flex',
 									flexDirection: 'column',
-									gap: 10,
+									gap: 8,
 									justifyContent: 'space-between',
 								}}
 							>
-								{/* Cartridge 1: 1v1 Cyber Duel */}
-								<button
-									className="retro-btn"
-									style={{
-										width: '100%',
-										padding: '10px 14px',
-										display: 'flex',
-										justifyContent: 'space-between',
-										alignItems: 'center',
-										background: 'rgba(0, 240, 255, 0.08)',
-										border: '1px solid var(--accent-cyan)',
-									}}
-									onClick={() => {
-										retroAudio.playUiBeep(700, 0.06)
-										navigate('/gamelobby')
-									}}
-								>
-									<div style={{ textAlign: 'left' }}>
-										<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-cyan)' }}>
-											{t('homeExtended.duel1v1Title')}
+								{/* Cyber Cassette Chassis */}
+								<div className="cyber-cassette-chassis">
+									{/* OLED Track HUD Display */}
+									<div className="oled-screen">
+										<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+											<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--accent-pink)', fontWeight: 'bold' }}>
+												TRACK 0{audioTrackIndex + 1} / 0{retroAudio.tracks.length}
+											</span>
+											<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: isPlayingAudio ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+												{isPlayingAudio ? '● PLAYING' : '■ IDLE'}
+											</span>
 										</div>
-										<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-											{t('homeExtended.duel1v1Desc')}
+										<div className="oled-title">
+											{retroAudio.tracks[audioTrackIndex]?.name || "SYNTHWAVE NIGHTS '84"}
+										</div>
+										<div className="oled-meta">
+											<span>{retroAudio.tracks[audioTrackIndex]?.tempo || 120} BPM // A-MIN</span>
+											<span>CHIPTUNE · 44.1kHz</span>
 										</div>
 									</div>
-									<span style={{ fontSize: '0.8rem', color: 'var(--accent-cyan)' }}>{t('homeExtended.deployAction')}</span>
-								</button>
 
-								{/* Cartridge 2: 4-Player Royale */}
-								<button
-									className="retro-btn"
-									style={{
-										width: '100%',
-										padding: '10px 14px',
-										display: 'flex',
-										justifyContent: 'space-between',
-										alignItems: 'center',
-										background: 'rgba(255, 0, 127, 0.08)',
-										border: '1px solid var(--accent-pink)',
-									}}
-									onClick={() => {
-										retroAudio.playUiBeep(700, 0.06)
-										navigate('/gamelobby')
-									}}
-								>
-									<div style={{ textAlign: 'left' }}>
-										<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-pink)' }}>
-											{t('homeExtended.match4PTitle')}
-										</div>
-										<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-											{t('homeExtended.match4PDesc')}
-										</div>
+									{/* Multi-Band Stereo Spectrum Equalizer */}
+									<div className="cyber-eq-deck">
+										{eqHeights.map((h, i) => (
+											<div
+												key={i}
+												className="cyber-eq-col"
+												style={{ height: `${h}px` }}
+											/>
+										))}
 									</div>
-									<span style={{ fontSize: '0.8rem', color: 'var(--accent-pink)' }}>{t('homeExtended.deployAction')}</span>
-								</button>
+								</div>
 
-								{/* Cartridge 3: AI Practice / Local */}
-								<button
-									className="retro-btn"
-									style={{
-										width: '100%',
-										padding: '10px 14px',
-										display: 'flex',
-										justifyContent: 'space-between',
-										alignItems: 'center',
-										background: 'rgba(255, 230, 0, 0.08)',
-										border: '1px solid var(--accent-yellow)',
-									}}
-									onClick={() => {
-										retroAudio.playUiBeep(700, 0.06)
-										navigate('/game')
-									}}
-								>
-									<div style={{ textAlign: 'left' }}>
-										<div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.78rem', color: 'var(--accent-yellow)' }}>
-											{t('homeExtended.practiceBotsTitle')}
+								{/* Primary Cyber Transport Hardware Cluster */}
+								<div className="cyber-transport-cluster">
+									<button
+										type="button"
+										className="cyber-deck-key"
+										onClick={handlePrevTrack}
+										title="Previous Audio Track"
+									>
+										<span className="cyber-key-icon" style={{ color: 'var(--accent-cyan)' }}>
+											⏮
+										</span>
+										<span className="cyber-key-label">PREV</span>
+										<span className="cyber-key-sub">RW // TRACK</span>
+									</button>
+
+									<button
+										type="button"
+										className={`cyber-deck-key cyber-deck-key-play ${isPlayingAudio ? 'active' : ''}`}
+										onClick={handleToggleAudio}
+										title={isPlayingAudio ? 'Pause Chiptune Audio' : 'Play Chiptune Audio'}
+									>
+										<span className="cyber-key-icon" style={{ color: isPlayingAudio ? '#ffffff' : 'var(--accent-pink)' }}>
+											{isPlayingAudio ? '⏸' : '▶'}
+										</span>
+										<span className="cyber-key-label" style={{ color: '#ffffff', fontSize: '0.64rem' }}>
+											{isPlayingAudio ? 'PAUSE' : 'PLAY SYNTH'}
+										</span>
+										<span className="cyber-key-sub" style={{ color: isPlayingAudio ? 'var(--accent-yellow)' : 'var(--accent-cyan)' }}>
+											{isPlayingAudio ? '● LIVE AUDIO' : '○ STANDBY'}
+										</span>
+									</button>
+
+									<button
+										type="button"
+										className="cyber-deck-key"
+										onClick={handleNextTrack}
+										title="Next Audio Track"
+									>
+										<span className="cyber-key-icon" style={{ color: 'var(--accent-cyan)' }}>
+											⏭
+										</span>
+										<span className="cyber-key-label">NEXT</span>
+										<span className="cyber-key-sub">FF // TRACK</span>
+									</button>
+								</div>
+
+								{/* Cyber Master Volume Console & 10-Segment LED Meter */}
+								<div className="cyber-vol-console">
+									<div className="cyber-fader-track-row">
+										<button
+											type="button"
+											className="cyber-vol-step-btn"
+											onClick={() => handleStepVolume(-10)}
+											title="Decrease Volume (-10%)"
+										>
+											-
+										</button>
+
+										{/* 10 Interactive LED Bar Segments */}
+										<div
+											className="cyber-vol-led-bar"
+											title={`Volume: ${audioVolume}% (Click segment to set)`}
+										>
+											{Array.from({ length: 10 }).map((_, idx) => {
+												const isLit = audioVolume >= (idx + 1) * 10 - 5
+												const colorClass = idx < 5 ? 'lit-cyan' : idx < 8 ? 'lit-amber' : 'lit-pink'
+												return (
+													<div
+														key={idx}
+														className={`cyber-vol-led-segment ${isLit ? colorClass : ''}`}
+														onClick={() => handleLedSegmentClick(idx)}
+													/>
+												)
+											})}
 										</div>
-										<div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-											{t('homeExtended.practiceBotsDesc')}
-										</div>
+
+										<button
+											type="button"
+											className="cyber-vol-step-btn"
+											onClick={() => handleStepVolume(10)}
+											title="Increase Volume (+10%)"
+										>
+											+
+										</button>
 									</div>
-									<span style={{ fontSize: '0.8rem', color: 'var(--accent-yellow)' }}>{t('homeExtended.playAction')}</span>
-								</button>
-
-								{/* Global Ladder Footer Link */}
-								<button
-									className="retro-btn"
-									style={{
-										width: '100%',
-										padding: '8px 12px',
-										fontSize: '0.72rem',
-										marginTop: 4,
-									}}
-									onClick={() => {
-										retroAudio.playUiBeep(600, 0.05)
-										navigate('/leaderboard')
-									}}
-								>
-									{t('homeExtended.viewGlobalLadder')}
-								</button>
+								</div>
 							</div>
 						</section>
 					</main>
