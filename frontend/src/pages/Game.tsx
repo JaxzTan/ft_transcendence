@@ -397,12 +397,17 @@ export function Game() {
         retroAudio.playUiBeep(1100, 0.3, 'sawtooth')
         let endedPlayers = viewRef.current.players
           .filter((p) => p.status !== 'inactive')
-          .map((p) => ({
-            color: p.color,
-            username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
-            isBot: p.isBot,
-            piecesInGoal: p.piecesInGoal,
-          }))
+          .map((p) => {
+            const inGoal = p.color === e.winner
+              ? 4
+              : (p.piecesInGoal ?? viewRef.current.pieces.filter((pc) => pc.color === p.color && pc.isInGoal).length)
+            return {
+              color: p.color,
+              username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+              isBot: p.isBot,
+              piecesInGoal: inGoal,
+            }
+          })
         if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
           endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
         }
@@ -412,8 +417,11 @@ export function Game() {
           mode: activeMatch?.mode ?? 'pvp',
           playerCount: activeMatch?.playerCount ?? endedPlayers.length,
           players: endedPlayers,
+          abandoned: false,
         })
-        setShowResultsModal(true)
+        setTimeout(() => {
+          setShowResultsModal(true)
+        }, 900)
       }
     }
 
