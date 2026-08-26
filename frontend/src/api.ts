@@ -76,6 +76,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const getApi = <T>(path: string) => request<T>(path)
 export const postApi = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: 'POST', body: body != null ? JSON.stringify(body) : undefined })
-export const deleteApi = <T>(path: string) => request<T>(path, { method: 'DELETE' })
+export const deleteApi = <T>(path: string, body?: unknown) =>
+  request<T>(path, { method: 'DELETE', body: body != null ? JSON.stringify(body) : undefined })
 export const patchApi = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) })

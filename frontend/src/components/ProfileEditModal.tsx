@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { getApi, patchApi } from '../api'
 import { passwordError } from '../validatePassword'
 import { useApp } from '../store'
+import { DeleteAccountModal } from './DeleteAccountModal'
 
 const OTP = { '42': '/forty_two.png', github: '/github.png', google: '/google.png' } as const
 const PROVIDERS = ['google', 'github', '42'] as const
@@ -41,6 +42,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [providers, setProviders] = useState<Providers>([])
   const [busy, setBusy] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
 
@@ -229,6 +231,17 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
         >
           {busy ? t('profileEdit.saving') : t('profileEdit.save')}
         </button>
+
+        <button
+          className="retro-btn"
+          disabled={busy}
+          onClick={() => setDeleteOpen(true)}
+          style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: 8 }}
+        >
+          {t('profileEdit.deleteAccountBtn')}
+        </button>
+
+        {deleteOpen && <DeleteAccountModal onClose={() => setDeleteOpen(false)} hasPassword={hasPassword} />}
       </div>
     </div>
   )
