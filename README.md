@@ -191,7 +191,6 @@ consistently on any machine.
 | 9 | File upload and management | `liyu-her` | Validation, secure storage, preview and delete |
 | 10 | Game customization options | `liyu-her` | Power-ups, maps and settings |
 | 11 | Custom minor module | `chtan` | Ngrok tunneling for exposing the local stack for remote testing |
-| 12 | Additional browser support | All | Verified on Chrome, Firefox and Brave |
 
 ## Individual Contributions
 

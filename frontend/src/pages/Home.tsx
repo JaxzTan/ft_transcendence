@@ -137,6 +137,34 @@ export function Home() {
 	}
 
 	// ------------------------------------------------------------------------
+	// 4b. HERO BADGE BAR: live site-wide counts (online players, active
+	// matches, open joinable slots)
+	// ------------------------------------------------------------------------
+	const [onlineCount, setOnlineCount] = useState<number | null>(null)
+	const [liveMatchCount, setLiveMatchCount] = useState<number | null>(null)
+	const [openSlotCount, setOpenSlotCount] = useState<number | null>(null)
+
+	useEffect(() => {
+		const fetchBadgeCounts = () => {
+			getApi<{ count: number }>('/api/presence/online-count')
+				.then((body) => setOnlineCount(body.count))
+				.catch((e) => console.error(e))
+			getApi<Array<{ id: string }>>('/api/games/active')
+				.then((games) => setLiveMatchCount(Array.isArray(games) ? games.length : 0))
+				.catch((e) => console.error(e))
+			getApi<Array<{ seats: number; maxSeats: number }>>('/api/games/rooms')
+				.then((rooms) => {
+					const open = Array.isArray(rooms) ? rooms.reduce((sum, r) => sum + (r.maxSeats - r.seats), 0) : 0
+					setOpenSlotCount(open)
+				})
+				.catch((e) => console.error(e))
+		}
+		fetchBadgeCounts()
+		const iv = setInterval(fetchBadgeCounts, 15000)
+		return () => clearInterval(iv)
+	}, [])
+
+	// ------------------------------------------------------------------------
 	// 5. HUB ARCADE CABINET: 3D ATTRACT MODE & PRESS START
 	// ------------------------------------------------------------------------
 	const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -614,31 +642,33 @@ export function Home() {
 									fontFamily: 'var(--font-mono)',
 								}}
 							>
-								{t('homeExtended.onlinePlayers')} 42
+								{t('homeExtended.onlinePlayers')} {onlineCount ?? '...'}
 							</span>
 							<span
 								className="retro-badge"
 								style={{
-									border: '1px dashed rgba(255, 255, 255, 0.25)',
-									color: 'var(--text-muted)',
+									border: liveMatchCount ? '1px solid var(--accent-cyan)' : '1px dashed rgba(255, 255, 255, 0.25)',
+									color: liveMatchCount ? 'var(--accent-cyan)' : 'var(--text-muted)',
 									display: 'inline-flex',
 									alignItems: 'center',
 									fontFamily: 'var(--font-mono)',
 								}}
+								title="Matches currently in progress"
 							>
-								// SLOT_03: [EMPTY]
+								// SLOT_03: {liveMatchCount ? `${liveMatchCount} LIVE` : '[EMPTY]'}
 							</span>
 							<span
 								className="retro-badge"
 								style={{
-									border: '1px dashed rgba(255, 255, 255, 0.25)',
-									color: 'var(--text-muted)',
+									border: openSlotCount ? '1px solid var(--accent-cyan)' : '1px dashed rgba(255, 255, 255, 0.25)',
+									color: openSlotCount ? 'var(--accent-cyan)' : 'var(--text-muted)',
 									display: 'inline-flex',
 									alignItems: 'center',
 									fontFamily: 'var(--font-mono)',
 								}}
+								title="Open PvP room seats waiting for players"
 							>
-								// SLOT_04: [EMPTY]
+								// SLOT_04: {openSlotCount ? `${openSlotCount} OPEN` : '[EMPTY]'}
 							</span>
 						</div>
 					</header>
@@ -796,9 +826,6 @@ export function Home() {
 										const fRank = leaderboardMap[f.username]
 										const fTier = getRankTier(f.rating ?? 1200, fRank)
 										const fStatus = STATUS_STYLE[f.status || 'offline'] || STATUS_STYLE.offline
-										const isPace24 =
-											f.username.toLowerCase().includes('harleynghx') ||
-											f.username.toLowerCase().includes('harleyhx')
 
 										return (
 											<div
@@ -890,7 +917,7 @@ export function Home() {
 															<RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
 														</div>
 														<div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
-															● {fStatus.label.toUpperCase()} // {t('homeExtended.alliedPilot')}{isPace24 ? ' // PACE 24' : ''}
+															● {fStatus.label.toUpperCase()} // {t('homeExtended.alliedPilot')}
 														</div>
 													</div>
 												</div>

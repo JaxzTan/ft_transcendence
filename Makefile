@@ -23,7 +23,7 @@ REQUIRED_SECRETS = jwt_secret db_password db_root_password redis_password \
                   $(OAUTH_SECRETS)
 
 all: build start
-	@ echo "✅  Stack up.  Frontend: https://localhost:$(HTTPS_PORT)"
+	@ Frontend: https://localhost:$(HTTPS_PORT)"
 
 # One-command secrets pipeline: preflight (fail hard) → generate any missing
 # → seed the Docker volume. Used by every build/start path exactly once.

@@ -61,4 +61,16 @@ export class PresenceService implements OnModuleDestroy {
     });
     return statuses;
   }
+
+  /** Site-wide online count for the homepage badge — same SCAN idiom as MatchQueryService. */
+  async getOnlineCount(): Promise<number> {
+    let cursor = '0';
+    let count = 0;
+    do {
+      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'presence:*', 'COUNT', 100);
+      cursor = nextCursor;
+      count += keys.length;
+    } while (cursor !== '0');
+    return count;
+  }
 }
