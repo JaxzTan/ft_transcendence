@@ -86,4 +86,5 @@ docs
 !frontend/public/*.png
 *.md
 *.sh
+.markdownlint.json
 

@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by chtan, bleow, liyu-her, hang, jow.*
+#### *This project has been created as part of the 42 curriculum by chtan, bleow, liyu-her, hang, jow.*
 
 # ft_transcendence
 
@@ -13,42 +13,84 @@ achievement system, and the whole interface is available in multiple languages.
 
 - **Server-authoritative Ludo** — dice rolls, turn order, captures, safe squares and home
   entry are all resolved on the server; the client renders, it does not decide
-- **Match formats** — 2-seat duel, 4-seat classic, local hotseat, and an AI opponent
+- **Match formats** — Hotseat mode, vs Bot/AI (PVE) mode, vs Multiplayer (PVP) mode
 - **Real-time play** — WebSocket transport with live board updates, presence, and reconnect
 - **User management** — profiles, avatars, friends, live online status
-- **Authentication** — local accounts, OAuth 2.0 sign-in, and two-factor authentication
+- **Authentication** — local accounts, OAuth 2.0 sign-in (Google, GitHub, 42), email verification, and two-factor authentication (email code)
 - **Progression** — match history, statistics, leaderboard, and achievements
-- **Multilingual UI**
+- **Multilingual UI** — English, Malay, and French
 - **Notifications, file upload, game customization, and extended browser support**
 
 ## Instructions
 
 ### Prerequisites
 
-| Requirement |
-|---|---|
-| Docker Engine |
-| Docker Compose |
-| GNU Make |
+- **Docker** and **Docker Compose** (the only runtime requirement).
+- **GNU Make** (to use the provided build commands).
+- A restored `secrets/` directory (see [Secrets](#secrets) below). The stack refuses to start if a required secret file is missing.
+- OAuth client IDs and secrets for Google, GitHub, and 42 — **optional**. Local sign-up and login work without them.
+- At least one free port: `8443` (HTTPS). Ports `3000`, `3001`, `5432`, `5555`, `6479` are used inside/for debugging.
 
-### Configuration
-
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-2. Fill in the required values.
-
-### Running
+### Step-by-step run
 
 ```bash
-git clone <repository URL>
-cd ft_transcendence
-cp .env.example .env      # then fill in the values above
+# 1. Make sure the required secret files exist (generates any missing ones, seeds the Docker volume)
+make secrets
+
+# 2. Build the images, start the stack, and seed the database with test data
 make
+
+# 3. Open the app
+#    https://localhost:8443
+#
+#    (First visit: accept the self-signed certificate warning.)
 ```
 
-Then open the app in your browser.
+### Development mode (hot reload)
+
+```bash
+make dev
+# App:   http://localhost:8080   (Vite dev server, auto-reloads on save)
+# Prod:  https://localhost:8443  (still running alongside, via nginx)
+```
+
+### Commands
+
+| Command | Effect |
+|---|---|
+| `make secrets` | Checks required secrets, generates missing ones, seeds the `secrets_data` volume |
+| `make` or `make all` | `build` → `start` → seed the database |
+| `make build` | `secrets` → build all images |
+| `make start` | `secrets` → start the default profile (production) |
+| `make dev` | `down` → build + start default + `dev` profile, then `compose watch` (hot reload) |
+| `make stop` | Stop all services |
+| `make down` | Stop + remove containers |
+| `make logs` | Tail logs from all services |
+| `make clean` | Remove all containers, images, networks, and volumes |
+| `make prune` | Full Docker system prune (`-af --volumes`) |
+| `make re` | `fclean` → `all` (full rebuild from scratch) |
+| `make lan` | `all` + print the LAN address for other devices on the same WiFi |
+| `make tunnel` | `all` + `ngrok-auth`, then open an ngrok tunnel to 8443 |
+| `make tunnel_up` | `all` → `tunnel` (stack in background, tunnel in foreground) |
+| `make tunnel-url` | Print the public URL of a running tunnel |
+| `make stop-tunnel` | Stop ngrok and the stack |
+
+### Access
+
+| URL | What it is | Profile |
+|---|---|---|
+| `https://localhost:8443` | The app (via nginx) | default |
+| `http://localhost:8080` | Vite dev server with hot reload | dev |
+| `http://localhost:3000` | Backend API (direct, host-only) | default |
+| `http://localhost:5555` | Prisma Studio (database browser) | default |
+| `wss://<host>/socket.io/` | Game engine connection (same-origin through nginx / Vite proxy) | default |
+
+### Secrets
+
+The project stores configuration in plain-text files under `secrets/`, one value per file, named after the variable in lowercase (for example `JWT_SECRET` → `secrets/jwt_secret.txt`). The directory is mounted read-only into the containers. **Never commit this folder to git** (it is already ignored).
+
+- `make secrets` generates and seeds everything that can be derived.
+- OAuth credentials must be obtained from the provider consoles (Google Cloud, GitHub, 42 intra) and placed manually.
 
 ## Team Information
 
@@ -71,8 +113,10 @@ Then open the app in your browser.
 
 | Technology | Purpose |
 |---|---|
-| React | Component model, routing, client state |
-| Tailwind CSS | Styling |
+| React 19 + TypeScript | Component model, routing, client state |
+| Vite | Build tooling and dev server (hot reload) |
+| Custom CSS (`retrowave.css`) | Styling — retro/cyberpunk theme |
+| i18next | Localization (English, Malay, French) |
 | Socket.IO client | Real-time transport |
 
 ### Backend
@@ -81,8 +125,10 @@ Then open the app in your browser.
 |---|---|
 | NestJS | HTTP API, dependency injection, module structure |
 | Socket.IO | WebSocket gateway and room fan-out |
+| Passport + JWT (httpOnly cookies) + bcrypt | OAuth 2.0 (Google, GitHub, 42), sessions, password hashing |
 | Prisma | ORM, schema and migrations |
 | nginx | Reverse proxy and TLS termination |
+| Docker Compose | One-command reproducible stack, service isolation |
 
 ### Data
 
@@ -92,6 +138,10 @@ Then open the app in your browser.
 | Redis | Live game state — board, dice, turn pointer, matchmaking queue, presence |
 
 ### Justification for major technical choices
+
+**Why React + NestJS + PostgreSQL.** They are the stack the team is most comfortable with
+and they are explicitly allowed by the subject (as opposed to, e.g., Django or Spring), so
+the team could move fast and defend every choice in review.
 
 **Why Redis alongside it.** A running match is high-frequency, short-lived state — board
 position, current dice value, whose turn it is, who is queued for matchmaking. Writing that
@@ -105,6 +155,22 @@ instance holds the socket.
 a move. Every action is a request the server accepts or rejects against its own copy of the
 board, which is what makes the multiplayer and remote-player modules defensible rather than
 merely functional.
+
+**Why Socket.IO over plain WebSockets.** It provides automatic reconnection, rooms, and
+broadcasting out of the box, which the live board, presence, and reconnect flows build on.
+
+**Why Passport + JWT in httpOnly cookies + bcrypt.** Passport handles the OAuth 2.0 flows
+for Google, GitHub, and 42, so the provider callbacks are handled by a well-known library.
+Sessions use a short-lived JWT access token (15 minutes) stored in an httpOnly cookie, so
+page scripts cannot read it and XSS cannot steal it. The refresh token (7 days) is stored
+hashed in Redis and rotated on every use, so a leaked token stops working once it is reused,
+and can be revoked on logout or password reset. Passwords are hashed with bcrypt, so a
+database leak does not expose usable credentials.
+
+**Why Prisma.** Prisma keeps the database schema in one place and generates a type-safe
+client from it, so queries are checked at compile time and no SQL is written by hand. Schema
+changes are kept as committed migrations, so the database can be recreated or upgraded
+consistently on any machine.
 
 ## Database Schema
 
@@ -165,10 +231,74 @@ merely functional.
 
 ## Resources
 
-- NestJS documentation
-- React documentation
-- Prisma documentation
-- Socket.IO documentation
+### Documentation
+
+All project documentation lives under `docs/`, grouped by category. Each file is listed with the responsibility it covers.
+
+#### Overview
+
+| Document | Responsibility |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | System topology, services, request paths, data layer, secrets, make targets, file structure |
+| [docs/API-list.md](docs/API-list.md) | Complete HTTP + WebSocket API reference |
+| [docs/Ludo_Rules.md](docs/Ludo_Rules.md) | Classic Ludo rules |
+
+#### Backend (NestJS API)
+
+| Document | Responsibility |
+|---|---|
+| [docs/backend/backend-app-bootstrap-system.md](docs/backend/backend-app-bootstrap-system.md) | App bootstrap, module wiring, secrets, health check |
+| [docs/backend/backend-auth-module.md](docs/backend/backend-auth-module.md) | Registration, login, OAuth, 2FA, sessions, password reset |
+| [docs/backend/backend-user-module.md](docs/backend/backend-user-module.md) | Public profiles, game history, avatars |
+| [docs/backend/backend-friends-module.md](docs/backend/backend-friends-module.md) | Friend requests, accept/decline, block/unblock, game invites |
+| [docs/backend/backend-match-module.md](docs/backend/backend-match-module.md) | Matchmaking (PvP/PvE/hotseat) and game lifecycle |
+| [docs/backend/backend-leaderboard-module.md](docs/backend/backend-leaderboard-module.md) | Rankings with Redis cache + PostgreSQL fallback |
+| [docs/backend/backend-achievements-module.md](docs/backend/backend-achievements-module.md) | 13 achievement badges and their evaluation |
+| [docs/backend/backend-player-stats-module.md](docs/backend/backend-player-stats-module.md) | Per-player lifetime statistics |
+| [docs/backend/backend-presence-module.md](docs/backend/backend-presence-module.md) | Online / in-game / offline presence tracking |
+| [docs/backend/backend-notification-module.md](docs/backend/backend-notification-module.md) | Real-time notifications (SSE + Redis pub/sub) |
+| [docs/backend/backend-database-schema-system.md](docs/backend/backend-database-schema-system.md) | PostgreSQL schema — models, enums, relationships, indexes |
+| [docs/backend/backend-seeding-system.md](docs/backend/backend-seeding-system.md) | Development/test seed data |
+
+#### Frontend (React SPA)
+
+| Document | Responsibility |
+|---|---|
+| [docs/frontend/frontend-app-bootstrap-system.md](docs/frontend/frontend-app-bootstrap-system.md) | App bootstrap, route categories, auth guard |
+| [docs/frontend/frontend-router-system.md](docs/frontend/frontend-router-system.md) | Custom client-side router |
+| [docs/frontend/frontend-store-system.md](docs/frontend/frontend-store-system.md) | Global state (auth, game setup, settings, real-time match) |
+| [docs/frontend/frontend-shell-system.md](docs/frontend/frontend-shell-system.md) | Shell layout wrapper (side rail + header) |
+| [docs/frontend/frontend-auth-pages-module.md](docs/frontend/frontend-auth-pages-module.md) | Login and signup pages |
+| [docs/frontend/frontend-auth-extras-module.md](docs/frontend/frontend-auth-extras-module.md) | 2FA, forgot/reset password pages |
+| [docs/frontend/frontend-home-module.md](docs/frontend/frontend-home-module.md) | Home page — stats, rank, friends, notifications |
+| [docs/frontend/frontend-dashboard-module.md](docs/frontend/frontend-dashboard-module.md) | Dashboard (superseded by Home) |
+| [docs/frontend/frontend-lobby-module.md](docs/frontend/frontend-lobby-module.md) | Game lobby — mode/seat setup, match creation |
+| [docs/frontend/frontend-game-module.md](docs/frontend/frontend-game-module.md) | Real-time gameplay page (Socket.IO) |
+| [docs/frontend/frontend-results-module.md](docs/frontend/frontend-results-module.md) | Post-game results and rematch |
+| [docs/frontend/frontend-friends-module.md](docs/frontend/frontend-friends-module.md) | Friends page — list, requests, blocked, invites |
+| [docs/frontend/frontend-leaderboard-module.md](docs/frontend/frontend-leaderboard-module.md) | Leaderboard page |
+| [docs/frontend/frontend-settings-module.md](docs/frontend/frontend-settings-module.md) | Settings (AccountMenu, game preferences) |
+| [docs/frontend/frontend-profile-module.md](docs/frontend/frontend-profile-module.md) | Profile page — stats, history, friends |
+| [docs/frontend/frontend-components-system.md](docs/frontend/frontend-components-system.md) | Shared UI components |
+
+#### Ludo Engine (real-time game engine)
+
+| Document | Responsibility |
+|---|---|
+| [docs/ludo-engine/ludo-engine-core-system.md](docs/ludo-engine/ludo-engine-core-system.md) | Game state machine, turn logic, win conditions |
+| [docs/ludo-engine/ludo-engine-bot-module.md](docs/ludo-engine/ludo-engine-bot-module.md) | Bot AI decision logic |
+| [docs/ludo-engine/ludo-engine-lobby-module.md](docs/ludo-engine/ludo-engine-lobby-module.md) | Lobby management — colors, ready check, game start |
+| [docs/ludo-engine/ludo-engine-socket-system.md](docs/ludo-engine/ludo-engine-socket-system.md) | Socket.IO connection and event protocol |
+| [docs/ludo-engine/ludo-engine-redis-system.md](docs/ludo-engine/ludo-engine-redis-system.md) | Redis persistence + pub/sub |
+
+### Classic references
+
+- Ludo rules: [Wikipedia — Ludo](https://en.wikipedia.org/wiki/Ludo)
+- React: [react.dev](https://react.dev)
+- NestJS: [docs.nestjs.com](https://docs.nestjs.com)
+- Socket.IO: [socket.io/docs](https://socket.io/docs)
+- Prisma: [prisma.io/docs](https://www.prisma.io/docs)
+- Docker Compose: [docs.docker.com/compose](https://docs.docker.com/compose)
 
 ### Use of AI
 
@@ -178,10 +308,22 @@ The team used **Claude** and **ChatGPT** during development, in the following ar
   it into per-module test cases and tracking execution against it.
 - **Debugging** — narrowing down defects.
 - **UI and styling**.
+- **Documentation generation** — drafting, structuring, and refining project documentation, including   
+  the architecture overview, API reference, and the per-module docs under `docs/`.
 
 No AI tool was used to generate a complete module or feature end to end; all generated
 material was reviewed and adapted by the team member responsible for that area.
 
 ## Known Limitations
 
-None outstanding at submission.
+- The self-signed certificate triggers a browser warning on first visit (expected — it is a local development setup).
+- Ngrok's free tier shows an interstitial page for new visitors.
+- Campus/corporate WiFi may block device-to-device traffic in LAN mode (use a phone hotspot to test).
+
+## License
+
+This project is distributed under the **GPL-3.0** license — see [LICENSE](LICENSE) in the repository root.
+
+## File structure
+
+The full directory and file structure is documented in [docs/architecture.md](docs/architecture.md).
