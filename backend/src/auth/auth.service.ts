@@ -248,6 +248,8 @@ export class AuthService {
         displayName: user.displayName,
         email: user.email,
         hasPassword: !!user.password_hash,
+        avatarStyle: user.avatarStyle,
+        hasAvatarPhoto: user.avatarPhotoContentType !== null,
         providers: accounts.map((a) => a.provider),
       },
     };

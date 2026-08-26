@@ -19,6 +19,7 @@ export class UserService {
         displayName: true,
         createdAt: true,
         avatarStyle: true,
+        avatarPhotoContentType: true,
         rating: true,
         highestRating: true,
         wins: true,
@@ -35,7 +36,8 @@ export class UserService {
     }
 
     const status = await this.presence.getStatus(user.id);
-    return { ...user, status };
+    const { avatarPhotoContentType, ...rest } = user;
+    return { ...rest, hasAvatarPhoto: avatarPhotoContentType !== null, status };
   }
 
   async uploadAvatar(userId: string, data: Buffer, contentType: string) {
@@ -94,6 +96,7 @@ export class UserService {
                       username: true,
                       displayName: true,
                       avatarStyle: true,
+                      avatarPhotoContentType: true,
                     },
                   },
                 },
@@ -125,6 +128,7 @@ export class UserService {
           username: gp.user.username,
           displayName: gp.user.displayName,
           avatarStyle: gp.user.avatarStyle,
+          hasAvatarPhoto: gp.user.avatarPhotoContentType !== null,
           color: gp.color,
           rank: gp.rank,
           piecesInGoal: gp.piecesInGoal,

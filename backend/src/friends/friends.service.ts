@@ -236,8 +236,8 @@ export class FriendsService {
         ],
       },
       include: {
-        user: { select: { id: true, username: true, displayName: true, avatarStyle: true, rating: true } },
-        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true, rating: true } },
+        user: { select: { id: true, username: true, displayName: true, avatarStyle: true, avatarPhotoContentType: true, rating: true } },
+        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true, avatarPhotoContentType: true, rating: true } },
       },
     });
 
@@ -248,6 +248,7 @@ export class FriendsService {
         username: friend.username,
         displayName: friend.displayName,
         avatarStyle: friend.avatarStyle,
+        hasAvatarPhoto: friend.avatarPhotoContentType !== null,
         rating: friend.rating,
         friendsSince: f.createdAt,
       };
@@ -371,7 +372,7 @@ export class FriendsService {
         status: 'blocked',
       },
       include: {
-        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true, rating: true } },
+        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true, avatarPhotoContentType: true, rating: true } },
       },
     });
 
