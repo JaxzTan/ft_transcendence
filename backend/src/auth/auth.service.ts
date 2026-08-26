@@ -1,9 +1,11 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import Redis from 'ioredis';
 import { PrismaService } from '../prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { JwtPayload } from './jwt-payload';
 import { MailService } from './mail.service';
 import { TwoFactorService } from './twofactor.service';
@@ -38,14 +40,28 @@ type LoginResult =
     };
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleDestroy {
+  private readonly redis: Redis;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly mail: MailService,
     private readonly twoFactor: TwoFactorService,
     private readonly session: SessionService,
-  ) {}
+  ) {
+    // Small Redis client for account-deletion cleanup (same idiom as
+    // FriendsService / MatchPlayerService).
+    const host = process.env.REDIS_HOST || 'redis';
+    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+    const password = secret('REDIS_PASSWORD');
+    this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
+    this.redis.on('error', (error) => console.error('Auth Redis error:', (error as Error).message));
+  }
+
+  onModuleDestroy() {
+    this.redis.quit();
+  }
 
   async register(dto: RegisterDto, baseUrl: string = BASE_URL) {
     const existing = await this.prisma.db.user.findUnique({ where: { username: dto.username } });
@@ -411,6 +427,85 @@ export class AuthService {
     // Log the user out everywhere — other devices must re-auth with the new password.
     await this.session.revokeAllExcept(userId, currentRefreshToken);
     return { message: 'Password updated — other devices were signed out.' };
+  }
+
+  /**
+   * Permanently delete the authenticated user's account.
+   *
+   * Guard rails:
+   *  - `confirm` must be true.
+   *  - A password is ALWAYS required at deletion time. Accounts without one
+   *    (OAuth-only) must set a first password via changePassword first — that
+   *    gives the deletion a real credential to verify against.
+   *
+   * Order matters — DB delete is LAST: everything before it is best-effort
+   * cleanup, so if any step fails the account is untouched. The DB delete is
+   * the single point of no return.
+   */
+  async deleteAccount(userId: string, dto: DeleteAccountDto) {
+    if (!dto.confirm) throw new BadRequestException('You must confirm account deletion');
+
+    const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    if (!user.password_hash) {
+      throw new ForbiddenException('Set a password before deleting your account');
+    }
+    const matches = await bcrypt.compare(dto.currentPassword ?? '', user.password_hash);
+    if (!matches) throw new UnauthorizedException('Current password is incorrect');
+
+    // 1. Abort live matches the user is seated in, so a deleted user_id can
+    //    never FK-fail processGameEnd and void the opponents' results.
+    await this.abortUserMatches(userId);
+
+    // 2. Drop ephemeral Redis state (presence, invites, leaderboard entries).
+    await this.clearUserRedisState(userId);
+
+    // 3. Revoke every refresh session — all devices are logged out.
+    await this.session.revokeAll(userId);
+
+    // 4. DB: LeaderboardSnapshot has no FK to User, so delete it explicitly;
+    //    user.delete() cascades Account/Achievement/GameParticipant/Friendship/
+    //    Notification (all onDelete: Cascade in the schema).
+    await this.prisma.db.$transaction([
+      this.prisma.db.leaderboardSnapshot.deleteMany({ where: { userId } }),
+      this.prisma.db.user.delete({ where: { id: userId } }),
+    ]);
+
+    return { message: 'Account permanently deleted' };
+  }
+
+  /** Mark every WAITING/ACTIVE match the user is seated in as ABORTED (1h TTL). */
+  private async abortUserMatches(userId: string): Promise<void> {
+    try {
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+        cursor = nextCursor;
+        for (const key of keys) {
+          const data = await this.redis.hgetall(key);
+          const seated = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].includes(userId);
+          if (seated && (data.status === 'WAITING' || data.status === 'ACTIVE')) {
+            await this.redis.hset(key, 'status', 'ABORTED');
+            await this.redis.expire(key, 3600);
+          }
+        }
+      } while (cursor !== '0');
+    } catch (error) {
+      console.error('abortUserMatches error:', (error as Error).message);
+    }
+  }
+
+  /** Remove the user's ephemeral Redis state (presence, invites, leaderboard). */
+  private async clearUserRedisState(userId: string): Promise<void> {
+    try {
+      await this.redis.del(`presence:${userId}`, `invite:${userId}`);
+      for (const mode of ['global', 'ranked', 'casual', 'bot']) {
+        await this.redis.zrem(`leaderboard:${mode}`, userId);
+      }
+    } catch (error) {
+      console.error('clearUserRedisState error:', (error as Error).message);
+    }
   }
 
   /**

@@ -719,6 +719,18 @@ export const en = {
     lastMethod: 'You must keep at least one sign-in method.',
     providerTaken: 'This provider account is linked to another user.',
     genericError: 'An error occurred.',
+    deleteAccountBtn: 'DELETE ACCOUNT',
+    deleteAccountTitle: 'DELETE ACCOUNT',
+    deleteAccountWarning: 'All your data — profile, match history, achievements, and friends — will be permanently deleted. This cannot be undone.',
+    deleteAccountNeedPassword: 'To verify this deletion, you must set a password for your account first.',
+    deleteAccountSetPasswordLabel: 'Create a password',
+    deleteAccountSetPasswordDesc: 'Your account has no password yet (you signed in with an external provider). Create one now so you can confirm the deletion.',
+    deleteAccountPasswordLabel: 'Enter your password to confirm',
+    deleteAccountPasswordPlaceholder: 'Current password',
+    deleteAccountAcknowledge: 'I understand that my account and all data will be permanently deleted.',
+    deleteAccountSetPasswordBtn: 'SET PASSWORD & CONTINUE',
+    deleteAccountDeleteBtn: 'DELETE PERMANENTLY',
+    deleteAccountCancel: 'CANCEL',
   },
 
   ludoLobbyPasses: {
