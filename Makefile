@@ -1,82 +1,60 @@
 COMPOSE_FILE   = compose.yaml
 
-SECRET_DIR     = secrets
-JWT_SECRET     = $(SECRET_DIR)/ludo_engine_credentials.txt
-DB_PASSWORD    = $(SECRET_DIR)/db_password.txt
-secret_get = $(shell cat $(SECRET_DIR)/$(1).txt 2>/dev/null | tr -d "\"' \r")
-NGROK_PORT    := $(or $(call secret_get,ngrok_port),8443)
-NGROK_DOMAIN  := $(call secret_get,ngrok_domain)
-HTTPS_PORT    := $(or $(call secret_get,https_port),8443)
+env_get = $(shell grep -m1 '^$(1)=' .env 2>/dev/null | cut -d= -f2-)
+NGROK_PORT    := $(or $(call env_get,NGROK_PORT),8443)
+NGROK_DOMAIN  := $(call env_get,NGROK_DOMAIN)
+HTTPS_PORT    := $(or $(call env_get,HTTPS_PORT),8443)
 NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
-LAN_IP        := $(or $(call secret_get,lan_ip),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
-OAUTH_SECRETS  = google_client_id google_client_secret google_callback_url \
-                 github_client_id github_client_secret github_callback_url \
-                 fortytwo_client_id fortytwo_client_secret fortytwo_callback_url
-
-# Full set of files the stack needs. The backend entrypoint hard-fails without
-# the trio (db_credentials, db_password, jwt_secret); the runtime needs the rest.
-# OAuth files are manual-only (never generated); the rest auto-generate below
-# only if missing — but the preflight still demands every file exist up-front.
-REQUIRED_SECRETS = jwt_secret db_password db_root_password redis_password \
-                  engine_api_key db_credentials redis_credentials \
-                  frontend_url ngrok_port https_port database_url \
-                  $(OAUTH_SECRETS)
+LAN_IP        := $(or $(call env_get,LAN_IP),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
+OAUTH_VARS     = GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_CALLBACK_URL \
+                 GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET GITHUB_CALLBACK_URL \
+                 FORTYTWO_CLIENT_ID FORTYTWO_CLIENT_SECRET FORTYTWO_CALLBACK_URL
 
 all: build start
-	@ Frontend: https://localhost:$(HTTPS_PORT)"
+	@echo "✅ Frontend: https://localhost:$(HTTPS_PORT)"
 
-# One-command secrets pipeline: preflight (fail hard) → generate any missing
-# → seed the Docker volume. Used by every build/start path exactly once.
-secrets:
+# One-command config pipeline: generate any missing derived values, then
+# preflight (fail hard) on the manual-only ones (OAuth apps). Used by every
+# build/start path exactly once. Values live in .env now, one KEY=VALUE per
+# line, read directly by compose's env_file: and by dotenv on the host side.
+env:
 	@set -e; \
+	touch .env; \
+	get() { grep -m1 "^$$1=" .env 2>/dev/null | cut -d= -f2-; }; \
+	set_kv() { \
+	  if grep -q "^$$1=" .env 2>/dev/null; then \
+	    tmp=$$(mktemp); awk -F= -v k="$$1" -v v="$$2" 'BEGIN{OFS="="} $$1==k{$$0=k"="v} {print}' .env > "$$tmp" && mv "$$tmp" .env; \
+	  else \
+	    printf '%s=%s\n' "$$1" "$$2" >> .env; \
+	  fi; \
+	}; \
+	gen()  { [ -n "$$(get $$1)" ] || set_kv "$$1" "$$(openssl rand -hex $$2)"; }; \
+	seed() { [ -n "$$(get $$1)" ] || set_kv "$$1" "$$2"; }; \
+	gen  JWT_SECRET        32; \
+	gen  POSTGRES_PASSWORD 16; \
+	gen  REDIS_PASSWORD    16; \
+	gen  ENGINE_API_KEY    32; \
+	seed POSTGRES_USER     'db_bossman'; \
+	seed POSTGRES_DB       'transcendence'; \
+	seed FRONTEND_URL      'https://localhost:8443'; \
+	seed NGROK_PORT        '8080'; \
+	seed HTTPS_PORT        '8443'; \
+	pwd_val=$$(get POSTGRES_PASSWORD); user_val=$$(get POSTGRES_USER); db_val=$$(get POSTGRES_DB); \
+	set_kv DATABASE_URL           "postgresql://$$user_val:$$pwd_val@localhost:5432/$$db_val"; \
+	set_kv CONTAINER_DATABASE_URL "postgresql://$$user_val:$$pwd_val@db:5432/$$db_val"; \
+	chmod 600 .env; \
 	missing=""; \
-	for s in $(REQUIRED_SECRETS); do \
-	  [ -s $(SECRET_DIR)/$$s.txt ] || missing="$$missing $$s"; \
-	done; \
+	for v in $(OAUTH_VARS); do [ -n "$$(get $$v)" ] || missing="$$missing $$v"; done; \
 	if [ -n "$$missing" ]; then \
-	  echo "❌ Preflight failed — required secrets missing in $(SECRET_DIR)/:"; \
-	  for s in $$missing; do echo "      $(SECRET_DIR)/$$s.txt"; done; \
-	  echo "   Restore the secrets/ directory (team zip), then re-run."; \
+	  echo "❌ Preflight failed — required values missing in .env:"; \
+	  for v in $$missing; do echo "      $$v"; done; \
+	  echo "   Fill them in (see .env.example), or ask a teammate for the values."; \
 	  exit 1; \
 	fi; \
-	echo "✅ Preflight OK — all required secrets present"; \
-	echo "🔧 Generating any missing derived/random secrets…"; \
-	gen()  { [ -s $(SECRET_DIR)/$$1.txt ] || openssl rand -hex $$2 > $(SECRET_DIR)/$$1.txt; }; \
-	seed() { [ -s $(SECRET_DIR)/$$1.txt ] || printf '%s\n' "$$2" > $(SECRET_DIR)/$$1.txt; }; \
-	gen  jwt_secret        32; \
-	gen  db_password       16; \
-	gen  db_root_password  16; \
-	gen  redis_password    16; \
-	gen  engine_api_key    32; \
-	seed db_credentials    'db_bossman:transcendence:db'; \
-	seed redis_credentials 'redisboss'; \
-	seed frontend_url      'https://localhost:8443'; \
-	seed ngrok_port        '8080'; \
-	seed https_port        '8443'; \
-	seed database_url \
-	  "postgresql://db_bossman:$$(cat $(SECRET_DIR)/db_password.txt)@localhost:5432/transcendence"; \
-	chmod 600 $(SECRET_DIR)/*.txt
-	@echo "🔑 Secrets ready in $(SECRET_DIR)/ — one value per file, <VAR> lowercased"
-	@docker volume create $(SECRETS_VOLUME) >/dev/null
-	@docker rm -f secrets-seed >/dev/null 2>&1 || true
-	@docker run -d --rm --name secrets-seed -v $(SECRETS_VOLUME):/secrets alpine sleep 60 >/dev/null
-	@tar -C $(SECRET_DIR) -cf - . | docker exec -i secrets-seed tar -xf - --no-same-owner -C /secrets
-	@docker exec secrets-seed sh -c 'chmod 600 /secrets/*.txt'
-	@docker stop secrets-seed >/dev/null
-	@echo "🔑 $(SECRETS_VOLUME) seeded from $(SECRET_DIR)/"
+	echo "✅ .env ready — all required values present"
 
-build: secrets
+build: env
 	@docker compose -f $(COMPOSE_FILE) build
-
-# secrets_data (compose.yaml) is `external: true` — Make owns it, not compose.
-# Seeded via a tar pipe rather than a bind mount because Docker Desktop's
-# macOS virtiofs share can deadlock (EDEADLK) reading ./secrets live from
-# inside a container; streaming the host file directly doesn't hit that path.
-# `tar | docker exec tar --no-same-owner` instead of plain `docker cp` because
-# docker cp preserves host UID/GID and overlay2's lchown rejects UIDs above the
-# 16-bit range (EINVAL) — common on machines with large LDAP-assigned UIDs.
-# Re-run (idempotent, <1s) whenever secrets/ changes on disk.
-SECRETS_VOLUME = secrets_data
 
 start:
 	@docker compose -f $(COMPOSE_FILE) up -d
@@ -99,7 +77,7 @@ down:
 # tearing anything down. The dev profile is off by default, hence --profile
 # here but not in all. Ctrl-C stops watching; the containers keep running
 # (use `make stop`/`make down`).
-dev: down secrets
+dev: down env
 	@echo "🔥 HMR dev server:    http://localhost:8080"
 	@echo "🔒 nginx (built SPA): https://localhost:8443"
 	@docker compose -f $(COMPOSE_FILE) --profile dev watch
@@ -122,7 +100,7 @@ prune:
 fclean: prune clean
 
 # Full reset: nuke everything (images, volumes, networks), then rebuild fresh
-# from a clean slate (secrets preflight re-runs against the restored secrets/).
+# from a clean slate (env preflight re-runs against .env).
 re: fclean all
 
 
@@ -141,8 +119,8 @@ lan: all
 
 # ── NGROK MODE ──────────────────────────────────────────────────────────────
 ngrok-auth:
-	@token=$$(cat $(SECRET_DIR)/ngrok.txt 2>/dev/null | tr -d '"'\'' \r'); \
-	if [ -z "$$token" ]; then echo "❌  ngrok authtoken missing — put it in $(SECRET_DIR)/ngrok.txt"; exit 1; fi; \
+	@token=$$(grep -m1 '^NGROK_AUTHTOKEN=' .env 2>/dev/null | cut -d= -f2-); \
+	if [ -z "$$token" ]; then echo "❌  ngrok authtoken missing — set NGROK_AUTHTOKEN in .env"; exit 1; fi; \
 	ngrok config add-authtoken "$$token" >/dev/null && echo "🔑  ngrok authtoken configured"
 
 # Tunnels nginx's TLS listener (127.0.0.1:8443) — the address is given as
@@ -157,9 +135,8 @@ tunnel: all ngrok-auth
 
 # Public URL of a tunnel that's already running, from ngrok's local API.
 tunnel-url:
-	@curl -s http://127.0.0.1:4040/api/tunnels \
-		| grep -o 'https://[^"]*\.ngrok[^"]*' | head -1 \
-		|| echo "No tunnel running — start one with: make tunnel"
+	@url=$$(curl -s http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1); \
+	if [ -n "$$url" ]; then echo "$$url"; else echo "No tunnel running — start one with: make tunnel"; fi
 
 # One command: build + start the stack (detached), then open the public tunnel.
 # Stack runs in the background; ngrok stays in the foreground (Ctrl-C stops the
@@ -175,6 +152,6 @@ stop-tunnel:
 	@docker compose -f $(COMPOSE_FILE) --profile dev stop
 	@echo "Stopped."
 
-.PHONY: all build start secrets \
+.PHONY: all build start env \
         dev stop down logs clean fclean prune re l \
         lan ngrok-auth tunnel tunnel-url up-tunnel dev-tunnel stop-tunnel
