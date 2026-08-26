@@ -863,7 +863,7 @@ export function Game() {
 
                   {SEAT_COLORS.map((ck) => {
                     const playerMeta = view.players.find((p) => p.color === ck)
-                    const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
+                    const occupied = Boolean(playerMeta && (view.status !== 'waiting' || (playerMeta.status === 'active' && playerMeta.username)))
                     const isActive = effectiveTurn === ck
 
                     // Color neon accent map
@@ -882,8 +882,8 @@ export function Game() {
                       }
                       const isYou = ck === view.myColor
                       const isReady = view.readyPlayers.includes(ck)
-                      const takenByOther = view.players.some(
-                        (p) => p.color === ck && p.status === 'active' && ck !== view.myColor
+                      const takenByOther = Boolean(
+                        occupied && !isYou && playerMeta?.username && playerMeta.username !== user?.username
                       )
                       const canSelect = !takenByOther && !isYou
 
