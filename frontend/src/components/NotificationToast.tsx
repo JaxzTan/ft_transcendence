@@ -195,7 +195,7 @@ function Toast({
     position: 'fixed',
     right: 28,
     bottom: 28 + index * 150,
-    zIndex: 140,
+    zIndex: 99999,
     width: 430,
     background: 'rgba(10, 4, 24, 0.97)',
     border: '2px solid var(--accent-pink, #ff007f)',
@@ -208,6 +208,7 @@ function Toast({
     transform: visible ? 'translateX(0)' : 'translateX(120%)',
     opacity: visible ? 1 : 0,
     transition: 'transform 0.35s cubic-bezier(.22,1,.36,1), opacity 0.35s ease',
+    pointerEvents: 'auto',
   }
 
   return (

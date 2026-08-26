@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { getApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
 import { RetroNavbar } from '../components/RetroNavbar'
-import { NotificationToasts } from '../components/NotificationToast'
 import { useNotifications } from '../hooks/useNotifications'
 import { navigate } from '../router'
 import { useApp } from '../store'
@@ -31,7 +30,7 @@ const STATUS_STYLE: Record<string, { label: string; color: string; border: strin
 export function Home() {
 	const { t } = useTranslation()
 	const { user, theme } = useApp()
-	const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } = useNotifications()
+	const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
 
 	// ------------------------------------------------------------------------
 	// 2. LIVE PLAYER CAREER STATS API
@@ -1252,9 +1251,6 @@ export function Home() {
 					</footer>
 				</div>
 			</div>
-
-			{/* Emergency Dispatch Toast Alerts */}
-			<NotificationToasts toasts={toasts} onDismiss={dismissToast} />
 		</>
 	)
 }
