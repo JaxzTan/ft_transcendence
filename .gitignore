@@ -2,7 +2,7 @@
 secrets/
 backend/generated/
 backend/dist/
-docs/
+
 
 # Logs
 logs
