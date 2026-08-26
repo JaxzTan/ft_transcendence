@@ -72,7 +72,7 @@ const STATUS_KEYS: Record<PresenceStatus, string> = {
 }
 
 /**
- * The 15 visible achievements.
+ * The 13 visible achievements.
  *
  * Requirements match the revamp thresholds (achievement-revamp.md v3):
  *   achFirstBlood     — 1 win (any PVP/PVE)

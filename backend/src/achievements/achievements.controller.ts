@@ -9,7 +9,7 @@ export class AchievementsController {
   /**
    * GET /api/achievements — registry-driven report.
    * Optional query ?username=... returns the target user's achievements.
-   * Returns { [achKey]: { unlocked, progress, target } } for all 15 keys.
+   * Returns { [achKey]: { unlocked, progress, target } } for all 13 keys.
    */
   @UseGuards(JwtAuthGuard)
   @Get()

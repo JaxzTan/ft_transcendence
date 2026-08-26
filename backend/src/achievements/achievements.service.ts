@@ -146,7 +146,7 @@ export class AchievementsService {
 
   /**
    * GET /api/achievements — registry-driven report.
-   * Returns { [achKey]: { unlocked, progress, target } } for all 15 keys.
+   * Returns { [achKey]: { unlocked, progress, target } } for all 13 keys.
    */
   async getUserAchievements(userId: string, targetUsername?: string) {
     let effectiveUserId = userId;
