@@ -130,7 +130,7 @@ merely functional.
 | 1 | ORM | `jow` | Prisma — schema, relations and committed migration history |
 | 2 | Multiple languages | `liyu-her` | Session-based language switching across English, Malay and French |
 | 3 | Game statistics and match history | `bleow` | Wins, losses, rating and leaderboard, reconciled against match records |
-| 4 | Remote authentication | `jow` | OAuth 2.0 |
+| 4 | Remote authentication | `jow` | OAuth 2.0 sign-in via Google, GitHub, and 42 Intra |
 | 5 | Two-factor authentication | `jow` | |
 | 6 | Gamification | `bleow` | Achievements, badges and leaderboards |
 | 7 | User activity analytics | `chtan` | Insights dashboard |
