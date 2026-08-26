@@ -1,269 +1,185 @@
-# ft_transcendence — Ludo Royale
+*This project has been created as part of the 42 curriculum by chtan, bleow, liyu-her, hang, jow.*
 
-A real-time multiplayer Ludo game built as a six-service Docker Compose stack.
-The backend is a NestJS REST API, the game engine is a standalone Node.js
-Socket.IO server with an inline heuristic bot AI, and the frontend is a React SPA
-served over TLS by nginx.
+# ft_transcendence
 
-> **Frontend status (as of 24 Jul 2026):** The SPA pages are visual stubs with
-> local mock state. There is no Socket.IO client yet — real-time game connection
-> is pending (see [roadmap.md](docs/roadmap.md) Phases 5 & 6).
+## Description
 
----
+A browser-based multiplayer Ludo platform. Players register or sign in through an external
+provider, join a lobby, and play server-authoritative matches against remote opponents, a
+local hotseat partner, or an AI. Results feed a persistent profile, a leaderboard, and an
+achievement system, and the whole interface is available in multiple languages.
 
-## Architecture
+### Key features
 
-```
-┌──────────┐     ┌──────────┐     ┌──────────────┐
-│  Browser │────▶│  nginx   │────▶│   backend    │
-│  :8443   │     │  :443    │     │  NestJS :3000 │
-└──────────┘     │ TLS+SPA  │     └──────┬───────┘
-       │         └──────────┘            │
-       │                                 ▼
-       └──▶ /auth/* ──▶ backend:3000  ┌────────┐
-          (bypasses nginx)            │  db    │
-                                      │ :5432  │
-              ┌──────────────┐        └────────┘
-              │ ludo-engine  │────────▶┌────────┐
-              │ Socket.IO    │        │ redis  │
-              │ + inline bot │        │ :6379  │
-              │ :3001        │        └────────┘
-              └──────────────┘
-```
+- **Server-authoritative Ludo** — dice rolls, turn order, captures, safe squares and home
+  entry are all resolved on the server; the client renders, it does not decide
+- **Match formats** — 2-seat duel, 4-seat classic, local hotseat, and an AI opponent
+- **Real-time play** — WebSocket transport with live board updates, presence, and reconnect
+- **User management** — profiles, avatars, friends, live online status
+- **Authentication** — local accounts, OAuth 2.0 sign-in, and two-factor authentication
+- **Progression** — match history, statistics, leaderboard, and achievements
+- **Multilingual UI**
+- **Notifications, file upload, game customization, and extended browser support**
 
-> **Note:** The bot AI runs **inline** inside the ludo-engine process
-> (`backend/app/ludo-engine/src/bot.ts`). There is no separate bot container.
-
-For the full topology, deployment paths, and design decisions, see
-[architecture.md](docs/architecture.md).
-
----
-
-## Directory Layout
-
-```
-.
-├── compose.yaml                  # Docker Compose — all 6 services
-├── Makefile                      # Build / run / dev / clean targets
-├── secrets/                      # File-based secrets (gitignored)
-│
-├── backend/                      # NestJS REST API (port 3000)
-│   ├── Dockerfile
-│   ├── docker-entrypoint.sh      # Prisma push + app start
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── nest-cli.json
-│   ├── prisma.config.ts
-│   │
-│   ├── src/                      # NestJS feature modules
-│   │   ├── app.module.ts         # Root module (7 feature modules)
-│   │   ├── main.ts               # Bootstrap, cookie-parser, CORS, /health
-│   │   ├── prisma.service.ts     # Prisma client singleton
-│   │   ├── secrets.ts            # File-based secret resolution
-│   │   │
-│   │   ├── auth/                 # JWT + OAuth (Google, GitHub, 42)
-│   │   │   ├── auth.controller.ts    # register, login, logout, me, OAuth
-│   │   │   ├── auth.service.ts       # Token signing, password hashing
-│   │   │   ├── auth.module.ts
-│   │   │   ├── jwt.strategy.ts       # Reads token from httpOnly cookie
-│   │   │   ├── jwt-auth.guard.ts     # Route guard
-│   │   │   ├── jwt-payload.ts        # Type definitions
-│   │   │   ├── google.strategy.ts    # Google OAuth
-│   │   │   ├── github.strategy.ts    # GitHub OAuth
-│   │   │   ├── fortytwo.strategy.ts  # 42 (intra) OAuth
-│   │   │   ├── oauth.guards.ts       # OAuth route guards
-│   │   │   └── dto/
-│   │   │       ├── login.dto.ts
-│   │   │       └── register.dto.ts
-│   │   │
-│   │   ├── user/                 # User profiles & game history
-│   │   │   ├── user.controller.ts    # profile, games, avatar CRUD
-│   │   │   ├── user.service.ts
-│   │   │   └── user.module.ts
-│   │   │
-│   │   ├── friends/              # Friend system
-│   │   │   ├── friends.controller.ts # request, accept, decline, remove, list, block
-│   │   │   ├── friends.service.ts
-│   │   │   └── friends.module.ts
-│   │   │
-│   │   ├── match/                # Matchmaking & game lifecycle
-│   │   │   ├── match.controller.ts   # PvP/PvE/hotseat, rematch, spectate, game end
-│   │   │   ├── match.service.ts      # Redis matchmaking, rating updates
-│   │   │   └── match.module.ts
-│   │   │
-│   │   ├── leaderboard/          # Rankings
-│   │   │   ├── leaderboard.controller.ts  # GET /api/leaderboard
-│   │   │   ├── leaderboard.service.ts     # Postgres fallback
-│   │   │   ├── leaderboard-redis.service.ts  # Redis sorted sets
-│   │   │   └── leaderboard.module.ts
-│   │   │
-│   │   ├── achievements/         # 15 Ludo achievements
-│   │   │   ├── achievements.controller.ts  # GET, POST /check
-│   │   │   ├── achievements.service.ts
-│   │   │   └── achievements.module.ts
-│   │   │
-│   │   └── player-stats/         # Per-player aggregates
-│   │       ├── stats.controller.ts
-│   │       ├── stats.service.ts
-│   │       └── stats.module.ts
-│   │
-│   ├── app/
-│   │   └── ludo-engine/          # Standalone game engine (port 3001)
-│   │       ├── Dockerfile
-│   │       ├── package.json
-│   │       ├── tsconfig.json
-│   │       └── src/
-│   │           ├── index.ts              # Entry point → SocketServer.start(3001)
-│   │           ├── engine.ts             # Game state machine (roll, move, win)
-│   │           ├── move-validator.ts     # Legal move computation
-│   │           ├── board-mapper.ts       # Board geometry (safe zones, tracks)
-│   │           ├── clash.ts              # Clash minigame (key-press race)
-│   │           ├── bot.ts                # Heuristic bot AI
-│   │           ├── player-handler.ts     # Disconnect/reconnect/exit/ready
-│   │           ├── lobby.ts              # Lobby management (color selection)
-│   │           ├── redis.ts              # RedisGameStore (persistence)
-│   │           ├── types.ts              # GameState, PlayerColor, events
-│   │           └── socket/
-│   │               ├── server.ts             # SocketServer, event routing
-│   │               ├── socket-handlers.ts    # join_game, roll_dice, move_piece, etc.
-│   │               ├── auth.ts               # JWT middleware, GameSocket type
-│   │               ├── event-publisher.ts    # Redis pub/sub → Socket.IO bridge
-│   │               ├── redis-broadcaster.ts  # Room-based state broadcasts
-│   │               └── result-submitter.ts   # POST /api/game/end to backend
-│   │
-│   ├── prisma/
-│   │   ├── schema.prisma         # DB schema (single source of truth)
-│   │   ├── seed.ts               # Development seed data
-│   │   ├── drop-all.sql          # Cleanup script
-│   │   └── migrations/
-│   │       └── migration_lock.toml
-│   │
-│   ├── postgres_16_db/           # Custom PostgreSQL image
-│   │   ├── Dockerfile
-│   │   └── postgres_16_db-init.sh
-│   │
-│   └── redis/                    # Custom Redis image
-│       ├── Dockerfile
-│       └── redis-init.sh
-│
-├── frontend/                     # React SPA (build-only job)
-│   ├── Dockerfile                # Production build
-│   ├── Dockerfile.dev            # Vite HMR (dev profile)
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tsconfig.json / tsconfig.app.json / tsconfig.node.json
-│   ├── index.html
-│   ├── .oxlintrc.json
-│   │
-│   ├── public/
-│   │   ├── forty_two.png         # 42 OAuth button
-│   │   ├── github.png            # GitHub OAuth button
-│   │   └── google.png            # Google OAuth button
-│   │
-│   └── src/
-│       ├── main.tsx              # React entry point
-│       ├── App.tsx               # Root component
-│       ├── index.css             # Global styles
-│       ├── theme.ts              # Theme constants
-│       ├── router.tsx            # Hand-rolled window.location router
-│       ├── store.tsx             # React context + HTTP client (fetchApi)
-│       ├── data.ts               # Mock game data
-│       │
-│       ├── pages/                # ⚠️ Visual stubs — no real-time connection
-│       │   ├── Home.tsx          # Landing page
-│       │   ├── Login.tsx         # Login form
-│       │   ├── Signup.tsx        # Registration form
-│       │   ├── Dashboard.tsx     # User dashboard (mock stats)
-│       │   ├── Game.tsx          # Game board (local state, Math.random dice)
-│       │   ├── Lobby.tsx         # Game lobby (seat selection, mock creation)
-│       │   ├── Friends.tsx       # Friend list
-│       │   ├── Leaderboard.tsx   # Rankings display
-│       │   ├── Results.tsx       # Post-game results
-│       │   └── Settings.tsx      # User settings
-│       │
-│       └── components/
-│           ├── AuthLayout.tsx    # Auth page wrapper
-│           ├── Board.tsx         # Ludo board SVG renderer
-│           ├── Die.tsx           # Dice face SVG renderer
-│           ├── OAuthButtons.tsx  # Google/GitHub/42 login buttons
-│           └── Shell.tsx         # App shell with navigation
-│
-├── nginx/                        # TLS termination & reverse proxy
-│   ├── Dockerfile
-│   ├── nginx.sh
-│   └── conf/
-│       └── nginx.conf            # TLS, SPA serving, /api/* proxy
-│
-└── docs/                         # Documentation
-    ├── architecture.md           # Full architecture reference
-    ├── roadmap.md                # Migration roadmap (status)
-    ├── roadmap2.md               # Refactoring roadmap (all completed)
-    ├── LUDO_ENGINE.md            # Engine logic flow
-    ├── BACKEND_LOGIC.md          # Match & game logic flow
-    ├── Ludo_Rules.md             # Classic Ludo rules
-    ├── TYPESCRIPT.md             # TypeScript patterns used
-    └── API-list.md               # Complete HTTP + WebSocket API reference
-```
-
----
-
-## Quick Start
+## Instructions
 
 ### Prerequisites
 
-- Docker & Docker Compose
-- `make`
-- OAuth client IDs/secrets for Google, GitHub, and 42 (optional — local auth works without them)
+- **Docker** and **Docker Compose** (the only runtime requirement).
+- **make** (to use the provided build commands).
+- A restored `secrets/` directory (see [Secrets](#secrets) below). The stack refuses to start if a required secret file is missing.
+- OAuth client IDs and secrets for Google, GitHub, and 42 — **optional**. Local sign-up and login work without them.
+- At least one free port: `8443` (HTTPS). Ports `3000`, `3001`, `5432`, `5555`, `6479` are used inside/for debugging.
 
-### Commands
 
-| Command | Effect |
-|---|---|
-| `make prepare-secrets` | Generate derivable secrets (never overwrites existing) |
-| `make check-secrets` | Fail fast if any OAuth secret is missing |
-| `make` or `make all` | `check-secrets` → `build` → `start` |
-| `make start` | Build images + start default profile (production) |
-| `make dev` | Start default + `dev` profile with Vite HMR on `:8080` |
-| `make stop` | Stop all services (profile-aware) |
-| `make down` | Stop + remove containers |
-| `make logs` | Tail logs from all services |
-| `make clean` | `down` + remove images |
-| `make fclean` | `clean` + remove volumes |
-| `make prune` | Full Docker system prune |
-| `make re` | `stop` → `down` → `all` (full rebuild) |
+### Secrets
 
-### Access
+The project stores configuration in plain-text files under `secrets/`, one value per file, named after the variable in lowercase (for example `JWT_SECRET` → `secrets/jwt_secret.txt`). The directory is mounted read-only into the containers. **Never commit this folder to git** (it is already ignored).
 
-| URL | Service | Profile |
+- `make secrets` generates and seeds everything that can be derived.
+- OAuth credentials must be obtained from the provider consoles (Google Cloud, GitHub, 42 intra) and placed manually.
+
+### Running
+
+```bash
+git clone https://github.com/JaxzTan/ft_transcendence.git
+cd ft_transcendence
+make
+```
+
+Then open the app in your browser.
+
+## Team Information
+
+| Login | Role(s) | Responsibilities |
 |---|---|---|
-| `https://localhost:8443` | nginx (production SPA + API) | default |
-| `http://localhost:8080` | Vite HMR dev server | dev |
-| `http://localhost:3000` | Backend API (direct) | default |
-| `ws://localhost:3001` | Ludo engine (Socket.IO) | default |
+| `chtan` | Product Owner, Developer | Product vision, backlog and feature priorities, validating completed work, stakeholder communication — plus feature development |
+| `bleow` | Tech Lead, Developer | Technical architecture, stack decisions, code quality and review of critical changes — plus feature development |
+| `liyu-her` | Project Manager, Developer | Planning sessions, progress and deadline tracking, risk and blocker management — plus feature development |
+| `hang` | Developer | Feature implementation, code review, testing, documentation |
+| `jow` | Project Manager, Developer | Planning sessions, progress and deadline tracking, risk and blocker management — plus feature development |
 
----
+## Project Management
 
-## Status
+- **Tools** — Discord and Lark for coordination and task tracking
+- **Communication** — Discord for day-to-day, plus in-person working sessions on campus
 
-| Component | Status | Notes |
-|---|---|---|
-| Backend API (NestJS) | ✅ Complete | 7 modules, all endpoints implemented |
-| Game Engine (Socket.IO) | ✅ Complete | State machine, clash, Redis persistence |
-| Bot AI | ✅ Complete | Heuristic (capture priority, safe zone bonus, threat avoidance) |
-| Docker Infrastructure | ✅ Complete | 6 services, TLS, secrets, health checks |
-| Frontend SPA | ⏳ Partial | Pages exist as visual stubs with local mock state. No Socket.IO client yet. |
-| Real-time Integration | ⏳ Pending | Frontend needs to connect to engine via Socket.IO (Phases 5 & 6) |
+## Technical Stack
 
----
+### Frontend
 
-## Documentation
-
-| Document | Description |
+| Technology | Purpose |
 |---|---|
-| [architecture.md](docs/architecture.md) | Full system topology, services, request paths, data layer |
-| [roadmap.md](docs/roadmap.md) | Migration roadmap with phase-by-phase status |
-| [API-list.md](docs/API-list.md) | Complete HTTP + WebSocket API reference |
-| [LUDO_ENGINE.md](docs/LUDO_ENGINE.md) | Engine logic flow, game lifecycle, event protocol |
-| [BACKEND_LOGIC.md](docs/BACKEND_LOGIC.md) | Matchmaking flow, Redis keys, Postgres schema |
-| [Ludo_Rules.md](docs/Ludo_Rules.md) | Classic Ludo rules reference |
-| [TYPESCRIPT.md](docs/TYPESCRIPT.md) | TypeScript patterns used in the project |
+| React | Component model, routing, client state |
+| Tailwind CSS | Styling |
+| Socket.IO client | Real-time transport |
+
+### Backend
+
+| Technology | Purpose |
+|---|---|
+| NestJS | HTTP API, dependency injection, module structure |
+| Socket.IO | WebSocket gateway and room fan-out |
+| Prisma | ORM, schema and migrations |
+| nginx | Reverse proxy and TLS termination |
+
+### Data
+
+| Technology | Purpose |
+|---|---|
+| PostgreSQL | Durable data — users, friendships, match history, achievements |
+| Redis | Live game state — board, dice, turn pointer, matchmaking queue, presence |
+
+### Justification for major technical choices
+
+**Why Redis alongside it.** A running match is high-frequency, short-lived state — board
+position, current dice value, whose turn it is, who is queued for matchmaking. Writing that
+to Postgres on every move would put transactional write load on the database for data that
+becomes worthless the moment the game ends. Redis holds it in memory; only the durable
+outcome — result, opponents, duration, rating delta — is written to Postgres. Redis also
+backs the Socket.IO adapter so broadcasts reach every client regardless of which backend
+instance holds the socket.
+
+**Why a server-authoritative game loop.** The client never decides a dice value or validates
+a move. Every action is a request the server accepts or rejects against its own copy of the
+board, which is what makes the multiplayer and remote-player modules defensible rather than
+merely functional.
+
+## Database Schema
+
+![Database schema](frontend/public/schema.png)
+
+## Modules
+
+### Major modules
+
+| # | Module | Owner | How it was implemented |
+|---|---|---|---|
+| 1 | Framework for frontend and backend | `chtan` | React on the client, NestJS on the server — framework routing, state and dependency injection rather than hand-rolled equivalents |
+| 2 | Real-time features | `bleow` | Socket.IO gateway with a Redis adapter for cross-instance broadcast; live board updates, presence, and reconnect |
+| 3 | Standard user management | `hang` | Profiles, avatar upload, friend requests, live online status |
+| 4 | AI opponent | `bleow` | Heuristic move selection — no external model, no black-box library |
+| 5 | Web-based game | `bleow` | Server-authoritative Ludo: dice RNG, turn order, captures, safe squares and exact-count home entry all resolved server-side |
+| 6 | Remote players | `chtan` | Two players on separate machines over the network, with reconnect inside a grace window |
+| 7 | Multiplayer, more than two players | `chtan` | Four concurrent seats with server-enforced turn order and seat identity derived from the session |
+
+### Minor modules
+
+| # | Module | Owner | How it was implemented |
+|---|---|---|---|
+| 1 | ORM | `jow` | Prisma — schema, relations and committed migration history |
+| 2 | Multiple languages | `liyu-her` | Session-based language switching across English, Malay and French |
+| 3 | Game statistics and match history | `bleow` | Wins, losses, rating and leaderboard, reconciled against match records |
+| 4 | Remote authentication | `jow` | OAuth 2.0 sign-in via Google, GitHub, and 42 Intra |
+| 5 | Two-factor authentication | `jow` | |
+| 6 | Gamification | `bleow` | Achievements, badges and leaderboards |
+| 7 | User activity analytics | `chtan` | Insights dashboard |
+| 8 | Notification system | `hang` | Notifications on create, update and delete actions |
+| 9 | File upload and management | `liyu-her` | Validation, secure storage, preview and delete |
+| 10 | Game customization options | `liyu-her` | Power-ups, maps and settings |
+| 11 | Custom minor module | `chtan` | Ngrok tunneling for exposing the local stack for remote testing |
+
+## Individual Contributions
+
+### `chtan`
+- **Built:**
+- **Challenges:**
+
+### `bleow`
+- **Built:**
+- **Challenges:**
+
+### `liyu-her`
+- **Built:**
+- **Challenges:**
+
+### `hang`
+- **Built:**
+- **Challenges:**
+
+### `jow`
+- **Built:**
+- **Challenges:**
+
+## Resources
+
+- NestJS documentation
+- React documentation
+- Prisma documentation
+- Socket.IO documentation
+
+### Use of AI
+
+The team used **Claude** and **ChatGPT** during development, in the following areas:
+
+- **Test planning** — deriving an evaluation test plan from the module list, then structuring
+  it into per-module test cases and tracking execution against it.
+- **Debugging** — narrowing down defects.
+- **UI and styling**.
+
+No AI tool was used to generate a complete module or feature end to end; all generated
+material was reviewed and adapted by the team member responsible for that area.
+
+## Known Limitations
+
+None outstanding at submission.

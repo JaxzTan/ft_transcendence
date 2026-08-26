@@ -18,12 +18,30 @@ function secret(name: string): string | undefined {
   return process.env[name];
 }
 
+function getDatabaseUrl(): string {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  const creds = secret("DB_CREDENTIALS");
+  const pwd = secret("DB_PASSWORD");
+  if (creds && pwd) {
+    const parts = creds.split(":");
+    const user = parts[0] || "db_bossman";
+    const db = parts[1] || "transcendence";
+    // db_credentials.txt's host field ("db") is correct only inside the
+    // container — docker-entrypoint.sh relies on it there. Outside Docker,
+    // SECRETS_DIR is unset, so ignore the file's value and use localhost
+    // (reachable via compose.yaml's published port) instead.
+    const host = process.env.SECRETS_DIR ? parts[2] || "db" : "localhost";
+    return `postgresql://${user}:${pwd}@${host}:5432/${db}`;
+  }
+  return secret("DATABASE_URL") || "";
+}
+
 export default defineConfig({
   schema: "./prisma/schema.prisma",
   datasource: {
     // env-first: docker-entrypoint.sh exports the container-correct URL.
     // The secrets file is the host-side (localhost) fallback. See prisma.service.ts.
-    url: process.env["DATABASE_URL"] || secret("DATABASE_URL"),
+    url: getDatabaseUrl(),
   },
   // Prisma 7 reads seed/migration settings from this file only — a `prisma`
   // block in package.json is ignored, which is why `prisma db seed` needs the

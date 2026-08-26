@@ -8,12 +8,24 @@ import { EventPublisher } from './event-publisher';
 import { RedisBroadcaster } from './redis-broadcaster';
 import { ResultSubmitter } from './result-submitter';
 import { SocketHandlers } from './socket-handlers';
-import { verifyToken, GameSocket, BOT_ID } from './auth';
+import { verifyToken, GameSocket } from './auth';
 import { LobbyManager } from '../lobby';
 import type { PlayerColor } from '../types';
 
-const LOBBY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
+
+// A WAITING PvP room with fewer than 2 seated players is idle; once it has
+// been idle this long the room is aborted (friend on the way? give them time).
+const IDLE_LOBBY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const POST_GAME_TIMEOUT_MS = 60 * 1000; // 60 seconds
+
+// Mirrors the frontend's STEP_ANIM_MS (Game.tsx) — how long the box-by-box
+// piece-move animation takes per step. Bot turns are paced against this so a
+// bot's move finishes animating on screen before the bot's next action (roll,
+// bonus move, capture chain) fires and cuts it off.
+const BOT_STEP_ANIM_MS = 220;
+// Flat "thinking" pause before a bot rolls, so bot turns don't feel instant.
+const BOT_THINK_MS = 500;
 
 /**
  * SocketServer orchestrates the ludo engine, socket connections,
@@ -34,7 +46,7 @@ export class SocketServer {
   private userIdMap: Map<string, Map<PlayerColor, string>> = new Map();
   private rematchVotes: Map<string, Set<string>> = new Map();
 	private gameEndedAt: Map<string, number> = new Map();
-	private gameCreatedAt: Map<string, number> = new Map();
+  private botTurnTimers = new Map<string, NodeJS.Timeout>();
 
 	constructor() {
 		this.store = new RedisGameStore();
@@ -51,6 +63,14 @@ export class SocketServer {
 		this.handlers = new SocketHandlers(
 			this.store, this.engine, this.clashManager,
 			this.userIdMap, getOrCreateBot,
+			(gameId) => this.triggerBotTurn(gameId, BOT_THINK_MS),
+			(gameId) => {
+				// A grace timeout dropped the room below the minimum human count
+				// (or a bot-mode disconnect window fully expired): tell any
+				// surviving client the room is gone so they leave cleanly.
+				this.io.to(gameId).emit('game_expired');
+				this.cleanupGame(gameId);
+			},
 		);
 
 		// Wire up engine events — single source of truth for game lifecycle
@@ -59,14 +79,20 @@ export class SocketServer {
 
 			if (event.type === 'game_ended') {
 				this.handleGameEnd(event.gameId);
+				this.resultSubmitter.submitGameResult(event.gameId);
 			} else if (event.type === 'game_started') {
-				this.triggerBotTurn(event.gameId);
+				this.triggerBotTurn(event.gameId, BOT_THINK_MS);
+				this.resultSubmitter.notifyGameStarted(event.gameId);
 			} else if (event.type === 'piece_moved') {
-				this.triggerBotTurn(event.gameId);
+				// Wait for the move's box-by-box animation to finish on screen
+				// (path.length steps) plus a short thinking pause before acting again.
+				const animMs = event.result.path.length * BOT_STEP_ANIM_MS;
+				this.triggerBotTurn(event.gameId, animMs + BOT_THINK_MS);
 			} else if (event.type === 'dice_rolled') {
 				// Only trigger bot turn if no legal moves (turn auto-advanced)
+				// Wait for the 750ms frontend dice-roll animation plus thinking pause
 				if (event.legalMoves.length === 0) {
-					this.triggerBotTurn(event.gameId);
+					this.triggerBotTurn(event.gameId, 750 + BOT_THINK_MS);
 				}
 			}
 		});
@@ -110,25 +136,40 @@ export class SocketServer {
 	}
 
 	/**
-	 * If the current turn belongs to a bot, execute its turn immediately.
-	 * Runs inside the queue so it's serialized with human moves and cannot overlap.
+	 * If the current turn belongs to a bot, execute its turn after `delayMs`.
+	 * The delay lets any in-flight move-animation on the frontend finish
+	 * before the bot's next action is broadcast. Runs inside the queue so
+	 * it's serialized with human moves and cannot overlap.
 	 */
-	private triggerBotTurn(gameId: string): void {
-		this.store.loadGameState(gameId).then(state => {
-			if (!state || state.status !== 'active') return;
-			if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
+	private triggerBotTurn(gameId: string, delayMs: number): void {
+		// Cancel an old timer for this game so we never stack overlapping bot
+		// turns (safer than relying on takeTurn's phase guard alone).
+		if (this.botTurnTimers.has(gameId)) {
+			clearTimeout(this.botTurnTimers.get(gameId)!);
+		}
+		const timer = setTimeout(() => {
+			this.botTurnTimers.delete(gameId);
+			this.store.loadGameState(gameId).then(state => {
+				if (!state || state.status !== 'active') return;
+				// Pause-air guard: while a bot-mode game is paused, the IN-FLIGHT
+				// bot (currentTurn === pauseTurnOwner) may finish its action chain,
+				// but as soon as the turn moves to a different color the pause
+				// boundary has been reached and no further triggers run.
+				if (state.paused && state.currentTurn !== state.pauseTurnOwner) return;
+				if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
 
-			const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
-			bot.takeTurn();
-			// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
-		});
+				const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
+				bot.takeTurn();
+				// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
+			});
+		}, delayMs);
+		this.botTurnTimers.set(gameId, timer);
 	}
 
   private cleanupGame(gameId: string): void {
     this.userIdMap.delete(gameId);
     this.rematchVotes.delete(gameId);
     this.gameEndedAt.delete(gameId);
-    this.gameCreatedAt.delete(gameId);
   }
 
 	// ─── Post-game lifecycle ───────────────────────────────────────────────────
@@ -161,7 +202,14 @@ export class SocketServer {
 		if (this.rematchVotes.get(gameId)!.size >= 2) {
 			// Create new game with only rematching players
 			const newGameId = `${gameId}-rematch`;
-			await this.store.createGame(newGameId, true);
+			const oldMatchData = await this.store.getMatchData(gameId);
+			const playerCount = parseInt(oldMatchData?.playerCount || '4', 10);
+			// Reuse the original seat order (skipped colors in hotseat etc.)
+			// rather than re-densifying the first playerCount colors.
+			const seatColors = oldMatchData?.seatColors
+				? (oldMatchData.seatColors.split(',') as PlayerColor[])
+				: SLOT_COLORS.slice(0, playerCount);
+			await this.store.createGame(newGameId, true, seatColors);
 
 			// Transfer players who voted
 			const voters = this.rematchVotes.get(gameId)!;
@@ -197,15 +245,75 @@ export class SocketServer {
 		}
 	}
 
+	/**
+	 * Definitive game termination via the frontend's "End Game" button.
+	 *  - PvP: prune just this player (pieces cleaned, seat exited) and emit
+	 *    player_aborted for the log line; the game continues if >= 2 humans
+	 *    remain, otherwise the whole instance is aborted + cleaned up.
+	 *  - PvE/Hotseat: the whole instance is aborted and its engine state
+	 *    deleted -> "Resume last game" becomes unreachable. No result POSTed
+	 *    (aborted games have no definitive result).
+	 */
+	private async handleEndGame(socket: GameSocket): Promise<void> {
+		const gameId = socket.data.gameId;
+		const color = socket.data.playerColor;
+		if (!gameId || !color) return;
+
+		const state = await this.store.loadGameState(gameId);
+		if (!state) return;
+		const player = state.players.find((p: any) => p.color === color);
+		const username = player?.username || color;
+		const match = await this.store.getMatchData(gameId);
+		const isBotMode = match?.gameType === 'PVE' || match?.gameType === 'HOTSEAT';
+
+		if (isBotMode) {
+			this.io.to(gameId).emit('game_expired');
+			this.cleanupGame(gameId);
+			await this.store.abortMatch(gameId);
+			await this.store.deleteGame(gameId);
+			return;
+		}
+
+		// PvP: prune only this player.
+		await this.engine.handlePlayerExit(gameId, color);
+		this.publisher.publish({ type: 'player_aborted', gameId, color, username });
+
+		// If fewer than 2 humans remain, the game cannot continue -> abort+clean.
+		const remaining = await this.store.loadGameState(gameId);
+		if (!remaining || remaining.players.filter((p: any) => p.status === 'active' && !p.isBot).length < 2) {
+			this.io.to(gameId).emit('game_expired');
+			this.cleanupGame(gameId);
+			await this.store.abortMatch(gameId);
+			await this.store.deleteGame(gameId);
+		}
+	}
+
 	private async checkExpiredLobbies(): Promise<void> {
 		const now = Date.now();
-		for (const [gameId, createdAt] of this.gameCreatedAt) {
-			if (now - createdAt > LOBBY_TIMEOUT_MS) {
-				const state = await this.store.loadGameState(gameId);
-				if (state && state.status === 'waiting') {
-					this.io.to(gameId).emit('game_expired');
-					this.cleanupGame(gameId);
-				}
+		const matchKeys = await this.store.scanMatchKeys();
+		for (const key of matchKeys) {
+			const match = await this.store.getMatchData(key.slice('match:'.length));
+			if (!match || match.status !== 'WAITING') continue;
+
+			const seatedCount = [match.player1_id, match.player2_id, match.player3_id, match.player4_id]
+				.filter(Boolean).length;
+
+			if (seatedCount >= 2) {
+				// Two or more seated players — the idle timer is inactive.
+				await this.store.clearIdleSince(match.id);
+				continue;
+			}
+
+			// Idle room (< 2 seated). Stamp the idle start on first encounter
+			// (hsetnx — a pre-existing stamp is kept), then abort once the
+			// room has been idle for the full timeout.
+			await this.store.setIdleSince(match.id, now);
+			const idleSinceMs = match.idleSince ? parseInt(match.idleSince, 10) : now;
+			if (now - idleSinceMs > IDLE_LOBBY_TIMEOUT_MS) {
+				this.io.to(match.id).emit('game_expired');
+				this.cleanupGame(match.id);
+				await this.store.abortMatch(match.id);
+				await this.store.deleteGame(match.id);
 			}
 		}
 	}
@@ -221,6 +329,8 @@ export class SocketServer {
 			if (!payload) return next(new Error('Invalid token'));
 
 			socket.data.userId = payload.userId;
+			socket.data.username = payload.username;
+			socket.data.displayName = payload.displayName;
 			socket.data.gameId = payload.gameId;
 			socket.data.role = payload.role as 'player' | 'spectator';
 			next();
@@ -229,8 +339,8 @@ export class SocketServer {
 		this.io.on('connection', (socket: GameSocket) => {
 			console.log(`Client connected: ${socket.id}${socket.data.userId ? ` (user: ${socket.data.userId})` : ''}`);
 
-			socket.on('join_game', (gameId: string, playerColor: PlayerColor, userId?: string) =>
-				this.handlers.handleJoinGame(socket, gameId, playerColor, userId));
+			socket.on('join_game', (gameId: string, playerColor: PlayerColor, userId?: string, displayName?: string) =>
+				this.handlers.handleJoinGame(socket, gameId, playerColor, userId, displayName));
 
 			socket.on('roll_dice', () =>
 				this.handlers.handleRollDice(socket));
@@ -255,6 +365,9 @@ export class SocketServer {
 
 			socket.on('resign', () =>
 				this.handlers.handleResign(socket));
+
+			socket.on('end_game', () =>
+				this.handleEndGame(socket));
 
 			socket.on('disconnect', () =>
 				this.handlers.handleDisconnect(socket));

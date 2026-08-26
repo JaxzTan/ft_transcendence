@@ -12,7 +12,7 @@ export class RedisBroadcaster {
 
   constructor(redisUrl?: string) {
     const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
     let password: string | undefined;
     try {
       password = readFileSync('/secrets/redis_password.txt', 'utf8').trim();
@@ -41,7 +41,7 @@ export class RedisBroadcaster {
       try {
         const gameId = channel.substring(5);
         const data = JSON.parse(message);
-        io.to(gameId).emit('state_update', data);
+        io.to(gameId).emit(data.type, data);
       } catch (e) {
         console.error(`Failed to parse message on ${channel}:`, e);
       }

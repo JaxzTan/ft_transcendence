@@ -2,6 +2,7 @@
 secrets/
 backend/generated/
 backend/dist/
+docs/
 
 # Logs
 logs
@@ -33,12 +34,11 @@ roadmap.md
 roadmap2.md
 
 # generated documentation
-LUDO_ENGINE.md
-BACKEND_LOGIC.md
 TYPESCRIPT.md
 API-list.md
 Ludo_Rules.md
-security-audit.md
+fixdice.md
+context.md
 
 # dependencies
 /node_modules
@@ -82,3 +82,8 @@ next-env.d.ts
 
 package-lock.json
 docs
+*.png
+!frontend/public/*.png
+*.md
+*.sh
+

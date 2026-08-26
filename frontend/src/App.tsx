@@ -1,14 +1,13 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { Shell } from './components/Shell'
-import { Dashboard } from './pages/Dashboard'
 import { Friends } from './pages/Friends'
 import { Game } from './pages/Game'
 import { Home } from './pages/Home'
 import { Leaderboard } from './pages/Leaderboard'
 import { Lobby } from './pages/Lobby'
+import { LudoLobby } from './pages/LudoLobby'
 import { Login } from './pages/Login'
-import { Results } from './pages/Results'
 import { Signup } from './pages/Signup'
 import { Profile } from './pages/Profile'
 import { TwoFactor } from './pages/TwoFactor'
@@ -18,24 +17,23 @@ import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
 
 /** Screens that render inside the app shell (rail + header). */
-const SHELL_ROUTES: Record<string, () => ReactNode> = {
-  '/home': () => <Home />,
-  '/dashboard': () => <Dashboard />,
-  '/leaderboard': () => <Leaderboard />,
-  '/friends': () => <Friends />,
-  '/profile': () => <Profile />,
-}
+const SHELL_ROUTES: Record<string, () => ReactNode> = {}
 
 /** Full-bleed screens (no shell). */
 const FULL_ROUTES: Record<string, () => ReactNode> = {
+  '/home': () => <Home />,
+  '/leaderboard': () => <Leaderboard />,
+  '/friends': () => <Friends />,
+  '/profile': () => <Profile />,
   '/login': () => <Login />,
   '/signup': () => <Signup />,
   '/2fa': () => <TwoFactor />,
   '/forgot-password': () => <ForgotPassword />,
   '/reset-password': () => <ResetPassword />,
-  '/lobby': () => <Lobby />,
+  '/gamelobby': () => <LudoLobby />,
+  '/gamelobby/table': () => <Lobby />,	
   '/game': () => <Game />,
-  '/results': () => <Results />,
+  // '/results': () => <Results />,
 }
 
 /** Public routes, can be reached wihout a session */

@@ -2,7 +2,7 @@ import { RedisGameStore } from './redis';
 import { EventPublisher } from './socket/event-publisher';
 import type { PlayerColor } from './types';
 
-const SLOT_COLORS: PlayerColor[] = ['red', 'green', 'yellow', 'blue'];
+const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
 export class LobbyManager {
   constructor(private store: RedisGameStore, private publisher: EventPublisher) {}
@@ -34,9 +34,18 @@ export class LobbyManager {
       throw new Error('You are not a player in this game');
     }
 
+    // Colors beyond this match's seat count have no PlayerMeta in the engine
+    // state (see redis.ts createGame's activeColors) — reject before touching
+    // the match hash so it can't drift out of sync with the engine.
+    const maxSeats = parseInt(data.playerCount || '4', 10);
+    if (SLOT_COLORS.indexOf(color) >= maxSeats) {
+      throw new Error('Color not available for this match size');
+    }
+
     // Check if color is already taken by another player
     const currentColorKey = `player${slotIndex + 1}_color`;
-    if (data[currentColorKey] === color) return; // already has this color
+    const currentColor = (data[currentColorKey] as PlayerColor) || SLOT_COLORS[slotIndex];
+    if (currentColor === color) return; // already has this color
 
     const takenBy = [data.player1_id, data.player2_id, data.player3_id, data.player4_id]
       .find((id, idx) => id && id !== userId && (data[`player${idx + 1}_color`] as string) === color);
@@ -54,6 +63,23 @@ export class LobbyManager {
     } else {
       // Color is free, just assign
       await this.store.updateMatchData(gameId, { [currentColorKey]: color });
+    }
+
+    // Mirror the swap into the live engine GameState so display and gameplay
+    // (turn/move ownership is color-keyed) stay in sync. This is pre-game only
+    // (status === 'WAITING' guard above), so board pieces are untouched — all
+    // still sitting in base — only seat *identity* moves between the two slots.
+    const state = await this.store.loadGameState(gameId);
+    if (state) {
+      const a = state.players.find(p => p.color === currentColor);
+      const b = state.players.find(p => p.color === color);
+      if (a && b) {
+        const { color: _colorA, ...aRest } = a;
+        const { color: _colorB, ...bRest } = b;
+        Object.assign(a, bRest);
+        Object.assign(b, aRest);
+        await this.store.saveGameState(gameId, state);
+      }
     }
   }
 

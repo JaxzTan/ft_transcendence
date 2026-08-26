@@ -9,9 +9,28 @@
     "lint": "oxlint",
     "preview": "vite preview"
   },
+  "supportedArchitectures": {
+    "os": [
+      "darwin",
+      "linux"
+    ],
+    "cpu": [
+      "arm64",
+      "x64"
+    ],
+    "libc": [
+      "musl",
+      "glibc"
+    ]
+  },
   "dependencies": {
+    "@dicebear/collection": "^9.4.2",
+    "@dicebear/core": "^9.4.3",
+    "i18next": "^25.10.10",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "react-i18next": "^16.6.6",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
@@ -21,5 +40,13 @@
     "oxlint": "^1.71.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-darwin-arm64": "1.2.4",
+    "@rolldown/binding-darwin-x64": "1.2.4",
+    "@rolldown/binding-linux-arm64-musl": "1.2.4",
+    "@rolldown/binding-linux-x64-musl": "1.2.4",
+    "@rolldown/binding-linux-arm64-gnu": "1.2.4",
+    "@rolldown/binding-linux-x64-gnu": "1.2.4"
   }
 }

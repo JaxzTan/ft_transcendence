@@ -20,7 +20,7 @@ if [ -f "/secrets/redis_password.txt" ]; then
   # Create Redis config with ACL
   cat > /tmp/redis.conf <<EOF
 bind 0.0.0.0
-port 6379
+port 6479
 timeout 0
 save 900 1
 save 300 10
@@ -35,7 +35,7 @@ EOF
   echo "🚀 Starting Redis with authentication..."
   
   # Use requirepass instead of ACL (simpler, works in Redis 7)
-  exec redis-server --requirepass "${REDIS_PASS}" "$@"
+  exec redis-server /tmp/redis.conf --requirepass "${REDIS_PASS}" "$@"
 else
   echo "⚠️  No Redis password found, starting without auth (NOT recommended for production)"
   exec redis-server "$@"

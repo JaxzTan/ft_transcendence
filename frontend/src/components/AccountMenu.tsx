@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { navigate } from '../router'
 import { LANGUAGES, useApp, type Lang } from '../store'
 import { avatarBlue, sectionLabel } from '../theme'
+import { UserAvatar } from './UserAvatar'
 
 /**
  * CJK glyphs fill the em box while Latin sits at roughly half of it, so the same
@@ -13,11 +15,11 @@ const labelSize = (label: string) => (CJK.test(label) ? '13.5px' : '12.5px')
 
 /** Header avatar that opens a panel for language + two-factor auth. */
 export function AccountMenu() {
+  const { t } = useTranslation()
   const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp()
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
-  const name = user?.username ?? 'You'
-  const initials = name.slice(0, 2).toUpperCase()
+  const name = user?.displayName ?? user?.username ?? 'You'
 
   // Close on outside click / Escape.
   useEffect(() => {
@@ -63,12 +65,22 @@ export function AccountMenu() {
           }
         }}
         style={{
-          ...avatarBlue(40, 14),
           cursor: 'pointer',
+          borderRadius: '50%',
           boxShadow: open ? '0 0 0 2px #f0d18a' : '0 0 0 2px #f0d18a55',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 40,
+          height: 40,
+          flex: 'none',
         }}
       >
-        {initials}
+        <UserAvatar
+          username={user?.username || ''}
+          size={40}
+          fallbackStyle={avatarBlue(40, 14)}
+        />
       </div>
 
       {open && (
@@ -91,10 +103,10 @@ export function AccountMenu() {
             <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {name}
             </div>
-            <div style={{ color: '#a99a83', fontSize: 12 }}>Signed in</div>
+            <div style={{ color: '#a99a83', fontSize: 12 }}>{t('accountMenu.signedIn')}</div>
           </div>
 
-          <div style={{ ...sectionLabel, padding: '12px 10px 4px' }}>Language</div>
+          <div style={{ ...sectionLabel, padding: '12px 10px 4px' }}>{t('accountMenu.language')}</div>
           {LANGUAGES.map((l) => {
             const active = l.code === lang
             return (
@@ -124,7 +136,7 @@ export function AccountMenu() {
           })}
 
           <div style={{ ...sectionLabel, padding: '12px 10px 4px', borderTop: '1px solid #2a2015', marginTop: 6 }}>
-            Security
+            {t('accountMenu.security')}
           </div>
           <div
             role="menuitemcheckbox"
@@ -140,9 +152,9 @@ export function AccountMenu() {
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#f0e2c4' }}>Two-factor auth</div>
+              <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#f0e2c4' }}>{t('accountMenu.twoFactorAuth')}</div>
               <div style={{ color: '#a99a83', fontSize: '11.5px' }}>
-                {twoFactor ? 'Code required at sign in' : 'Password only'}
+                {twoFactor ? t('accountMenu.codeRequired') : t('accountMenu.passwordOnly')}
               </div>
             </div>
             <div
@@ -177,7 +189,7 @@ export function AccountMenu() {
               onClick={onSignOut}
               style={{ padding: '9px 10px', borderRadius: 9, cursor: 'pointer', fontSize: '13.5px', fontWeight: 700, color: '#e8918a' }}
             >
-              Sign out
+              {t('accountMenu.signOut')}
             </div>
           </div>
         </div>

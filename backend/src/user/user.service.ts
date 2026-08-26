@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
+import { ratingDeltaFor } from '../common/scoring';
 
 @Injectable()
 export class UserService {
@@ -15,6 +16,8 @@ export class UserService {
       select: {
         id: true,
         username: true,
+        displayName: true,
+        createdAt: true,
         avatarStyle: true,
         rating: true,
         highestRating: true,
@@ -24,9 +27,6 @@ export class UserService {
         bestWinStreak: true,
         botWins: true,
         humanWins: true,
-        daysActive: true,
-        loginStreak: true,
-        createdAt: true,
       },
     });
 
@@ -88,7 +88,15 @@ export class UserService {
           game: {
             include: {
               participants: {
-                include: { user: { select: { username: true, avatarStyle: true } } },
+                include: {
+                  user: {
+                    select: {
+                      username: true,
+                      displayName: true,
+                      avatarStyle: true,
+                    },
+                  },
+                },
               },
             },
           },
@@ -101,14 +109,21 @@ export class UserService {
       games: participations.map((p) => ({
         gameId: p.game_id,
         status: p.game.status,
+        gameType: p.game.gameType,
         color: p.color,
         rank: p.rank,
         piecesCaptured: p.piecesCaptured,
         piecesInGoal: p.piecesInGoal,
+        ratingDelta: ratingDeltaFor({
+          piecesInGoal: p.piecesInGoal,
+          rank: p.rank,
+          gameType: p.game.gameType,
+        }),
         startedAt: p.game.startedAt,
         endedAt: p.game.endedAt,
         participants: p.game.participants.map((gp) => ({
           username: gp.user.username,
+          displayName: gp.user.displayName,
           avatarStyle: gp.user.avatarStyle,
           color: gp.color,
           rank: gp.rank,

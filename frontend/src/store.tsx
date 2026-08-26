@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import i18n from './i18n'
 import { BOT_POOL } from './theme'
 import { apiFetch } from './api'
+import type { PlayerColor } from './game/types'
 
-export type AuthUser = { id: string; username: string }
+export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean }
 
 /** Pulls a readable message out of nestjs error body  */
 function apiError(body: unknown, fallback: string): string {
@@ -12,31 +14,42 @@ function apiError(body: unknown, fallback: string): string {
   return typeof message === 'string' ? message : fallback
 }
 
-export type Difficulty = 'easy' | 'medium' | 'hard'
 export type Seat =
   | { type: 'you' }
-  | { type: 'bot'; name: string; diff: Difficulty }
+  | { type: 'bot'; name: string }
+  | { type: 'player'; name: string }
   | { type: 'empty' }
 
-export type Mode = 2 | 4
+export type PlayerCount = 1 | 2 | 3 | 4
 
-export type Lang = 'en' | 'fr' | 'ms' | 'zh'
+export type Lang = 'en' | 'fr' | 'ms'
+export type ThemeType = 'synthwave' | 'win95' | 'terminal'
 
 /** Languages offered in the account menu. */
 export const LANGUAGES: Array<{ code: Lang; label: string; flag: string }> = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'ms', label: 'Bahasa Melayu', flag: '🇲🇾' },
-  { code: 'zh', label: '中文', flag: '🇨🇳' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
 ]
 
 const LANG_KEY = 'lr.lang'
+const THEME_KEY = 'retro_theme'
+const ACTIVE_MATCH_KEY = 'lr.activeMatch'
+const SEATS_KEY = 'lr.seats'
 
 function storedLang(): Lang {
   const raw = localStorage.getItem(LANG_KEY)
   return LANGUAGES.some((l) => l.code === raw) ? (raw as Lang) : 'en'
 }
 
+function storedTheme(): ThemeType {
+  const raw = localStorage.getItem(THEME_KEY)
+  return raw === 'win95' || raw === 'terminal' || raw === 'synthwave' ? raw : 'synthwave'
+}
+
 const HEARTBEAT_INTERVAL_MS = 20_000
+/** settingOn/toggleSetting key for "show the rules popup when a match starts" — read by Lobby's Rules button and Game.tsx. */
+export const RULES_ON_START_KEY = 'rulesShowOnStart'
 /** Defaults for the settings toggles, keyed "<group>-<row>". */
 export const SETTING_DEFAULTS: Record<string, boolean> = {
   '0-0': true, // Sound effects
@@ -48,8 +61,37 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
   '2-1': false, // Weekly recap
 }
 
+/** Credentials returned by POST /api/match/create — stored in context so Game page can connect to the engine. */
+export type ActiveMatch = {
+  gameId: string
+  token: string
+  color: PlayerColor
+  inviteCode?: string
+  mode: 'pvp' | 'pve' | 'hotseat'
+  playerCount: number
+} | null
+
+function storedActiveMatch(): ActiveMatch {
+  try {
+    const raw = sessionStorage.getItem(ACTIVE_MATCH_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+/** Snapshot of a finished match's outcome — set from Game.tsx's `game_ended` handler so Results.tsx can render real data instead of mock podium rows. */
+export type LastResult = {
+  winner: PlayerColor
+  resultDetail: string
+  mode: 'pvp' | 'pve' | 'hotseat'
+  playerCount: number
+  players: Array<{ color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number }>
+  /** True when the match was abandoned/expired — a different Results card (no podium/rematch). */
+  abandoned?: boolean
+} | null
+
 type AppState = {
   user: AuthUser | null
+  setUser: (u: AuthUser | null) => void
   authReady: boolean
   /** Factor one. `identifier` is a username or email. Success = { pendingToken } (code emailed); failure = { error }. */
   login: (identifier: string, password: string) => Promise<{ error?: string; pendingToken?: string }>
@@ -62,32 +104,56 @@ type AppState = {
   /** Redeems a reset token and sets a new password. Success = null; failure = message. */
   resetPassword: (token: string, password: string) => Promise<string | null>
   logout: () => Promise<void>
-  mode: Mode
+  playerCount: PlayerCount
   seats: Seat[]
   dice: number
   rolling: boolean
   turn: number
   settings: Record<string, boolean>
-  setMode: (m: Mode) => void
+  setPlayerCount: (c: PlayerCount) => void
   addBot: (i: number) => void
   removeBot: (i: number) => void
-  setDiff: (i: number, diff: Difficulty) => void
+  addPlayer: (i: number) => void
+  removePlayer: (i: number) => void
+  renamePlayer: (i: number, name: string) => void
+  /** Clears every seat but the host — call when entering the sub-lobby so a fresh room never inherits bots/players from a previous session. */
+  resetSeats: () => void
   /** Fills remaining empty seats with Easy bots. Returns false when no bot is seated yet. */
   startGame: () => boolean
   roll: () => void
   endTurn: () => void
   settingOn: (key: string) => boolean
   toggleSetting: (key: string) => void
+  theme: ThemeType
+  setTheme: (t: ThemeType) => void
   lang: Lang
   setLang: (l: Lang) => void
   twoFactor: boolean
   toggleTwoFactor: () => void
   setPlaying: (playing: boolean) => void
+  activeMatch: ActiveMatch
+  setActiveMatch: (match: ActiveMatch) => void
+  lastResult: LastResult
+  setLastResult: (result: LastResult) => void
 }
 
 const Ctx = createContext<AppState | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<ThemeType>(storedTheme)
+
+  const setTheme = useCallback((newTheme: ThemeType) => {
+    setThemeState(newTheme)
+    localStorage.setItem(THEME_KEY, newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+    document.body.setAttribute('data-theme', newTheme)
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    document.body.setAttribute('data-theme', theme)
+  }, [theme])
+
   const [user, setUser] = useState<AuthUser | null>(null)
   const [authReady, setAuthReady] = useState(false)
 
@@ -221,13 +287,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id)
   }, [user, sendHeartbeat])
 
-  const [mode, setMode] = useState<Mode>(4)
-  const [seats, setSeats] = useState<Seat[]>([
-    { type: 'you' },
-    { type: 'bot', name: 'Rook', diff: 'hard' },
-    { type: 'bot', name: 'Bishop', diff: 'medium' },
-    { type: 'empty' },
-  ])
+  const [playerCount, setPlayerCount] = useState<PlayerCount>(4)
+  const [seats, setSeats] = useState<Seat[]>(() => {
+    try {
+      const raw = sessionStorage.getItem(SEATS_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as Seat[]
+        if (Array.isArray(parsed) && parsed.length === 4 && parsed.some((x) => x.type === 'you')) return parsed
+      }
+    } catch { /* ignore corrupt value */ }
+    return [{ type: 'you' }, { type: 'empty' }, { type: 'empty' }, { type: 'empty' }]
+  })
   const [dice, setDice] = useState(4)
   const [rolling, setRolling] = useState(false)
   const [turn, setTurn] = useState(0)
@@ -241,6 +311,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLangState(l)
     localStorage.setItem(LANG_KEY, l)
     document.documentElement.lang = l
+    i18n.changeLanguage(l)
   }, [])
 
   // Load the account's real 2FA preference once signed in — GET /api/auth/2fa.
@@ -274,6 +345,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang
+    i18n.changeLanguage(lang)
   }, [lang])
 
   const addBot = useCallback((i: number) => {
@@ -281,7 +353,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const used = prev.filter((s) => s.type === 'bot').map((s) => s.name)
       const name = BOT_POOL.find((n) => !used.includes(n)) || 'Bot'
       const next = prev.slice()
-      next[i] = { type: 'bot', name, diff: 'medium' }
+      next[i] = { type: 'bot', name }
       return next
     })
   }, [])
@@ -294,30 +366,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const setDiff = useCallback((i: number, diff: Difficulty) => {
+  const addPlayer = useCallback((i: number) => {
     setSeats((prev) => {
-      const seat = prev[i]
-      if (seat.type !== 'bot') return prev
+      const existing = prev.filter((s) => s.type === 'player').length
+      const name = `Player ${existing + 2}`
       const next = prev.slice()
-      next[i] = { ...seat, diff }
+      next[i] = { type: 'player', name }
       return next
     })
   }, [])
 
+  const removePlayer = useCallback((i: number) => {
+    setSeats((prev) => {
+      const next = prev.slice()
+      next[i] = { type: 'empty' }
+      return next
+    })
+  }, [])
+
+  const renamePlayer = useCallback((i: number, name: string) => {
+    setSeats((prev) => {
+      if (prev[i].type !== 'player') return prev
+      const next = prev.slice()
+      next[i] = { type: 'player', name }
+      return next
+    })
+  }, [])
+
+  const resetSeats = useCallback(() => {
+    setSeats([{ type: 'you' }, { type: 'empty' }, { type: 'empty' }, { type: 'empty' }])
+  }, [])
+
   const startGame = useCallback((): boolean => {
-    const bots = seats.slice(0, mode).filter((s) => s.type === 'bot').length
+    const bots = seats.slice(0, playerCount).filter((s) => s.type === 'bot').length
     if (bots < 1) return false
     const used = seats.filter((s) => s.type === 'bot').map((s) => s.name)
     const pool = BOT_POOL.filter((n) => !used.includes(n))
     setSeats((prev) =>
       prev.map((s, i): Seat => {
-        if (i < mode && s.type === 'empty') return { type: 'bot', name: pool.shift() || 'Bot', diff: 'easy' }
+        if (i < playerCount && s.type === 'empty') return { type: 'bot', name: pool.shift() || 'Bot' }
         return s
       }),
     )
     setTurn(0)
     return true
-  }, [seats, mode])
+  }, [seats, playerCount])
 
   const roll = useCallback(() => {
     if (rollingRef.current) return
@@ -331,8 +424,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const endTurn = useCallback(() => {
-    setTurn((t) => (t + 1) % mode)
-  }, [mode])
+    setTurn((t) => (t + 1) % playerCount)
+  }, [playerCount])
 
   const settingOn = useCallback(
     (key: string) => (key in settings ? settings[key] : SETTING_DEFAULTS[key] ?? false),
@@ -344,14 +437,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const [activeMatch, setActiveMatch] = useState<ActiveMatch>(storedActiveMatch)
+  const [lastResult, setLastResult] = useState<LastResult>(null)
+
+  // Persist activeMatch + seats in sessionStorage so a page refresh can
+  // reconnect (hotseat needs the local seat names to rejoin every seat).
+  useEffect(() => {
+    if (activeMatch) sessionStorage.setItem(ACTIVE_MATCH_KEY, JSON.stringify(activeMatch))
+    else sessionStorage.removeItem(ACTIVE_MATCH_KEY)
+  }, [activeMatch])
+
+  useEffect(() => {
+    sessionStorage.setItem(SEATS_KEY, JSON.stringify(seats))
+  }, [seats])
+
   const value = useMemo(
     () => ({
-      user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
-      mode, seats, dice, rolling, turn, settings,
-      setMode, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting,
-      lang, setLang, twoFactor, toggleTwoFactor, setPlaying,
+      user, setUser, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout,
+      theme, setTheme,
+      playerCount, seats, dice, rolling, turn, settings,
+      setPlayerCount, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting,
+      lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, setActiveMatch, lastResult, setLastResult,
     }),
-    [user, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, mode, seats, dice, rolling, turn, settings, addBot, removeBot, setDiff, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying],
+    [user, setUser, authReady, login, register, verify2fa, forgotPassword, resetPassword, logout, theme, setTheme, playerCount, seats, dice, rolling, turn, settings, addBot, removeBot, addPlayer, removePlayer, renamePlayer, resetSeats, startGame, roll, endTurn, settingOn, toggleSetting, lang, setLang, twoFactor, toggleTwoFactor, setPlaying, activeMatch, lastResult],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

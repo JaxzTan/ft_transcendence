@@ -2,10 +2,10 @@ import type { CSSProperties } from 'react'
 
 /** The four Ludo player colors — base / dark / yard (dim home-quadrant fill). */
 export const COL = {
-  red: { base: '#e4574d', dark: '#a8362e', yard: '#37201d' },
-  green: { base: '#4bbf7b', dark: '#2c8a53', yard: '#173327' },
-  yellow: { base: '#f0c24e', dark: '#bd8f2c', yard: '#352f18' },
-  blue: { base: '#4a92e0', dark: '#2c66ad', yard: '#1a2a3a' },
+  red: { base: '#ff007f', dark: '#a00050', yard: 'rgba(255, 0, 127, 0.15)' },
+  green: { base: '#00ff88', dark: '#009950', yard: 'rgba(0, 255, 136, 0.15)' },
+  yellow: { base: '#ffe600', dark: '#998a00', yard: 'rgba(255, 230, 0, 0.15)' },
+  blue: { base: '#00f0ff', dark: '#009099', yard: 'rgba(0, 240, 255, 0.15)' },
 } as const
 
 export type ColorKey = keyof typeof COL

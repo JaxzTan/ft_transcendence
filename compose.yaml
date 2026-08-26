@@ -8,17 +8,18 @@ services:
     build:
       context: ./backend/app/postgres_16_db
       dockerfile: Dockerfile
+    container_name: db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-db_bossman}
       POSTGRES_DB: ${POSTGRES_DB:-transcendence}
     volumes:
-      - ./secrets:/secrets:ro
+      - secrets_data:/secrets:ro
       - db_data:/var/lib/postgresql/data
     ports:
       # Loopback-only: in LAN mode a bare "5432:5432" would expose Postgres
       # to every device on the WiFi. Still reachable from the host for psql.
-      - "127.0.0.1:5432:5432"
+      - 127.0.0.1:5432:5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_bossman} -d postgres"]
       interval: 5s
@@ -31,16 +32,22 @@ services:
     build:
       context: ./backend/app/redis
       dockerfile: Dockerfile
+    container_name: redis
     restart: unless-stopped
     networks:
       - transcendence_network
     volumes:
-      - ./secrets:/secrets:ro
+      - secrets_data:/secrets:ro
       - redis_data:/data
     expose:
-      - "6379"
+      - "6479"
+    ports:
+      # Loopback-only: lets `npm run db:seed` and other scripts reach Redis
+      # from the host. Not for LAN/production exposure.
+      - 127.0.0.1:6479:6479
+
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -p 6479 -a \"$(cat /secrets/redis_password.txt)\" --no-auth-warning ping | grep -q PONG"]
       interval: 5s
       timeout: 5s
       retries: 3
@@ -49,21 +56,22 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: backend
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       SECRETS_DIR: /secrets
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 6479
       # Set by `make tunnel` only — switches AuthModule/AuthController onto the
       # ngrok OAuth apps and frontend origin instead of the localhost ones.
       TUNNEL_MODE: ${TUNNEL_MODE:-false}
     volumes:
-      - ./secrets:/secrets:ro
+      - secrets_data:/secrets:ro
     ports:
       # Loopback-only: clients always reach the backend through nginx's
       # /api/ proxy, never directly. Published purely for host-side debugging.
-      - "127.0.0.1:3000:3000"
+      - 127.0.0.1:3000:3000
     depends_on:
       db:
         condition: service_healthy
@@ -83,24 +91,47 @@ services:
             - dist
             - generated
 
+  # Web UI over the `db` service's data. Reuses the backend image (same
+  # entrypoint assembles DATABASE_URL from secrets/db_credentials.txt,
+  # host "db") so no separate build/config is needed.
+  studio:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: studio
+    restart: unless-stopped
+    command: ["npx", "prisma", "studio", "--port", "5555", "--browser", "none"]
+    environment:
+      SECRETS_DIR: /secrets
+    volumes:
+      - ./secrets:/secrets:ro
+    ports:
+      # Loopback-only: this is a raw DB browser/editor, never expose it beyond the host.
+      - 127.0.0.1:5555:5555
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - transcendence_network
+
   ludo-engine:
     build:
       context: ./backend/app/ludo-engine
       dockerfile: Dockerfile
+    container_name: ludo-engine
     restart: unless-stopped
     networks:
       - transcendence_network
     volumes:
-      - ./secrets:/secrets:ro
+      - secrets_data:/secrets:ro
     depends_on:
       redis:
         condition: service_healthy
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     environment:
       SECRETS_DIR: /secrets
       REDIS_HOST: redis
-      REDIS_PORT: 6379
       ENGINE_PORT: 3001
     healthcheck:
       test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })\""]
@@ -123,6 +154,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: frontend
     restart: unless-stopped
     volumes:
       - spa_dist:/export
@@ -146,6 +178,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
+    container_name: frontend-dev
     profiles:
       - dev
     restart: unless-stopped
@@ -159,8 +192,11 @@ services:
     environment:
       VITE_IN_CONTAINER: "true"
       VITE_API_TARGET: http://backend:3000
+      VITE_ENGINE_TARGET: http://ludo-engine:3001
     depends_on:
       backend:
+        condition: service_started
+      ludo-engine:
         condition: service_started
     networks:
       - transcendence_network
@@ -169,12 +205,14 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    container_name: nginx
     restart: unless-stopped
     ports:
       - "8443:443"
     volumes:
       - spa_dist:/usr/share/nginx/html:ro
       - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf/app.inc:/etc/nginx/app.inc:ro
     depends_on:
       # Waiting on the healthcheck (first publish) is what keeps nginx from
       # booting onto an empty document root the first time the stack comes up.
@@ -191,3 +229,12 @@ volumes:
   db_data:
   redis_data:
   spa_dist:
+  # Not a bind mount — Docker Desktop's macOS virtiofs share deadlocks
+  # (EDEADLK) on reads through a live bind mount of ./secrets, sporadically
+  # and non-transiently (observed stuck >30s on retry). `docker cp` bypasses
+  # that path entirely, so `make seed-secrets` seeds this real Docker volume
+  # from the host once per run instead. `external: true` because Make (not
+  # compose) owns its lifecycle — compose must never try to create it itself
+  # with an empty/no-op volume.
+  secrets_data:
+    external: true

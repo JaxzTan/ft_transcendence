@@ -1,10 +1,10 @@
 import { LudoEngine } from './engine';
 import { RedisGameStore } from './redis';
 import { BoardMapper } from './board-mapper';
+import { isBotUserId } from './socket/auth';
 import type { PlayerColor, PieceId, GameState, LegalMove } from './types';
 
 const botMap = new Map<string, Map<PlayerColor, LudoBot>>();
-const BOT_ID = 'bot';
 
 export function getOrCreateBot(
   gameId: string,
@@ -25,7 +25,7 @@ export function isBotPlayer(
   gameId: string,
   color: PlayerColor,
 ): boolean {
-  return userIdMap.get(gameId)?.get(color) === BOT_ID;
+  return isBotUserId(userIdMap.get(gameId)?.get(color));
 }
 
 /**
@@ -138,7 +138,10 @@ export class LudoBot {
       // Select best move using heuristics
       const bestMove = this.selectBestMove(legalMoves, afterRoll, diceValue);
       if (!bestMove) return false;
-      
+
+      // Delay piece movement so frontend dice roll animation finishes first and displays the number
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
       // Execute move — engine emits piece_moved and game_ended events via handleEngineEvent
       const { state: finalState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);
 

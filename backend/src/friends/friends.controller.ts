@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Delete, UseGuards, Request, Param, Body } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, UseGuards, Request, Param, Body, Query } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -32,8 +32,8 @@ export class FriendsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('api/friends')
-  getFriends(@Request() req: { user: { id: string } }) {
-    return this.friends.getFriends(req.user.id);
+  getFriends(@Request() req: { user: { id: string } }, @Query('username') username?: string) {
+    return this.friends.getFriends(req.user.id, username);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -43,8 +43,39 @@ export class FriendsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('api/friends/blocked')
+  getBlockedUsers(@Request() req: { user: { id: string } }) {
+    return this.friends.getBlockedUsers(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('api/friends/block/:userId')
   blockUser(@Request() req: { user: { id: string } }, @Param('userId') targetUserId: string) {
     return this.friends.blockUser(req.user.id, targetUserId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('api/friends/unblock/:userId')
+  unblockUser(@Request() req: { user: { id: string } }, @Param('userId') targetUserId: string) {
+    return this.friends.unblockUser(req.user.id, targetUserId);
+  }
+
+  // ─── Game Invitations ───────────────────────────────────────────────────
+  @UseGuards(JwtAuthGuard)
+  @Post('api/friends/:friendId/invite')
+  inviteToGame(@Request() req: { user: { id: string } }, @Param('friendId') friendId: string) {
+    return this.friends.inviteToGame(req.user.id, friendId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('api/friends/invites/pending')
+  getPendingInvite(@Request() req: { user: { id: string } }) {
+    return this.friends.getPendingInvite(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('api/friends/invites/dismiss')
+  dismissInvite(@Request() req: { user: { id: string } }) {
+    return this.friends.dismissInvite(req.user.id);
   }
 }

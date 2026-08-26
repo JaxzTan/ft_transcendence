@@ -21,7 +21,7 @@ export class PresenceService implements OnModuleDestroy {
   constructor() {
     // Host/port stay plain env — they're topology, not secrets.
     const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
     const password = secret('REDIS_PASSWORD');
 
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
@@ -60,5 +60,17 @@ export class PresenceService implements OnModuleDestroy {
       statuses[id] = (values[i] as PresenceStatus) ?? 'offline';
     });
     return statuses;
+  }
+
+  /** Site-wide online count for the homepage badge — same SCAN idiom as MatchQueryService. */
+  async getOnlineCount(): Promise<number> {
+    let cursor = '0';
+    let count = 0;
+    do {
+      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'presence:*', 'COUNT', 100);
+      cursor = nextCursor;
+      count += keys.length;
+    } while (cursor !== '0');
+    return count;
   }
 }

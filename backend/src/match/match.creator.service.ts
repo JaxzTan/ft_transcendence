@@ -1,0 +1,259 @@
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma.service';
+import { secret } from '../secrets';
+import Redis from 'ioredis';
+import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
+import { BOT_PREFIX, isBotUserId } from '../common/bot';
+
+const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
+const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
+export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
+
+function generateInviteCode(): string {
+	const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+	let code = '';
+	for (let i = 0; i < 6; i++) {
+		code += chars[Math.floor(Math.random() * chars.length)];
+	}
+	return code;
+}
+
+@Injectable()
+export class MatchCreatorService {
+	private redis: Redis;
+
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly jwt: JwtService,
+		private readonly leaderboardRedis: LeaderboardRedisService,
+	) {
+		const host = process.env.REDIS_HOST || 'redis';
+		const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+		const password = secret('REDIS_PASSWORD');
+		this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
+		this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+	}
+
+	// Create a new match room (PvP, PvE, or hotseat). PvP rooms start in WAITING;
+	// PvE/hotseat start immediately in ACTIVE with bot slots filled.
+	async createMatch(
+		userId: string,
+		mode: 'pvp' | 'pve' | 'hotseat',
+		playerCount: number,
+		botCount: number,
+		clashEnabled: boolean = true,
+		botColors?: string[],
+		seatColors?: string[],
+	) {
+		// playerCount === 1 is the solo "Test Your Luck" run — hotseat with
+		// nobody else seated, just the host racing their own dice.
+		if (playerCount < 1 || playerCount > 4) {
+			throw new BadRequestException('Player count must be between 1 and 4');
+		}
+		if (playerCount === 1 && mode !== 'hotseat') {
+			throw new BadRequestException('Solo play requires hotseat mode');
+		}
+		if (botCount < 0 || botCount >= playerCount) {
+			throw new BadRequestException('Bot count must be between 0 and playerCount - 1');
+		}
+		if (mode === 'pvp' && botCount > 0) {
+			throw new BadRequestException('PvP mode cannot have bots');
+		}
+		if (mode === 'pve' && botCount === 0) {
+			throw new BadRequestException('PvE mode must have at least 1 bot');
+		}
+		if (mode === 'hotseat' && botCount > 0) {
+			throw new BadRequestException('Hot seat mode cannot have bots');
+		}
+		if (mode === 'pvp' && playerCount < 2) {
+			throw new BadRequestException('PvP mode requires at least 2 players');
+		}
+
+		// SCAN guard: idempotent room creation — reuse existing WAITING/ACTIVE match if user already seated
+		let cursor = '0';
+		let foundExisting = false;
+		let existingGameId = '';
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				if (
+					(data.player1_id === userId ||
+			 		data.player2_id === userId ||
+			 		data.player3_id === userId ||
+			 		data.player4_id === userId) &&
+					(data.status === 'WAITING' || data.status === 'ACTIVE')
+				) {
+					foundExisting = true;
+					existingGameId = data.id;
+					break;
+				}
+			}
+		} while (!foundExisting && cursor !== '0');
+		const gameId = foundExisting ? existingGameId : crypto.randomUUID();
+		const totalBots = botCount;
+		const isPvP = mode === 'pvp';
+		const player1Color = SLOT_COLORS[0];
+
+		const updates: Record<string, string> = {
+			id: gameId,
+			status: isPvP ? 'WAITING' : 'ACTIVE',
+			gameType: mode.toUpperCase(),
+			playerCount: playerCount.toString(),
+			player1_id: userId,
+			player1_color: player1Color,
+			clashEnabled: clashEnabled.toString(),
+			createdAt: Date.now().toString(),
+		};
+
+		// The slot→seat color mapping is fixed by index (0=blue,1=red,2=green,
+		// 3=yellow). Persist the exact seat order so the engine creates game
+		// state with the same colors — especially hotseat, where players can
+		// skip seats (e.g. blue + green + yellow but no red).
+		const colorSlot = new Map<string, number>(SLOT_COLORS.map((c, i) => [c, i + 1]));
+		const resolvedSeatColors =
+			Array.isArray(seatColors) && seatColors.length > 0
+				? seatColors
+				: SLOT_COLORS.slice(0, playerCount);
+		if (resolvedSeatColors.length !== playerCount) {
+			throw new BadRequestException('seatColors must have exactly playerCount entries');
+		}
+		for (const c of resolvedSeatColors) {
+			if (!colorSlot.has(c)) {
+				throw new BadRequestException(`Invalid seat color: ${c}`);
+			}
+		}
+		if (resolvedSeatColors[0] !== SLOT_COLORS[0]) {
+			throw new BadRequestException('The host (first seat) must be blue');
+		}
+		updates.seatColors = resolvedSeatColors.join(',');
+
+		if (isPvP) {
+			updates.inviteCode = generateInviteCode();
+		} else {
+			updates.startedAt = Date.now().toString();
+			const assignedBotColors =
+				Array.isArray(botColors) && botColors.length > 0
+					? botColors
+					: SLOT_COLORS.slice(1, 1 + totalBots);
+			if (assignedBotColors.length !== totalBots) {
+				throw new BadRequestException('botColors must match botCount');
+			}
+			for (const color of assignedBotColors) {
+				const slot = colorSlot.get(color);
+				if (!slot || slot < 2 || slot > 4) {
+					throw new BadRequestException(`Invalid bot color: ${color}`);
+				}
+				updates[`player${slot}_id`] = BOT_PREFIX + color;
+				updates[`player${slot}_color`] = color;
+			}
+		}
+
+		await this.redis.hset(`match:${gameId}`, updates);
+		await this.redis.expire(`match:${gameId}`, 86400);
+
+		const username = await this.resolveUsername(userId);
+		const displayName = await this.resolveDisplayName(userId);
+		const token = this.jwt.sign(
+			{
+				gameId,
+				playerId: userId,
+				username: username || undefined,
+				displayName,
+				role: 'player1',
+				mode,
+				clashEnabled,
+				color: player1Color,
+			},
+			{ expiresIn: '24h' },
+		);
+
+		// mode + playerCount must be returned: the frontend persists activeMatch
+		// to sessionStorage for refresh/reconnect and branches on activeMatch.mode
+		// (hotseat eager multi-join, rejoin auth). Without them, a browser refresh
+		// silently loses the mode and hotseat/PvE rejoin as a generic PvP seat.
+		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color, mode, playerCount };
+		if (isPvP) {
+			result.inviteCode = updates.inviteCode;
+		}
+		return result;
+	}
+
+	// Find an open PvP room to join, or create a new one if none available.
+	// If the caller already has a WAITING/ACTIVE room, rejoin it instead.
+	async findRandomMatch(userId: string, clashEnabled: boolean = true, joiner: any, lister: any) {
+		// Prevent duplicate rooms: if caller already has a WAITING or ACTIVE room, reuse it
+		const myRooms = await lister(userId);
+		const existing = myRooms.find((r: any) => r.status === 'WAITING' || r.status === 'ACTIVE');
+		if (existing) {
+			return joiner(existing.id, userId);
+		}
+
+		// Scan Redis for a WAITING PvP game with an open slot
+		let cursor = '0';
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				if (
+					data.status === 'WAITING' &&
+					data.gameType === 'PVP' &&
+					data.player1_id !== userId &&
+					!data.player2_id
+				) {
+					return joiner(data.id, userId);
+				}
+			}
+		} while (cursor !== '0');
+		return this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
+	}
+
+	// Create a PvP room and return its invite code (alias for createMatch).
+	async createInvite(userId: string, clashEnabled: boolean = true) {
+		const result = await this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
+		return result;
+	}
+
+	// Create a PvE match with the specified number of bot opponents.
+	async playBot(userId: string, playerCount: number = 2, clashEnabled: boolean = true) {
+		if (playerCount !== 2 && playerCount !== 4) {
+			throw new BadRequestException('Player count must be 2 or 4');
+		}
+		const botCount = playerCount - 1;
+		return this.createMatch(userId, 'pve', playerCount, botCount, clashEnabled);
+	}
+
+	// Join a PvP room by its 6-character invite code.
+	async joinByInvite(inviteCode: string, userId: string, joiner: any) {
+		let cursor = '0';
+		do {
+			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+			cursor = nextCursor;
+			for (const key of keys) {
+				const data = await this.redis.hgetall(key);
+				if (data.inviteCode === inviteCode && data.status === 'WAITING') {
+					if (data.player1_id === userId) {
+						throw new BadRequestException('You cannot join your own invite');
+					}
+					return joiner(data.id, userId);
+				}
+			}
+		} while (cursor !== '0');
+		throw new NotFoundException('Invite code not found or expired');
+	}
+
+	private async resolveUsername(userId: string): Promise<string | null> {
+		if (isBotUserId(userId)) return null;
+		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+		return user?.username ?? null;
+	}
+
+	private async resolveDisplayName(userId: string): Promise<string | undefined> {
+		if (isBotUserId(userId)) return undefined;
+		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { displayName: true } });
+		return user?.displayName ?? undefined;
+	}
+}

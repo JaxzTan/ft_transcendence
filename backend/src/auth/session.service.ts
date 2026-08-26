@@ -11,7 +11,7 @@ export class SessionService implements OnModuleDestroy {
 
   constructor() {
     const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
     const password = secret('REDIS_PASSWORD');
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
     this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
@@ -68,6 +68,17 @@ export class SessionService implements OnModuleDestroy {
     const keys = hashes.map((h) => `refresh:${h}`);
     if (keys.length) await this.redis.del(...keys);
     await this.redis.del(`sessions:${userId}`);
+  }
+
+  /** Revoke every session EXCEPT the one carrying `keepToken`. */
+  async revokeAllExcept(userId: string, keepToken: string | undefined): Promise<void> {
+    const keepHash = keepToken ? this.hash(keepToken) : undefined;
+    const hashes = await this.redis.smembers(`sessions:${userId}`);
+    const revokeHashes = hashes.filter((h) => h !== keepHash);
+    if (!keepHash) await this.redis.del(`sessions:${userId}`);
+    else await this.redis.srem(`sessions:${userId}`, ...revokeHashes);
+    const keys = revokeHashes.map((h) => `refresh:${h}`);
+    if (keys.length) await this.redis.del(...keys);
   }
 }
 

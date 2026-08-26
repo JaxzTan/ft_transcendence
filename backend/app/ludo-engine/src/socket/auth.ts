@@ -1,19 +1,27 @@
 import { Socket } from 'socket.io';
 import type { PlayerColor } from '../types';
 
+export const BOT_PREFIX = 'bot-';
+
+export function isBotUserId(userId: string | undefined): boolean {
+  return !!userId && userId.startsWith(BOT_PREFIX);
+}
+
 /**
  * Minimal JWT verification (no external library dependency).
  * Extracts payload from a signed token using HMAC-SHA256.
  * In production, use a proper JWT library.
  */
-export function verifyToken(token: string): { gameId: string; userId: string; role: string; clashEnabled?: boolean; mode?: string } | null {
+export function verifyToken(token: string): { gameId: string; userId: string; username?: string; displayName?: string; role: string; clashEnabled?: boolean; mode?: string } | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8'));
     return {
       gameId: payload.gameId,
-      userId: payload.sub || payload.userId,
+      userId: payload.playerId || payload.sub || payload.userId,
+      username: payload.username,
+      displayName: payload.displayName,
       role: payload.role || 'player',
       clashEnabled: payload.clashEnabled,
     };
@@ -27,6 +35,8 @@ export interface SocketData {
   gameId?: string;
   playerColor?: PlayerColor;
   userId?: string;
+  username?: string;
+  displayName?: string;
   role?: 'player' | 'spectator';
   clashEnabled?: boolean;
   mode?: 'pvp' | 'pve' | 'hotseat';
@@ -44,5 +54,4 @@ export function requirePlayer(socket: GameSocket): boolean {
   return true;
 }
 
-export const BOT_ID = 'ludo-bot';
 export const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:3000';

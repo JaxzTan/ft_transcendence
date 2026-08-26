@@ -23,6 +23,8 @@ export class EventPublisher {
           value: event.value,
           legalMoves: event.legalMoves,
           bonusRoll: event.bonusRoll,
+          currentTurn: event.currentTurn,
+          forfeited: event.forfeited,
         }));
         break;
 
@@ -100,6 +102,28 @@ export class EventPublisher {
           type: 'lobby_update',
           gameId: event.gameId,
           players: event.players,
+        }));
+        break;
+
+      case 'player_aborted':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'player_aborted',
+          color: event.color,
+          username: event.username,
+        }));
+        break;
+
+      case 'player_disconnected':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'player_disconnected',
+          color: event.color,
+        }));
+        break;
+
+      case 'player_reconnected':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'player_reconnected',
+          color: event.color,
         }));
         break;
     }

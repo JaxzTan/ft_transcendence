@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { LeaderboardRedisService } from './leaderboard-redis.service';
+import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
 export interface LeaderboardEntry {
   rank: number;
   username: string;
+  displayName: string;
   rating: number;
   gamesPlayed: number;
   wins: number;
@@ -19,7 +21,7 @@ export interface LeaderboardResponse {
   total: number;
   page: number;
   limit: number;
-  myRank?: { rank: number; username: string; rating: number } | null;
+  myRank?: { rank: number; username: string; displayName: string; rating: number } | null;
   source?: 'redis' | 'postgres';
 }
 
@@ -40,8 +42,27 @@ export class LeaderboardService {
 
     // Try Redis first (fast path)
     try {
-      const redisEntries = await this.redisService.getLeaderboardFromRedis(mode, page, limit);
-      const total = await this.redisService.getLeaderboardCount(mode);
+      let redisEntries = await this.redisService.getLeaderboardFromRedis(mode, page, limit);
+      let total = await this.redisService.getLeaderboardCount(mode);
+
+      // If Redis has no entries or is missing users, auto-populate from PostgreSQL
+      if (redisEntries.length === 0 || total < 5) {
+        // Bots are persisted as real User rows (GameParticipant.user_id has an
+        // FK to User.id), so an unfiltered scan sweeps "bot-red" & co. straight
+        // onto the board. match.postgame.service.ts already skips bots when it
+        // zadds a rating; this fallback has to be just as careful.
+        const allDbUsers = await this.prisma.db.user.findMany({
+          where: { NOT: { id: { startsWith: BOT_PREFIX } } },
+          select: { id: true, rating: true },
+        });
+        if (allDbUsers.length > 0) {
+          for (const u of allDbUsers) {
+            await this.redisService.updateLeaderboardEntry(u.id, u.rating, (mode as any) || 'global');
+          }
+          redisEntries = await this.redisService.getLeaderboardFromRedis(mode, page, limit);
+          total = await this.redisService.getLeaderboardCount(mode);
+        }
+      }
 
       if (redisEntries.length > 0) {
         const userIds = redisEntries.map(e => e.userId);
@@ -50,6 +71,7 @@ export class LeaderboardService {
           select: {
             id: true,
             username: true,
+            displayName: true,
             rating: true,
             wins: true,
             losses: true,
@@ -59,7 +81,11 @@ export class LeaderboardService {
 
         const userMap = new Map(users.map(u => [u.id, u]));
         const entries: LeaderboardEntry[] = redisEntries
-          .filter(e => userMap.has(e.userId))
+          // Belt and braces: the query above keeps bots out of the sorted set
+          // from here on, but entries written before this fix (or by any future
+          // path) are already in Redis and in LeaderboardSnapshot. Never render
+          // one regardless of how it got in.
+          .filter(e => userMap.has(e.userId) && !isBotUserId(e.userId))
           .map((entry, i) => {
             const user = userMap.get(entry.userId)!;
             const gamesPlayed = user.wins + user.losses;
@@ -70,6 +96,7 @@ export class LeaderboardService {
             return {
               rank: (page - 1) * limit + i + 1,
               username: user.username,
+              displayName: user.displayName,
               rating: entry.rating,
               gamesPlayed,
               wins,
@@ -93,12 +120,13 @@ export class LeaderboardService {
           if (myRank) {
             const user = await this.prisma.db.user.findUnique({
               where: { id: userId },
-              select: { username: true, rating: true },
+              select: { username: true, displayName: true, rating: true },
             });
             if (user) {
               response.myRank = {
                 rank: myRank,
                 username: user.username,
+                displayName: user.displayName,
                 rating: user.rating,
               };
             }
@@ -113,28 +141,61 @@ export class LeaderboardService {
 
     // Fallback to PostgreSQL snapshot (mirror of Redis, written on every game end)
     const modeFilter = mode || 'global';
+    // Same bot exclusion as the Redis path — snapshot rows were written from a
+    // sorted set that may still hold bots from before the fix, and this table
+    // outlives any Redis flush.
+    const snapshotWhere = {
+      mode: modeFilter,
+      NOT: { userId: { startsWith: BOT_PREFIX } },
+    };
     const snapshotEntries = await this.prisma.db.leaderboardSnapshot.findMany({
-      where: { mode: modeFilter },
+      where: snapshotWhere,
+      select: {
+        rank: true,
+        username: true,
+        rating: true,
+        userId: true,
+      },
       orderBy: { rank: 'asc' },
       skip: (page - 1) * limit,
       take: limit,
     });
 
     const total = await this.prisma.db.leaderboardSnapshot.count({
-      where: { mode: modeFilter },
+      where: snapshotWhere,
     });
 
-    const entries: LeaderboardEntry[] = snapshotEntries.map(entry => ({
-      rank: entry.rank,
-      username: entry.username,
-      rating: entry.rating,
-      gamesPlayed: 0,
-      wins: 0,
-      losses: 0,
-      draws: 0,
-      winRate: 0,
-      avatarStyle: null,
-    }));
+    const userUsernames = snapshotEntries.map(e => e.username);
+    const users = await this.prisma.db.user.findMany({
+      where: { username: { in: userUsernames } },
+      select: {
+        username: true,
+        displayName: true,
+        wins: true, losses: true, avatarStyle: true,
+      },
+    });
+    const userMap = new Map(users.map(u => [u.username, u]));
+
+    const entries: LeaderboardEntry[] = snapshotEntries.map(entry => {
+      const u = userMap.get(entry.username);
+      const wins = u?.wins ?? 0;
+      const losses = u?.losses ?? 0;
+      const gamesPlayed = wins + losses;
+      const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+
+      return {
+        rank: entry.rank,
+        username: entry.username,
+        displayName: u?.displayName ?? entry.username,
+        rating: entry.rating,
+        gamesPlayed,
+        wins,
+        losses,
+        draws: 0,
+        winRate,
+        avatarStyle: u?.avatarStyle ?? null,
+      };
+    });
 
     const response: LeaderboardResponse = {
       entries,
@@ -149,9 +210,14 @@ export class LeaderboardService {
         where: { mode_userId: { mode: modeFilter, userId } },
       });
       if (mySnapshot) {
+        const myUser = await this.prisma.db.user.findUnique({
+          where: { id: userId },
+          select: { displayName: true },
+        });
         response.myRank = {
           rank: mySnapshot.rank,
           username: mySnapshot.username,
+          displayName: myUser?.displayName ?? mySnapshot.username,
           rating: mySnapshot.rating,
         };
       }
