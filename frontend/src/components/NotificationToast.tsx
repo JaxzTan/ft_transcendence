@@ -446,39 +446,14 @@ function Toast({
           </div>
         )}
 
-        {/* Action Buttons for Friend Accepted */}
+        {/* Action Button for Friend Accepted */}
         {notification.type === 'friend_accepted' && (
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button
-              onClick={() => {
-                retroAudio.playUiBeep(650, 0.05)
-                navigate('/friends')
-                dismiss()
-              }}
-              className="retro-btn"
-              style={{
-                flex: 1,
-                height: 38,
-                padding: '0 16px',
-                fontSize: '0.78rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                background: 'rgba(0, 240, 255, 0.18)',
-                border: '2px solid var(--accent-cyan, #00f0ff)',
-                color: 'var(--accent-cyan, #00f0ff)',
-                boxSizing: 'border-box',
-                margin: 0,
-              }}
-            >
-              {t('nav.acceptInvite').toUpperCase()}
-            </button>
+          <div style={{ display: 'flex', marginTop: 4 }}>
             <button
               onClick={dismiss}
               className="retro-btn"
               style={{
-                flex: 1,
+                width: '100%',
                 height: 38,
                 padding: '0 16px',
                 fontSize: '0.78rem',
@@ -486,9 +461,9 @@ function Toast({
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '2px solid rgba(255, 255, 255, 0.25)',
-                color: 'var(--text-muted, #aaa)',
+                background: 'rgba(255, 230, 0, 0.12)',
+                border: '2px solid var(--accent-yellow, #ffe600)',
+                color: 'var(--accent-yellow, #ffe600)',
                 boxSizing: 'border-box',
                 margin: 0,
               }}
