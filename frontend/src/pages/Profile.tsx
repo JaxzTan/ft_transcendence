@@ -1297,7 +1297,7 @@ export function Profile() {
                                       <RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
                                     </div>
                                     <div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
-                                      ● {t(STATUS_KEYS[f.status] ?? STATUS_KEYS.offline).toUpperCase()} // {t('profile.alliedPilotTag')}{f.username.toLowerCase().includes('harleynghx') || f.username.toLowerCase().includes('harleyhx') ? ' // PACE 24' : ''}
+                                      ● {t(STATUS_KEYS[f.status] ?? STATUS_KEYS.offline).toUpperCase()} // {t('profile.alliedPilotTag')}
                                     </div>
                                   </div>
                                 </div>

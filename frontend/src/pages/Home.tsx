@@ -826,9 +826,6 @@ export function Home() {
 										const fRank = leaderboardMap[f.username]
 										const fTier = getRankTier(f.rating ?? 1200, fRank)
 										const fStatus = STATUS_STYLE[f.status || 'offline'] || STATUS_STYLE.offline
-										const isPace24 =
-											f.username.toLowerCase().includes('harleynghx') ||
-											f.username.toLowerCase().includes('harleyhx')
 
 										return (
 											<div
@@ -920,7 +917,7 @@ export function Home() {
 															<RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
 														</div>
 														<div style={{ fontSize: '0.68rem', color: fStatus.color, fontFamily: 'var(--font-display)', fontWeight: 'bold', marginTop: 2 }}>
-															● {fStatus.label.toUpperCase()} // {t('homeExtended.alliedPilot')}{isPace24 ? ' // PACE 24' : ''}
+															● {fStatus.label.toUpperCase()} // {t('homeExtended.alliedPilot')}
 														</div>
 													</div>
 												</div>
