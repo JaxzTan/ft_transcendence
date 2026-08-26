@@ -19,6 +19,7 @@ type LeaderboardEntry = {
   losses: number
   winRate: number
   avatarStyle?: any
+  hasAvatarPhoto?: boolean
 }
 
 type LeaderboardResponse = {
@@ -226,6 +227,7 @@ export function Leaderboard() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                           <UserAvatar
                             username={top2.username}
+                            hasAvatarPhoto={top2.hasAvatarPhoto}
                             size={52}
                             fallbackStyle={{
                               width: 52,
@@ -309,6 +311,7 @@ export function Leaderboard() {
                           >
                             <UserAvatar
                               username={top1.username}
+                              hasAvatarPhoto={top1.hasAvatarPhoto}
                               size={62}
                               fallbackStyle={{
                                 width: 62,
@@ -382,6 +385,7 @@ export function Leaderboard() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                           <UserAvatar
                             username={top3.username}
+                            hasAvatarPhoto={top3.hasAvatarPhoto}
                             size={52}
                             fallbackStyle={{
                               width: 52,
@@ -555,6 +559,7 @@ export function Leaderboard() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: isRankOne ? 16 : 14 }}>
                             <UserAvatar
                               username={entry.username}
+                              hasAvatarPhoto={entry.hasAvatarPhoto}
                               size={isRankOne ? 50 : isTopThree ? 40 : 36}
                               fallbackStyle={{
                                 width: isRankOne ? 50 : isTopThree ? 40 : 36,

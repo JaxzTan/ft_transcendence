@@ -17,6 +17,7 @@ type Friend = {
 	username: string
 	displayName?: string
 	avatarStyle?: any
+	hasAvatarPhoto?: boolean
 	rating?: number
 	friendsSince?: string
 	status?: 'online' | 'playing' | 'offline'
@@ -870,6 +871,7 @@ export function Home() {
 															<UserAvatar
 																username={f.username}
 																avatarStyle={f.avatarStyle}
+																hasAvatarPhoto={f.hasAvatarPhoto}
 																size={38}
 																fallbackStyle={{
 																	width: 38,
@@ -966,6 +968,8 @@ export function Home() {
 									<div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
 										<UserAvatar
 											username={username}
+											avatarStyle={user?.avatarStyle}
+											hasAvatarPhoto={user?.hasAvatarPhoto}
 											size={48}
 										/>
 										<div>

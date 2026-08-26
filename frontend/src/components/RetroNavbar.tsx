@@ -179,6 +179,8 @@ export function RetroNavbar({
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden', flex: 1 }}>
               <UserAvatar
                 username={username}
+                avatarStyle={user?.avatarStyle}
+                hasAvatarPhoto={user?.hasAvatarPhoto}
                 size={30}
                 fallbackStyle={{
                   width: 30,

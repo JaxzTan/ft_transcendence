@@ -16,6 +16,7 @@ interface UserProfile {
   username: string
   displayName?: string
   avatarStyle: string | null
+  hasAvatarPhoto: boolean
   rating: number
   highestRating: number
   wins: number
@@ -29,6 +30,7 @@ interface UserProfile {
 type Participant = {
   username: string
   avatarStyle: any
+  hasAvatarPhoto?: boolean
   color: number
   rank: number | null
   piecesInGoal: number
@@ -60,6 +62,7 @@ type Friend = {
   username: string
   displayName?: string
   avatarStyle: any
+  hasAvatarPhoto?: boolean
   rating: number
   friendsSince: string
   status: PresenceStatus
@@ -451,6 +454,7 @@ export function Profile() {
                       >
                         <UserAvatar
                           username={profile.username}
+                          hasAvatarPhoto={profile.hasAvatarPhoto}
                           avatarStyle={profile.avatarStyle}
                           size={95}
                           fallbackStyle={{
@@ -1249,6 +1253,7 @@ export function Profile() {
                                     >
                                       <UserAvatar
                                         username={f.username}
+                                        hasAvatarPhoto={f.hasAvatarPhoto}
                                         avatarStyle={f.avatarStyle}
                                         size={38}
                                         fallbackStyle={{
