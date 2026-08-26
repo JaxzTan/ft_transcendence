@@ -6,7 +6,6 @@ DB_PASSWORD    = $(SECRET_DIR)/db_password.txt
 secret_get = $(shell cat $(SECRET_DIR)/$(1).txt 2>/dev/null | tr -d "\"' \r")
 NGROK_PORT    := $(or $(call secret_get,ngrok_port),8443)
 NGROK_DOMAIN  := $(call secret_get,ngrok_domain)
-# Host-side HTTPS port; see compose.yaml for why this isn't a bare 443.
 HTTPS_PORT    := $(or $(call secret_get,https_port),8443)
 NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
 LAN_IP        := $(or $(call secret_get,lan_ip),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
@@ -24,8 +23,7 @@ REQUIRED_SECRETS = jwt_secret db_password db_root_password redis_password \
                   $(OAUTH_SECRETS)
 
 all: build start
-	@ echo "📦 Installing backend dependencies (host) for db:seed..."
-	@ cd backend && npm install && npm run db:seed && cd .. && echo "✅  Stack up and seeded.  Frontend: https://localhost:$(HTTPS_PORT)"
+	@ echo "✅  Stack up.  Frontend: https://localhost:$(HTTPS_PORT)"
 
 # One-command secrets pipeline: preflight (fail hard) → generate any missing
 # → seed the Docker volume. Used by every build/start path exactly once.
@@ -80,7 +78,7 @@ build: secrets
 # Re-run (idempotent, <1s) whenever secrets/ changes on disk.
 SECRETS_VOLUME = secrets_data
 
-start: secrets
+start:
 	@docker compose -f $(COMPOSE_FILE) up -d
 
 # stop/down/logs carry --profile dev so they still reach frontend-dev; without

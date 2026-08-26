@@ -1,4 +1,4 @@
-#### *This project has been created as part of the 42 curriculum by chtan, bleow, liyu-her, hang, jow.*
+*This project has been created as part of the 42 curriculum by chtan, bleow, liyu-her, hang, jow.*
 
 # ft_transcendence
 
@@ -26,29 +26,20 @@ achievement system, and the whole interface is available in multiple languages.
 ### Prerequisites
 
 - **Docker** and **Docker Compose** (the only runtime requirement).
-- **GNU Make** (to use the provided build commands).
+- **make** (to use the provided build commands).
 - A restored `secrets/` directory (see [Secrets](#secrets) below). The stack refuses to start if a required secret file is missing.
 - OAuth client IDs and secrets for Google, GitHub, and 42 — **optional**. Local sign-up and login work without them.
 - At least one free port: `8443` (HTTPS). Ports `3000`, `3001`, `5432`, `5555`, `6479` are used inside/for debugging.
 
-### Step-by-step run
+### Running
 
 ```bash
-# 0. Clone the repository
 git clone https://github.com/JaxzTan/ft_transcendence.git
 cd ft_transcendence
-
-# 1. Make sure the required secret files exist (generates any missing ones, seeds the Docker volume)
-make secrets
-
-# 2. Build the images, start the stack, and seed the database with test data
 make
-
-# 3. Open the app
-#    https://localhost:8443
-#
-#    (First visit: accept the self-signed certificate warning.)
 ```
+
+`make` builds the images and starts the stack (required secrets are prepared automatically). Then open https://localhost:8443 in your browser — accept the self-signed certificate warning on first visit.
 
 ### Development mode (hot reload)
 
@@ -62,22 +53,13 @@ make dev
 
 | Command | Effect |
 |---|---|
-| `make secrets` | Checks required secrets, generates missing ones, seeds the `secrets_data` volume |
-| `make` or `make all` | `build` → `start` → seed the database |
-| `make build` | `secrets` → build all images |
-| `make start` | `secrets` → start the default profile (production) |
-| `make dev` | `down` → build + start default + `dev` profile, then `compose watch` (hot reload) |
-| `make stop` | Stop all services |
-| `make down` | Stop + remove containers |
-| `make logs` | Tail logs from all services |
-| `make clean` | Remove all containers, images, networks, and volumes |
-| `make prune` | Full Docker system prune (`-af --volumes`) |
-| `make re` | `fclean` → `all` (full rebuild from scratch) |
-| `make lan` | `all` + print the LAN address for other devices on the same WiFi |
-| `make tunnel` | `all` + `ngrok-auth`, then open an ngrok tunnel to 8443 |
-| `make tunnel_up` | `all` → `tunnel` (stack in background, tunnel in foreground) |
-| `make tunnel-url` | Print the public URL of a running tunnel |
-| `make stop-tunnel` | Stop ngrok and the stack |
+| `make secrets` | Prepare required secrets |
+| `make` or `make all` | Build images and start the stack |
+| `make dev` | Start the Vite dev server with hot reload |
+| `make stop` / `make down` | Stop services / remove containers |
+| `make logs` | Tail service logs |
+| `make clean` / `make re` | Clean everything / full rebuild |
+| `make lan` / `make tunnel` | LAN mode / public ngrok tunnel |
 
 ### Access
 
@@ -119,7 +101,7 @@ The project stores configuration in plain-text files under `secrets/`, one value
 |---|---|
 | React 19 + TypeScript | Component model, routing, client state |
 | Vite | Build tooling and dev server (hot reload) |
-| Custom CSS (`retrowave.css`) | Styling — retro/cyberpunk theme |
+| Tailwind CSS | Styling |
 | i18next | Localization (English, Malay, French) |
 | Socket.IO client | Real-time transport |
 
