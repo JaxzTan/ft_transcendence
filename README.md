@@ -34,6 +34,10 @@ achievement system, and the whole interface is available in multiple languages.
 ### Step-by-step run
 
 ```bash
+# 0. Clone the repository
+git clone https://github.com/JaxzTan/ft_transcendence.git
+cd ft_transcendence
+
 # 1. Make sure the required secret files exist (generates any missing ones, seeds the Docker volume)
 make secrets
 
@@ -195,17 +199,17 @@ consistently on any machine.
 | # | Module | Owner | How it was implemented |
 |---|---|---|---|
 | 1 | ORM | `jow` | Prisma — schema, relations and committed migration history |
-| 2 | Multiple languages | `liyu-her` | |
+| 2 | Multiple languages | `liyu-her` | Session-based language switching across English, Malay and French |
 | 3 | Game statistics and match history | `bleow` | Wins, losses, rating and leaderboard, reconciled against match records |
-| 4 | Remote authentication | `jow` | OAuth 2.0 |
+| 4 | Remote authentication | `jow` | OAuth 2.0 sign-in via Google, GitHub, and 42 Intra |
 | 5 | Two-factor authentication | `jow` | |
 | 6 | Gamification | `bleow` | Achievements, badges and leaderboards |
 | 7 | User activity analytics | `chtan` | Insights dashboard |
 | 8 | Notification system | `hang` | Notifications on create, update and delete actions |
 | 9 | File upload and management | `liyu-her` | Validation, secure storage, preview and delete |
 | 10 | Game customization options | `liyu-her` | Power-ups, maps and settings |
-| 11 | Custom minor module | `chtan` | |
-| 12 | Additional browser support | All | |
+| 11 | Custom minor module | `chtan` | Ngrok tunneling for exposing the local stack for remote testing |
+| 12 | Additional browser support | All | Verified on Chrome, Firefox and Brave |
 
 ## Individual Contributions
 

@@ -19,7 +19,7 @@ services:
     ports:
       # Loopback-only: in LAN mode a bare "5432:5432" would expose Postgres
       # to every device on the WiFi. Still reachable from the host for psql.
-      - 5432:5432
+      - 127.0.0.1:5432:5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-db_bossman} -d postgres"]
       interval: 5s
@@ -71,7 +71,7 @@ services:
     ports:
       # Loopback-only: clients always reach the backend through nginx's
       # /api/ proxy, never directly. Published purely for host-side debugging.
-      - 3000:3000
+      - 127.0.0.1:3000:3000
     depends_on:
       db:
         condition: service_healthy
