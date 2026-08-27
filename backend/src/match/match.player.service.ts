@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import { secret } from '../secrets';
 import Redis from 'ioredis';
 import { isBotUserId } from '../common/bot';
@@ -14,6 +15,7 @@ export class MatchPlayerService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly jwt: JwtService,
+		private readonly notificationService: NotificationService,
 	) {
 		const host = process.env.REDIS_HOST || 'redis';
 		const port = parseInt(process.env.REDIS_PORT || '6479', 10);
@@ -107,6 +109,7 @@ export class MatchPlayerService {
 		if (!friendship) throw new ForbiddenException('You are not friends with this user');
 
 		const friendSeat = await this.joinMatch(gameId, friendId);
+		const fromUsername = (await this.resolveUsername(hostId)) || 'A friend';
 
 		await this.redis.set(
 			`invite:${friendId}`,
@@ -116,11 +119,22 @@ export class MatchPlayerService {
 				engineUrl: friendSeat.engineUrl,
 				color: friendSeat.color,
 				inviteCode: data.inviteCode || undefined,
-				fromUsername: (await this.resolveUsername(hostId)) || 'A friend',
+				fromUsername,
 				createdAt: Date.now(),
 			}),
 			'EX', 300,
 		);
+
+		// Push real-time notification to the friend via SSE / Redis pub/sub
+		await this.notificationService.notify(friendId, 'game_invite', {
+			gameId: friendSeat.gameId,
+			token: friendSeat.token,
+			engineUrl: friendSeat.engineUrl,
+			color: friendSeat.color,
+			inviteCode: data.inviteCode || undefined,
+			fromUsername,
+			playerCount: parseInt(data.playerCount || '4', 10),
+		});
 
 		return { message: 'Invite sent', gameId: friendSeat.gameId };
 	}

@@ -718,6 +718,18 @@ export const ms = {
     lastMethod: 'Anda mesti menyimpan sekurang-kurangnya satu kaedah log masuk.',
     providerTaken: 'Akaun pembekal ini disambung kepada pengguna lain.',
     genericError: 'Ralat berlaku.',
+    deleteAccountBtn: 'PADAM AKAUN',
+    deleteAccountTitle: 'PADAM AKAUN',
+    deleteAccountWarning: 'Semua data anda — profil, sejarah perlawanan, pencapaian dan rakan — akan dipadam secara kekal. Tindakan ini tidak boleh dibatalkan.',
+    deleteAccountNeedPassword: 'Untuk mengesahkan pemadaman ini, anda perlu menetapkan kata laluan untuk akaun anda terlebih dahulu.',
+    deleteAccountSetPasswordLabel: 'Cipta kata laluan',
+    deleteAccountSetPasswordDesc: 'Akaun anda belum mempunyai kata laluan (anda log masuk dengan pembekal luaran). Cipta satu sekarang untuk mengesahkan pemadaman.',
+    deleteAccountPasswordLabel: 'Masukkan kata laluan anda untuk mengesahkan',
+    deleteAccountPasswordPlaceholder: 'Kata laluan semasa',
+    deleteAccountAcknowledge: 'Saya faham bahawa akaun saya dan semua data akan dipadam secara kekal.',
+    deleteAccountSetPasswordBtn: 'TETAP KATA LALUAN & TERUSKAN',
+    deleteAccountDeleteBtn: 'PADAM SECARA KEKAL',
+    deleteAccountCancel: 'BATAL',
   },
 
   ludoLobbyPasses: {

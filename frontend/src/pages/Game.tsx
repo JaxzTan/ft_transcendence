@@ -185,8 +185,8 @@ export function Game() {
   }, [effectiveTurn, view?.status, view?.players, localNames, t])
   const captureFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Friend-invite picker (waiting room, PvP only): lets the host invite an
-  // accepted friend into THIS room (POST /api/game/:id/invite).
-  const [friends, setFriends] = useState<Array<{ id: string; username: string }>>([])
+  // online accepted friend into THIS room (POST /api/game/:id/invite).
+  const [friends, setFriends] = useState<Array<{ id: string; username: string; displayName?: string; status?: string }>>([])
   const [inviteStates, setInviteStates] = useState<Record<string, 'idle' | 'busy' | 'sent'>>({})
 
   const copyRoomCode = () => {
@@ -204,12 +204,23 @@ export function Game() {
     return () => setPlaying(false)
   }, [setPlaying])
 
-  // Load accepted friends when waiting in a PvP room so the host can invite.
+  // Load online accepted friends when waiting in a PvP room so the host can invite.
   useEffect(() => {
     if (view.status !== 'waiting' || activeMatch?.mode !== 'pvp') return
-    getApi<Array<{ id: string; username: string }>>('/api/friends')
-      .then((data) => setFriends(Array.isArray(data) ? data : []))
-      .catch(() => setFriends([]))
+
+    const loadFriends = () => {
+      getApi<Array<{ id: string; username: string; displayName?: string; status?: string }>>('/api/friends')
+        .then((data) => {
+          const list = Array.isArray(data) ? data : []
+          const onlineOnly = list.filter((f) => f.status === 'online')
+          setFriends(onlineOnly)
+        })
+        .catch(() => setFriends([]))
+    }
+
+    loadFriends()
+    const interval = setInterval(loadFriends, 5000)
+    return () => clearInterval(interval)
   }, [view.status, activeMatch?.mode, activeMatch?.gameId])
 
   // Connect to engine via Socket.IO
@@ -386,12 +397,17 @@ export function Game() {
         retroAudio.playUiBeep(1100, 0.3, 'sawtooth')
         let endedPlayers = viewRef.current.players
           .filter((p) => p.status !== 'inactive')
-          .map((p) => ({
-            color: p.color,
-            username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
-            isBot: p.isBot,
-            piecesInGoal: p.piecesInGoal,
-          }))
+          .map((p) => {
+            const inGoal = p.color === e.winner
+              ? 4
+              : (p.piecesInGoal ?? viewRef.current.pieces.filter((pc) => pc.color === p.color && pc.isInGoal).length)
+            return {
+              color: p.color,
+              username: localNames[p.color] || p.username || (p.isBot ? t('common.bot') : 'Pilot'),
+              isBot: p.isBot,
+              piecesInGoal: inGoal,
+            }
+          })
         if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
           endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
         }
@@ -401,8 +417,11 @@ export function Game() {
           mode: activeMatch?.mode ?? 'pvp',
           playerCount: activeMatch?.playerCount ?? endedPlayers.length,
           players: endedPlayers,
+          abandoned: false,
         })
-        setShowResultsModal(true)
+        setTimeout(() => {
+          setShowResultsModal(true)
+        }, 900)
       }
     }
 
@@ -852,7 +871,7 @@ export function Game() {
 
                   {SEAT_COLORS.map((ck) => {
                     const playerMeta = view.players.find((p) => p.color === ck)
-                    const occupied = playerMeta && (view.status !== 'waiting' || playerMeta.status === 'active')
+                    const occupied = Boolean(playerMeta && (view.status !== 'waiting' || (playerMeta.status === 'active' && playerMeta.username)))
                     const isActive = effectiveTurn === ck
 
                     // Color neon accent map
@@ -871,27 +890,43 @@ export function Game() {
                       }
                       const isYou = ck === view.myColor
                       const isReady = view.readyPlayers.includes(ck)
+                      const takenByOther = Boolean(
+                        occupied && !isYou && playerMeta?.username && playerMeta.username !== user?.username
+                      )
+                      const canSelect = !takenByOther && !isYou
+
                       return (
                         <div
                           key={ck}
+                          onClick={() => {
+                            if (canSelect) {
+                              selectColor(ck)
+                            }
+                          }}
+                          title={canSelect ? `Select ${ck.toUpperCase()} seat` : isYou ? 'Your seat' : 'Occupied seat'}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: 10,
                             padding: '10px 12px',
                             borderRadius: 4,
+                            cursor: canSelect ? 'pointer' : takenByOther ? 'not-allowed' : 'default',
                             border: isYou
                               ? `1.5px solid ${colorAccent}`
                               : occupied
                                 ? `1px solid ${colorAccent}66`
-                                : '1px dashed rgba(255, 255, 255, 0.15)',
+                                : canSelect
+                                  ? `1.5px dashed ${colorAccent}`
+                                  : '1px dashed rgba(255, 255, 255, 0.15)',
                             background: isYou
-                              ? 'rgba(255, 0, 127, 0.18)'
+                              ? `${colorAccent}26`
                               : occupied
                                 ? 'rgba(25, 10, 56, 0.65)'
-                                : 'rgba(10, 5, 25, 0.35)',
-                            boxShadow: isYou ? `0 0 10px ${colorAccent}44` : 'none',
-                            opacity: occupied ? 1 : 0.5,
+                                : canSelect
+                                  ? 'rgba(10, 5, 25, 0.5)'
+                                  : 'rgba(10, 5, 25, 0.35)',
+                            boxShadow: isYou ? `0 0 12px ${colorAccent}55` : 'none',
+                            opacity: occupied || canSelect ? 1 : 0.5,
                             transition: 'all 0.2s ease',
                           }}
                         >
@@ -926,7 +961,7 @@ export function Game() {
                                 fontWeight: 'bold',
                                 fontSize: '0.7rem',
                                 color: colorAccent,
-                                background: 'transparent',
+                                background: canSelect ? `${colorAccent}15` : 'transparent',
                                 border: `1.5px dashed ${colorAccent}88`,
                               }}
                             >
@@ -946,12 +981,21 @@ export function Game() {
                               }}
                             >
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {occupied && playerMeta?.username ? (playerMeta.displayName || playerMeta.username) : t('game.emptySeat')}
+                                {occupied && playerMeta?.username
+                                  ? (playerMeta.displayName || playerMeta.username)
+                                  : t('game.emptySeat')}
                               </span>
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: isYou ? colorAccent : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                              {isYou
+                                ? `// [${t('game.yourSeat', 'YOUR SEAT')}]`
+                                : takenByOther
+                                  ? `// [${t('game.occupied', 'OCCUPIED')}]`
+                                  : `// [${t('game.availableSeat', 'CLICK TO CHOOSE')}]`}
                             </div>
                           </div>
 
-                          {occupied && (
+                          {occupied ? (
                             <span
                               className="retro-badge"
                               style={{
@@ -963,7 +1007,20 @@ export function Game() {
                             >
                               {isReady ? 'READY OK' : 'WAITING'}
                             </span>
-                          )}
+                          ) : canSelect ? (
+                            <span
+                              className="retro-badge"
+                              style={{
+                                padding: '2px 6px',
+                                fontSize: '0.62rem',
+                                border: `1px solid ${colorAccent}`,
+                                color: colorAccent,
+                                background: `${colorAccent}18`,
+                              }}
+                            >
+                              CHOOSE
+                            </span>
+                          ) : null}
                         </div>
                       )
                     }
@@ -1237,52 +1294,6 @@ export function Game() {
                   </div>
 
                   <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-                        {t('game.selectSeatColor')}
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                        {SEAT_COLORS.map((ck) => {
-                          const colAccent =
-                            ck === 'red'
-                              ? '#ff007f'
-                              : ck === 'green'
-                                ? '#00ff88'
-                                : ck === 'yellow'
-                                  ? '#ffe600'
-                                  : '#00f0ff'
-                          const takenByOther = view.players.some(
-                            (p) => p.color === ck && p.status === 'active' && ck !== view.myColor
-                          )
-                          const isSelected = ck === view.myColor
-                          return (
-                            <button
-                              key={ck}
-                              onClick={() => selectColor(ck)}
-                              title={ck.toUpperCase()}
-                              disabled={takenByOther}
-                              style={{
-                                flex: 1,
-                                height: 34,
-                                borderRadius: 4,
-                                cursor: takenByOther ? 'not-allowed' : 'pointer',
-                                background: isSelected ? colAccent : 'rgba(25, 10, 56, 0.8)',
-                                border: isSelected ? `2px solid #ffffff` : `1px solid ${colAccent}`,
-                                boxShadow: isSelected ? `0 0 12px ${colAccent}` : 'none',
-                                color: isSelected ? '#0d0221' : colAccent,
-                                fontWeight: 'bold',
-                                fontSize: '0.65rem',
-                                fontFamily: 'var(--font-mono)',
-                                opacity: takenByOther ? 0.35 : 1,
-                              }}
-                            >
-                              {ck.slice(0, 3).toUpperCase()}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-
                     {(() => {
                       const activeCount = view.players.filter((p) => p.status === 'active').length
                       const alreadyReady = view.readyPlayers.includes(view.myColor)
@@ -1342,14 +1353,26 @@ export function Game() {
                                     borderRadius: 3,
                                   }}
                                 >
-                                  <span style={{ fontSize: '0.75rem', color: '#ffffff', fontFamily: 'var(--font-mono)' }}>
-                                    {f.username}
-                                  </span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                                    <span
+                                      style={{
+                                        width: 6,
+                                        height: 6,
+                                        borderRadius: '50%',
+                                        background: '#00ff88',
+                                        boxShadow: '0 0 6px #00ff88',
+                                        flex: 'none',
+                                      }}
+                                    />
+                                    <span style={{ fontSize: '0.75rem', color: '#ffffff', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {f.displayName || f.username}
+                                    </span>
+                                  </div>
                                   <button
                                     className="retro-btn"
                                     onClick={() => inviteFriend(f.id)}
                                     disabled={st !== 'idle'}
-                                    style={{ padding: '3px 8px', fontSize: '0.62rem' }}
+                                    style={{ padding: '3px 8px', fontSize: '0.62rem', flex: 'none' }}
                                   >
                                     {st === 'busy' ? '...' : st === 'sent' ? t('game.inviteSent') : `+ ${t('game.inviteBtn')}`}
                                   </button>
