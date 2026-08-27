@@ -1012,7 +1012,7 @@ export function Home() {
 										<UserAvatar
 											username={username}
 											avatarStyle={user?.avatarStyle}
-											hasAvatarPhoto={user?.hasAvatarPhoto}
+											hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
 											size={48}
 										/>
 										<div>

@@ -170,6 +170,11 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                         <div className="payer-image-container">
                           <UserAvatar
                             username={p.username}
+                            // `?? false`, not just the raw value: on first render `user`
+                            // (or `isMe`) can still be settling, and undefined here
+                            // reads as "try the network" rather than "no photo yet" —
+                            // that fires one real 404 before falling back every time.
+                            hasAvatarPhoto={p.isBot ? false : (isMe ? (user?.hasAvatarPhoto ?? false) : undefined)}
                             size={40}
                             fallbackStyle={{
                               width: 40,

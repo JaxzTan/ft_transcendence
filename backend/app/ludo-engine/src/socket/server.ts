@@ -159,8 +159,17 @@ export class SocketServer {
 				if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
 
 				const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
-				bot.takeTurn();
+				// takeTurn() already catches its own engine-call failures, but this
+				// is fire-and-forget (never awaited) — a rejection here would be an
+				// unhandled promise rejection that crashes the whole engine process,
+				// not just this one game. Belt-and-suspenders against future
+				// refactors reintroducing that.
+				bot.takeTurn().catch((err) => {
+					console.error(`[bot] unexpected takeTurn rejection for game ${gameId}:`, err instanceof Error ? err.message : err);
+				});
 				// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
+			}).catch((err) => {
+				console.error(`[bot] failed to load game state for ${gameId}:`, err instanceof Error ? err.message : err);
 			});
 		}, delayMs);
 		this.botTurnTimers.set(gameId, timer);

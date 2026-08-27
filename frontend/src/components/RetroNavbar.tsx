@@ -180,7 +180,7 @@ export function RetroNavbar({
               <UserAvatar
                 username={username}
                 avatarStyle={user?.avatarStyle}
-                hasAvatarPhoto={user?.hasAvatarPhoto}
+                hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
                 size={30}
                 fallbackStyle={{
                   width: 30,
