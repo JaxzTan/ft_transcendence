@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -8,6 +8,7 @@ import { TwoFactorDto } from './dto/twofactor.dto';
 import { TwoFactorSettingDto } from './dto/two-factor-setting.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -195,6 +196,18 @@ export class AuthController {
       dto.newPassword,
       req.cookies?.[REFRESH_COOKIE],
     );
+  }
+
+  // ---- Permanently delete the account (password-verified) ----
+  @UseGuards(JwtAuthGuard)
+  @Delete('profile')
+  @HttpCode(200)
+  async deleteAccount(@Req() req: Request, @Body() dto: DeleteAccountDto, @Res({ passthrough: true }) res: Response) {
+    await this.authService.deleteAccount((req.user as { id: string }).id, dto);
+    // Drop both session cookies so the (now-deleted) browser ends logged out.
+    res.clearCookie(ACCESS_COOKIE, { path: '/' });
+    res.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH });
+    return { message: 'Account permanently deleted' };
   }
 
   // ---- 2FA preference (logged-in user toggles their own) ----

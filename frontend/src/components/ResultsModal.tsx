@@ -34,8 +34,8 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
 
   const ranked = [...result.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
 
-  // A match is only completed with a real champion if it wasn't abandoned and a player reached the win condition
-  const hasRealWinner = !result.abandoned && result.players.some((p) => p.piecesInGoal >= 4)
+  // A match is only completed with a real champion if it wasn't abandoned and has a winner
+  const hasRealWinner = !result.abandoned && (Boolean(result.winner) || result.players.some((p) => p.piecesInGoal >= 4))
 
   // Find current player's color or fallback to first human/player
   const myPlayer =

@@ -718,6 +718,18 @@ export const fr = {
     lastMethod: 'Vous devez conserver au moins une méthode de connexion.',
     providerTaken: 'Ce compte de fournisseur est lié à un autre utilisateur.',
     genericError: 'Une erreur est survenue.',
+    deleteAccountBtn: 'SUPPRIMER LE COMPTE',
+    deleteAccountTitle: 'SUPPRIMER LE COMPTE',
+    deleteAccountWarning: 'Toutes vos données — profil, historique de matchs, succès et amis — seront définitivement supprimées. Cette action est irréversible.',
+    deleteAccountNeedPassword: 'Pour vérifier cette suppression, vous devez d\'abord définir un mot de passe pour votre compte.',
+    deleteAccountSetPasswordLabel: 'Créer un mot de passe',
+    deleteAccountSetPasswordDesc: 'Votre compte n\'a pas encore de mot de passe (vous vous êtes connecté avec un fournisseur externe). Créez-en un maintenant pour confirmer la suppression.',
+    deleteAccountPasswordLabel: 'Saisissez votre mot de passe pour confirmer',
+    deleteAccountPasswordPlaceholder: 'Mot de passe actuel',
+    deleteAccountAcknowledge: 'Je comprends que mon compte et toutes mes données seront définitivement supprimés.',
+    deleteAccountSetPasswordBtn: 'DÉFINIR LE MOT DE PASSE & CONTINUER',
+    deleteAccountDeleteBtn: 'SUPPRIMER DÉFINITIVEMENT',
+    deleteAccountCancel: 'ANNULER',
   },
 
   ludoLobbyPasses: {
