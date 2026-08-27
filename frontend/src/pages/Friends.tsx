@@ -13,7 +13,6 @@ import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
-	APP_WRAPPER,
 	HERO_SECTION,
 	HERO_TITLE,
 	BADGE_BAR,
@@ -292,27 +291,24 @@ export function Friends() {
           id="crtOverlay"
           style={{ display: crtEnabled ? 'block' : 'none' }}
         />
-        <div className="crt-flicker" />
-
-        {/* Global Navigation Dock */}
-        <RetroNavbar
-          activeRoute="/friends"
-          crtEnabled={crtEnabled}
-          toggleCrt={toggleCrt}
-        />
-
-        {/* Full-Width Fixed App Wrapper Matching Leaderboard & Profile */}
+        {/* Centered Seated Sidebar & Content Layout Container (Matching Game.tsx 1440px width) */}
         <div
-          className={APP_WRAPPER}
-          style={{
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
+          className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border"
+          style={{ maxWidth: 1440, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}
         >
-          {/* Top Hero Banner */}
-          <header className={HERO_SECTION} style={{ padding: '16px 0 16px', marginBottom: 12, flexShrink: 0 }}>
+          {/* Left-Seated Navigation Dock */}
+          <aside className="shrink-0 w-[270px] sticky top-8" style={{ margin: 0, padding: 0 }}>
+            <RetroNavbar
+              activeRoute="/friends"
+              crtEnabled={crtEnabled}
+              toggleCrt={toggleCrt}
+            />
+          </aside>
+
+          {/* Main Content Flow */}
+          <div className="flex-1 w-full min-w-0 sticky top-8" style={{ margin: 0, padding: 0 }}>
+            {/* Top Hero Banner */}
+            <header className={HERO_SECTION} style={{ marginTop: 0, padding: '16px 0 16px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
               {t('friends.networkTitle')}
             </h1>
@@ -1080,7 +1076,8 @@ export function Friends() {
           </section>
         </div>
       </div>
-    </>
-  )
+    </div>
+  </>
+)
 }
 

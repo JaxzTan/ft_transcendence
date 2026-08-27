@@ -89,18 +89,15 @@ export function RetroNavbar({
 
   return (
     <nav
-      className="relative z-[9999] flex justify-between items-center px-5 py-2.5 min-h-14 bg-(--bg-card) [border:var(--card-border-style)] shadow-(--box-shadow) backdrop-blur-[10px] mb-4 rounded-md box-border retro-floating-dock"
+      className="relative z-[9999] flex justify-between items-center px-5 py-2.5 min-h-14 bg-(--bg-card) [border:var(--card-border-style)] shadow-(--box-shadow) backdrop-blur-[10px] m-0 rounded-md box-border retro-floating-dock"
       id="mainNav"
       style={{
-        position: 'fixed',
-        left: 28,
-        top: '50%',
-        transform: 'translateY(-50%)',
         width: 270,
         minWidth: 270,
         maxWidth: 270,
-        height: 'calc(100vh - 48px)',
-        maxHeight: '94vh',
+        height: 'calc(100vh - 64px)',
+        maxHeight: 'calc(100vh - 64px)',
+        margin: 0,
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',

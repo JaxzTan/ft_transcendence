@@ -11,7 +11,6 @@ import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
-	APP_WRAPPER,
 	HERO_SECTION,
 	HERO_TITLE,
 	HERO_SUBTITLE,
@@ -231,16 +230,24 @@ export function LudoLobby() {
         />
         <div className="crt-flicker" />
 
-        {/* Main Content Wrapper */}
-        <div className={APP_WRAPPER}>
-          <RetroNavbar
-            activeRoute="/gamelobby"
-            crtEnabled={crtEnabled}
-            toggleCrt={toggleCrt}
-          />
+        {/* Centered Seated Sidebar & Content Layout Container (Matching Game.tsx 1440px width) */}
+        <div
+          className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border"
+          style={{ maxWidth: 1440, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}
+        >
+          {/* Left-Seated Navigation Dock */}
+          <aside className="shrink-0 w-[270px] sticky top-8" style={{ margin: 0, padding: 0 }}>
+            <RetroNavbar
+              activeRoute="/gamelobby"
+              crtEnabled={crtEnabled}
+              toggleCrt={toggleCrt}
+            />
+          </aside>
 
-          {/* Hero Telemetry Banner */}
-          <header className={HERO_SECTION} style={{ padding: '16px 0 14px' }}>
+          {/* Main Content Flow */}
+          <div className="flex-1 w-full min-w-0 sticky top-8" style={{ margin: 0, padding: 0 }}>
+            {/* Hero Telemetry Banner */}
+            <header className={HERO_SECTION} style={{ marginTop: 0, padding: '16px 0 14px' }}>
             <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', marginBottom: 4 }}>
               {t('ludoLobbyExtra.heroTitle')}
             </h1>
@@ -862,6 +869,7 @@ export function LudoLobby() {
           </main>
         </div>
       </div>
-    </>
-  )
+    </div>
+  </>
+)
 }

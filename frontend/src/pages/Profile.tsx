@@ -12,7 +12,6 @@ import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
-	APP_WRAPPER,
 	HERO_SECTION,
 	HERO_TITLE,
 	RETRO_WINDOW,
@@ -332,7 +331,6 @@ export function Profile() {
       <div
         className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
         id="crtScreen"
-        style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         <div
           className="crt-scanlines"
@@ -341,25 +339,24 @@ export function Profile() {
         />
         <div className="crt-flicker" />
 
-        {/* Global Navigation Dock */}
-        <RetroNavbar
-          activeRoute="/profile"
-          crtEnabled={crtEnabled}
-          toggleCrt={toggleCrt}
-        />
-
-        {/* Full-Width App Wrapper Matching Leaderboard */}
+        {/* Centered Seated Sidebar & Content Layout Container (Matching Game.tsx 1440px width) */}
         <div
-          className={APP_WRAPPER}
-          style={{
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
+          className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border"
+          style={{ maxWidth: 1440, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}
         >
-          {/* Top Hero Banner */}
-          <header className={HERO_SECTION} style={{ padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
+          {/* Left-Seated Navigation Dock */}
+          <aside className="shrink-0 w-[270px] sticky top-8" style={{ margin: 0, padding: 0 }}>
+            <RetroNavbar
+              activeRoute="/profile"
+              crtEnabled={crtEnabled}
+              toggleCrt={toggleCrt}
+            />
+          </aside>
+
+          {/* Main Content Flow */}
+          <div className="flex-1 w-full min-w-0 sticky top-8" style={{ margin: 0, padding: 0 }}>
+            {/* Top Hero Banner */}
+            <header className={HERO_SECTION} style={{ marginTop: 0, padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
               {t('profile.heroTitle')}
             </h1>
@@ -1342,6 +1339,7 @@ export function Profile() {
           )}
         </div>
       </div>
+    </div>
 
       {showEdit && (
         <ProfileEditModal

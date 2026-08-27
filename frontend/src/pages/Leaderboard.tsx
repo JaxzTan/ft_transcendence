@@ -10,7 +10,6 @@ import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
-	APP_WRAPPER,
 	HERO_SECTION,
 	HERO_TITLE,
 	RETRO_WINDOW,
@@ -112,7 +111,6 @@ export function Leaderboard() {
       <div
         className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
         id="crtScreen"
-        style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         <div
           className="crt-scanlines"
@@ -121,26 +119,24 @@ export function Leaderboard() {
         />
         <div className="crt-flicker" />
 
-        {/* Global Floating Navigation Dock (Left Side, Centered along Y Axis) */}
-        <RetroNavbar
-          activeRoute="/leaderboard"
-          crtEnabled={crtEnabled}
-          toggleCrt={toggleCrt}
-        />
-
-        {/* Main Content Wrapper (Fixed full viewport, positioned beside the left dock) */}
+        {/* Centered Seated Sidebar & Content Layout Container (Matching Game.tsx 1440px width) */}
         <div
-          className={APP_WRAPPER}
-          style={{
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
+          className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border"
+          style={{ maxWidth: 1440, width: '100%', marginLeft: 'auto', marginRight: 'auto' }}
         >
+          {/* Left-Seated Navigation Dock */}
+          <aside className="shrink-0 w-[270px] sticky top-8" style={{ margin: 0, padding: 0 }}>
+            <RetroNavbar
+              activeRoute="/leaderboard"
+              crtEnabled={crtEnabled}
+              toggleCrt={toggleCrt}
+            />
+          </aside>
 
-          {/* Hero Title (Clean, original font & color, taller Y-axis) */}
-          <header className={HERO_SECTION} style={{ padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
+          {/* Main Content Flow */}
+          <div className="flex-1 w-full min-w-0 sticky top-8" style={{ margin: 0, padding: 0 }}>
+            {/* Hero Title (Clean, original font & color, taller Y-axis) */}
+            <header className={HERO_SECTION} style={{ marginTop: 0, padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
             <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
               {t('leaderboard.globalRankingHero')}
             </h1>
@@ -645,6 +641,7 @@ export function Leaderboard() {
           </section>
         </div>
       </div>
-    </>
-  )
+    </div>
+  </>
+)
 }
