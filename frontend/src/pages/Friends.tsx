@@ -11,6 +11,21 @@ import { useApp } from '../store'
 import { STATUS_STYLE, type PresenceStatus } from '../theme'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
+import {
+	CRT_SCREEN,
+	APP_WRAPPER,
+	HERO_SECTION,
+	HERO_TITLE,
+	BADGE_BAR,
+	RETRO_BADGE,
+	RETRO_WINDOW,
+	WINDOW_HEADER,
+	WINDOW_CONTROLS,
+	WINDOW_BTN_MIN,
+	WINDOW_BTN_MAX,
+	WINDOW_BODY,
+	RETRO_BTN,
+} from '../styles/tw'
 
 type Friend = {
   id: string
@@ -268,7 +283,7 @@ export function Friends() {
 
       {/* CRT Monitor Overlay FX Container */}
       <div
-        className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
+        className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
         id="crtScreen"
         style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
@@ -288,7 +303,7 @@ export function Friends() {
 
         {/* Full-Width Fixed App Wrapper Matching Leaderboard & Profile */}
         <div
-          className="app-wrapper"
+          className={APP_WRAPPER}
           style={{
             height: '100vh',
             display: 'flex',
@@ -297,15 +312,15 @@ export function Friends() {
           }}
         >
           {/* Top Hero Banner */}
-          <header className="hero-section" style={{ padding: '16px 0 16px', marginBottom: 12, flexShrink: 0 }}>
-            <h1 className="hero-title" style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
+          <header className={HERO_SECTION} style={{ padding: '16px 0 16px', marginBottom: 12, flexShrink: 0 }}>
+            <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
               {t('friends.networkTitle')}
             </h1>
 
             {/* Metric Telemetry Strip */}
-            <div className="badge-bar" style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className={BADGE_BAR} style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: '1px solid #00ff88',
                   color: '#00ff88',
@@ -321,7 +336,7 @@ export function Friends() {
                 {t('friends.badgeOnline', { count: onlineFriendsCount })}
               </span>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: '1px solid var(--accent-cyan)',
                   color: 'var(--accent-cyan)',
@@ -336,7 +351,7 @@ export function Friends() {
                 {t('friends.badgeFriends', { count: friends.length })}
               </span>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: requests.length > 0 ? '1.5px solid var(--accent-pink)' : '1px dashed rgba(255,255,255,0.2)',
                   color: requests.length > 0 ? '#ff007f' : 'var(--text-muted)',
@@ -353,7 +368,7 @@ export function Friends() {
               </span>
               {blocked.length > 0 && (
                 <span
-                  className="retro-badge"
+                  className={RETRO_BADGE}
                   style={{
                     border: '1px solid rgba(255, 0, 85, 0.4)',
                     color: '#ff0055',
@@ -373,7 +388,7 @@ export function Friends() {
 
           {/* Full-Width Unified Retro Window Container */}
           <section
-            className="retro-window"
+            className={RETRO_WINDOW}
             style={{
               width: '100%',
               flex: 1,
@@ -385,7 +400,7 @@ export function Friends() {
           >
             {/* Window Header */}
             <div
-              className="window-header"
+              className={WINDOW_HEADER}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -398,15 +413,15 @@ export function Friends() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
                 <span>{t('friends.friendsListTitle')}</span>
               </div>
-              <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="window-btn min" />
-                <span className="window-btn max" />
+              <div className={WINDOW_CONTROLS} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className={WINDOW_BTN_MIN} />
+                <span className={WINDOW_BTN_MAX} />
               </div>
             </div>
 
             {/* Window Body (2-Column Fixed Viewport Grid) */}
             <div
-              className="window-body"
+              className={WINDOW_BODY}
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'minmax(0, 1.65fr) minmax(330px, 1fr)',
@@ -448,7 +463,7 @@ export function Friends() {
                 >
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       onClick={() => {
                         retroAudio.playUiBeep(520, 0.04)
                         setActiveTab('friends')
@@ -468,7 +483,7 @@ export function Friends() {
                       {t('friends.tabFriendsCount', { count: friends.length })}
                     </button>
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       onClick={() => {
                         retroAudio.playUiBeep(520, 0.04)
                         setActiveTab('blocked')
@@ -650,7 +665,7 @@ export function Friends() {
                             {/* Right: Actions */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                               <button
-                                className="retro-btn"
+                                className={RETRO_BTN}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleInvite(f.id)
@@ -674,7 +689,7 @@ export function Friends() {
                               </button>
 
                               <button
-                                className="retro-btn"
+                                className={RETRO_BTN}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleRemove(f.id)
@@ -695,7 +710,7 @@ export function Friends() {
                               </button>
 
                               <button
-                                className="retro-btn"
+                                className={RETRO_BTN}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleBlock(f.id)
@@ -766,7 +781,7 @@ export function Friends() {
                           </div>
 
                           <button
-                            className="retro-btn"
+                            className={RETRO_BTN}
                             onClick={() => handleUnblock(b.id)}
                             style={{
                               padding: '5px 14px',
@@ -835,7 +850,7 @@ export function Friends() {
                       }}
                     />
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       onClick={handleAddFriend}
                       style={{
                         padding: '9px 16px',
@@ -1025,7 +1040,7 @@ export function Friends() {
 
                           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                             <button
-                              className="retro-btn"
+                              className={RETRO_BTN}
                               onClick={() => handleAccept(r.id)}
                               style={{
                                 padding: '4px 10px',
@@ -1042,7 +1057,7 @@ export function Friends() {
                               {t('friends.acceptActionBtn')}
                             </button>
                             <button
-                              className="retro-btn"
+                              className={RETRO_BTN}
                               onClick={() => handleDecline(r.id)}
                               style={{
                                 padding: '4px 8px',

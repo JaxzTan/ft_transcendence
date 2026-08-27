@@ -6,6 +6,7 @@ import { retroAudio } from '../utils/audio'
 import { UserAvatar } from './UserAvatar'
 import { NotificationBell } from './NotificationBell'
 import { useNotifications, type Notification } from '../hooks/useNotifications'
+import { RETRO_BTN, THEME_TRIGGER_BTN_BASE, THEME_POPOVER_MENU_BASE } from '../styles/tw'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
 
@@ -88,7 +89,7 @@ export function RetroNavbar({
 
   return (
     <nav
-      className="navbar retro-floating-dock"
+      className="relative z-[9999] flex justify-between items-center px-5 py-2.5 min-h-14 bg-(--bg-card) [border:var(--card-border-style)] shadow-(--box-shadow) backdrop-blur-[10px] mb-4 rounded-md box-border retro-floating-dock"
       id="mainNav"
       style={{
         position: 'fixed',
@@ -132,10 +133,10 @@ export function RetroNavbar({
         }}
       >
         {/* User Profile Pill Button -> Opens Account & Settings Popover Menu */}
-        <div className="theme-popover-wrapper" ref={accountPopoverRef} style={{ width: '100%', position: 'relative' }}>
+        <div className="z-10000 inline-block" ref={accountPopoverRef} style={{ width: '100%', position: 'relative' }}>
           <button
             type="button"
-            className={`retro-btn theme-trigger-btn ${isAccountPopoverOpen ? 'active' : ''}`}
+            className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${isAccountPopoverOpen ? 'active' : ''}`}
             id="userAccountBtn"
             aria-label="Account Settings, Language and 2FA"
             style={{
@@ -225,7 +226,7 @@ export function RetroNavbar({
 
           {/* Account & Settings Popover Menu */}
           <div
-            className={`theme-popover-menu ${isAccountPopoverOpen ? 'active' : ''}`}
+            className={`${THEME_POPOVER_MENU_BASE} theme-popover-menu ${isAccountPopoverOpen ? 'active' : ''}`}
             id="accountPopoverMenu"
             style={{
               left: 'calc(100% + 14px)',
@@ -391,7 +392,7 @@ export function RetroNavbar({
 
             {/* 4. Logout / Disconnect Button */}
             <button
-              className="retro-btn"
+              className={RETRO_BTN}
               onClick={async () => {
                 setIsAccountPopoverOpen(false)
                 retroAudio.playUiBeep(330, 0.08)
@@ -477,7 +478,7 @@ export function RetroNavbar({
             return (
               <button
                 key={item.path}
-                className={`retro-btn theme-trigger-btn ${isActive ? 'active' : ''}`}
+                className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${isActive ? 'active' : ''}`}
                 style={{
                   width: '100%',
                   height: 52,
@@ -594,9 +595,9 @@ export function RetroNavbar({
         }}
       >
         {/* Theme Selector Popover */}
-        <div className="theme-popover-wrapper" ref={popoverRef} style={{ width: '100%', position: 'relative' }}>
+        <div className="z-10000 inline-block" ref={popoverRef} style={{ width: '100%', position: 'relative' }}>
           <button
-            className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
+            className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
             id="themeModalBtn"
             aria-label="Toggle Theme Menu"
             style={{
@@ -641,7 +642,7 @@ export function RetroNavbar({
 
           {/* Upward Opening Theme Popover Menu */}
           <div
-            className={`theme-popover-menu open-up ${isThemePopoverOpen ? 'active' : ''}`}
+            className={`${THEME_POPOVER_MENU_BASE} theme-popover-menu open-up ${isThemePopoverOpen ? 'active' : ''}`}
             id="themePopoverMenu"
             style={{
               bottom: 'calc(100% + 8px)',

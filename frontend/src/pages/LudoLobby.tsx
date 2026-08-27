@@ -9,6 +9,26 @@ import { useApp } from '../store'
 import { COL } from '../theme'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
+import {
+	CRT_SCREEN,
+	APP_WRAPPER,
+	HERO_SECTION,
+	HERO_TITLE,
+	HERO_SUBTITLE,
+	BADGE_BAR,
+	RETRO_BADGE,
+	DASHBOARD_GRID,
+	RETRO_WINDOW,
+	WINDOW_HEADER,
+	WINDOW_BODY,
+	RETRO_BTN,
+	RETRO_TICKET_PASS,
+	TICKET_PINK,
+	TICKET_YELLOW,
+	TICKET_GREEN,
+	TICKET_CYAN,
+	TICKET_ACTION_PILL,
+} from '../styles/tw'
 
 type Room = {
   id: string
@@ -203,7 +223,7 @@ export function LudoLobby() {
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
-      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
         <div
           className="crt-scanlines"
           id="crtOverlay"
@@ -212,7 +232,7 @@ export function LudoLobby() {
         <div className="crt-flicker" />
 
         {/* Main Content Wrapper */}
-        <div className="app-wrapper">
+        <div className={APP_WRAPPER}>
           <RetroNavbar
             activeRoute="/gamelobby"
             crtEnabled={crtEnabled}
@@ -220,17 +240,17 @@ export function LudoLobby() {
           />
 
           {/* Hero Telemetry Banner */}
-          <header className="hero-section" style={{ padding: '16px 0 14px' }}>
-            <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 4 }}>
+          <header className={HERO_SECTION} style={{ padding: '16px 0 14px' }}>
+            <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', marginBottom: 4 }}>
               {t('ludoLobbyExtra.heroTitle')}
             </h1>
-            <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+            <p className={HERO_SUBTITLE} style={{ fontSize: '0.75rem', marginBottom: 0 }}>
               {t('ludoLobbyExtra.heroSubtitle')}
             </p>
 
-            <div className="badge-bar" style={{ marginTop: 12 }}>
+            <div className={BADGE_BAR} style={{ marginTop: 12 }}>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: '1px solid var(--accent-cyan)',
                   color: 'var(--accent-cyan)',
@@ -242,7 +262,7 @@ export function LudoLobby() {
                 {t('ludoLobbyExtra.activeSectors', { count: rooms ? rooms.length : 0 })}
               </span>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: '1px solid #00ff88',
                   color: '#00ff88',
@@ -251,7 +271,7 @@ export function LudoLobby() {
                 {t('ludoLobbyExtra.pilotLabel', { name: (user?.displayName ?? user?.username)?.toUpperCase() ?? t('ludoLobbyExtra.guestFallback') })}
               </span>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: hasActiveGame ? '1px solid var(--accent-yellow)' : '1px dashed rgba(255,255,255,0.2)',
                   color: hasActiveGame ? 'var(--accent-yellow)' : 'var(--text-muted)',
@@ -264,7 +284,7 @@ export function LudoLobby() {
 
           {/* Main Tactical Single-Column / Stacked Layout */}
           <main
-            className="dashboard-grid"
+            className={DASHBOARD_GRID}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -285,7 +305,7 @@ export function LudoLobby() {
                   LEVEL 1: HOST NEW TABLE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className={`retro-ticket-pass ticket-pink ${hostBusy ? 'disabled' : ''}`}
+                className={`${RETRO_TICKET_PASS} ${TICKET_PINK} retro-ticket-pass ticket-pink ${hostBusy ? 'disabled' : ''}`}
                 onClick={hostBusy ? undefined : createRoom}
                 role="button"
                 tabIndex={0}
@@ -335,7 +355,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className="ticket-action-pill"
+                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
                   style={{
                     background: 'var(--accent-pink)',
                     color: '#ffffff',
@@ -351,7 +371,7 @@ export function LudoLobby() {
                   LEVEL 2: HOTSEAT MODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass ticket-yellow"
+                className={`${RETRO_TICKET_PASS} ${TICKET_YELLOW} retro-ticket-pass ticket-yellow`}
                 onClick={() => {
                   retroAudio.playUiBeep(640, 0.05)
                   navigate('/gamelobby/table?mode=4&bots=0&local=1')
@@ -405,7 +425,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className="ticket-action-pill"
+                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
                   style={{
                     background: 'rgba(255, 230, 0, 0.22)',
                     border: '1.5px solid #ffe600',
@@ -421,7 +441,7 @@ export function LudoLobby() {
                   LEVEL 3: BOT MODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass ticket-green"
+                className={`${RETRO_TICKET_PASS} ${TICKET_GREEN} retro-ticket-pass ticket-green`}
                 onClick={() => {
                   retroAudio.playUiBeep(640, 0.05)
                   navigate('/gamelobby/table?mode=4&bots=1')
@@ -475,7 +495,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className="ticket-action-pill"
+                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
                   style={{
                     background: 'rgba(0, 255, 136, 0.22)',
                     border: '1.5px solid #00ff88',
@@ -491,7 +511,7 @@ export function LudoLobby() {
                   LEVEL 4 (LAST): ACCESS VIA ROOM CODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass ticket-cyan"
+                className={`${RETRO_TICKET_PASS} ${TICKET_CYAN} retro-ticket-pass ticket-cyan`}
                 onClick={() => {
                   if (roomCodeInput.trim().length > 0 && !joiningByCode) {
                     joinByCode(roomCodeInput)
@@ -577,7 +597,7 @@ export function LudoLobby() {
                     }}
                   />
                   <button
-                    className="retro-btn"
+                    className={RETRO_BTN}
                     onClick={(e) => {
                       e.stopPropagation()
                       joinByCode(roomCodeInput)
@@ -627,14 +647,14 @@ export function LudoLobby() {
             {/* ════════════════════════════════════════════════════════════════════════════
                 BELOW THEM: OPEN QUANTUM ROOMS
                ════════════════════════════════════════════════════════════════════════════ */}
-            <section className="retro-window" id="roomsWindow">
-              <div className="window-header" style={{ background: '#190a38', borderBottom: '1px solid rgba(0, 240, 255, 0.3)' }}>
+            <section className={`${RETRO_WINDOW}`} id="roomsWindow">
+              <div className={WINDOW_HEADER} style={{ background: '#190a38', borderBottom: '1px solid rgba(0, 240, 255, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span>{t('ludoLobbyPasses.openQuantumRooms')} ({filteredRooms.length})</span>
                 </div>
               </div>
 
-              <div className="window-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className={WINDOW_BODY} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Filter Sub-Bar */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 4px' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
@@ -642,7 +662,7 @@ export function LudoLobby() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       style={{
                         padding: '4px 10px',
                         fontSize: '0.68rem',
@@ -656,7 +676,7 @@ export function LudoLobby() {
                       {t('ludoLobbyPasses.filterAll')}
                     </button>
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       style={{
                         padding: '4px 10px',
                         fontSize: '0.68rem',
@@ -670,7 +690,7 @@ export function LudoLobby() {
                       {t('ludoLobbyPasses.filterClassic4p')}
                     </button>
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       style={{
                         padding: '4px 10px',
                         fontSize: '0.68rem',
@@ -809,7 +829,7 @@ export function LudoLobby() {
                             </div>
                             <div>
                               <button
-                                className="retro-btn"
+                                className={RETRO_BTN}
                                 onClick={() => (isOwn ? rejoinRoom(room) : joinRoom(room))}
                                 disabled={(!isOwn && full) || joiningRoomId === room.id}
                                 style={{

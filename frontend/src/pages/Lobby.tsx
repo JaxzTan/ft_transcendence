@@ -8,6 +8,20 @@ import { useApp, type PlayerCount } from '../store'
 import { SEAT_COLORS, type ColorKey } from '../theme'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
+import {
+	CRT_SCREEN,
+	APP_WRAPPER,
+	HERO_SECTION,
+	HERO_TITLE,
+	DASHBOARD_GRID,
+	RETRO_WINDOW,
+	WINDOW_HEADER,
+	WINDOW_CONTROLS,
+	WINDOW_BTN_MIN,
+	WINDOW_BTN_MAX,
+	WINDOW_BODY,
+	RETRO_BTN,
+} from '../styles/tw'
 
 const COLOR_KEYS: Record<ColorKey, string> = {
   red: 'lobby.colorRed',
@@ -113,7 +127,7 @@ export function Lobby() {
       </div>
 
       {/* CRT FX Overlay */}
-      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
         <div
           className="crt-scanlines"
           id="crtOverlay"
@@ -123,7 +137,7 @@ export function Lobby() {
 
         {/* Main Content Container */}
         <div
-          className="app-wrapper"
+          className={APP_WRAPPER}
           style={{
             marginLeft: 'auto',
             marginRight: 'auto',
@@ -138,9 +152,9 @@ export function Lobby() {
           }}
         >
           {/* Hero Header - Identical 1-to-1 design & dimensions as Game.tsx */}
-          <header className="hero-section" style={{ padding: '16px 0 14px', textAlign: 'center' }}>
+          <header className={HERO_SECTION} style={{ padding: '16px 0 14px', textAlign: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <h1 className="hero-title" style={{ fontSize: '1.75rem', marginBottom: 4, textAlign: 'center' }}>
+              <h1 className={HERO_TITLE} style={{ fontSize: '1.75rem', marginBottom: 4, textAlign: 'center' }}>
                 {isSolo ? t('lobby.soloPracticeBay') : t('lobby.arenaMatchConfig')}
               </h1>
 
@@ -201,7 +215,7 @@ export function Lobby() {
 
           {/* Main Grid */}
           <main
-            className="dashboard-grid"
+            className={DASHBOARD_GRID}
             style={{
               display: 'grid',
               gridTemplateColumns: '1.25fr 0.85fr',
@@ -213,16 +227,16 @@ export function Lobby() {
           >
             {/* LEFT COLUMN: SEAT ASSIGNMENT WINDOW & BACK BUTTON */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <section className="retro-window" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div className="window-header" style={{ fontSize: '0.84rem' }}>
+              <section className={RETRO_WINDOW} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div className={WINDOW_HEADER} style={{ fontSize: '0.84rem' }}>
                   <span>{t('lobby.seatRosterTitle', { assigned: playerCount - emptyCount, total: playerCount })}</span>
-                  <div className="window-controls">
-                    <span className="window-btn min" />
-                    <span className="window-btn max" />
+                  <div className={WINDOW_CONTROLS}>
+                    <span className={WINDOW_BTN_MIN} />
+                    <span className={WINDOW_BTN_MAX} />
                   </div>
                 </div>
 
-                <div className="window-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: 14, flex: 1 }}>
+                <div className={WINDOW_BODY} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: 14, flex: 1 }}>
                   {visible.map((seat, i) => {
                     const ck = SEAT_COLORS[i]
                     const hue = SEAT_HUES[ck]
@@ -493,7 +507,7 @@ export function Lobby() {
 
               {/* RETURN TO GAME LOBBY BUTTON */}
               <button
-                className="retro-btn"
+                className={RETRO_BTN}
                 style={{
                   width: '100%',
                   padding: '12px 0',
@@ -517,16 +531,16 @@ export function Lobby() {
             {/* RIGHT COLUMN: LAUNCH CONTROL WINDOW */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* LAUNCH CONTROL WINDOW */}
-              <section className="retro-window" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <div className="window-header" style={{ fontSize: '0.84rem' }}>
+              <section className={RETRO_WINDOW} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div className={WINDOW_HEADER} style={{ fontSize: '0.84rem' }}>
                   <span>{t('lobby.arenaLaunchControlTitle')}</span>
-                  <div className="window-controls">
-                    <span className="window-btn min" />
-                    <span className="window-btn max" />
+                  <div className={WINDOW_CONTROLS}>
+                    <span className={WINDOW_BTN_MIN} />
+                    <span className={WINDOW_BTN_MAX} />
                   </div>
                 </div>
 
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 22, padding: '28px 24px', flex: 1, justifyContent: 'space-between' }}>
+                <div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 22, padding: '28px 24px', flex: 1, justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
                       <span style={{ color: 'var(--text-muted)' }}>{t('lobby.activePilotsLabel')}</span>
@@ -598,7 +612,7 @@ export function Lobby() {
                     <button
                       onClick={onStart}
                       disabled={!canStart || starting}
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       style={{
                         width: '100%',
                         padding: '16px 0',

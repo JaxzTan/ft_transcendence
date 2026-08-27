@@ -10,6 +10,31 @@ import { retroAudio } from '../utils/audio'
 import { getRankTier } from '../utils/ranks'
 import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
+import {
+	CRT_SCREEN,
+	APP_WRAPPER,
+	HERO_SECTION,
+	HERO_TITLE,
+	HERO_SUBTITLE,
+	BADGE_BAR,
+	RETRO_BADGE,
+	DASHBOARD_GRID,
+	RETRO_WINDOW,
+	WINDOW_HEADER,
+	WINDOW_CONTROLS,
+	WINDOW_BTN_MIN,
+	WINDOW_BTN_MAX,
+	WINDOW_BODY,
+	RETRO_BTN,
+	ARCADE_CONTAINER,
+	ARCADE_SCREEN_FRAME,
+	ARCADE_START_OVERLAY,
+	ARCADE_START_TITLE,
+	ARCADE_START_SUB,
+	COL_4,
+	COL_8,
+	RETRO_FOOTER,
+} from '../styles/tw'
 
 type Friend = {
 	id: string
@@ -632,7 +657,7 @@ export function Home() {
 			</div>
 
 			{/* CRT Monitor Overlay FX Container */}
-			<div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+			<div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
 				<div
 					className="crt-scanlines"
 					id="crtOverlay"
@@ -641,7 +666,7 @@ export function Home() {
 				<div className="crt-flicker" />
 
 				{/* Main Content Wrapper */}
-				<div className="app-wrapper">
+				<div className={APP_WRAPPER}>
 					{/* Navigation Header */}
 					<RetroNavbar
 						activeRoute="/home"
@@ -654,15 +679,15 @@ export function Home() {
 					/>
 
 					{/* Hero Header Banner */}
-					<header className="hero-section">
-						<h1 className="hero-title">RETROLUDO '42</h1>
-						<p className="hero-subtitle">
+					<header className={HERO_SECTION}>
+						<h1 className={HERO_TITLE}>RETROLUDO '42</h1>
+						<p className={HERO_SUBTITLE}>
 							{t('home.greeting', { name: displayName.toUpperCase() })} // PACE 24
 						</p>
 
-						<div className="badge-bar">
+						<div className={BADGE_BAR}>
 							<button
-								className="retro-badge"
+								className={RETRO_BADGE}
 								style={{
 									cursor: 'pointer',
 									background: 'var(--bg-secondary)',
@@ -677,7 +702,7 @@ export function Home() {
 								{isPlayingAudio ? t('homeExtended.audioActive') : t('homeExtended.audioStandby')}
 							</button>
 							<span
-								className="retro-badge"
+								className={RETRO_BADGE}
 								style={{
 									border: '1px solid var(--accent-cyan)',
 									color: 'var(--accent-cyan)',
@@ -689,7 +714,7 @@ export function Home() {
 								{t('homeExtended.onlinePlayers')} {onlineCount ?? '...'}
 							</span>
 							<span
-								className="retro-badge"
+								className={RETRO_BADGE}
 								style={{
 									border: liveMatchCount ? '1px solid var(--accent-cyan)' : '1px dashed rgba(255, 255, 255, 0.25)',
 									color: liveMatchCount ? 'var(--accent-cyan)' : 'var(--text-muted)',
@@ -702,7 +727,7 @@ export function Home() {
 								// SLOT_03: {liveMatchCount ? `${liveMatchCount} LIVE` : '[EMPTY]'}
 							</span>
 							<span
-								className="retro-badge"
+								className={RETRO_BADGE}
 								style={{
 									border: openSlotCount ? '1px solid var(--accent-cyan)' : '1px dashed rgba(255, 255, 255, 0.25)',
 									color: openSlotCount ? 'var(--accent-cyan)' : 'var(--text-muted)',
@@ -718,22 +743,22 @@ export function Home() {
 					</header>
 
 					{/* Main Interactive Dashboard Grid */}
-					<main className="dashboard-grid">
+					<main className={DASHBOARD_GRID}>
 						{/* Widget 1: 3D Attract Mode Arcade Cabinet & Press Start */}
-						<section className="retro-window col-8" id="arcadeWindow">
-							<div className="window-header">
+						<section className={`${RETRO_WINDOW} ${COL_8} retro-window col-8`} id="arcadeWindow">
+							<div className={WINDOW_HEADER}>
 								<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 									<span>{t('homeExtended.arcadeArenaTitle')}</span>
 								</div>
-								<div className="window-controls">
-									<span className="window-btn min" />
-									<span className="window-btn max" />
+								<div className={WINDOW_CONTROLS}>
+									<span className={WINDOW_BTN_MIN} />
+									<span className={WINDOW_BTN_MAX} />
 								</div>
 							</div>
-							<div className="window-body arcade-container">
+							<div className={`${WINDOW_BODY} ${ARCADE_CONTAINER} arcade-container`}>
 								{/* Arcade Canvas Frame & Interactive Press Start Overlay */}
 								<div
-									className="arcade-screen-frame"
+									className={ARCADE_SCREEN_FRAME}
 									style={
 										isWarpingToLobby
 											? {
@@ -748,15 +773,15 @@ export function Home() {
 									<canvas id="arcadeCanvas" ref={canvasRef} width={720} height={400} />
 
 									{/* Interactive Translucent Press Start Banner Overlay */}
-									<div className="arcade-start-overlay">
-										<span className="arcade-start-title">
+									<div className={`${ARCADE_START_OVERLAY} arcade-start-overlay`}>
+										<span className={`${ARCADE_START_TITLE} arcade-start-title`}>
 											{theme === 'win95'
 												? t('homeExtended.pressStartTitleWin95')
 												: theme === 'terminal'
 												? t('homeExtended.pressStartTitleTerminal')
 												: t('homeExtended.pressStartTitleSynthwave')}
 										</span>
-										<span className="arcade-start-sub">
+										<span className={`${ARCADE_START_SUB} arcade-start-sub`}>
 											{theme === 'terminal'
 												? t('homeExtended.pressStartSubTerminal')
 												: theme === 'win95'
@@ -789,8 +814,8 @@ export function Home() {
 						</section>
 
 						{/* Widget 2: Friends List */}
-						<section className="retro-window col-4" id="friendsWindow">
-							<div className="window-header">
+						<section className={`${RETRO_WINDOW} ${COL_4} retro-window col-4`} id="friendsWindow">
+							<div className={WINDOW_HEADER}>
 								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 									<span>{t('friends.title').toUpperCase()} ({friends?.length ?? 0})</span>
 									{pendingRequestsCount > 0 && (
@@ -824,7 +849,7 @@ export function Home() {
 								</div>
 								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 									<button
-										className="retro-btn"
+										className={RETRO_BTN}
 										onClick={() => {
 											retroAudio.playUiBeep(600, 0.05)
 											navigate('/friends')
@@ -838,9 +863,9 @@ export function Home() {
 									>
 										{t('homeExtended.manageBtn')}
 									</button>
-									<div className="window-controls">
-										<span className="window-btn min" />
-										<span className="window-btn max" />
+									<div className={WINDOW_CONTROLS}>
+										<span className={WINDOW_BTN_MIN} />
+										<span className={WINDOW_BTN_MAX} />
 									</div>
 								</div>
 							</div>
@@ -983,17 +1008,17 @@ export function Home() {
 						</section>
 
 						{/* Widget 3: Pilot Profile & Combat Stats */}
-						<section className="retro-window col-8" id="pilotDossierWindow">
-							<div className="window-header">
+						<section className={`${RETRO_WINDOW} ${COL_8} retro-window col-8`} id="pilotDossierWindow">
+							<div className={WINDOW_HEADER}>
 								<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 									<span>{t('homeExtended.pilotProfileTitle')}</span>
 								</div>
-								<div className="window-controls">
-									<span className="window-btn min" />
-									<span className="window-btn max" />
+								<div className={WINDOW_CONTROLS}>
+									<span className={WINDOW_BTN_MIN} />
+									<span className={WINDOW_BTN_MAX} />
 								</div>
 							</div>
-							<div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+							<div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 								{/* Top Row: Pilot Profile Identity Header */}
 								<div
 									style={{
@@ -1033,7 +1058,7 @@ export function Home() {
 									</div>
 
 									<button
-										className="retro-btn"
+										className={RETRO_BTN}
 										style={{ padding: '6px 14px', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}
 										onClick={() => {
 											retroAudio.playUiBeep(600, 0.05)
@@ -1172,8 +1197,8 @@ export function Home() {
 						</section>
 
 						{/* Widget 4: Cyber Sound Deck & Cassette Synthesizer */}
-						<section className="retro-window col-4" id="cyberSoundDeckWindow">
-							<div className="window-header">
+						<section className={`${RETRO_WINDOW} ${COL_4} retro-window col-4`} id="cyberSoundDeckWindow">
+							<div className={WINDOW_HEADER}>
 								<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 									<span>◖ CYBERSOUND DECK ◗</span>
 									<span
@@ -1203,13 +1228,13 @@ export function Home() {
 										{isPlayingAudio ? 'LIVE STEREO' : 'STANDBY'}
 									</span>
 								</div>
-								<div className="window-controls">
-									<span className="window-btn min" />
-									<span className="window-btn max" />
+								<div className={WINDOW_CONTROLS}>
+									<span className={WINDOW_BTN_MIN} />
+									<span className={WINDOW_BTN_MAX} />
 								</div>
 							</div>
 							<div
-								className="window-body"
+								className={WINDOW_BODY}
 								style={{
 									display: 'flex',
 									flexDirection: 'column',
@@ -1341,7 +1366,7 @@ export function Home() {
 					</main>
 
 					{/* Footer */}
-					<footer className="retro-footer">
+					<footer className={RETRO_FOOTER}>
 						<p>© 1942-2026 RETROLUDO '42 // 42KL // ALL RIGHTS RESERVED // WEB AUDIO & CANV-ARCADE</p>
 					</footer>
 				</div>

@@ -4,6 +4,7 @@ import { UserAvatar } from './UserAvatar'
 import { useApp, type LastResult } from '../store'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
+import { RETRO_BTN } from '../styles/tw'
 
 type ResultsModalProps = {
   result: NonNullable<LastResult>
@@ -209,7 +210,7 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
 
                   {onClose && (
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       onClick={() => {
                         retroAudio.playUiBeep(520, 0.05)
                         onClose()
