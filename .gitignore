@@ -90,4 +90,4 @@ docs
 !frontend/public/*.png
 *.md
 *.sh
-
+*.skill
