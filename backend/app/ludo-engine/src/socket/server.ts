@@ -323,7 +323,13 @@ export class SocketServer {
 	private setupSocketHandlers(): void {
 		this.io.use((socket: GameSocket, next) => {
 			const token = socket.handshake.auth?.token;
-			if (!token) return next(); // Allow unauthenticated (bots, dev)
+			// A token is mandatory. This used to fall through to next() for
+			// "bots, dev" — but bots are driven server-side (triggerBotTurn),
+			// never over a socket, and the SPA always supplies a token
+			// (frontend/src/socket.ts). Allowing tokenless connections would
+			// make signature verification pointless: an attacker could simply
+			// omit the token and then assert gameId/colour via join_game.
+			if (!token) return next(new Error('Authentication required'));
 
 			const payload = verifyToken(token);
 			if (!payload) return next(new Error('Invalid token'));
@@ -333,6 +339,8 @@ export class SocketServer {
 			socket.data.displayName = payload.displayName;
 			socket.data.gameId = payload.gameId;
 			socket.data.role = payload.role as 'player' | 'spectator';
+			socket.data.tokenColor = payload.color;
+			socket.data.mode = payload.mode as 'pvp' | 'pve' | 'hotseat' | undefined;
 			next();
 		});
 
