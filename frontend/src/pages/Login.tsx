@@ -20,6 +20,8 @@ export function Login() {
     'no-verified-email': t('auth.errorNoVerifiedEmail'),
     'invalid-verification-link': t('auth.errorInvalidVerificationLink'),
     'email-in-use': t('auth.errorEmailInUseOAuth'),
+    'access_denied': t('auth.errorAccessDenied'),
+    'oauth_failed': t('auth.errorOAuthFailed'),
     'add-email-2fa': t('auth.errorAddEmail2FA'),
   }
 

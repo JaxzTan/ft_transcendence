@@ -266,8 +266,13 @@ export class AuthController {
       username: string;
       email: string | null;
       twoFactorEnabled: boolean;
-    };
+    } | undefined;
     const frontendUrl = frontendUrlFor(req);
+
+    if (!user) {
+      res.redirect(`${frontendUrl}/login?error=access_denied`);
+      return;
+    }
 
     // "Add a sign-in method" flow: the OAuth `state` carried a signed oauth-link
     // token (signed by the guard from the user's access-token cookie). The

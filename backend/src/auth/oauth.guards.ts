@@ -29,6 +29,17 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
     canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
       const req = context.switchToHttp().getRequest<Request>();
       const guard = isTunnelRequest(req.get('host')) ? this.tunnel : this.local;
+      const frontendUrl = isTunnelRequest(req.get('host'))
+        ? (secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev')
+        : (secret('FRONTEND_URL') ?? 'https://localhost:8443');
+
+      // If the provider returned an OAuth error directly (e.g. ?error=access_denied)
+      if (req.query?.error) {
+        const res = context.switchToHttp().getResponse<Response>();
+        const errParam = req.query.error === 'access_denied' ? 'access_denied' : 'oauth_failed';
+        res.redirect(`${frontendUrl}/login?error=${errParam}`);
+        return false;
+      }
 
       // "Add a sign-in method" intent: when the browser already holds a valid
       // access-token cookie, treat this OAuth startup as a LINK — sign a
@@ -56,28 +67,40 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
         (guard as any).options = { ...opts, state };
       }
 
-      const result = guard.canActivate(context);
+      try {
+        const result = guard.canActivate(context);
 
-      // Fast paths — a boolean can't carry the strategy rejection; observables
-      // are passed through untouched.
-      if (typeof result === 'boolean') return result;
-      if (result instanceof Observable) return result;
+        // Fast paths — a boolean can't carry the strategy rejection; observables
+        // are passed through untouched.
+        if (typeof result === 'boolean') {
+          if (!result) {
+            const res = context.switchToHttp().getResponse<Response>();
+            res.redirect(`${frontendUrl}/login?error=access_denied`);
+            return false;
+          }
+          return result;
+        }
+        if (result instanceof Observable) return result;
 
-      // Promise path: the strategy may reject with the email-taken
-      // ConflictException. The browser is on a redirect round-trip here, so a
-      // JSON error would land blank on screen — send it back to the login page
-      // with the translated email-in-use error instead.
-      return result.catch((err: unknown) => {
-        if (err instanceof ConflictException) {
+        // Promise path: handle strategy rejection or conflict exceptions by redirecting to login.
+        return result.catch((err: unknown) => {
           const res = context.switchToHttp().getResponse<Response>();
-          const frontendUrl = isTunnelRequest(req.get('host'))
-            ? (secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev')
-            : (secret('FRONTEND_URL') ?? 'https://localhost:8443');
+          if (err instanceof ConflictException) {
+            res.redirect(`${frontendUrl}/login?error=email-in-use`);
+            return false;
+          }
+          res.redirect(`${frontendUrl}/login?error=access_denied`);
+          return false;
+        });
+      } catch (err: unknown) {
+        const res = context.switchToHttp().getResponse<Response>();
+        if (err instanceof ConflictException) {
           res.redirect(`${frontendUrl}/login?error=email-in-use`);
           return false;
         }
-        throw err;
-      });
+        res.redirect(`${frontendUrl}/login?error=access_denied`);
+        return false;
+      }
     }
   }
 

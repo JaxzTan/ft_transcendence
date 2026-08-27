@@ -627,6 +627,8 @@ export const ms = {
     errorNoVerifiedEmail: 'Akaun penyedia itu tiada e-mel disahkan, jadi kami tidak dapat menghantar kod log masuk.',
     errorInvalidVerificationLink: 'Pautan pengesahan itu tidak sah atau telah tamat tempoh. Daftar semula untuk mendapatkan yang baharu.',
     errorEmailInUseOAuth: 'E-mel ini sudah digunakan. Gunakan e-mel lain atau log masuk menggunakan kaedah yang sama dengan akaun ini dicipta.',
+    errorAccessDenied: 'Pengesahan dibatalkan atau akses ditolak.',
+    errorOAuthFailed: 'Pengesahan dengan penyedia perkhidmatan gagal. Sila cuba lagi.',
     errorAddEmail2FA: 'Akaun anda belum mempunyai e-mel — tambah satu dalam Edit Profil sebelum mendayakan pengesahan dua faktor.',
     identifierPlaceholder: 'NightRook atau anda@parlor.gg',
     rememberMe: 'Ingat saya',
