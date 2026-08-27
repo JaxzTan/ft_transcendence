@@ -14,6 +14,7 @@ export interface LeaderboardEntry {
   draws: number;
   winRate: number;
   avatarStyle: string | null;
+  hasAvatarPhoto: boolean;
 }
 
 export interface LeaderboardResponse {
@@ -76,6 +77,7 @@ export class LeaderboardService {
             wins: true,
             losses: true,
             avatarStyle: true,
+            avatarPhotoContentType: true,
           },
         });
 
@@ -104,6 +106,7 @@ export class LeaderboardService {
               draws: 0,
               winRate,
               avatarStyle: user.avatarStyle,
+              hasAvatarPhoto: user.avatarPhotoContentType !== null,
             };
           });
 
@@ -171,7 +174,7 @@ export class LeaderboardService {
       select: {
         username: true,
         displayName: true,
-        wins: true, losses: true, avatarStyle: true,
+        wins: true, losses: true, avatarStyle: true, avatarPhotoContentType: true,
       },
     });
     const userMap = new Map(users.map(u => [u.username, u]));
@@ -194,6 +197,7 @@ export class LeaderboardService {
         draws: 0,
         winRate,
         avatarStyle: u?.avatarStyle ?? null,
+        hasAvatarPhoto: u?.avatarPhotoContentType != null,
       };
     });
 

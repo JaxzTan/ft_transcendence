@@ -8,9 +8,10 @@ type UserAvatarProps = {
   avatarStyle?: any
   style?: any
   cacheBuster?: number
+  hasAvatarPhoto?: boolean
 }
 
-export function UserAvatar({ username, size, fallbackStyle, avatarStyle, style, cacheBuster }: UserAvatarProps) {
+export function UserAvatar({ username, size, fallbackStyle, avatarStyle, style, cacheBuster, hasAvatarPhoto }: UserAvatarProps) {
   const [error, setError] = useState(false)
 
   // Reset error state if username or cache buster changes
@@ -40,7 +41,9 @@ export function UserAvatar({ username, size, fallbackStyle, avatarStyle, style, 
     )
   }
 
-  const src = error
+  // Known to have no photo → never ask. Otherwise try it, with `error` still
+  // guarding the case where a photo exists but fails to load.
+  const src = (hasAvatarPhoto === false || error)
     ? dicebearAvatar(username, avatarStyle)
     : `/api/user/${username}/avatar${cacheBuster ? `?t=${cacheBuster}` : ''}`
 

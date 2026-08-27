@@ -17,6 +17,7 @@ type Friend = {
   username: string
   displayName?: string
   avatarStyle: any
+  hasAvatarPhoto?: boolean
   rating: number
   friendsSince: string
   status: PresenceStatus
@@ -28,6 +29,7 @@ type FriendRequest = {
   username: string
   displayName?: string
   avatarStyle: any
+  hasAvatarPhoto?: boolean
   createdAt: string
 }
 
@@ -36,6 +38,7 @@ type BlockedUser = {
   username: string
   displayName?: string
   avatarStyle: any
+  hasAvatarPhoto?: boolean
   rating: number
   blockedSince: string
 }
@@ -582,6 +585,7 @@ export function Friends() {
                                 >
                                   <UserAvatar
                                     username={f.username}
+                                    hasAvatarPhoto={f.hasAvatarPhoto}
                                     avatarStyle={f.avatarStyle}
                                     size={42}
                                     fallbackStyle={{
@@ -738,6 +742,7 @@ export function Friends() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <UserAvatar
                               username={b.username}
+                              hasAvatarPhoto={b.hasAvatarPhoto}
                               size={38}
                               fallbackStyle={{
                                 width: 38,
@@ -984,6 +989,7 @@ export function Friends() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                             <UserAvatar
                               username={r.username}
+                              hasAvatarPhoto={r.hasAvatarPhoto}
                               avatarStyle={r.avatarStyle}
                               size={34}
                               fallbackStyle={{

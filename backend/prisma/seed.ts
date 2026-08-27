@@ -1,42 +1,14 @@
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { config as loadEnv } from 'dotenv';
 import { randomUUID } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import Redis from 'ioredis';
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-function secret(name: string): string | undefined {
-  const dir = process.env.SECRETS_DIR ?? '/secrets';
-  for (const base of [dir, join(process.cwd(), '..', 'secrets')]) {
-    try {
-      const value = readFileSync(join(base, `${name.toLowerCase()}.txt`), 'utf8').trim();
-      if (value) return value;
-    } catch {
-      // try next location
-    }
-  }
-  return process.env[name];
-}
+loadEnv({ path: join(__dirname, '..', '..', '.env') });
 
-function getDatabaseUrl(): string {
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-  const creds = secret('DB_CREDENTIALS');
-  const pwd = secret('DB_PASSWORD');
-  if (creds && pwd) {
-    const parts = creds.split(':');
-    const user = parts[0] || 'db_bossman';
-    const db = parts[1] || 'transcendence';
-    // db_credentials.txt's host field ("db") is correct only inside the
-    // container. Outside Docker, SECRETS_DIR is unset, so ignore the file's
-    // value and use localhost (reachable via compose.yaml's published port).
-    const host = process.env.SECRETS_DIR ? parts[2] || 'db' : 'localhost';
-    return `postgresql://${user}:${pwd}@${host}:5432/${db}`;
-  }
-  return secret('DATABASE_URL') || '';
-}
-
-const adapter = new PrismaPg({ connectionString: getDatabaseUrl() });
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL ?? '' });
 const prisma = new PrismaClient({ adapter });
 
 const SEED_PLAYERS = [
@@ -213,9 +185,9 @@ async function main() {
 
   // ── Sync All Pilots directly to Redis Leaderboard ──────────────────────────
   try {
-    const redisHost = process.env.REDIS_HOST || (process.env.SECRETS_DIR ? 'redis' : 'localhost');
+    const redisHost = process.env.REDIS_HOST || 'localhost';
     const redisPort = parseInt(process.env.REDIS_PORT || '6479', 10);
-    const redisPassword = secret('REDIS_PASSWORD') || 'password123';
+    const redisPassword = process.env.REDIS_PASSWORD || 'password123';
     const redis = new Redis({ host: redisHost, port: redisPort, password: redisPassword });
     
     // Clear old Redis leaderboards

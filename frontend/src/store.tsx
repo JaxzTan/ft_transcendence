@@ -5,7 +5,7 @@ import { BOT_POOL } from './theme'
 import { apiFetch } from './api'
 import type { PlayerColor } from './game/types'
 
-export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean }
+export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean; avatarStyle?: string | null; hasAvatarPhoto?: boolean }
 
 /** Pulls a readable message out of nestjs error body  */
 function apiError(body: unknown, fallback: string): string {
@@ -158,12 +158,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
-    // apiFetch: if the access token has expired but the refresh token is still
-    // good, this silently refreshes and we stay logged in across reloads.
-    apiFetch('/api/auth/me')
-      .then(async (res) => setUser(res.ok ? (await res.json()).user : null))
-      .catch(() => setUser(null))
-      .finally(() => setAuthReady(true))
+    let cancelled = false
+
+    const restore = async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await apiFetch('/api/auth/me')
+          if (cancelled) return
+
+          if (res.ok) {
+            setUser((await res.json()).user)
+            return
+          }
+          if (res.status === 401 || res.status === 403) {
+            setUser(null) // genuinely signed out
+            return
+          }
+
+          // 429/5xx — retry, honouring Retry-After when the server sends one.
+          const retryAfter = Number(res.headers.get('Retry-After'))
+          const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+            ? Math.min(retryAfter * 1000, 8000)
+            : 1000 * 2 ** attempt
+          await new Promise((r) => setTimeout(r, waitMs))
+        } catch {
+          if (cancelled) return
+          // Network error — also not a logout. Back off and try again.
+          await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
+        }
+      }
+      // Out of attempts and still no clear answer: leave `user` as it is rather
+      // than inventing a logout. authReady still resolves below, so the UI
+      // renders instead of hanging on a spinner.
+    }
+
+    restore().finally(() => {
+      if (!cancelled) setAuthReady(true)
+    })
+
+    return () => { cancelled = true }
   }, [])
 
   // Login — factor one. Password OK means a code was emailed; the session
