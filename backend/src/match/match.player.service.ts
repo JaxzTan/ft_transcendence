@@ -28,6 +28,12 @@ export class MatchPlayerService {
 	async joinMatch(gameId: string, userId: string) {
 		const data = await this.redis.hgetall(`match:${gameId}`);
 		if (!data || !data.id) throw new NotFoundException('Game not found');
+
+		// If player already in game, then hand back the same seat instead of allocating another
+		const seatedSlot = [data.player1_id, data.player2_id, data.player3_id, data.player4_id]
+			.indexOf(userId);
+		if (seatedSlot !== -1) return this.rejoin(gameId, userId);
+
 		if (data.status !== 'WAITING') throw new ForbiddenException('Game already started');
 		// Humans can only join human rooms — PvE/hotseat rooms are auto-started
 		// and never accept a second human via this endpoint.
