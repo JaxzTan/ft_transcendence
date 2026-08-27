@@ -116,6 +116,11 @@ export function Game() {
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
   const viewRef = useRef(view)
   viewRef.current = view
+  // Latest activeMatch, read through a ref: the socket effect below must NOT
+  // depend on the whole activeMatch object — a color change would otherwise
+  // tear down and recreate the socket on every color pick (see color-mismatch.md).
+  const activeMatchRef = useRef(activeMatch)
+  activeMatchRef.current = activeMatch
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const moveLogContainerRef = useRef<HTMLDivElement>(null)
   const [displayedTurn, setDisplayedTurn] = useState<PlayerColor>(activeMatch?.color ?? 'red')
@@ -212,25 +217,29 @@ export function Game() {
       .catch(() => setFriends([]))
   }, [view.status, activeMatch?.mode, activeMatch?.gameId])
 
-  // Connect to engine via Socket.IO
+  // Connect to engine via Socket.IO. The effect is keyed on the match's stable
+  // identity (gameId/token/mode) rather than the whole activeMatch object so a
+  // color change (setActiveMatch with a new color) doesn't churn the socket.
+  // Handlers read the live color through activeMatchRef.
   useEffect(() => {
-    if (!activeMatch) return
+    if (!activeMatchRef.current) return
 
-    const socket = connectSocket(activeMatch.token)
+    const socket = connectSocket(activeMatchRef.current.token)
     socketRef.current = socket
 
     // Refresh-safety: very old cached activeMatch objects (pre mode/playerCount
     // in the create response) may lack mode after a browser refresh. Re-derive
     // it from the match record so hotseat/PvE boundaries can never collapse
     // into a generic PvP rejoin.
-    if (activeMatch && !activeMatch.mode) {
+    const match = activeMatchRef.current
+    if (match && !match.mode) {
       fetch('/api/games/mine', { credentials: 'include' })
         .then((r) => (r.ok ? r.json() : null))
         .then((rooms: Array<{ id: string; gameType?: string }> | null) => {
-          const room = rooms?.find((x) => x.id === activeMatch.gameId)
+          const room = rooms?.find((x) => x.id === match.gameId)
           if (room?.gameType) {
             const mode = (room.gameType === 'PVP' ? 'pvp' : room.gameType === 'PVE' ? 'pve' : 'hotseat') as 'pvp' | 'pve' | 'hotseat'
-            setActiveMatch({ ...activeMatch, mode, playerCount: activeMatch.playerCount ?? 4 })
+            setActiveMatch({ ...match, mode, playerCount: match.playerCount ?? 4 })
           }
         })
         .catch(() => undefined)
@@ -240,12 +249,12 @@ export function Game() {
       // Hotseat: one physical device controls every seat — the engine has no
       // separate accounts to join with, so this single socket must join_game
       // for every local color up front.
-      if (activeMatch.mode === 'hotseat') {
+      if (activeMatchRef.current?.mode === 'hotseat') {
         for (const ck of Object.keys(localNames) as PlayerColor[]) {
-          socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
+          socket.emit('join_game', activeMatchRef.current!.gameId, ck, undefined, localNames[ck])
         }
       }
-      socket.emit('join_game', activeMatch.gameId, activeMatch.color, user?.id, user?.displayName)
+      socket.emit('join_game', activeMatchRef.current!.gameId, activeMatchRef.current!.color, user?.id, user?.displayName)
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -374,12 +383,22 @@ export function Game() {
           runStepAnimation()
         }
       } else if (type === 'lobby_update') {
-        const e = state as unknown as { players: Array<{ username: string; color: PlayerColor }> }
-        const mine = e.players.find((p) => p.username === user?.username)
+        // Hotseat drives seat/color via the turn effect below — every local
+        // seat shares the host's account, so identity matching is ambiguous here.
+        if (activeMatchRef.current?.mode === 'hotseat') return
+        const e = state as unknown as { players: Array<{ username: string; color: PlayerColor; displayName?: string }> }
+        // The engine keeps the seat's displayName in `username` (see
+        // handleJoinGame in the engine's socket-handlers.ts), so match on
+        // either identity — otherwise the color-sync/rejoin path below never
+        // fires for users whose displayName differs from their login username,
+        // leaving stale seats in the roster (see color-mismatch.md).
+        const mine = e.players.find(
+          (p) => p.username === user?.username || p.displayName === user?.displayName,
+        )
         if (mine && mine.color !== viewRef.current.myColor) {
           dispatch({ type: 'my_color_changed', color: mine.color })
-          socket.emit('join_game', activeMatch.gameId, mine.color, user?.id, user?.displayName)
-          setActiveMatch({ ...activeMatch, color: mine.color })
+          socket.emit('join_game', activeMatchRef.current!.gameId, mine.color, user?.id, user?.displayName)
+          setActiveMatch({ ...activeMatchRef.current!, color: mine.color })
         }
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
@@ -392,14 +411,14 @@ export function Game() {
             isBot: p.isBot,
             piecesInGoal: p.piecesInGoal,
           }))
-        if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
-          endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
+        if (activeMatchRef.current?.mode === 'pvp' && activeMatchRef.current.playerCount && endedPlayers.length > activeMatchRef.current.playerCount) {
+          endedPlayers = endedPlayers.slice(0, activeMatchRef.current.playerCount)
         }
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
-          mode: activeMatch?.mode ?? 'pvp',
-          playerCount: activeMatch?.playerCount ?? endedPlayers.length,
+          mode: activeMatchRef.current?.mode ?? 'pvp',
+          playerCount: activeMatchRef.current?.playerCount ?? endedPlayers.length,
           players: endedPlayers,
         })
         setShowResultsModal(true)
@@ -455,15 +474,15 @@ export function Game() {
           .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
       }
 
-      if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
-        players = players.slice(0, activeMatch.playerCount)
+      if (activeMatchRef.current?.mode === 'pvp' && activeMatchRef.current.playerCount && players.length > activeMatchRef.current.playerCount) {
+        players = players.slice(0, activeMatchRef.current.playerCount)
       }
 
       return {
         winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
         resultDetail: 'abandoned',
-        mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? players.length,
+        mode: activeMatchRef.current?.mode ?? 'pvp',
+        playerCount: activeMatchRef.current?.playerCount ?? players.length,
         players,
         abandoned: true,
       }
@@ -493,7 +512,7 @@ export function Game() {
       setAnimatingPiece(null)
       setCaptureFx(null)
     }
-  }, [activeMatch, setLastResult])
+  }, [activeMatch?.gameId, activeMatch?.token, activeMatch?.mode, setLastResult])
 
   useEffect(() => {
     if (!activeMatch || activeMatch.mode !== 'hotseat') return

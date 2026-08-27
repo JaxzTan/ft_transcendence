@@ -51,10 +51,14 @@ export class LobbyManager {
       .find((id, idx) => id && id !== userId && (data[`player${idx + 1}_color`] as string) === color);
 
     if (takenBy) {
-      // Swap: give requested color to requester, take the other player's color
+      // Swap: give the requested color to the requester and hand the
+      // requester's old color to the displaced player. `otherColor` must be
+      // the requester's current color — `data[otherColorKey]` is the requested
+      // color itself (that's how `takenBy` was found), so reading it there
+      // would leave BOTH slots on the same color.
       const otherSlot = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(takenBy);
       const otherColorKey = `player${otherSlot + 1}_color`;
-      const otherColor = data[otherColorKey] as PlayerColor;
+      const otherColor = currentColor;
 
       await this.store.updateMatchData(gameId, {
         [currentColorKey]: color,

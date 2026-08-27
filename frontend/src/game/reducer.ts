@@ -67,13 +67,19 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
     case 'lobby_update': {
       const payload = (event.players as Array<{ username: string; color: PlayerColor; ready: boolean }>) ?? []
       // The engine only includes non-inactive seats in this payload (see
-      // emitLobbyUpdate in engine.ts), so presence here means the seat has
-      // joined. Without marking it active, a player who joined before
-      // another one never sees that seat's status flip, so their local
-      // activeCount stays stuck below 2 and their Ready button never enables.
+      // emitLobbyUpdate in engine.ts), so presence here means the seat is
+      // seated: mark it active so a player who joined before another one
+      // sees that seat's status flip (and the Ready button enables).
+      // Seats ABSENT from the payload are no longer seated — e.g. the player
+      // just swapped to another color — so demote them. Without this, every
+      // color change in a PvP lobby leaves the old seat occupied with the
+      // player's name (see color-mismatch.md).
       const players = state.players.map((p) => {
         const seat = payload.find((e) => e.color === p.color)
-        return seat ? { ...p, username: seat.username, status: 'active' as const } : p
+        if (!seat) {
+          return p.status === 'inactive' ? p : { ...p, status: 'inactive' as const }
+        }
+        return { ...p, username: seat.username, status: 'active' as const }
       })
       return {
         ...state,
