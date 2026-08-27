@@ -973,12 +973,9 @@ export function Game() {
                           {occupied && playerMeta?.username ? (
                             <UserAvatar
                               username={playerMeta.username}
-                              // `?? false`: on the very first render (before myColor/user
-                              // settle from the socket handshake) `isYou` can be
-                              // momentarily wrong even for the real self-seat, and
-                              // undefined here reads as "try the network" rather than
-                              // "no photo yet" — that fires a real 404 on every fresh load.
-                              hasAvatarPhoto={playerMeta.isBot ? false : (isYou ? (user?.hasAvatarPhoto ?? false) : undefined)}
+                              // Always use the generated avatar in-game — never hit
+                              // /api/user/:username/avatar over the network here.
+                              hasAvatarPhoto={false}
                               size={34}
                               fallbackStyle={{
                                 width: 34,
@@ -1142,7 +1139,9 @@ export function Game() {
                         {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
                             username={playerMeta.username}
-                            hasAvatarPhoto={isYou ? (user?.hasAvatarPhoto ?? false) : undefined}
+                            // Always use the generated avatar in-game — never hit
+                            // /api/user/:username/avatar over the network here.
+                            hasAvatarPhoto={false}
                             size={36}
                             fallbackStyle={{
                               width: 36,
