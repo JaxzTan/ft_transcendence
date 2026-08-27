@@ -11,7 +11,7 @@ OAUTH_VARS     = GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_CALLBACK_URL \
                  FORTYTWO_CLIENT_ID FORTYTWO_CLIENT_SECRET FORTYTWO_CALLBACK_URL
 
 all: build start
-	@echo "✅ Frontend: https://localhost:$(HTTPS_PORT)"
+	@ echo "Frontend: https://localhost:$(HTTPS_PORT)"
 
 # One-command config pipeline: generate any missing derived values, then
 # preflight (fail hard) on the manual-only ones (OAuth apps). Used by every

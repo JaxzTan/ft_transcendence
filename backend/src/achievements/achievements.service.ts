@@ -148,25 +148,36 @@ export class AchievementsService {
    * GET /api/achievements — registry-driven report.
    * Returns { [achKey]: { unlocked, progress, target } } for all 13 keys.
    */
-  async getUserAchievements(userId: string) {
-    const user = await this.prisma.db.user.findUnique({ where: { id: userId }, include: { achievement: true } });
+  async getUserAchievements(userId: string, targetUsername?: string) {
+    let effectiveUserId = userId;
+    if (targetUsername) {
+      const targetUser = await this.prisma.db.user.findUnique({
+        where: { username: targetUsername },
+        select: { id: true },
+      });
+      if (targetUser) {
+        effectiveUserId = targetUser.id;
+      }
+    }
+
+    const user = await this.prisma.db.user.findUnique({ where: { id: effectiveUserId }, include: { achievement: true } });
     if (!user) return {};
 
-    const counts = await this.computeLifecycleCounts(userId, user);
+    const counts = await this.computeLifecycleCounts(effectiveUserId, user);
     const latestGame = await this.prisma.db.game.findFirst({
-      where: { status: 'COMPLETED', participants: { some: { user_id: userId } } },
+      where: { status: 'COMPLETED', participants: { some: { user_id: effectiveUserId } } },
       orderBy: { endedAt: 'desc' },
       include: { participants: true },
     });
     const myParticipation = latestGame?.participants?.find(
-      (p: any) => p.user_id === userId,
+      (p: any) => p.user_id === effectiveUserId,
     ) as GameParticipantLike | undefined;
 
     const result: Record<string, { unlocked: boolean; progress: number; target: number }> = {};
 
     for (const key of ACHIEVEMENT_KEYS) {
       const rule = ACHIEVEMENT_RULES.find((r) => r.key === key)!;
-      const unlocked = Boolean((user.achievement as any)[key]);
+      const unlocked = Boolean((user.achievement as any)?.[key]);
 
       let progress = 0;
       let target = rule.target ?? 0;

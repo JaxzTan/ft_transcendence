@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useApp } from '../store'
 import { apiFetch } from '../api'
 
@@ -19,9 +20,20 @@ export interface Notification {
 }
 export type InAppNotification = Notification
 
-// ─── Hook ────────────────────────────────────────────────────────────────────
+interface NotificationsContextValue {
+  notifications: Notification[]
+  toasts: Notification[]
+  unreadCount: number
+  markRead: (id: string) => void
+  markAllRead: () => void
+  dismissToast: (id: string) => void
+}
 
-export function useNotifications() {
+const NotificationsContext = createContext<NotificationsContextValue | null>(null)
+
+// ─── Provider ────────────────────────────────────────────────────────────────
+
+export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { user } = useApp()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [toasts, setToasts] = useState<Notification[]>([])
@@ -111,12 +123,38 @@ export function useNotifications() {
     setToasts((prev) => prev.filter((n) => n.id !== id))
   }, [])
 
-  return {
-    notifications,
-    toasts,
-    unreadCount,
-    markRead,
-    markAllRead,
-    dismissToast,
+  const value = useMemo(
+    () => ({
+      notifications,
+      toasts,
+      unreadCount,
+      markRead,
+      markAllRead,
+      dismissToast,
+    }),
+    [notifications, toasts, unreadCount, markRead, markAllRead, dismissToast],
+  )
+
+  return (
+    <NotificationsContext.Provider value={value}>
+      {children}
+    </NotificationsContext.Provider>
+  )
+}
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+export function useNotifications(): NotificationsContextValue {
+  const ctx = useContext(NotificationsContext)
+  if (!ctx) {
+    return {
+      notifications: [],
+      toasts: [],
+      unreadCount: 0,
+      markRead: () => {},
+      markAllRead: () => {},
+      dismissToast: () => {},
+    }
   }
+  return ctx
 }

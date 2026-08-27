@@ -2,7 +2,7 @@
 secrets/
 backend/generated/
 backend/dist/
-docs/
+
 
 # Logs
 logs
@@ -90,4 +90,5 @@ docs
 !frontend/public/*.png
 *.md
 *.sh
-*.skill
+.markdownlint.json
+

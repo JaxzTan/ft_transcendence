@@ -76,7 +76,9 @@ export class SessionService implements OnModuleDestroy {
     const hashes = await this.redis.smembers(`sessions:${userId}`);
     const revokeHashes = hashes.filter((h) => h !== keepHash);
     if (!keepHash) await this.redis.del(`sessions:${userId}`);
-    else await this.redis.srem(`sessions:${userId}`, ...revokeHashes);
+    // SREM with no members (single-session user, e.g. setting a first password
+    // from the only logged-in device) is a Redis protocol error — guard it.
+    else if (revokeHashes.length > 0) await this.redis.srem(`sessions:${userId}`, ...revokeHashes);
     const keys = revokeHashes.map((h) => `refresh:${h}`);
     if (keys.length) await this.redis.del(...keys);
   }
