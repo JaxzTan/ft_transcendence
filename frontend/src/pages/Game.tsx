@@ -581,6 +581,7 @@ export function Game() {
   }
 
   const selectColor = (color: PlayerColor) => {
+    if (activeMatch?.mode === 'pvp') return
     retroAudio.playUiBeep(720, 0.05)
     socketRef.current?.emit('select_color', color)
   }
@@ -893,7 +894,7 @@ export function Game() {
                       const takenByOther = Boolean(
                         occupied && !isYou && playerMeta?.username && playerMeta.username !== user?.username
                       )
-                      const canSelect = !takenByOther && !isYou
+                      const canSelect = activeMatch?.mode !== 'pvp' && !takenByOther && !isYou
 
                       return (
                         <div
@@ -903,7 +904,7 @@ export function Game() {
                               selectColor(ck)
                             }
                           }}
-                          title={canSelect ? `Select ${ck.toUpperCase()} seat` : isYou ? 'Your seat' : 'Occupied seat'}
+                          title={isYou ? t('game.yourSeat', 'Your seat') : occupied ? t('game.occupied', 'Occupied seat') : t('game.emptySeat', 'Empty seat')}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -926,7 +927,7 @@ export function Game() {
                                   ? 'rgba(10, 5, 25, 0.5)'
                                   : 'rgba(10, 5, 25, 0.35)',
                             boxShadow: isYou ? `0 0 12px ${colorAccent}55` : 'none',
-                            opacity: occupied || canSelect ? 1 : 0.5,
+                            opacity: occupied || isYou ? 1 : 0.5,
                             transition: 'all 0.2s ease',
                           }}
                         >
@@ -989,9 +990,9 @@ export function Game() {
                             <div style={{ fontSize: '0.68rem', color: isYou ? colorAccent : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                               {isYou
                                 ? `// [${t('game.yourSeat', 'YOUR SEAT')}]`
-                                : takenByOther
+                                : occupied
                                   ? `// [${t('game.occupied', 'OCCUPIED')}]`
-                                  : `// [${t('game.availableSeat', 'CLICK TO CHOOSE')}]`}
+                                  : `// [${t('game.emptySeat', 'EMPTY SEAT')}]`}
                             </div>
                           </div>
 
