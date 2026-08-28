@@ -812,6 +812,8 @@ export const ms = {
     themeCyberpunk: 'CYBERPUNK',
     themeWin95: 'WIN95',
     themeTerminal: 'TERMINAL',
+    rejoinActiveBtn: 'SERTAI PERLAWANAN',
+    rejoinActiveTooltip: 'Sertai semula perlawanan aktif anda',
   },
   homeDeck: {
     title: '◖ DEK CYBERSOUND ◗',

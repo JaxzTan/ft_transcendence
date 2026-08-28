@@ -812,6 +812,8 @@ export const fr = {
     themeCyberpunk: 'CYBERPUNK',
     themeWin95: 'WIN95',
     themeTerminal: 'TERMINAL',
+    rejoinActiveBtn: 'REJOINDRE PARTIE',
+    rejoinActiveTooltip: 'Rejoindre votre partie active en cours',
   },
   homeDeck: {
     title: '◖ PLATINE CYBERSON ◗',

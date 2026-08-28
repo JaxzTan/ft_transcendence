@@ -71,6 +71,7 @@ export function NotificationBell({
   onMarkAllRead,
   placement = 'bottom-right',
   fullWidth = false,
+  compact = false,
   containerStyle,
   buttonStyle,
 }: {
@@ -80,6 +81,8 @@ export function NotificationBell({
   onMarkAllRead: () => void
   placement?: 'bottom-right' | 'right'
   fullWidth?: boolean
+  /** Icon-only trigger (no text pill) — used by RetroNavbar's collapsed sidebar rail. */
+  compact?: boolean
   containerStyle?: CSSProperties
   buttonStyle?: CSSProperties
 }) {
@@ -190,9 +193,10 @@ export function NotificationBell({
   const bellContainerStyle: CSSProperties = {
     position: 'relative',
     userSelect: 'none',
-    display: fullWidth ? 'flex' : 'inline-flex',
+    display: fullWidth && !compact ? 'flex' : 'inline-flex',
     alignItems: 'center',
-    width: fullWidth ? '100%' : 'auto',
+    justifyContent: 'center',
+    width: fullWidth && !compact ? '100%' : 'auto',
     height: fullWidth ? 44 : 38,
     ...containerStyle,
   }
@@ -249,7 +253,41 @@ export function NotificationBell({
   return (
     <div ref={ref} style={bellContainerStyle}>
       {/* Old-School Tactical Receiver Button */}
-      {fullWidth ? (
+      {fullWidth && compact ? (
+        <button
+          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${open ? 'active' : ''}`}
+          onClick={toggleOpen}
+          title={t('notifications.title')}
+          style={{
+            width: 44,
+            height: 44,
+            justifyContent: 'center',
+            padding: 0,
+            borderRadius: 10,
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(0, 240, 255, 0.3)',
+            color: 'var(--text-main)',
+            position: 'relative',
+            ...buttonStyle,
+          }}
+        >
+          <span style={{ fontSize: '1.1rem' }}>🔔</span>
+          {count > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: '#ff007f',
+                boxShadow: '0 0 6px #ff007f',
+              }}
+            />
+          )}
+        </button>
+      ) : fullWidth ? (
         <button
           className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${open ? 'active' : ''}`}
           onClick={toggleOpen}

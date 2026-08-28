@@ -7,14 +7,16 @@ import { retroAudio } from '../utils/audio'
 import { UserAvatar } from './UserAvatar'
 import { NotificationBell } from './NotificationBell'
 import { useNotifications, type Notification } from '../hooks/useNotifications'
+import { getApi, postApi } from '../api'
+import type { ActiveMatch } from '../store'
 import {
-	RETRO_BTN,
-	THEME_TRIGGER_BTN_BASE,
-	THEME_POPOVER_MENU_BASE,
-	THEME_POPOVER_MENU_HIDDEN,
-	THEME_POPOVER_MENU_ACTIVE_DOWN,
-	THEME_POPOVER_MENU_ACTIVE_UP,
-	RETRO_FLOATING_DOCK,
+  RETRO_BTN,
+  THEME_TRIGGER_BTN_BASE,
+  THEME_POPOVER_MENU_BASE,
+  THEME_POPOVER_MENU_HIDDEN,
+  THEME_POPOVER_MENU_ACTIVE_DOWN,
+  THEME_POPOVER_MENU_ACTIVE_UP,
+  RETRO_FLOATING_DOCK,
 } from '../styles/tw'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
@@ -40,8 +42,24 @@ export function RetroNavbar({
 }: RetroNavbarProps) {
   const { t } = useTranslation()
   const route = useRoute()
-  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor, theme, setTheme } = useApp()
+  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor, theme, setTheme, setActiveMatch } = useApp()
   const currentPath = activeRoute || route.path
+
+  // Below Tailwind's `xl` breakpoint (1280px) the sidebar collapses to an
+  // icon-only rail — labels are JS-conditional (not just CSS-hidden) because
+  // several pieces of width/padding here are plain inline styles, not
+  // Tailwind classes. The `<aside>` wrapper in each consuming page mirrors
+  // this exact threshold via `w-[88px] xl:w-[270px]` so the two stay in sync.
+  const [isCompact, setIsCompact] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1280)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1279px)')
+    const handler = () => setIsCompact(mq.matches)
+    handler()
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  const [activeGame, setActiveGame] = useState<{ id: string; roomCode: string | null; status: string; gameType: string } | null>(null)
+  const [isRejoining, setIsRejoining] = useState(false)
 
   const navItems = [
     { path: '/home', label: t('nav.home').toUpperCase(), icon: '⌂' },
@@ -80,6 +98,46 @@ export function RetroNavbar({
   const applyTheme = (newTheme: ThemeType) => {
     setTheme(newTheme)
     retroAudio.playUiBeep(880, 0.05)
+  }
+
+  const fetchActiveGame = () => {
+    if (!user) {
+      setActiveGame(null)
+      return
+    }
+    getApi<Array<{ id: string; roomCode: string | null; status: string; gameType: string }>>('/api/games/mine')
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setActiveGame(data[0])
+        } else {
+          setActiveGame(null)
+        }
+      })
+      .catch(() => setActiveGame(null))
+  }
+
+  useEffect(() => {
+    fetchActiveGame()
+    const iv = setInterval(fetchActiveGame, 2500)
+    return () => clearInterval(iv)
+  }, [user, currentPath])
+
+  const handleRejoinActive = async () => {
+    if (!activeGame || isRejoining) return
+    retroAudio.playUiBeep(880, 0.08)
+    setIsRejoining(true)
+    try {
+      const res = await postApi<ActiveMatch>(`/api/game/${activeGame.id}/rejoin`, {})
+      if (res) {
+        setActiveMatch(res)
+        navigate(`/game?gameId=${res.gameId}`)
+      }
+    } catch (err) {
+      console.error('Failed to rejoin active game:', err)
+      fetchActiveGame()
+    } finally {
+      setIsRejoining(false)
+    }
   }
 
   useEffect(() => {
@@ -127,9 +185,9 @@ export function RetroNavbar({
       className={RETRO_FLOATING_DOCK}
       id="mainNav"
       style={{
-        width: 270,
-        minWidth: 270,
-        maxWidth: 270,
+        width: isCompact ? 88 : 270,
+        minWidth: isCompact ? 88 : 270,
+        maxWidth: isCompact ? 88 : 270,
         height: 'calc(100vh - 64px)',
         maxHeight: 'calc(100vh - 64px)',
         margin: 0,
@@ -139,7 +197,8 @@ export function RetroNavbar({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 14,
-        padding: '22px 16px 18px',
+        padding: isCompact ? '22px 10px 18px' : '22px 16px 18px',
+        transition: 'width 0.2s ease, min-width 0.2s ease, max-width 0.2s ease',
         background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
         backdropFilter: 'blur(32px) saturate(220%)',
         WebkitBackdropFilter: 'blur(32px) saturate(220%)',
@@ -174,14 +233,14 @@ export function RetroNavbar({
             style={{
               width: '100%',
               height: 48,
-              padding: '0 12px',
+              padding: isCompact ? 0 : '0 12px',
               borderRadius: 12,
               background: isAccountPopoverOpen ? 'rgba(255, 0, 127, 0.2)' : 'rgba(255, 255, 255, 0.04)',
               border: isAccountPopoverOpen ? '1.5px solid #ff007f' : '1px solid rgba(0, 240, 255, 0.3)',
               boxShadow: isAccountPopoverOpen ? '0 0 16px rgba(255, 0, 127, 0.4)' : 'none',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: isCompact ? 'center' : 'space-between',
               gap: 10,
               cursor: 'pointer',
               boxSizing: 'border-box',
@@ -209,7 +268,7 @@ export function RetroNavbar({
             }}
             title="Account Settings, Language & 2FA"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCompact ? 'center' : 'flex-start', gap: 10, overflow: 'hidden', flex: isCompact ? 'none' : 1 }}>
               <UserAvatar
                 username={username}
                 avatarStyle={user?.avatarStyle}
@@ -227,33 +286,37 @@ export function RetroNavbar({
                   fontSize: '0.8rem',
                 }}
               />
+              {!isCompact && (
+                <span
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '0.94rem',
+                    fontWeight: 900,
+                    color: '#ffffff',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'left',
+                  }}
+                >
+                  {displayName}
+                </span>
+              )}
+            </div>
+            {!isCompact && (
               <span
                 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '0.94rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  textAlign: 'left',
+                  fontSize: '0.7rem',
+                  color: 'var(--accent-cyan)',
+                  fontWeight: 'bold',
+                  transform: isAccountPopoverOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s ease',
+                  flexShrink: 0,
                 }}
               >
-                {displayName}
+                ▼
               </span>
-            </div>
-            <span
-              style={{
-                fontSize: '0.7rem',
-                color: 'var(--accent-cyan)',
-                fontWeight: 'bold',
-                transform: isAccountPopoverOpen ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.2s ease',
-                flexShrink: 0,
-              }}
-            >
-              ▼
-            </span>
+            )}
           </button>
 
           {/* Account & Settings Popover Menu — portaled to document.body so it
@@ -261,209 +324,253 @@ export function RetroNavbar({
               covered by an ancestor's stacking context. Fixed-positioned at
               the trigger's viewport rect (see accountPopoverPos effect). */}
           {isAccountPopoverOpen && createPortal(
-          <div
-            ref={accountPopoverContentRef}
-            className={`${THEME_POPOVER_MENU_BASE} ${THEME_POPOVER_MENU_ACTIVE_DOWN}`}
-            id="accountPopoverMenu"
-            style={{
-              position: 'fixed',
-              top: accountPopoverPos.top,
-              left: accountPopoverPos.left,
-              right: 'auto',
-              bottom: 'auto',
-              width: 275,
-              padding: '16px 16px',
-              borderRadius: 14,
-              background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.96), rgba(10, 2, 28, 0.98))',
-              backdropFilter: 'blur(32px) saturate(220%)',
-              border: '1.5px solid rgba(0, 240, 255, 0.45)',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 240, 255, 0.25)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-              zIndex: 10005,
-            }}
-          >
-            {/* 1. Language Selection (Cyber Segmented Tabs) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.76rem', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
-                  🌐 {t('navbar.languageLabel')}
-                </span>
+            <div
+              ref={accountPopoverContentRef}
+              className={`${THEME_POPOVER_MENU_BASE} ${THEME_POPOVER_MENU_ACTIVE_DOWN}`}
+              id="accountPopoverMenu"
+              style={{
+                position: 'fixed',
+                top: accountPopoverPos.top,
+                left: accountPopoverPos.left,
+                right: 'auto',
+                bottom: 'auto',
+                width: 275,
+                padding: '16px 16px',
+                borderRadius: 14,
+                background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.96), rgba(10, 2, 28, 0.98))',
+                backdropFilter: 'blur(32px) saturate(220%)',
+                border: '1.5px solid rgba(0, 240, 255, 0.45)',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 240, 255, 0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                zIndex: 10005,
+              }}
+            >
+              {/* 1. Language Selection (Cyber Segmented Tabs) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.76rem', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+                    🌐 {t('navbar.languageLabel')}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 6,
+                    background: 'rgba(0, 0, 0, 0.45)',
+                    padding: 4,
+                    borderRadius: 8,
+                    border: '1px solid rgba(0, 240, 255, 0.2)',
+                  }}
+                >
+                  {[
+                    { code: 'en' as const, label: 'EN', full: 'ENGLISH' },
+                    { code: 'ms' as const, label: 'MS', full: 'MELAYU' },
+                    { code: 'fr' as const, label: 'FR', full: 'FRANÇAIS' },
+                  ].map((item) => {
+                    const isSelected = (lang || 'en') === item.code
+                    return (
+                      <button
+                        key={item.code}
+                        type="button"
+                        onClick={() => {
+                          setLang(item.code)
+                          retroAudio.playUiBeep(880, 0.05)
+                        }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '7px 4px',
+                          borderRadius: 6,
+                          border: isSelected ? '1.5px solid var(--accent-cyan)' : '1px solid transparent',
+                          background: isSelected
+                            ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(255, 0, 127, 0.2))'
+                            : 'transparent',
+                          color: isSelected ? '#ffffff' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          boxShadow: isSelected ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
+                          transition: 'all 0.18s ease',
+                          outline: 'none',
+                        }}
+                      >
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '0.88rem' }}>
+                          {item.label}
+                        </span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', opacity: 0.85, marginTop: 2 }}>
+                          {item.full}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
+
+              {/* 2. 2FA Security Toggle Option */}
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 6,
-                  background: 'rgba(0, 0, 0, 0.45)',
-                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
                   borderRadius: 8,
-                  border: '1px solid rgba(0, 240, 255, 0.2)',
+                  background: twoFactor ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                  border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: twoFactor ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
                 }}
+                onClick={() => {
+                  toggleTwoFactor()
+                  retroAudio.playUiBeep(twoFactor ? 440 : 880, 0.06)
+                }}
+                title="Toggle Two-Factor Authentication"
               >
-                {[
-                  { code: 'en' as const, label: 'EN', full: 'ENGLISH' },
-                  { code: 'ms' as const, label: 'MS', full: 'MELAYU' },
-                  { code: 'fr' as const, label: 'FR', full: 'FRANÇAIS' },
-                ].map((item) => {
-                  const isSelected = (lang || 'en') === item.code
-                  return (
-                    <button
-                      key={item.code}
-                      type="button"
-                      onClick={() => {
-                        setLang(item.code)
-                        retroAudio.playUiBeep(880, 0.05)
-                      }}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '7px 4px',
-                        borderRadius: 6,
-                        border: isSelected ? '1.5px solid var(--accent-cyan)' : '1px solid transparent',
-                        background: isSelected
-                          ? 'linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(255, 0, 127, 0.2))'
-                          : 'transparent',
-                        color: isSelected ? '#ffffff' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        boxShadow: isSelected ? '0 0 10px rgba(0, 240, 255, 0.35)' : 'none',
-                        transition: 'all 0.18s ease',
-                        outline: 'none',
-                      }}
-                    >
-                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '0.88rem' }}>
-                        {item.label}
-                      </span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', opacity: 0.85, marginTop: 2 }}>
-                        {item.full}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* 2. 2FA Security Toggle Option */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 12px',
-                borderRadius: 8,
-                background: twoFactor ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: twoFactor ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease',
-              }}
-              onClick={() => {
-                toggleTwoFactor()
-                retroAudio.playUiBeep(twoFactor ? 440 : 880, 0.06)
-              }}
-              title="Toggle Two-Factor Authentication"
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '1rem' }}>🛡️</span>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
-                  {t('navbar.twoFactorLabel')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '1rem' }}>🛡️</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
+                    {t('navbar.twoFactorLabel')}
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 900,
+                    padding: '3px 8px',
+                    borderRadius: 4,
+                    background: twoFactor ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
+                    color: twoFactor ? '#0b021a' : 'var(--text-muted)',
+                    border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
+                  }}
+                >
+                  {twoFactor ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
                 </span>
               </div>
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 900,
-                  padding: '3px 8px',
-                  borderRadius: 4,
-                  background: twoFactor ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
-                  color: twoFactor ? '#0b021a' : 'var(--text-muted)',
-                  border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
-                }}
-              >
-                {twoFactor ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
-              </span>
-            </div>
 
-            {/* 3. Master Audio Toggle — mutes/unmutes ALL sounds (music + FX),
+              {/* 3. Master Audio Toggle — mutes/unmutes ALL sounds (music + FX),
                 same retroAudio.muted flag as the in-game audio toggle. */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 12px',
-                borderRadius: 8,
-                background: !soundMuted ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                border: !soundMuted ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: !soundMuted ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease',
-              }}
-              onClick={toggleSound}
-              title="Toggle all game audio (music + sound effects)"
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: '1rem' }}>{soundMuted ? '🔇' : '🔊'}</span>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
-                  {t('navbar.audioLabel')}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  background: !soundMuted ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                  border: !soundMuted ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: !soundMuted ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
+                }}
+                onClick={toggleSound}
+                title="Toggle all game audio (music + sound effects)"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '1rem' }}>{soundMuted ? '🔇' : '🔊'}</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.84rem', fontWeight: 900, color: '#ffffff' }}>
+                    {t('navbar.audioLabel')}
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 900,
+                    padding: '3px 8px',
+                    borderRadius: 4,
+                    background: !soundMuted ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
+                    color: !soundMuted ? '#0b021a' : 'var(--text-muted)',
+                    border: !soundMuted ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
+                  }}
+                >
+                  {!soundMuted ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
                 </span>
               </div>
-              <span
+
+              {/* 4. Logout / Disconnect Button */}
+              <button
+                className={RETRO_BTN}
+                onClick={async () => {
+                  setIsAccountPopoverOpen(false)
+                  retroAudio.playUiBeep(330, 0.08)
+                  await logout()
+                  navigate('/login')
+                }}
                 style={{
-                  fontSize: '0.68rem',
-                  fontFamily: 'var(--font-mono)',
+                  width: '100%',
+                  padding: '10px 0',
+                  fontSize: '0.84rem',
+                  fontFamily: 'var(--font-display)',
                   fontWeight: 900,
-                  padding: '3px 8px',
-                  borderRadius: 4,
-                  background: !soundMuted ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
-                  color: !soundMuted ? '#0b021a' : 'var(--text-muted)',
-                  border: !soundMuted ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
+                  background: 'linear-gradient(90deg, rgba(255, 0, 85, 0.25), rgba(255, 0, 127, 0.35))',
+                  border: '1.5px solid #ff0055',
+                  color: '#ffffff',
+                  boxShadow: '0 0 12px rgba(255, 0, 85, 0.3)',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  transition: 'all 0.18s ease',
                 }}
               >
-                {!soundMuted ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
-              </span>
-            </div>
-
-            {/* 4. Logout / Disconnect Button */}
-            <button
-              className={RETRO_BTN}
-              onClick={async () => {
-                setIsAccountPopoverOpen(false)
-                retroAudio.playUiBeep(330, 0.08)
-                await logout()
-                navigate('/login')
-              }}
-              style={{
-                width: '100%',
-                padding: '10px 0',
-                fontSize: '0.84rem',
-                fontFamily: 'var(--font-display)',
-                fontWeight: 900,
-                background: 'linear-gradient(90deg, rgba(255, 0, 85, 0.25), rgba(255, 0, 127, 0.35))',
-                border: '1.5px solid #ff0055',
-                color: '#ffffff',
-                boxShadow: '0 0 12px rgba(255, 0, 85, 0.3)',
-                borderRadius: 8,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                transition: 'all 0.18s ease',
-              }}
-            >
-              <span>⏻</span>
-              <span>{t('navbar.logoutBtn')}</span>
-            </button>
-          </div>,
-          document.body
+                <span>⏻</span>
+                <span>{t('navbar.logoutBtn')}</span>
+              </button>
+            </div>,
+            document.body
           )}
         </div>
       </div>
+
+      {/* Active Match In Progress - Instant Rejoin Button */}
+      {activeGame && currentPath !== '/game' && (
+        <div style={{ width: '100%', padding: '0 0 2px', flexShrink: 0 }}>
+          <button
+            type="button"
+            className={RETRO_BTN}
+            id="navRejoinActiveGameBtn"
+            onClick={handleRejoinActive}
+            disabled={isRejoining}
+            style={{
+              width: '100%',
+              padding: '9px 12px',
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(255, 0, 127, 0.35), rgba(0, 240, 255, 0.35))',
+              border: '1.5px solid var(--accent-pink)',
+              boxShadow: '0 0 16px rgba(255, 0, 127, 0.55), inset 0 0 8px rgba(0, 240, 255, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              cursor: isRejoining ? 'wait' : 'pointer',
+              color: '#ffffff',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 900,
+              boxSizing: 'border-box',
+              transition: 'all 0.2s ease',
+            }}
+            title={t('navbar.rejoinActiveTooltip')}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', minWidth: 0 }}>
+                <span style={{ fontSize: '0.8rem', color: '#ffffff', fontWeight: 900, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                  {isRejoining ? 'REJOINING...' : t('navbar.rejoinActiveBtn')}
+                </span>
+                <span style={{ fontSize: '0.62rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  {activeGame.roomCode ? `ROOM: ${activeGame.roomCode}` : `STATUS: ${activeGame.status}`}
+                </span>
+              </div>
+            </div>
+            <span style={{ fontSize: '0.85rem', color: 'var(--accent-pink)', flexShrink: 0 }}>►</span>
+          </button>
+        </div>
+      )}
 
       {/* Navigation Slider Window (Middle of Y-Axis) */}
       <div
@@ -522,9 +629,9 @@ export function RetroNavbar({
                 style={{
                   width: '100%',
                   height: 52,
-                  justifyContent: 'flex-start',
-                  gap: 12,
-                  padding: '0 14px',
+                  justifyContent: isCompact ? 'center' : 'flex-start',
+                  gap: isCompact ? 0 : 12,
+                  padding: isCompact ? 0 : '0 14px',
                   fontSize: '1.02rem',
                   borderRadius: 12,
                   background: isActive
@@ -593,19 +700,21 @@ export function RetroNavbar({
                 >
                   {item.icon}
                 </div>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: '1.02rem',
-                    letterSpacing: '1px',
-                    fontWeight: 900,
-                    flex: 1,
-                    textAlign: 'left',
-                  }}
-                >
-                  {item.label}
-                </span>
-                {isActive && (
+                {!isCompact && (
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '1.02rem',
+                      letterSpacing: '1px',
+                      fontWeight: 900,
+                      flex: 1,
+                      textAlign: 'left',
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                )}
+                {!isCompact && isActive && (
                   <span
                     style={{
                       color: '#ffffff',
@@ -643,8 +752,8 @@ export function RetroNavbar({
             style={{
               width: '100%',
               height: 44,
-              justifyContent: 'space-between',
-              padding: '0 14px',
+              justifyContent: isCompact ? 'center' : 'space-between',
+              padding: isCompact ? 0 : '0 14px',
               fontSize: '0.94rem',
               borderRadius: 10,
               background: 'rgba(255, 255, 255, 0.04)',
@@ -671,13 +780,17 @@ export function RetroNavbar({
               <span style={{ color: 'var(--accent-yellow)', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', fontWeight: 'bold' }}>
                 &lt;/&gt;
               </span>
-              <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
-                {t('navbar.themeBtn')}
-              </span>
+              {!isCompact && (
+                <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
+                  {t('navbar.themeBtn')}
+                </span>
+              )}
             </div>
-            <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
-              {isThemePopoverOpen ? '▼' : '▲'}
-            </span>
+            {!isCompact && (
+              <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
+                {isThemePopoverOpen ? '▼' : '▲'}
+              </span>
+            )}
           </button>
 
           {/* Upward Opening Theme Popover Menu */}
@@ -688,8 +801,8 @@ export function RetroNavbar({
               bottom: 'calc(100% + 8px)',
               top: 'auto',
               left: 0,
-              right: 0,
-              width: '100%',
+              right: isCompact ? 'auto' : 0,
+              width: isCompact ? 240 : '100%',
               padding: '14px 16px',
               borderRadius: 14,
               boxSizing: 'border-box',
@@ -807,6 +920,7 @@ export function RetroNavbar({
             onMarkAllRead={activeMarkAllRead}
             placement="right"
             fullWidth
+            compact={isCompact}
           />
         </div>
       </div>
