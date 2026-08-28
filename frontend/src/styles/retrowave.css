@@ -34,6 +34,24 @@
   --window-header-bg: linear-gradient(90deg, #ff007f, #00f0ff);
   --window-header-text: #ffffff;
   --card-border-style: 2px solid var(--accent-pink);
+
+  /* game board — matches the synthwave scheme */
+  --player-red: #ff007f;
+  --player-green: #00ff88;
+  --player-yellow: #ffe600;
+  --player-blue: #00f0ff;
+  --board-bg: rgba(15, 6, 38, 0.95);
+  --board-yard-bg: rgba(10, 2, 28, 0.95);
+  --board-badge-bg: rgba(5, 5, 20, 0.9);
+  --board-cell-bg: #050515;
+  --board-line: #00f0ff;
+  --board-border: #2121ff;
+  --board-glow: 0 0 25px rgba(33, 33, 255, 0.6), inset 0 0 20px rgba(0, 240, 255, 0.25);
+  --board-glow-soft: 0 0 14px rgba(33, 33, 255, 0.45), inset 0 0 10px rgba(0, 240, 255, 0.15);
+  --board-goal: #00ff88;
+  --board-safe-star: #ffe600;
+  --board-dot: #ffb8ae;
+  --board-legal-glow: #ffe600;
 }
 
 /* Theme: Windows 95 Desktop */
@@ -61,6 +79,24 @@
   --window-header-bg: linear-gradient(90deg, #000080, #1084d0);
   --window-header-text: #ffffff;
   --card-border-style: 2px solid #ffffff;
+
+  /* game board — classic Windows 95 palette (flat, beveled, no glow) */
+  --player-red: #c00000;
+  --player-green: #008000;
+  --player-yellow: #c0a000;
+  --player-blue: #000080;
+  --board-bg: #008080;
+  --board-yard-bg: #c0c0c0;
+  --board-badge-bg: #d4d0c8;
+  --board-cell-bg: #d4d0c8;
+  --board-line: #808080;
+  --board-border: #000000;
+  --board-glow: none;
+  --board-glow-soft: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
+  --board-goal: #008000;
+  --board-safe-star: #c0a000;
+  --board-dot: #404040;
+  --board-legal-glow: #000080;
 }
 
 /* Theme: CRT Terminal (Green Phosphor) */
@@ -88,6 +124,24 @@
   --window-header-bg: #116611;
   --window-header-text: #33ff33;
   --card-border-style: 1px solid #33ff33;
+
+  /* game board — green phosphor CRT palette */
+  --player-red: #00cc00;
+  --player-green: #66ff66;
+  --player-yellow: #aaffaa;
+  --player-blue: #33ff33;
+  --board-bg: rgba(5, 16, 5, 0.96);
+  --board-yard-bg: rgba(10, 31, 10, 0.95);
+  --board-badge-bg: rgba(5, 16, 5, 0.9);
+  --board-cell-bg: #04120a;
+  --board-line: #1f7a1f;
+  --board-border: #33ff33;
+  --board-glow: 0 0 25px rgba(51, 255, 51, 0.25), inset 0 0 20px rgba(51, 255, 51, 0.08);
+  --board-glow-soft: 0 0 14px rgba(51, 255, 51, 0.2), inset 0 0 10px rgba(51, 255, 51, 0.06);
+  --board-goal: #33ff33;
+  --board-safe-star: #aaffaa;
+  --board-dot: #22aa22;
+  --board-legal-glow: #aaffaa;
 }
 
 /* --------------------------------------------------------------------------
