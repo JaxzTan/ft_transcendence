@@ -422,6 +422,10 @@ export function Game() {
         setTimeout(() => {
           setShowResultsModal(true)
         }, 900)
+      } else {
+        // Route remaining engine events (clash_*, player_*, game_started, …)
+        // to the reducer, which handles them by their original type.
+        dispatch({ type: type as string, ...(state as object) })
       }
     }
 
@@ -434,6 +438,8 @@ export function Game() {
     socket.on('player_disconnected', handleEngineEvent)
     socket.on('player_reconnected', handleEngineEvent)
     socket.on('clash_start', handleEngineEvent)
+    socket.on('clash_phase', handleEngineEvent)
+    socket.on('clash_press', handleEngineEvent)
     socket.on('clash_result', handleEngineEvent)
     socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
@@ -1820,6 +1826,9 @@ export function Game() {
           myColor={view.myColor}
           onKeyPress={clashInput}
           onComplete={clearClash}
+          // Hotseat: one device owns both seats, so both sides' keys must be
+          // accepted simultaneously (clash context decision #5).
+          allowBothSides={activeMatch?.mode === 'hotseat'}
         />
       )}
 

@@ -1,6 +1,7 @@
 export type PlayerColor = 'red' | 'green' | 'yellow' | 'blue';
 export type PlayerStatus = 'active' | 'exited' | 'inactive' | 'disconnected';
 export type TurnPhase = 'WAITING_FOR_ROLL' | 'WAITING_FOR_MOVE';
+export type ClashPhase = 'announce' | 'countdown' | 'pressing';
 
 export type PieceId = string; // Format: "{color}-{index}" e.g., "red-0", "blue-3"
 
@@ -29,6 +30,8 @@ export interface PlayerMeta {
 		turns: number;
 		captures: number;
 		piecesInGoal: number;
+		clashDefends: number;
+		clashAttacksWon: number;
 	};
 }
 
@@ -38,13 +41,30 @@ export interface ClashState {
 	attackerKey: string;
 	defenderKey: string;
 	target: number;
-	duration: number;
+	duration: number; // press window seconds (CLASH_PRESS_MS / 1000)
 	startedAt: number;
+	announceDeadline: number;
+	countdownDeadline: number;
+	pressDeadline: number;
+	phase: ClashPhase;
 	attackerPresses: number;
 	defenderPresses: number;
+	lastPressAt?: Partial<Record<PlayerColor, number>>;
 	disconnectTimestamp?: number;
 	reconnectDeadline?: number;
 	waitingForReconnect?: PlayerColor;
+}
+
+/** A deferred capture awaiting the clash QTE outcome. */
+export interface PendingCapture {
+	pieceId: PieceId;
+	from: number;
+	to: number;
+	diceValue: number;
+	attacker: PlayerColor;
+	defender: PlayerColor;
+	capturedPieceIds: PieceId[];
+	enteredHome: boolean;
 }
 
 export interface DisconnectState {
@@ -74,6 +94,8 @@ export interface GameState {
 	clash?: ClashState;
 	clashMode: boolean; // Whether clash minigame is enabled (false = standard capture)
 	readyPlayers: PlayerColor[]; // Players who have clicked "ready"
+	pendingCapture?: PendingCapture; // Move deferred until the clash QTE resolves
+	resultCardUntil?: number; // Server-side input freeze after a clash result card
 	paused?: boolean;
 	pauseTurnOwner?: PlayerColor;
 }
@@ -90,6 +112,7 @@ export interface MoveResult {
 	capturedPieceIds?: PieceId[]; // Every opponent piece sent home from the landing square (a stacked block sends all of them back)
 	enteredHome: boolean;
 	bonusRoll: boolean;
+	clashOutcome?: 'attacker_won' | 'defender_won';
 }
 
 export interface LegalMove {
@@ -117,7 +140,9 @@ export type GameEvent =
 	| { type: 'player_aborted'; gameId: string; color: PlayerColor; username: string }
 	| { type: 'player_disconnected'; gameId: string; color: PlayerColor }
 	| { type: 'player_reconnected'; gameId: string; color: PlayerColor }
-	| { type: 'clash_start'; gameId: string; attackerKey: string; defenderKey: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor }
+	| { type: 'clash_start'; gameId: string; attackerKey: string; defenderKey: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor; phase: ClashPhase; startAt: number; announceDeadline: number; countdownDeadline: number; pressDeadline: number; attackerPresses: number; defenderPresses: number }
+	| { type: 'clash_phase'; gameId: string; phase: ClashPhase; countdownDeadline: number; pressDeadline: number }
+	| { type: 'clash_press'; gameId: string; color: PlayerColor; presses: number }
 	| { type: 'clash_frozen'; gameId: string; reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }
 	| { type: 'clash_result'; gameId: string; winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number }
 	| { type: 'color_selected'; gameId: string; userId: string; color: PlayerColor }

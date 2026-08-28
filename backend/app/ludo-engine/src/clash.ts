@@ -1,12 +1,20 @@
 import { RedisGameStore } from './redis';
 import { EventPublisher } from './socket/event-publisher';
-import type { PlayerColor, ClashState, GameEvent } from './types';
+import type { PlayerColor, ClashState } from './types';
 
-const ATTACKER_KEYS = ['u','i','o','h','j','k','b','n','m'];
-const DEFENDER_KEYS = ['q','w','e','a','s','d','z','x','c'];
-const CLASH_DURATION = 5000; //5 seconds
-const CLASH_TARGET = 42;
-const RECONNECT_WINDOW = 30000; // 30 seconds to reconnect before forfeit
+export const ATTACKER_KEYS = ['u', 'i', 'o', 'h', 'j', 'k', 'b', 'n', 'm'];
+export const DEFENDER_KEYS = ['q', 'w', 'e', 'a', 's', 'd', 'z', 'x', 'c'];
+export const CLASH_ANNOUNCE_MS = 1500; // big "CLASH!" flash
+export const CLASH_COUNTDOWN_MS = 3000; // 3-2-1, keys hidden
+export const CLASH_PRESS_MS = 5000; // press race
+export const CLASH_RESULT_MS = 2000; // result card (client-displayed)
+/** Total server-side freeze after a clash resolves — must be LONGER than the
+ *  client's CLASH_RESULT_MS card (covers the 3s card + network + animation
+ *  slack) so no move/roll can land while the victory card is still visible. */
+export const CLASH_RESULT_FREEZE_MS = 4000;
+export const CLASH_SWEEP_GRACE_MS = 15000; // outer cleanup bound from clash start
+export const CLASH_TARGET = 42;
+export const CLASH_PRESS_CAP_MS = 70; // min ms between accepted presses per side
 
 export class ClashManager {
   private store: RedisGameStore;
@@ -20,16 +28,22 @@ export class ClashManager {
   async startClash(gameId: string, attacker: PlayerColor, defender: PlayerColor): Promise<void> {
     const attackerKey = ATTACKER_KEYS[Math.floor(Math.random() * ATTACKER_KEYS.length)];
     const defenderKey = DEFENDER_KEYS[Math.floor(Math.random() * DEFENDER_KEYS.length)];
+    const startedAt = Date.now();
     const clashState: ClashState = {
       attacker,
       defender,
       attackerKey,
       defenderKey,
       target: CLASH_TARGET,
-      duration: CLASH_DURATION / 1000,
-      startedAt: Date.now(),
+      duration: CLASH_PRESS_MS / 1000,
+      startedAt,
+      announceDeadline: startedAt + CLASH_ANNOUNCE_MS,
+      countdownDeadline: startedAt + CLASH_ANNOUNCE_MS + CLASH_COUNTDOWN_MS,
+      pressDeadline: startedAt + CLASH_ANNOUNCE_MS + CLASH_COUNTDOWN_MS + CLASH_PRESS_MS,
+      phase: 'announce',
       attackerPresses: 0,
-      defenderPresses: 0
+      defenderPresses: 0,
+      lastPressAt: {},
     };
     await this.store.saveClashState(gameId, clashState);
     this.publisher.publish({
@@ -38,9 +52,16 @@ export class ClashManager {
       attackerKey,
       defenderKey,
       target: CLASH_TARGET,
-      duration: CLASH_DURATION / 1000,
+      duration: CLASH_PRESS_MS / 1000,
       attacker,
-      defender
+      defender,
+      phase: 'announce',
+      startAt: startedAt,
+      announceDeadline: clashState.announceDeadline,
+      countdownDeadline: clashState.countdownDeadline,
+      pressDeadline: clashState.pressDeadline,
+      attackerPresses: 0,
+      defenderPresses: 0,
     });
   }
 
@@ -53,7 +74,7 @@ export class ClashManager {
     if (!clash) return;
 
     clash.disconnectTimestamp = Date.now();
-    clash.reconnectDeadline = Date.now() + RECONNECT_WINDOW;
+    clash.reconnectDeadline = Date.now() + 30000; // 30s reconnect window
     clash.waitingForReconnect = color;
     await this.store.saveClashState(gameId, clash);
 
@@ -86,35 +107,42 @@ export class ClashManager {
 
   /**
    * Record a key press for the clash minigame.
-   * Validates that the provided key matches the player's assigned key.
+   * Validates phase (pressing only), key match, press-cap, and press deadline.
+   * `isBot` bypasses key/seat validation (bots pass '' as key).
    */
-  async recordPress(gameId: string, color: PlayerColor, key: string): Promise<boolean> {
+  async recordPress(gameId: string, color: PlayerColor, key: string, isBot = false): Promise<number> {
     const clash = await this.store.loadClashState(gameId);
-    if (!clash) return false;
+    if (!clash) return 0;
 
-    // Validate key matches the player's assigned key
-    const expectedKey = color === clash.attacker ? clash.attackerKey : clash.defenderKey;
-    if (key !== expectedKey) {
-      return false; // Invalid key, ignore the press
+    // Only presses during the PRESS phase count; before that the keys aren't revealed.
+    if (clash.phase !== 'pressing') return 0;
+    if (Date.now() > clash.pressDeadline) return 0;
+
+    if (!isBot) {
+      // Validate key matches the player's assigned key.
+      const expectedKey = color === clash.attacker ? clash.attackerKey : clash.defenderKey;
+      if (key !== expectedKey) return 0;
     }
 
     // Don't allow presses if player is disconnected and past deadline
     if (clash.waitingForReconnect && clash.reconnectDeadline && Date.now() > clash.reconnectDeadline) {
-      return false;
+      return 0;
     }
 
-    const elapsed = Date.now() - clash.startedAt;
-    if (elapsed > CLASH_DURATION) return false;
+    // Server-side press cap: min CLASH_PRESS_CAP_MS between accepted presses per side.
+    const last = clash.lastPressAt?.[color];
+    if (typeof last === 'number' && Date.now() - last < CLASH_PRESS_CAP_MS) return 0;
 
     const count = await this.store.recordClashPress(gameId, color);
-    if (count >= CLASH_TARGET) {
-      // Early win! This player hit the target score — resolve immediately
-      const winner = color;
-      const loser = color === clash.attacker ? clash.defender : clash.attacker;
-      await this.resolveClash(gameId, winner, loser);
-      return true;
-    }
-    return count > 0;
+    // Broadcast the live count to EVERYONE in the room so both players' HUDs
+    // stay in sync. The caller (socket-handlers) separately gets `count`.
+    this.publisher.publish({
+      type: 'clash_press',
+      gameId,
+      color,
+      presses: count,
+    });
+    return count;
   }
 
   /**

@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client'
-import type { GameState, PlayerColor, LegalMove, MoveResult } from './game/types'
+import type { GameState, PlayerColor, LegalMove, MoveResult, ClashPhase } from './game/types'
 
 export type ServerEvents = {
   game_joined: (state: GameState) => void
@@ -7,9 +7,10 @@ export type ServerEvents = {
   piece_moved: (e: MoveResult) => void
   game_started: (e: { gameId: string }) => void
   game_ended: (e: { winner: PlayerColor; resultDetail: string }) => void
-  clash_start: (e: { attackerKey: string; defenderKey: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor }) => void
+  clash_start: (e: { attackerKey: string; defenderKey: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor; phase: ClashPhase; startAt: number; announceDeadline: number; countdownDeadline: number; pressDeadline: number; attackerPresses: number; defenderPresses: number }) => void
+  clash_phase: (e: { phase: ClashPhase; countdownDeadline: number; pressDeadline: number }) => void
+  clash_press: (e: { color: PlayerColor; presses: number }) => void
   clash_result: (e: { winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number }) => void
-  clash_press_registered: (presses: number) => void
   clash_frozen: (e: { reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }) => void
   player_exited: (e: { color: PlayerColor }) => void
   player_aborted: (e: { color: PlayerColor; username: string }) => void

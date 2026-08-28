@@ -56,7 +56,7 @@ export class RedisGameStore {
       consecutiveSixes: 0,
       bonusRoll: false,
       isFinished: false,
-      stats: { turns: 0, captures: 0, piecesInGoal: 0 }
+      stats: { turns: 0, captures: 0, piecesInGoal: 0, clashDefends: 0, clashAttacksWon: 0 }
     }));
     
     const state: GameState = {
@@ -129,6 +129,8 @@ export class RedisGameStore {
     } else {
       state.clash.defenderPresses++;
     }
+    state.clash.lastPressAt = state.clash.lastPressAt || {};
+    state.clash.lastPressAt[color] = Date.now();
     await this.saveGameState(gameId, state);
     return isAttacker ? state.clash.attackerPresses : state.clash.defenderPresses;
   }
@@ -155,6 +157,18 @@ export class RedisGameStore {
      let cursor = '0';
      do {
        const [nextCursor, batch] = await this.client.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
+       cursor = nextCursor;
+       keys.push(...batch);
+     } while (cursor !== '0');
+     return keys;
+   }
+
+   /** SCAN all engine game-state hashes (used by the clash recovery sweep). */
+   async scanGameKeys(): Promise<string[]> {
+     const keys: string[] = [];
+     let cursor = '0';
+     do {
+       const [nextCursor, batch] = await this.client.scan(cursor, 'MATCH', 'game:*', 'COUNT', 100);
        cursor = nextCursor;
        keys.push(...batch);
      } while (cursor !== '0');

@@ -59,6 +59,8 @@ export class ResultSubmitter {
           totalTurns: stats.turns,
           piecesCaptured: stats.captures,
           piecesInGoal: stats.piecesInGoal,
+          clashDefends: stats.clashDefends ?? 0,
+          clashAttacksWon: stats.clashAttacksWon ?? 0,
         });
       }
 
