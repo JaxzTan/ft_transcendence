@@ -642,14 +642,14 @@ export class LudoEngine {
   /**
    * Make a bot hammer the clash at a human-realistic, jittered pace.
    * The winner is pre-rolled by the caller: the WINNING bot presses in the
-   * fast band (~120-150ms), the LOSER in the slow band (~170-200ms), so both
+   * fast band (~130-160ms), the LOSER in the slow band (~175-205ms), so both
    * visibly mash but the pre-selected winner naturally reaches 42 first (or
    * leads at the most-presses timeout). No hard-coded "stop at target" — the
    * time window + pace difference guarantee the outcome.
    */
   private simulateBotPressers(gameId: string, botColor: PlayerColor, winner: boolean): void {
     const schedulePress = () => {
-      const base = winner ? 120 : 170;
+      const base = winner ? 130 : 175;
       const delay = base + Math.random() * 30;
       setTimeout(() => {
         void (async () => {

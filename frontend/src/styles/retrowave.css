@@ -125,23 +125,25 @@
   --window-header-text: #33ff33;
   --card-border-style: 1px solid #33ff33;
 
-  /* game board — green phosphor CRT palette */
-  --player-red: #00cc00;
-  --player-green: #66ff66;
-  --player-yellow: #aaffaa;
-  --player-blue: #33ff33;
-  --board-bg: rgba(5, 16, 5, 0.96);
-  --board-yard-bg: rgba(10, 31, 10, 0.95);
-  --board-badge-bg: rgba(5, 16, 5, 0.9);
-  --board-cell-bg: #04120a;
+  /* game board — CRT terminal: near-black screen (contrasts the dark-green page)
+     with a phosphor-green grid, and DISTINCT player tones (red/blue/yellow/green)
+     so pieces stay readable instead of merging into green shades */
+  --player-red: #ff4d4d;
+  --player-green: #00ff88;
+  --player-yellow: #ffd500;
+  --player-blue: #4d9fff;
+  --board-bg: #000000;
+  --board-yard-bg: #050a05;
+  --board-badge-bg: #000000;
+  --board-cell-bg: #03150a;
   --board-line: #1f7a1f;
   --board-border: #33ff33;
   --board-glow: 0 0 25px rgba(51, 255, 51, 0.25), inset 0 0 20px rgba(51, 255, 51, 0.08);
   --board-glow-soft: 0 0 14px rgba(51, 255, 51, 0.2), inset 0 0 10px rgba(51, 255, 51, 0.06);
-  --board-goal: #33ff33;
+  --board-goal: #00ff88;
   --board-safe-star: #aaffaa;
   --board-dot: #22aa22;
-  --board-legal-glow: #aaffaa;
+  --board-legal-glow: #ffd500;
 }
 
 /* --------------------------------------------------------------------------
