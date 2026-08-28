@@ -209,22 +209,11 @@ export function Home() {
 	// matches, open joinable slots)
 	// ------------------------------------------------------------------------
 	const [onlineCount, setOnlineCount] = useState<number | null>(null)
-	const [liveMatchCount, setLiveMatchCount] = useState<number | null>(null)
-	const [openSlotCount, setOpenSlotCount] = useState<number | null>(null)
 
 	useEffect(() => {
 		const fetchBadgeCounts = () => {
 			getApi<{ count: number }>('/api/presence/online-count')
 				.then((body) => setOnlineCount(body.count))
-				.catch((e) => console.error(e))
-			getApi<Array<{ id: string }>>('/api/games/active')
-				.then((games) => setLiveMatchCount(Array.isArray(games) ? games.length : 0))
-				.catch((e) => console.error(e))
-			getApi<Array<{ seats: number; maxSeats: number }>>('/api/games/rooms')
-				.then((rooms) => {
-					const open = Array.isArray(rooms) ? rooms.reduce((sum, r) => sum + (r.maxSeats - r.seats), 0) : 0
-					setOpenSlotCount(open)
-				})
 				.catch((e) => console.error(e))
 		}
 		fetchBadgeCounts()
@@ -715,32 +704,6 @@ export function Home() {
 									}}
 								>
 									{t('homeExtended.onlinePlayers')} {onlineCount ?? '...'}
-								</span>
-								<span
-									className={RETRO_BADGE}
-									style={{
-										border: liveMatchCount ? '1px solid var(--accent-cyan)' : '1px dashed rgba(255, 255, 255, 0.25)',
-										color: liveMatchCount ? 'var(--accent-cyan)' : 'var(--text-muted)',
-										display: 'inline-flex',
-										alignItems: 'center',
-										fontFamily: 'var(--font-mono)',
-									}}
-									title="Matches currently in progress"
-								>
-									// SLOT_03: {liveMatchCount ? `${liveMatchCount} LIVE` : '[EMPTY]'}
-								</span>
-								<span
-									className={RETRO_BADGE}
-									style={{
-										border: openSlotCount ? '1px solid var(--accent-cyan)' : '1px dashed rgba(255, 255, 255, 0.25)',
-										color: openSlotCount ? 'var(--accent-cyan)' : 'var(--text-muted)',
-										display: 'inline-flex',
-										alignItems: 'center',
-										fontFamily: 'var(--font-mono)',
-									}}
-									title="Open PvP room seats waiting for players"
-								>
-									// SLOT_04: {openSlotCount ? `${openSlotCount} OPEN` : '[EMPTY]'}
 								</span>
 							</div>
 						</header>
