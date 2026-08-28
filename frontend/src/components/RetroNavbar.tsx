@@ -43,6 +43,20 @@ export function RetroNavbar({
   const { user, logout, lang, setLang, twoFactor, toggleTwoFactor, theme, setTheme } = useApp()
   const currentPath = activeRoute || route.path
 
+  // Below Tailwind's `xl` breakpoint (1280px) the sidebar collapses to an
+  // icon-only rail — labels are JS-conditional (not just CSS-hidden) because
+  // several pieces of width/padding here are plain inline styles, not
+  // Tailwind classes. The `<aside>` wrapper in each consuming page mirrors
+  // this exact threshold via `w-[88px] xl:w-[270px]` so the two stay in sync.
+  const [isCompact, setIsCompact] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1280)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1279px)')
+    const handler = () => setIsCompact(mq.matches)
+    handler()
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
   const navItems = [
     { path: '/home', label: t('nav.home').toUpperCase(), icon: '⌂' },
     { path: '/leaderboard', label: t('nav.leaderboard').toUpperCase(), icon: '♛' },
@@ -127,9 +141,9 @@ export function RetroNavbar({
       className={RETRO_FLOATING_DOCK}
       id="mainNav"
       style={{
-        width: 270,
-        minWidth: 270,
-        maxWidth: 270,
+        width: isCompact ? 88 : 270,
+        minWidth: isCompact ? 88 : 270,
+        maxWidth: isCompact ? 88 : 270,
         height: 'calc(100vh - 64px)',
         maxHeight: 'calc(100vh - 64px)',
         margin: 0,
@@ -139,7 +153,8 @@ export function RetroNavbar({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 14,
-        padding: '22px 16px 18px',
+        padding: isCompact ? '22px 10px 18px' : '22px 16px 18px',
+        transition: 'width 0.2s ease, min-width 0.2s ease, max-width 0.2s ease',
         background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.86), rgba(10, 2, 28, 0.94))',
         backdropFilter: 'blur(32px) saturate(220%)',
         WebkitBackdropFilter: 'blur(32px) saturate(220%)',
@@ -174,14 +189,14 @@ export function RetroNavbar({
             style={{
               width: '100%',
               height: 48,
-              padding: '0 12px',
+              padding: isCompact ? 0 : '0 12px',
               borderRadius: 12,
               background: isAccountPopoverOpen ? 'rgba(255, 0, 127, 0.2)' : 'rgba(255, 255, 255, 0.04)',
               border: isAccountPopoverOpen ? '1.5px solid #ff007f' : '1px solid rgba(0, 240, 255, 0.3)',
               boxShadow: isAccountPopoverOpen ? '0 0 16px rgba(255, 0, 127, 0.4)' : 'none',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: isCompact ? 'center' : 'space-between',
               gap: 10,
               cursor: 'pointer',
               boxSizing: 'border-box',
@@ -209,7 +224,7 @@ export function RetroNavbar({
             }}
             title="Account Settings, Language & 2FA"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden', flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCompact ? 'center' : 'flex-start', gap: 10, overflow: 'hidden', flex: isCompact ? 'none' : 1 }}>
               <UserAvatar
                 username={username}
                 avatarStyle={user?.avatarStyle}
@@ -227,33 +242,37 @@ export function RetroNavbar({
                   fontSize: '0.8rem',
                 }}
               />
+              {!isCompact && (
+                <span
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '0.94rem',
+                    fontWeight: 900,
+                    color: '#ffffff',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'left',
+                  }}
+                >
+                  {displayName}
+                </span>
+              )}
+            </div>
+            {!isCompact && (
               <span
                 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '0.94rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  textAlign: 'left',
+                  fontSize: '0.7rem',
+                  color: 'var(--accent-cyan)',
+                  fontWeight: 'bold',
+                  transform: isAccountPopoverOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s ease',
+                  flexShrink: 0,
                 }}
               >
-                {displayName}
+                ▼
               </span>
-            </div>
-            <span
-              style={{
-                fontSize: '0.7rem',
-                color: 'var(--accent-cyan)',
-                fontWeight: 'bold',
-                transform: isAccountPopoverOpen ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.2s ease',
-                flexShrink: 0,
-              }}
-            >
-              ▼
-            </span>
+            )}
           </button>
 
           {/* Account & Settings Popover Menu — portaled to document.body so it
@@ -522,9 +541,9 @@ export function RetroNavbar({
                 style={{
                   width: '100%',
                   height: 52,
-                  justifyContent: 'flex-start',
-                  gap: 12,
-                  padding: '0 14px',
+                  justifyContent: isCompact ? 'center' : 'flex-start',
+                  gap: isCompact ? 0 : 12,
+                  padding: isCompact ? 0 : '0 14px',
                   fontSize: '1.02rem',
                   borderRadius: 12,
                   background: isActive
@@ -593,19 +612,21 @@ export function RetroNavbar({
                 >
                   {item.icon}
                 </div>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: '1.02rem',
-                    letterSpacing: '1px',
-                    fontWeight: 900,
-                    flex: 1,
-                    textAlign: 'left',
-                  }}
-                >
-                  {item.label}
-                </span>
-                {isActive && (
+                {!isCompact && (
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '1.02rem',
+                      letterSpacing: '1px',
+                      fontWeight: 900,
+                      flex: 1,
+                      textAlign: 'left',
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                )}
+                {!isCompact && isActive && (
                   <span
                     style={{
                       color: '#ffffff',
@@ -643,8 +664,8 @@ export function RetroNavbar({
             style={{
               width: '100%',
               height: 44,
-              justifyContent: 'space-between',
-              padding: '0 14px',
+              justifyContent: isCompact ? 'center' : 'space-between',
+              padding: isCompact ? 0 : '0 14px',
               fontSize: '0.94rem',
               borderRadius: 10,
               background: 'rgba(255, 255, 255, 0.04)',
@@ -671,13 +692,17 @@ export function RetroNavbar({
               <span style={{ color: 'var(--accent-yellow)', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', fontWeight: 'bold' }}>
                 &lt;/&gt;
               </span>
-              <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
-                {t('navbar.themeBtn')}
-              </span>
+              {!isCompact && (
+                <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
+                  {t('navbar.themeBtn')}
+                </span>
+              )}
             </div>
-            <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
-              {isThemePopoverOpen ? '▼' : '▲'}
-            </span>
+            {!isCompact && (
+              <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
+                {isThemePopoverOpen ? '▼' : '▲'}
+              </span>
+            )}
           </button>
 
           {/* Upward Opening Theme Popover Menu */}
@@ -688,8 +713,8 @@ export function RetroNavbar({
               bottom: 'calc(100% + 8px)',
               top: 'auto',
               left: 0,
-              right: 0,
-              width: '100%',
+              right: isCompact ? 'auto' : 0,
+              width: isCompact ? 240 : '100%',
               padding: '14px 16px',
               borderRadius: 14,
               boxSizing: 'border-box',
@@ -807,6 +832,7 @@ export function RetroNavbar({
             onMarkAllRead={activeMarkAllRead}
             placement="right"
             fullWidth
+            compact={isCompact}
           />
         </div>
       </div>

@@ -230,7 +230,7 @@ export function LudoLobby() {
         {/* Dynamic Full-Width Seated Sidebar & Content Layout Container */}
         <div className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border">
           {/* Left-Seated Navigation Dock */}
-          <aside className="shrink-0 w-[270px] sticky top-8" style={{ margin: 0, padding: 0 }}>
+          <aside className="shrink-0 w-[88px] xl:w-[270px] sticky top-8" style={{ margin: 0, padding: 0 }}>
             <RetroNavbar
               activeRoute="/gamelobby"
               crtEnabled={crtEnabled}
