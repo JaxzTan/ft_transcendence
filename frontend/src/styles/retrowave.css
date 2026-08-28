@@ -188,41 +188,9 @@ body {
    -------------------------------------------------------------------------- */
 
 
-/* Constant Steady Fire Plasma Aura behind and above the badge */
-.badge-mamee-monster-aura::before {
-  content: '';
-  position: absolute;
-  inset: -8px -4px -2px -4px;
-  border-radius: 45% 45% 8px 8px / 65% 65% 15% 15%;
-  background: radial-gradient(ellipse at 50% 110%,
-      rgba(255, 255, 255, 0.95) 0%,
-      rgba(255, 230, 0, 0.9) 30%,
-      rgba(255, 80, 0, 0.8) 60%,
-      rgba(255, 23, 68, 0.65) 80%,
-      transparent 96%);
-  filter: blur(5px);
-  z-index: -2;
-  opacity: 0.95;
-  animation: mamee-flame-steady-wave 2.4s ease-in-out infinite alternate;
-}
-
-/* Constant Glowing Thermal Halo around perimeter */
-.badge-mamee-monster-aura::after {
-  content: '';
-  position: absolute;
-  inset: -4px -2px -1px -2px;
-  border-radius: 50% 50% 6px 6px / 70% 70% 15% 15%;
-  background: radial-gradient(ellipse at 50% 120%,
-      rgba(255, 230, 0, 0.75) 0%,
-      rgba(255, 23, 68, 0.7) 60%,
-      transparent 85%);
-  filter: blur(4px);
-  z-index: -1;
-  opacity: 0.9;
-  animation: mamee-flame-steady-halo 3.2s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-
+/* The ::before/::after aura rules that used to live here (targeting
+   .badge-mamee-monster-aura) are now BADGE_MAMEE_AURA in tw.ts — the
+   keyframes below stay, referenced via arbitrary `animation:` values. */
 @keyframes mamee-flame-steady-glow {
   0% {
     border-color: #ff3d00;
@@ -298,42 +266,9 @@ body {
 
 /* Elemental Auras for Other Ranks */
 
-/* Highly Visible Violet-Cyan Plasma Aura outside the border */
-.badge-tier-milo-aura::before {
-  content: '';
-  position: absolute;
-  inset: -10px -6px -4px -6px;
-  border-radius: 45% 45% 8px 8px / 65% 65% 15% 15%;
-  background: radial-gradient(ellipse at 50% 115%,
-      rgba(255, 255, 255, 0.95) 0%,
-      rgba(0, 240, 255, 0.9) 25%,
-      rgba(255, 0, 255, 0.85) 55%,
-      rgba(189, 0, 255, 0.75) 78%,
-      transparent 96%);
-  filter: blur(5px);
-  z-index: -2;
-  opacity: 0.95;
-  animation: milo-plasma-aura-wave 2.4s ease-in-out infinite alternate;
-  pointer-events: none;
-}
-
-/* Ambient Outer Violet Glow Halo */
-.badge-tier-milo-aura::after {
-  content: '';
-  position: absolute;
-  inset: -5px -3px -2px -3px;
-  border-radius: 50% 50% 6px 6px / 70% 70% 15% 15%;
-  background: radial-gradient(ellipse at 50% 120%,
-      rgba(0, 240, 255, 0.8) 0%,
-      rgba(255, 0, 255, 0.75) 50%,
-      rgba(189, 0, 255, 0.65) 75%,
-      transparent 90%);
-  filter: blur(4px);
-  z-index: -1;
-  opacity: 0.92;
-  animation: milo-plasma-aura-halo 3.2s ease-in-out infinite alternate;
-  pointer-events: none;
-}
+/* The ::before/::after aura rules that used to live here (targeting
+   .badge-tier-milo-aura) are now BADGE_MILO_AURA in tw.ts — the keyframes
+   below stay, referenced via arbitrary `animation:` values. */
 
 @keyframes milo-plasma-aura-wave {
   0% {
