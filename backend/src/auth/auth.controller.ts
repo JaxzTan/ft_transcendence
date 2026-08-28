@@ -279,23 +279,11 @@ export class AuthController {
     // strategy already linked the provider to that user — just send them back to
     // /profile. No new session is issued, no login/2FA redirect happens, so the
     // user is neither signed out nor logged into a different account.
-    const anyReq = req as any;
-    const state = typeof anyReq.query?.state === 'string' ? anyReq.query.state : undefined;
-    const linkUserId = state
-      ? this.authService.resolveOAuthLink(state, this.providerForRoute(req.path))
-      : undefined;
-    // A link round-trip only counts when the BROWSER that opened the provider
-    // login is still authenticated and matches the linked user. On a fresh
-    // login (no valid token cookie) — even if GitHub echoes a stale state —
-    // fall through to the normal login session flow below. The final
-    // `user.id === linkUserId` guard also catches a stale session whose user
-    // was wiped by a DB reset: validateOAuthLogin then creates a brand-new
-    // user (different id), so this is NOT a link round-trip and the fresh
-    // account must get a real session instead of a dead redirect to /profile.
-    const sessionUser = this.authService.verifyAccessToken(
-      typeof req.cookies?.['token'] === 'string' ? req.cookies['token'] : undefined,
+    const linkUserId = this.authService.resolveOAuthLinkForRequest(
+      req,
+      this.providerForRoute(req.path),
     );
-    if (linkUserId && sessionUser && sessionUser === linkUserId && user.id === linkUserId) {
+    if (linkUserId && user.id === linkUserId) {
       res.redirect(`${frontendUrl}/profile`);
       return;
     }

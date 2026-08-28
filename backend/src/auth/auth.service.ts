@@ -623,7 +623,21 @@ export class AuthService implements OnModuleDestroy {
    * userId when the token is ours and matches `provider`, else undefined (a
    * missing/foreign state is treated as a normal login, never a link).
    */
-  resolveOAuthLink(state: string | string[] | undefined, provider: string): string | undefined {
+  resolveOAuthLinkForRequest(req: any, provider: string): string | undefined {
+    const linkUserId = this.resolveOAuthLink(req?.query?.state, provider);
+    if (!linkUserId) return undefined;
+    const sessionUser = this.verifyAccessToken(
+      typeof req?.cookies?.['token'] === 'string' ? req.cookies['token'] : undefined,
+    );
+    return sessionUser === linkUserId ? linkUserId : undefined;
+  }
+
+  /**
+   * Signature check only — says nothing about WHO is presenting the state.
+   * Private on purpose: callers must go through resolveOAuthLinkForRequest,
+   * which also proves the presenter is the user named in it.
+   */
+  private resolveOAuthLink(state: string | string[] | undefined, provider: string): string | undefined {
     if (typeof state !== 'string' || !state) return undefined;
     try {
       const payload = this.jwt.verify(state) as { sub?: string; p?: string; purpose?: string };
