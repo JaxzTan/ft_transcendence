@@ -195,6 +195,13 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                         <div className={PAYER_IMAGE_CONTAINER}>
                           <UserAvatar
                             username={p.username}
+                            // Opponents here come from client-side game state
+                            // (LastResult.players), which never carries a photo
+                            // flag — `undefined` reads as "try the network" and
+                            // fires a real 404 for every photo-less opponent.
+                            // Only `user` (the logged-in viewer) has real data,
+                            // via `?? false` for the same reason as below.
+                            hasAvatarPhoto={p.isBot || !isMe ? false : (user?.hasAvatarPhoto ?? false)}
                             size={40}
                             fallbackStyle={{
                               width: 40,

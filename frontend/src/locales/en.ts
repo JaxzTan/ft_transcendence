@@ -628,6 +628,8 @@ export const en = {
     errorNoVerifiedEmail: 'That provider account has no verified email, so we cannot send login codes.',
     errorInvalidVerificationLink: 'That verification link is invalid or expired. Sign up again to get a new one.',
     errorEmailInUseOAuth: 'This email is already being used. Use a different email or log in using the same method you used to create this account.',
+    errorAccessDenied: 'Authentication was cancelled or access was denied.',
+    errorOAuthFailed: 'Authentication with the provider failed. Please try again.',
     errorAddEmail2FA: 'Your account has no email yet — add one in Edit Profile before enabling two-factor authentication.',
     identifierPlaceholder: 'NightRook or you@parlor.gg',
     rememberMe: 'Remember me',

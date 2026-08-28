@@ -38,6 +38,7 @@ type Room = {
   roomCode: string
   host: string
   hostUsername?: string
+  hasAvatarPhoto?: boolean
   seats: number
   maxSeats: number
   mode: 'classic' | 'duel'
@@ -780,6 +781,7 @@ export function LudoLobby() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <UserAvatar
                                 username={room.hostUsername || room.host}
+                                hasAvatarPhoto={room.hasAvatarPhoto}
                                 size={28}
                                 fallbackStyle={{
                                   width: 28,

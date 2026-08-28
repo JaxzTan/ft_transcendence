@@ -79,7 +79,7 @@ export function AccountMenu() {
         <UserAvatar
           username={user?.username || ''}
           avatarStyle={user?.avatarStyle}
-          hasAvatarPhoto={user?.hasAvatarPhoto}
+          hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
           size={40}
           fallbackStyle={avatarBlue(40, 14)}
         />
