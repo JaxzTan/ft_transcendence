@@ -21,14 +21,11 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
     // This class is returned from a factory and used as an exported base —
     // EVERY member must be public or `nest build` fails. (#-private fields and
     // private constructor params both trip the rule.)
-    readonly local = new LocalGuard();
-    readonly tunnel = new TunnelGuard();
-
     constructor(public readonly jwt: JwtService) {}
 
     canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
       const req = context.switchToHttp().getRequest<Request>();
-      const guard = isTunnelRequest(req.get('host')) ? this.tunnel : this.local;
+      const guard = isTunnelRequest(req.get('host')) ? new TunnelGuard() : new LocalGuard();
       const frontendUrl = isTunnelRequest(req.get('host'))
         ? (secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev')
         : (secret('FRONTEND_URL') ?? 'https://localhost:8443');
@@ -62,10 +59,8 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
         }
       }
 
-      if (state) {
-        const opts = (guard as any).options ?? {};
-        (guard as any).options = { ...opts, state };
-      }
+      const opts = (guard as any).options ?? {};
+      (guard as any).options = state ? { ...opts, state } : { ...opts, state: undefined };
 
       try {
         const result = guard.canActivate(context);
