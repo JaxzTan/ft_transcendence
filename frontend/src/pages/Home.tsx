@@ -12,6 +12,10 @@ import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
+	GRID_BACKGROUND,
+	SYNTHWAVE_SUN,
+	PERSPECTIVE_GRID,
+	GRID_HORIZON,
 	HERO_SECTION,
 	HERO_TITLE,
 	HERO_SUBTITLE,
@@ -33,6 +37,27 @@ import {
 	COL_4,
 	COL_8,
 	RETRO_FOOTER,
+	CYBER_CASSETTE_CHASSIS,
+	OLED_SCREEN,
+	OLED_TITLE,
+	OLED_META,
+	CYBER_EQ_DECK,
+	CYBER_EQ_COL,
+	CYBER_TRANSPORT_CLUSTER,
+	CYBER_DECK_KEY,
+	CYBER_DECK_KEY_PLAY,
+	CYBER_DECK_KEY_PLAY_ACTIVE,
+	CYBER_KEY_ICON,
+	CYBER_KEY_LABEL,
+	CYBER_KEY_SUB,
+	CYBER_VOL_CONSOLE,
+	CYBER_FADER_TRACK_ROW,
+	CYBER_VOL_STEP_BTN,
+	CYBER_VOL_LED_BAR,
+	CYBER_VOL_LED_SEGMENT,
+	LED_LIT_CYAN,
+	LED_LIT_AMBER,
+	LED_LIT_PINK,
 } from '../styles/tw'
 
 type Friend = {
@@ -636,22 +661,14 @@ export function Home() {
 	return (
 		<>
 			{/* Animated 3D Synthwave Grid & Sun Background */}
-			<div className="grid-background">
-				<div className="synthwave-sun" />
-				<div className="grid-horizon" />
-				<div className="perspective-grid" />
-				<div className="win95-starfield" />
-				<div className="terminal-vector-core" />
+			<div className={GRID_BACKGROUND}>
+				<div className={SYNTHWAVE_SUN} />
+				<div className={GRID_HORIZON} />
+				<div className={PERSPECTIVE_GRID} />
 			</div>
 
 			{/* CRT Monitor Overlay FX Container */}
-			<div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''} flex flex-col justify-start items-center min-h-screen w-full`} id="crtScreen">
-				<div
-					className="crt-scanlines"
-					id="crtOverlay"
-					style={{ display: crtEnabled ? 'block' : 'none' }}
-				/>
-				<div className="crt-flicker" />
+			<div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''} flex flex-col justify-start items-center min-h-screen w-full`} id="crtScreen">
 
 				{/* Dynamic Full-Width Seated Sidebar & Content Layout Container */}
 				<div className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border">
@@ -711,7 +728,7 @@ export function Home() {
 						{/* Main Interactive Dashboard Grid */}
 						<main className={`${DASHBOARD_GRID} dashboard-grid`}>
 							{/* Widget 1: 3D Attract Mode Arcade Cabinet & Press Start */}
-							<section className={`${RETRO_WINDOW} ${COL_8} retro-window col-8`} id="arcadeWindow">
+							<section className={`${RETRO_WINDOW} ${COL_8}`} id="arcadeWindow">
 								<div className={WINDOW_HEADER}>
 									<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 										<span>{t('homeExtended.arcadeArenaTitle')}</span>
@@ -721,7 +738,7 @@ export function Home() {
 										<span className={WINDOW_BTN_MAX} />
 									</div>
 								</div>
-								<div className={`${WINDOW_BODY} ${ARCADE_CONTAINER} arcade-container`}>
+								<div className={`${WINDOW_BODY} ${ARCADE_CONTAINER}`}>
 									{/* Arcade Canvas Frame & Interactive Press Start Overlay */}
 									<div
 										className={ARCADE_SCREEN_FRAME}
@@ -739,15 +756,15 @@ export function Home() {
 										<canvas id="arcadeCanvas" ref={canvasRef} width={720} height={400} />
 
 										{/* Interactive Translucent Press Start Banner Overlay */}
-										<div className={`${ARCADE_START_OVERLAY} arcade-start-overlay`}>
-											<span className={`${ARCADE_START_TITLE} arcade-start-title`}>
+										<div className={ARCADE_START_OVERLAY}>
+											<span className={ARCADE_START_TITLE}>
 												{theme === 'win95'
 													? t('homeExtended.pressStartTitleWin95')
 													: theme === 'terminal'
 														? t('homeExtended.pressStartTitleTerminal')
 														: t('homeExtended.pressStartTitleSynthwave')}
 											</span>
-											<span className={`${ARCADE_START_SUB} arcade-start-sub`}>
+											<span className={ARCADE_START_SUB}>
 												{theme === 'terminal'
 													? t('homeExtended.pressStartSubTerminal')
 													: theme === 'win95'
@@ -780,7 +797,7 @@ export function Home() {
 							</section>
 
 							{/* Widget 2: Friends List */}
-							<section className={`${RETRO_WINDOW} ${COL_4} retro-window col-4`} id="friendsWindow">
+							<section className={`${RETRO_WINDOW} ${COL_4}`} id="friendsWindow">
 								<div className={WINDOW_HEADER}>
 									<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 										<span>{t('friends.title').toUpperCase()} ({friends?.length ?? 0})</span>
@@ -974,7 +991,7 @@ export function Home() {
 							</section>
 
 							{/* Widget 3: Pilot Profile & Combat Stats */}
-							<section className={`${RETRO_WINDOW} ${COL_8} retro-window col-8`} id="pilotDossierWindow">
+							<section className={`${RETRO_WINDOW} ${COL_8}`} id="pilotDossierWindow">
 								<div className={WINDOW_HEADER}>
 									<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 										<span>{t('homeExtended.pilotProfileTitle')}</span>
@@ -1163,7 +1180,7 @@ export function Home() {
 							</section>
 
 							{/* Widget 4: Cyber Sound Deck & Cassette Synthesizer */}
-							<section className={`${RETRO_WINDOW} ${COL_4} retro-window col-4`} id="cyberSoundDeckWindow">
+							<section className={`${RETRO_WINDOW} ${COL_4}`} id="cyberSoundDeckWindow">
 								<div className={WINDOW_HEADER}>
 									<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 										<span>◖ CYBERSOUND DECK ◗</span>
@@ -1209,9 +1226,9 @@ export function Home() {
 									}}
 								>
 									{/* Cyber Cassette Chassis */}
-									<div className="cyber-cassette-chassis">
+									<div className={CYBER_CASSETTE_CHASSIS}>
 										{/* OLED Track HUD Display */}
-										<div className="oled-screen">
+										<div className={OLED_SCREEN}>
 											<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 												<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--accent-pink)', fontWeight: 'bold' }}>
 													TRACK 0{audioTrackIndex + 1} / 0{retroAudio.tracks.length}
@@ -1220,21 +1237,21 @@ export function Home() {
 													{isPlayingAudio ? '● PLAYING' : '■ IDLE'}
 												</span>
 											</div>
-											<div className="oled-title">
+											<div className={OLED_TITLE}>
 												{retroAudio.tracks[audioTrackIndex]?.name || "SYNTHWAVE NIGHTS '84"}
 											</div>
-											<div className="oled-meta">
+											<div className={OLED_META}>
 												<span>{retroAudio.tracks[audioTrackIndex]?.tempo || 120} BPM // A-MIN</span>
 												<span>CHIPTUNE · 44.1kHz</span>
 											</div>
 										</div>
 
 										{/* Multi-Band Stereo Spectrum Equalizer */}
-										<div className="cyber-eq-deck">
+										<div className={CYBER_EQ_DECK}>
 											{eqHeights.map((h, i) => (
 												<div
 													key={i}
-													className="cyber-eq-col"
+													className={CYBER_EQ_COL}
 													style={{ height: `${h}px` }}
 												/>
 											))}
@@ -1242,57 +1259,57 @@ export function Home() {
 									</div>
 
 									{/* Primary Cyber Transport Hardware Cluster */}
-									<div className="cyber-transport-cluster">
+									<div className={CYBER_TRANSPORT_CLUSTER}>
 										<button
 											type="button"
-											className="cyber-deck-key"
+											className={CYBER_DECK_KEY}
 											onClick={handlePrevTrack}
 											title="Previous Audio Track"
 										>
-											<span className="cyber-key-icon" style={{ color: 'var(--accent-cyan)' }}>
+											<span className={CYBER_KEY_ICON} style={{ color: 'var(--accent-cyan)' }}>
 												⏮
 											</span>
-											<span className="cyber-key-label">PREV</span>
-											<span className="cyber-key-sub">RW // TRACK</span>
+											<span className={CYBER_KEY_LABEL}>PREV</span>
+											<span className={CYBER_KEY_SUB}>RW // TRACK</span>
 										</button>
 
 										<button
 											type="button"
-											className={`cyber-deck-key cyber-deck-key-play ${isPlayingAudio ? 'active' : ''}`}
+											className={`${CYBER_DECK_KEY} ${CYBER_DECK_KEY_PLAY} ${isPlayingAudio ? CYBER_DECK_KEY_PLAY_ACTIVE : ''}`}
 											onClick={handleToggleAudio}
 											title={isPlayingAudio ? 'Pause Chiptune Audio' : 'Play Chiptune Audio'}
 										>
-											<span className="cyber-key-icon" style={{ color: isPlayingAudio ? '#ffffff' : 'var(--accent-pink)' }}>
+											<span className={CYBER_KEY_ICON} style={{ color: isPlayingAudio ? '#ffffff' : 'var(--accent-pink)' }}>
 												{isPlayingAudio ? '⏸' : '▶'}
 											</span>
-											<span className="cyber-key-label" style={{ color: '#ffffff', fontSize: '0.64rem' }}>
+											<span className={CYBER_KEY_LABEL} style={{ color: '#ffffff', fontSize: '0.64rem' }}>
 												{isPlayingAudio ? 'PAUSE' : 'PLAY SYNTH'}
 											</span>
-											<span className="cyber-key-sub" style={{ color: isPlayingAudio ? 'var(--accent-yellow)' : 'var(--accent-cyan)' }}>
+											<span className={CYBER_KEY_SUB} style={{ color: isPlayingAudio ? 'var(--accent-yellow)' : 'var(--accent-cyan)' }}>
 												{isPlayingAudio ? '● LIVE AUDIO' : '○ STANDBY'}
 											</span>
 										</button>
 
 										<button
 											type="button"
-											className="cyber-deck-key"
+											className={CYBER_DECK_KEY}
 											onClick={handleNextTrack}
 											title="Next Audio Track"
 										>
-											<span className="cyber-key-icon" style={{ color: 'var(--accent-cyan)' }}>
+											<span className={CYBER_KEY_ICON} style={{ color: 'var(--accent-cyan)' }}>
 												⏭
 											</span>
-											<span className="cyber-key-label">NEXT</span>
-											<span className="cyber-key-sub">FF // TRACK</span>
+											<span className={CYBER_KEY_LABEL}>NEXT</span>
+											<span className={CYBER_KEY_SUB}>FF // TRACK</span>
 										</button>
 									</div>
 
 									{/* Cyber Master Volume Console & 10-Segment LED Meter */}
-									<div className="cyber-vol-console">
-										<div className="cyber-fader-track-row">
+									<div className={CYBER_VOL_CONSOLE}>
+										<div className={CYBER_FADER_TRACK_ROW}>
 											<button
 												type="button"
-												className="cyber-vol-step-btn"
+												className={CYBER_VOL_STEP_BTN}
 												onClick={() => handleStepVolume(-10)}
 												title="Decrease Volume (-10%)"
 											>
@@ -1301,16 +1318,16 @@ export function Home() {
 
 											{/* 10 Interactive LED Bar Segments */}
 											<div
-												className="cyber-vol-led-bar"
+												className={CYBER_VOL_LED_BAR}
 												title={`Volume: ${audioVolume}% (Click segment to set)`}
 											>
 												{Array.from({ length: 10 }).map((_, idx) => {
 													const isLit = audioVolume >= (idx + 1) * 10 - 5
-													const colorClass = idx < 5 ? 'lit-cyan' : idx < 8 ? 'lit-amber' : 'lit-pink'
+													const colorClass = idx < 5 ? LED_LIT_CYAN : idx < 8 ? LED_LIT_AMBER : LED_LIT_PINK
 													return (
 														<div
 															key={idx}
-															className={`cyber-vol-led-segment ${isLit ? colorClass : ''}`}
+															className={`${CYBER_VOL_LED_SEGMENT} ${isLit ? colorClass : ''}`}
 															onClick={() => handleLedSegmentClick(idx)}
 														/>
 													)
@@ -1319,7 +1336,7 @@ export function Home() {
 
 											<button
 												type="button"
-												className="cyber-vol-step-btn"
+												className={CYBER_VOL_STEP_BTN}
 												onClick={() => handleStepVolume(10)}
 												title="Increase Volume (+10%)"
 											>

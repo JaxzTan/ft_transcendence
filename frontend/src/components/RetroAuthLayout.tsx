@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { GRID_BACKGROUND, SYNTHWAVE_SUN, GRID_HORIZON, PERSPECTIVE_GRID } from '../styles/tw'
 
 /**
  * Full-bleed Retrowave auth shell matching Home.tsx background:
@@ -26,12 +27,10 @@ export function RetroAuthLayout({
       }}
     >
       {/* Animated 3D Synthwave Grid & Sun Background (Identical to Home page) */}
-      <div className="grid-background">
-        <div className="synthwave-sun" />
-        <div className="grid-horizon" />
-        <div className="perspective-grid" />
-        <div className="win95-starfield" />
-        <div className="terminal-vector-core" />
+      <div className={GRID_BACKGROUND}>
+        <div className={SYNTHWAVE_SUN} />
+        <div className={GRID_HORIZON} />
+        <div className={PERSPECTIVE_GRID} />
       </div>
 
       {/* Centered glassmorphism card wrapper */}

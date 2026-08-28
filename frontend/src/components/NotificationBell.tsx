@@ -212,7 +212,7 @@ export function NotificationBell({
       {/* Old-School Tactical Receiver Button */}
       {fullWidth ? (
         <button
-          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${open ? 'active' : ''}`}
+          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${open ? 'active' : ''}`}
           onClick={toggleOpen}
           title={t('notifications.title')}
           style={{
@@ -255,7 +255,7 @@ export function NotificationBell({
         </button>
       ) : (
         <button
-          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${open ? 'active' : ''}`}
+          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${open ? 'active' : ''}`}
           onClick={toggleOpen}
           title={t('notifications.title')}
           style={{

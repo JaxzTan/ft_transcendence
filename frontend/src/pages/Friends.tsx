@@ -13,6 +13,10 @@ import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
+	GRID_BACKGROUND,
+	SYNTHWAVE_SUN,
+	PERSPECTIVE_GRID,
+	GRID_HORIZON,
 	HERO_SECTION,
 	HERO_TITLE,
 	BADGE_BAR,
@@ -272,25 +276,18 @@ export function Friends() {
   return (
     <>
       {/* Animated 3D Synthwave Grid & Sun Background */}
-      <div className="grid-background">
-        <div className="synthwave-sun" />
-        <div className="grid-horizon" />
-        <div className="perspective-grid" />
-        <div className="win95-starfield" />
-        <div className="terminal-vector-core" />
+      <div className={GRID_BACKGROUND}>
+        <div className={SYNTHWAVE_SUN} />
+        <div className={GRID_HORIZON} />
+        <div className={PERSPECTIVE_GRID} />
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
       <div
-        className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
+        className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`}
         id="crtScreen"
         style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
-        <div
-          className="crt-scanlines"
-          id="crtOverlay"
-          style={{ display: crtEnabled ? 'block' : 'none' }}
-        />
         {/* Dynamic Full-Width Seated Sidebar & Content Layout Container */}
         <div className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border">
           {/* Left-Seated Navigation Dock */}

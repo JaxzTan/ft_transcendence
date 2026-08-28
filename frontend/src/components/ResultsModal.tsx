@@ -4,7 +4,33 @@ import { UserAvatar } from './UserAvatar'
 import { useApp, type LastResult } from '../store'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
-import { RETRO_BTN } from '../styles/tw'
+import {
+	RETRO_BTN,
+	TICKET_CONTAINER,
+	RESULTS_INVOICE_CONTAINER,
+	INVOICE_SLOT_BOTTOM,
+	SLOT_HOLE_BOTTOM,
+	INVOICE_SLOT_TOP,
+	VENDING_HEADER_BAR,
+	SLOT_HOLE_TOP,
+	TICKET_PAPER_WRAPPER,
+	RESULTS_INVOICE,
+	TICKET_NOTCH_LEFT,
+	TICKET_NOTCH_RIGHT,
+	INVOICE_TITLE,
+	INVOICE_AMOUNT,
+	INVOICE_VALUE,
+	PAYERS_LIST,
+	PAYERS_LI,
+	PAYERS_LI_P,
+	PAYER_IMAGE_CONTAINER,
+	PAY_TAG_BASE,
+	PAY_TAG_WIN,
+	PAY_TAG_RUNNER,
+	PAY_TAG_THIRD,
+	PAY_TAG_FOURTH,
+	PAY_NOW_BTN,
+} from '../styles/tw'
 
 type ResultsModalProps = {
   result: NonNullable<LastResult>
@@ -83,20 +109,19 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
   const renderRankBadge = (rank: number, isWinner: boolean) => {
     if (!hasRealWinner) return null
     if (isWinner) {
-      return <span className="pay-tag win">{t('results.firstPlace')}</span>
+      return <span className={`${PAY_TAG_BASE} ${PAY_TAG_WIN}`}>{t('results.firstPlace')}</span>
     }
     if (rank === 2) {
-      return <span className="pay-tag runner">{t('results.secondPlace')}</span>
+      return <span className={`${PAY_TAG_BASE} ${PAY_TAG_RUNNER}`}>{t('results.secondPlace')}</span>
     }
     if (rank === 3) {
-      return <span className="pay-tag third">{t('results.thirdPlace')}</span>
+      return <span className={`${PAY_TAG_BASE} ${PAY_TAG_THIRD}`}>{t('results.thirdPlace')}</span>
     }
-    return <span className="pay-tag fourth">{t('results.fourthPlace')}</span>
+    return <span className={`${PAY_TAG_BASE} ${PAY_TAG_FOURTH}`}>{t('results.fourthPlace')}</span>
   }
 
   return (
     <div
-      className="results-modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -112,7 +137,6 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
       }}
     >
       <div
-        className="results-modal-content"
         style={{
           position: 'relative',
           width: '100%',
@@ -123,30 +147,30 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
         }}
       >
         {/* Ticket Dispenser Container */}
-        <section className="container ticket-container" style={{ margin: 0, width: '100%' }}>
-          <section className="invoice-container">
+        <section className={TICKET_CONTAINER} style={{ margin: 0, width: '100%' }}>
+          <section className={RESULTS_INVOICE_CONTAINER}>
             {/* Bottom part of slot chassis (BEHIND ticket: z-index 2) */}
-            <div className="invoice-slot-bottom">
-              <div className="slot-hole-bottom"></div>
+            <div className={INVOICE_SLOT_BOTTOM}>
+              <div className={SLOT_HOLE_BOTTOM}></div>
             </div>
 
             {/* Mask Container - Dispenses directly out of slot (z-index 10) */}
-            <div className="ticket-paper-wrapper">
+            <div className={TICKET_PAPER_WRAPPER}>
               {/* Animated Dispensed Invoice Ticket */}
-              <div className="invoice">
-                <span className="ticket-notch-left"></span>
-                <span className="ticket-notch-right"></span>
-                <h2 className="title">{t('results.matchInvoiceTitle')}</h2>
+              <div className={RESULTS_INVOICE}>
+                <span className={TICKET_NOTCH_LEFT}></span>
+                <span className={TICKET_NOTCH_RIGHT}></span>
+                <h2 className={INVOICE_TITLE}>{t('results.matchInvoiceTitle')}</h2>
 
-                <p className="amount">
-                  {t('results.outcomeLabel')} <span className="value">{outcomeTitle}</span>
+                <p className={INVOICE_AMOUNT}>
+                  {t('results.outcomeLabel')} <span className={INVOICE_VALUE}>{outcomeTitle}</span>
                 </p>
-                <p className="amount">
-                  {t('results.modeLabel')} <span className="value">{modeLabel}</span>
+                <p className={INVOICE_AMOUNT}>
+                  {t('results.modeLabel')} <span className={INVOICE_VALUE}>{modeLabel}</span>
                 </p>
                 {hasRealWinner && (
-                  <p className="amount">
-                    {t('results.championLabel')} <span className="value">{winnerName.toUpperCase()}</span>
+                  <p className={INVOICE_AMOUNT}>
+                    {t('results.championLabel')} <span className={INVOICE_VALUE}>{winnerName.toUpperCase()}</span>
                   </p>
                 )}
 
@@ -160,15 +184,15 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                 />
 
                 {/* Player Roster Breakdown List */}
-                <ul className="payers-list">
+                <ul className={PAYERS_LIST}>
                   {ranked.map((p, index) => {
                     const isWinner = index === 0 && hasRealWinner
                     const isMe = p.color === myColor
                     const pName = isMe ? t('common.you') : p.username
 
                     return (
-                      <li key={p.color}>
-                        <div className="payer-image-container">
+                      <li key={p.color} className={PAYERS_LI}>
+                        <div className={PAYER_IMAGE_CONTAINER}>
                           <UserAvatar
                             username={p.username}
                             size={40}
@@ -185,7 +209,7 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                             }}
                           />
                         </div>
-                        <p>
+                        <p className={PAYERS_LI_P}>
                           <span>
                             {pName} ({p.piecesInGoal}/4)
                           </span>
@@ -199,7 +223,7 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: '1.2em' }}>
                   <button
-                    className="pay-now-btn"
+                    className={PAY_NOW_BTN}
                     onClick={() => {
                       retroAudio.playUiBeep(600, 0.05)
                       onReturnToLobby()
@@ -233,9 +257,9 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
             </div>
 
             {/* Top part of slot chassis (IN FRONT OF ticket: z-index 20) */}
-            <div className="invoice-slot-top">
-              <div className="vending-header-bar"></div>
-              <div className="slot-hole-top"></div>
+            <div className={INVOICE_SLOT_TOP}>
+              <div className={VENDING_HEADER_BAR}></div>
+              <div className={SLOT_HOLE_TOP}></div>
             </div>
           </section>
         </section>

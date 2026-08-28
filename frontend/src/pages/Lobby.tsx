@@ -10,6 +10,10 @@ import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
+	GRID_BACKGROUND,
+	SYNTHWAVE_SUN,
+	PERSPECTIVE_GRID,
+	GRID_HORIZON,
 	APP_WRAPPER,
 	HERO_SECTION,
 	HERO_TITLE,
@@ -118,22 +122,14 @@ export function Lobby() {
   return (
     <>
       {/* Animated 3D Synthwave Background */}
-      <div className="grid-background">
-        <div className="synthwave-sun" />
-        <div className="grid-horizon" />
-        <div className="perspective-grid" />
-        <div className="win95-starfield" />
-        <div className="terminal-vector-core" />
+      <div className={GRID_BACKGROUND}>
+        <div className={SYNTHWAVE_SUN} />
+        <div className={GRID_HORIZON} />
+        <div className={PERSPECTIVE_GRID} />
       </div>
 
       {/* CRT FX Overlay */}
-      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
-        <div
-          className="crt-scanlines"
-          id="crtOverlay"
-          style={{ display: crtEnabled ? 'block' : 'none' }}
-        />
-        <div className="crt-flicker" />
+      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`} id="crtScreen">
 
         {/* Main Content Container */}
         <div

@@ -11,6 +11,10 @@ import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
+	GRID_BACKGROUND,
+	SYNTHWAVE_SUN,
+	PERSPECTIVE_GRID,
+	GRID_HORIZON,
 	HERO_SECTION,
 	HERO_TITLE,
 	HERO_SUBTITLE,
@@ -213,22 +217,14 @@ export function LudoLobby() {
   return (
     <>
       {/* Animated 3D Synthwave Grid & Sun Background */}
-      <div className="grid-background">
-        <div className="synthwave-sun" />
-        <div className="grid-horizon" />
-        <div className="perspective-grid" />
-        <div className="win95-starfield" />
-        <div className="terminal-vector-core" />
+      <div className={GRID_BACKGROUND}>
+        <div className={SYNTHWAVE_SUN} />
+        <div className={GRID_HORIZON} />
+        <div className={PERSPECTIVE_GRID} />
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
-      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
-        <div
-          className="crt-scanlines"
-          id="crtOverlay"
-          style={{ display: crtEnabled ? 'block' : 'none' }}
-        />
-        <div className="crt-flicker" />
+      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`} id="crtScreen">
 
         {/* Dynamic Full-Width Seated Sidebar & Content Layout Container */}
         <div className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border">
@@ -309,7 +305,7 @@ export function LudoLobby() {
                   LEVEL 1: HOST NEW TABLE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className={`${RETRO_TICKET_PASS} ${TICKET_PINK} retro-ticket-pass ticket-pink ${hostBusy ? 'disabled' : ''}`}
+                className={`${RETRO_TICKET_PASS} ${TICKET_PINK} ${hostBusy ? 'disabled' : ''}`}
                 onClick={hostBusy ? undefined : createRoom}
                 role="button"
                 tabIndex={0}
@@ -359,7 +355,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
+                  className={TICKET_ACTION_PILL}
                   style={{
                     background: 'var(--accent-pink)',
                     color: '#ffffff',
@@ -375,7 +371,7 @@ export function LudoLobby() {
                   LEVEL 2: HOTSEAT MODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className={`${RETRO_TICKET_PASS} ${TICKET_YELLOW} retro-ticket-pass ticket-yellow`}
+                className={`${RETRO_TICKET_PASS} ${TICKET_YELLOW}`}
                 onClick={() => {
                   retroAudio.playUiBeep(640, 0.05)
                   navigate('/gamelobby/table?mode=4&bots=0&local=1')
@@ -429,7 +425,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
+                  className={TICKET_ACTION_PILL}
                   style={{
                     background: 'rgba(255, 230, 0, 0.22)',
                     border: '1.5px solid #ffe600',
@@ -445,7 +441,7 @@ export function LudoLobby() {
                   LEVEL 3: BOT MODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className={`${RETRO_TICKET_PASS} ${TICKET_GREEN} retro-ticket-pass ticket-green`}
+                className={`${RETRO_TICKET_PASS} ${TICKET_GREEN}`}
                 onClick={() => {
                   retroAudio.playUiBeep(640, 0.05)
                   navigate('/gamelobby/table?mode=4&bots=1')
@@ -499,7 +495,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
+                  className={TICKET_ACTION_PILL}
                   style={{
                     background: 'rgba(0, 255, 136, 0.22)',
                     border: '1.5px solid #00ff88',
@@ -515,7 +511,7 @@ export function LudoLobby() {
                   LEVEL 4 (LAST): ACCESS VIA ROOM CODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className={`${RETRO_TICKET_PASS} ${TICKET_CYAN} retro-ticket-pass ticket-cyan`}
+                className={`${RETRO_TICKET_PASS} ${TICKET_CYAN}`}
                 onClick={() => {
                   if (roomCodeInput.trim().length > 0 && !joiningByCode) {
                     joinByCode(roomCodeInput)

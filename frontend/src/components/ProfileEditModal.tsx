@@ -234,7 +234,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
         </button>
 
         <button
-          className="retro-btn"
+          className={RETRO_BTN}
           disabled={busy}
           onClick={() => setDeleteOpen(true)}
           style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: 8 }}

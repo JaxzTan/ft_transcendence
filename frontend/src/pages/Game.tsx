@@ -17,6 +17,10 @@ import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
+	GRID_BACKGROUND,
+	SYNTHWAVE_SUN,
+	PERSPECTIVE_GRID,
+	GRID_HORIZON,
 	APP_WRAPPER,
 	HERO_SECTION,
 	HERO_TITLE,
@@ -24,6 +28,7 @@ import {
 	RETRO_BADGE,
 	RETRO_WINDOW,
 	WINDOW_HEADER,
+	GAME_WINDOW_HEADER_EXTRA,
 	WINDOW_BODY,
 	RETRO_BTN,
 } from '../styles/tw'
@@ -663,21 +668,16 @@ export function Game() {
   if (!activeMatch) {
     return (
       <>
-        <div className="grid-background">
-          <div className="synthwave-sun" />
-          <div className="grid-horizon" />
-          <div className="perspective-grid" />
-          <div className="win95-starfield" />
-          <div className="terminal-vector-core" />
+        <div className={GRID_BACKGROUND}>
+          <div className={SYNTHWAVE_SUN} />
+          <div className={GRID_HORIZON} />
+          <div className={PERSPECTIVE_GRID} />
         </div>
 
-        <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
-          <div className="crt-scanlines" id="crtOverlay" style={{ display: crtEnabled ? 'block' : 'none' }} />
-          <div className="crt-flicker" />
-
-          <div className={APP_WRAPPER} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`} id="crtScreen">
+          <div className={APP_WRAPPER} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 'auto', marginRight: 'auto', maxWidth: '100%', width: '100%' }}>
             <section className={RETRO_WINDOW} style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
-              <div className={`${WINDOW_HEADER} window-header`}>
+              <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                 <span>{t('game.noActiveSessionTitle')}</span>
               </div>
               <div className={WINDOW_BODY} style={{ textAlign: 'center', padding: '30px 24px' }}>
@@ -719,23 +719,14 @@ export function Game() {
   return (
     <>
       {/* Animated 3D Synthwave Grid & Sun Background */}
-      <div className="grid-background">
-        <div className="synthwave-sun" />
-        <div className="grid-horizon" />
-        <div className="perspective-grid" />
-        <div className="win95-starfield" />
-        <div className="terminal-vector-core" />
+      <div className={GRID_BACKGROUND}>
+        <div className={SYNTHWAVE_SUN} />
+        <div className={GRID_HORIZON} />
+        <div className={PERSPECTIVE_GRID} />
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
-      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
-        <div
-          className="crt-scanlines"
-          id="crtOverlay"
-          style={{ display: crtEnabled ? 'block' : 'none' }}
-        />
-        <div className="crt-flicker" />
-
+      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`} id="crtScreen">
         {/* Main Content Wrapper */}
         <div className={`${APP_WRAPPER} app-wrapper game-page`} style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
           {/* Hero Telemetry & Badge Bar */}
@@ -862,7 +853,7 @@ export function Game() {
             <div className="order-2 lg:order-none" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Pilot Roster Window */}
               <section className={RETRO_WINDOW} id="playersWindow">
-                <div className={`${WINDOW_HEADER} window-header`}>
+                <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>{t('game.pilotRosterTitle')}</span>
                   </div>
@@ -1173,7 +1164,7 @@ export function Game() {
 
               {/* Controls, Shortcuts & Audio Window */}
               <section className={RETRO_WINDOW} id="sectorControlWindow">
-                <div className={`${WINDOW_HEADER} window-header`}>
+                <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>CONTROLS & SHORTCUTS</span>
                   </div>
@@ -1298,7 +1289,7 @@ export function Game() {
               {view.status === 'waiting' ? (
                 /* WAITING ROOM SETUP WINDOW */
                 <section className={RETRO_WINDOW} id="waitingSetupWindow">
-                  <div className={`${WINDOW_HEADER} window-header`}>
+                  <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                     <span>{t('game.waitingBayTitle')}</span>
                   </div>
 
@@ -1397,7 +1388,7 @@ export function Game() {
               ) : (
                 /* IN-GAME DICE CONTROLS WINDOW */
                 <section className={RETRO_WINDOW} id="diceControlWindow">
-                  <div className={`${WINDOW_HEADER} window-header`}>
+                  <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                     <span>{t('game.diceSystemTitle')}</span>
                   </div>
 
@@ -1505,7 +1496,7 @@ export function Game() {
 
               {/* MISSION TELEMETRY LOG WINDOW */}
               <section className={RETRO_WINDOW} id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div className={`${WINDOW_HEADER} window-header`} style={{ flex: 'none' }}>
+                <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`} style={{ flex: 'none' }}>
                   <span>{t('game.reconLogsTitle')}</span>
                 </div>
 

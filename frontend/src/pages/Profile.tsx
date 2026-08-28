@@ -12,6 +12,10 @@ import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
 import {
 	CRT_SCREEN,
+	GRID_BACKGROUND,
+	SYNTHWAVE_SUN,
+	PERSPECTIVE_GRID,
+	GRID_HORIZON,
 	HERO_SECTION,
 	HERO_TITLE,
 	RETRO_WINDOW,
@@ -319,25 +323,17 @@ export function Profile() {
   return (
     <>
       {/* Animated 3D Synthwave Grid & Sun Background */}
-      <div className="grid-background">
-        <div className="synthwave-sun" />
-        <div className="grid-horizon" />
-        <div className="perspective-grid" />
-        <div className="win95-starfield" />
-        <div className="terminal-vector-core" />
+      <div className={GRID_BACKGROUND}>
+        <div className={SYNTHWAVE_SUN} />
+        <div className={GRID_HORIZON} />
+        <div className={PERSPECTIVE_GRID} />
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
       <div
-        className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
+        className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`}
         id="crtScreen"
       >
-        <div
-          className="crt-scanlines"
-          id="crtOverlay"
-          style={{ display: crtEnabled ? 'block' : 'none' }}
-        />
-        <div className="crt-flicker" />
 
         {/* Dynamic Full-Width Seated Sidebar & Content Layout Container */}
         <div className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border">

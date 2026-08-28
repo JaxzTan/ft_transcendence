@@ -1,6 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import type { RankTier } from '../utils/ranks'
+import { BADGE_MAMEE_AURA, BADGE_MILO_AURA } from '../styles/tw'
 
 interface RankBadgeProps {
   tier: RankTier
@@ -31,9 +32,9 @@ export function RankBadge({
   const tierName = t(`ranks.${tier.key}`, tier.name)
 
   const tierClass = isMamee
-    ? 'badge-mamee-monster-aura relative [z-index:1] [margin:6px_8px_3px] bg-[linear-gradient(180deg,rgba(45,8,20,.96)_0%,rgba(20,3,10,.98)_100%)] text-white [border:1.5px_solid_#ff3d00] [text-shadow:0_0_6px_#ffffff,0_-2px_10px_#ffdd00,0_-4px_18px_#ff3d00,0_-8px_24px_#ff1744] shadow-[0_0_14px_rgba(255,61,0,.9),0_-6px_18px_rgba(255,170,0,.85),0_-14px_28px_rgba(255,23,68,.75),0_-20px_36px_rgba(255,230,0,.5),inset_0_0_12px_rgba(255,170,0,.6),inset_0_-2px_6px_rgba(255,23,68,.7)] [animation:mamee-flame-steady-glow_2.8s_ease-in-out_infinite_alternate]'
+    ? `${BADGE_MAMEE_AURA} relative [z-index:1] [margin:6px_8px_3px] bg-[linear-gradient(180deg,rgba(45,8,20,.96)_0%,rgba(20,3,10,.98)_100%)] text-white [border:1.5px_solid_#ff3d00] [text-shadow:0_0_6px_#ffffff,0_-2px_10px_#ffdd00,0_-4px_18px_#ff3d00,0_-8px_24px_#ff1744] shadow-[0_0_14px_rgba(255,61,0,.9),0_-6px_18px_rgba(255,170,0,.85),0_-14px_28px_rgba(255,23,68,.75),0_-20px_36px_rgba(255,230,0,.5),inset_0_0_12px_rgba(255,170,0,.6),inset_0_-2px_6px_rgba(255,23,68,.7)] [animation:mamee-flame-steady-glow_2.8s_ease-in-out_infinite_alternate]`
     : isMilo
-      ? 'badge-tier-milo-aura relative [z-index:1] [margin:6px_8px_3px] bg-[linear-gradient(135deg,rgba(38,5,58,.98),rgba(16,2,30,.99))] [border:1.5px_solid_#ff00ff] text-white shadow-[0_0_16px_rgba(189,0,255,.85),0_-5px_20px_rgba(255,0,255,.75),0_-10px_28px_rgba(0,240,255,.5),inset_0_0_12px_rgba(255,0,255,.5)] [text-shadow:0_0_6px_#ffffff,0_0_14px_#ff00ff,0_0_24px_#bd00ff] [animation:milo-plasma-pulse_2.4s_ease-in-out_infinite_alternate]'
+      ? `${BADGE_MILO_AURA} relative [z-index:1] [margin:6px_8px_3px] bg-[linear-gradient(135deg,rgba(38,5,58,.98),rgba(16,2,30,.99))] [border:1.5px_solid_#ff00ff] text-white shadow-[0_0_16px_rgba(189,0,255,.85),0_-5px_20px_rgba(255,0,255,.75),0_-10px_28px_rgba(0,240,255,.5),inset_0_0_12px_rgba(255,0,255,.5)] [text-shadow:0_0_6px_#ffffff,0_0_14px_#ff00ff,0_0_24px_#bd00ff] [animation:milo-plasma-pulse_2.4s_ease-in-out_infinite_alternate]`
       : isPaddle
         ? 'relative overflow-hidden bg-[linear-gradient(135deg,rgba(6,32,54,.98),rgba(2,16,32,.99))] [border:1.5px_solid_#00f0ff] text-white shadow-[0_0_16px_rgba(0,240,255,.8),0_-4px_18px_rgba(255,0,234,.65),0_4px_18px_rgba(255,230,0,.45),inset_0_0_10px_rgba(0,240,255,.45)] [text-shadow:0_0_6px_#ffffff,0_0_14px_#00f0ff,0_0_22px_#ff00ea] [animation:paddle-rainbow-border_2.4s_linear_infinite_alternate]'
         : isHoney
