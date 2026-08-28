@@ -984,73 +984,6 @@ export function Home() {
 														</span>
 													</div>
 												</div>
-											</div>
-										)
-									})
-								)}
-							</div>
-						</section>
-
-						{/* Widget 3: Pilot Profile & Combat Stats */}
-						<section className="retro-window col-8" id="pilotDossierWindow">
-							<div className="window-header">
-								<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-									<span>{t('homeExtended.pilotProfileTitle')}</span>
-								</div>
-								<div className="window-controls">
-									<span className="window-btn min" />
-									<span className="window-btn max" />
-								</div>
-							</div>
-							<div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-								{/* Top Row: Pilot Profile Identity Header */}
-								<div
-									style={{
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'space-between',
-										padding: '12px 16px',
-										background: 'rgba(0, 0, 0, 0.45)',
-										border: '1px solid var(--accent-cyan)',
-										borderRadius: 4,
-										flexWrap: 'wrap',
-										gap: 12,
-									}}
-								>
-									<div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-										<UserAvatar
-											username={username}
-											avatarStyle={user?.avatarStyle}
-											hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
-											size={48}
-										/>
-										<div>
-											<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-												<span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', color: '#ffffff', letterSpacing: 1 }}>
-													{displayName.toUpperCase()}
-												</span>
-												<RankBadge
-													tier={getRankTier(stats?.rating ?? 1200, leaderboardRank)}
-													fontSize="0.75rem"
-													padding="3px 10px"
-												/>
-											</div>
-											<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-												{t('homeExtended.callsign')}: {displayName.toUpperCase()} // {t('homeExtended.rankedCombatant')}
-											</span>
-										</div>
-									</div>
-
-									<button
-										className="retro-btn"
-										style={{ padding: '6px 14px', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}
-										onClick={() => {
-											retroAudio.playUiBeep(600, 0.05)
-											navigate('/profile')
-										}}
-									>
-										{t('homeExtended.fullProfileBtn')}
-									</button>
 											)
 										})
 									)}
@@ -1087,7 +1020,7 @@ export function Home() {
 											<UserAvatar
 												username={username}
 												avatarStyle={user?.avatarStyle}
-												hasAvatarPhoto={user?.hasAvatarPhoto}
+												hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
 												size={48}
 											/>
 											<div>
@@ -1425,4 +1358,3 @@ export function Home() {
 		</>
 	)
 }
-

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { navigate, useRoute } from '../router'
 import { useApp } from '../store'
@@ -62,6 +63,8 @@ export function RetroNavbar({
   const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
   const popoverRef = useRef<HTMLDivElement>(null)
   const accountPopoverRef = useRef<HTMLDivElement>(null)
+  const accountPopoverContentRef = useRef<HTMLDivElement>(null)
+  const [accountPopoverPos, setAccountPopoverPos] = useState({ top: 0, left: 0 })
 
   // Global "all sounds" mute — same retroAudio.muted flag the in-game audio
   // toggle uses (gates music AND every UI/FX beep), not just the chiptune
@@ -84,13 +87,37 @@ export function RetroNavbar({
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setIsThemePopoverOpen(false)
       }
-      if (accountPopoverRef.current && !accountPopoverRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const insideTrigger = accountPopoverRef.current?.contains(target)
+      const insidePortal = accountPopoverContentRef.current?.contains(target)
+      if (!insideTrigger && !insidePortal) {
         setIsAccountPopoverOpen(false)
       }
     }
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
+
+  // Popover is portaled to document.body (see render below) so it always
+  // renders above sibling page content instead of being clipped/covered by
+  // an ancestor's stacking context. Position is computed from the trigger's
+  // viewport rect since the portal escapes the `position: relative` wrapper
+  // that previously anchored it via CSS `left: calc(100% + 14px)`.
+  useEffect(() => {
+    if (!isAccountPopoverOpen) return
+    const updatePosition = () => {
+      const rect = accountPopoverRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setAccountPopoverPos({ top: rect.top, left: rect.right + 14 })
+    }
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isAccountPopoverOpen])
 
   const username = user?.username || 'PILOT'
   const displayName = user?.displayName || username
@@ -229,14 +256,20 @@ export function RetroNavbar({
             </span>
           </button>
 
-          {/* Account & Settings Popover Menu */}
+          {/* Account & Settings Popover Menu — portaled to document.body so it
+              renders above sibling page content instead of being clipped or
+              covered by an ancestor's stacking context. Fixed-positioned at
+              the trigger's viewport rect (see accountPopoverPos effect). */}
+          {isAccountPopoverOpen && createPortal(
           <div
-            className={`${THEME_POPOVER_MENU_BASE} ${isAccountPopoverOpen ? THEME_POPOVER_MENU_ACTIVE_DOWN : THEME_POPOVER_MENU_HIDDEN}`}
+            ref={accountPopoverContentRef}
+            className={`${THEME_POPOVER_MENU_BASE} ${THEME_POPOVER_MENU_ACTIVE_DOWN}`}
             id="accountPopoverMenu"
             style={{
-              left: 'calc(100% + 14px)',
+              position: 'fixed',
+              top: accountPopoverPos.top,
+              left: accountPopoverPos.left,
               right: 'auto',
-              top: 0,
               bottom: 'auto',
               width: 275,
               padding: '16px 16px',
@@ -245,7 +278,7 @@ export function RetroNavbar({
               backdropFilter: 'blur(32px) saturate(220%)',
               border: '1.5px solid rgba(0, 240, 255, 0.45)',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(0, 240, 255, 0.25)',
-              display: isAccountPopoverOpen ? 'flex' : 'none',
+              display: 'flex',
               flexDirection: 'column',
               gap: 12,
               zIndex: 10005,
@@ -426,7 +459,9 @@ export function RetroNavbar({
               <span>⏻</span>
               <span>{t('navbar.logoutBtn')}</span>
             </button>
-          </div>
+          </div>,
+          document.body
+          )}
         </div>
       </div>
 
