@@ -15,6 +15,23 @@ import { CyberButton, CyberModal } from '../components/CyberModal'
 import { ResultsModal } from '../components/ResultsModal'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
+import {
+	CRT_SCREEN,
+	GRID_BACKGROUND,
+	SYNTHWAVE_SUN,
+	PERSPECTIVE_GRID,
+	GRID_HORIZON,
+	APP_WRAPPER,
+	HERO_SECTION,
+	HERO_TITLE,
+	BADGE_BAR,
+	RETRO_BADGE,
+	RETRO_WINDOW,
+	WINDOW_HEADER,
+	GAME_WINDOW_HEADER_EXTRA,
+	WINDOW_BODY,
+	RETRO_BTN,
+} from '../styles/tw'
 
 const SEAT_HUES: Record<PlayerColor, string> = {
   red: '#ff007f',
@@ -682,24 +699,19 @@ export function Game() {
   if (!activeMatch) {
     return (
       <>
-        <div className="grid-background">
-          <div className="synthwave-sun" />
-          <div className="grid-horizon" />
-          <div className="perspective-grid" />
-          <div className="win95-starfield" />
-          <div className="terminal-vector-core" />
+        <div className={GRID_BACKGROUND}>
+          <div className={SYNTHWAVE_SUN} />
+          <div className={GRID_HORIZON} />
+          <div className={PERSPECTIVE_GRID} />
         </div>
 
-        <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
-          <div className="crt-scanlines" id="crtOverlay" style={{ display: crtEnabled ? 'block' : 'none' }} />
-          <div className="crt-flicker" />
-
-          <div className="app-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <section className="retro-window" style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
-              <div className="window-header">
+        <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`} id="crtScreen">
+          <div className={APP_WRAPPER} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 'auto', marginRight: 'auto', maxWidth: '100%', width: '100%' }}>
+            <section className={RETRO_WINDOW} style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
+              <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                 <span>{t('game.noActiveSessionTitle')}</span>
               </div>
-              <div className="window-body" style={{ textAlign: 'center', padding: '30px 24px' }}>
+              <div className={WINDOW_BODY} style={{ textAlign: 'center', padding: '30px 24px' }}>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', color: 'var(--accent-yellow)', marginBottom: 10 }}>
                   NO MATCH CREDENTIALS DETECTED
                 </div>
@@ -707,7 +719,7 @@ export function Game() {
                   Please initialize or join a tactical Ludo arena from the Game Lobby first.
                 </div>
                 <button
-                  className="retro-btn"
+                  className={RETRO_BTN}
                   style={{ width: '100%', padding: '12px 0', fontSize: '0.8rem' }}
                   onClick={() => {
                     retroAudio.playUiBeep(600, 0.05)
@@ -742,29 +754,20 @@ export function Game() {
   return (
     <>
       {/* Animated 3D Synthwave Grid & Sun Background */}
-      <div className="grid-background">
-        <div className="synthwave-sun" />
-        <div className="grid-horizon" />
-        <div className="perspective-grid" />
-        <div className="win95-starfield" />
-        <div className="terminal-vector-core" />
+      <div className={GRID_BACKGROUND}>
+        <div className={SYNTHWAVE_SUN} />
+        <div className={GRID_HORIZON} />
+        <div className={PERSPECTIVE_GRID} />
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
-      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
-        <div
-          className="crt-scanlines"
-          id="crtOverlay"
-          style={{ display: crtEnabled ? 'block' : 'none' }}
-        />
-        <div className="crt-flicker" />
-
+      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`} id="crtScreen">
         {/* Main Content Wrapper */}
-        <div className="app-wrapper game-page" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
+        <div className={`${APP_WRAPPER} app-wrapper game-page`} style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
           {/* Hero Telemetry & Badge Bar */}
-          <header className="hero-section" style={{ padding: '12px 0 10px', textAlign: 'center' }}>
+          <header className={HERO_SECTION} style={{ padding: '12px 0 10px', textAlign: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <h1 className="hero-title" style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
+              <h1 className={HERO_TITLE} style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
                 {t('game.heroTitle')}
               </h1>
 
@@ -849,9 +852,9 @@ export function Game() {
 
             {/* Badge Bar with Room Code */}
             {activeMatch.inviteCode && (
-              <div className="badge-bar" style={{ marginTop: 14, justifyContent: 'center' }}>
+              <div className={BADGE_BAR} style={{ marginTop: 14, justifyContent: 'center' }}>
                 <button
-                  className="retro-badge"
+                  className={RETRO_BADGE}
                   style={{
                     cursor: 'pointer',
                     background: 'var(--bg-secondary)',
@@ -874,27 +877,24 @@ export function Game() {
 
           {/* Main Tactical Grid Layout */}
           <main
-            className="dashboard-grid"
+            className="game-tactical-grid grid grid-cols-1 gap-3 lg:grid-cols-[260px_1fr_260px] lg:gap-2 xl:grid-cols-[310px_1fr_310px]"
             style={{
-              display: 'grid',
-              gridTemplateColumns: '310px 1fr 310px',
-              gap: 8,
               alignItems: 'start',
               width: '100%',
               margin: '0 auto',
             }}
           >
             {/* COLUMN 1: PILOT ROSTER // TACTICAL STATUS & SYSTEM CONTROL */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="order-2 lg:order-none" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Pilot Roster Window */}
-              <section className="retro-window" id="playersWindow">
-                <div className="window-header">
+              <section className={RETRO_WINDOW} id="playersWindow">
+                <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>{t('game.pilotRosterTitle')}</span>
                   </div>
                 </div>
 
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
                       {t('game.seatPilotHeader')}
@@ -1041,7 +1041,7 @@ export function Game() {
 
                           {occupied ? (
                             <span
-                              className="retro-badge"
+                              className={RETRO_BADGE}
                               style={{
                                 padding: '2px 6px',
                                 fontSize: '0.62rem',
@@ -1053,7 +1053,7 @@ export function Game() {
                             </span>
                           ) : canSelect ? (
                             <span
-                              className="retro-badge"
+                              className={RETRO_BADGE}
                               style={{
                                 padding: '2px 6px',
                                 fontSize: '0.62rem',
@@ -1210,14 +1210,14 @@ export function Game() {
               </section>
 
               {/* Controls, Shortcuts & Audio Window */}
-              <section className="retro-window" id="sectorControlWindow">
-                <div className="window-header">
+              <section className={RETRO_WINDOW} id="sectorControlWindow">
+                <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>CONTROLS & SHORTCUTS</span>
                   </div>
                 </div>
 
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
+                <div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>DICE ROLL:</span>
@@ -1237,7 +1237,7 @@ export function Game() {
 
                   {/* Audio Preferences Toggle Button */}
                   <button
-                    className="retro-badge"
+                    className={RETRO_BADGE}
                     style={{
                       cursor: 'pointer',
                       padding: '8px 10px',
@@ -1284,7 +1284,7 @@ export function Game() {
               {lastResult && (
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column' }}>
                   <button
-                    className="retro-btn"
+                    className={RETRO_BTN}
                     onClick={() => {
                       retroAudio.playUiBeep(640, 0.06)
                       setShowResultsModal(true)
@@ -1310,7 +1310,7 @@ export function Game() {
             </div>
 
             {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 'min(650px, 66vh)', justifySelf: 'center' }}>
+            <div className="order-1 lg:order-none" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 'min(650px, 66vh)', justifySelf: 'center' }}>
               {(() => {
                 const currentTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                 const isBotTurn = currentTurnPlayer?.isBot ?? false
@@ -1332,15 +1332,15 @@ export function Game() {
             </div>
 
             {/* COLUMN 3: TACTICAL CONTROLS & LOGS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div className="order-3 lg:order-none" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {view.status === 'waiting' ? (
                 /* WAITING ROOM SETUP WINDOW */
-                <section className="retro-window" id="waitingSetupWindow">
-                  <div className="window-header">
+                <section className={RETRO_WINDOW} id="waitingSetupWindow">
+                  <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                     <span>{t('game.waitingBayTitle')}</span>
                   </div>
 
-                  <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     {(() => {
                       const activeCount = view.players.filter((p) => p.status === 'active').length
                       const alreadyReady = view.readyPlayers.includes(view.myColor)
@@ -1348,7 +1348,7 @@ export function Game() {
                       const disabled = alreadyReady || soloRoom
                       return (
                         <button
-                          className="retro-btn"
+                          className={RETRO_BTN}
                           onClick={markReady}
                           disabled={disabled}
                           style={{
@@ -1416,7 +1416,7 @@ export function Game() {
                                     </span>
                                   </div>
                                   <button
-                                    className="retro-btn"
+                                    className={RETRO_BTN}
                                     onClick={() => inviteFriend(f.id)}
                                     disabled={st !== 'idle'}
                                     style={{ padding: '3px 8px', fontSize: '0.62rem', flex: 'none' }}
@@ -1434,13 +1434,13 @@ export function Game() {
                 </section>
               ) : (
                 /* IN-GAME DICE CONTROLS WINDOW */
-                <section className="retro-window" id="diceControlWindow">
-                  <div className="window-header">
+                <section className={RETRO_WINDOW} id="diceControlWindow">
+                  <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`}>
                     <span>{t('game.diceSystemTitle')}</span>
                   </div>
 
                   <div
-                    className="window-body"
+                    className={WINDOW_BODY}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
@@ -1502,7 +1502,7 @@ export function Game() {
                     </div>
 
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       onClick={rollDice}
                       disabled={!canRoll || isRolling}
                       style={{
@@ -1542,14 +1542,14 @@ export function Game() {
               )}
 
               {/* MISSION TELEMETRY LOG WINDOW */}
-              <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div className="window-header" style={{ flex: 'none' }}>
+              <section className={RETRO_WINDOW} id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className={`${WINDOW_HEADER} ${GAME_WINDOW_HEADER_EXTRA}`} style={{ flex: 'none' }}>
                   <span>{t('game.reconLogsTitle')}</span>
                 </div>
 
                 <div
                   ref={moveLogContainerRef}
-                  className="window-body"
+                  className={WINDOW_BODY}
                   style={{
                     flex: 1,
                     height: '100%',
@@ -1601,7 +1601,7 @@ export function Game() {
               {/* RETURN TO LOBBY BUTTON (Shown whenever game has ended across all modes, or in online PvP) */}
               {(isGameEnded || (activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat')) && (
                 <button
-                  className="retro-btn"
+                  className={RETRO_BTN}
                   onClick={() => {
                     retroAudio.playUiBeep(440, 0.05)
                     setLastResult(null)

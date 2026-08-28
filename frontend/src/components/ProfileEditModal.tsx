@@ -5,6 +5,7 @@ import { getApi, patchApi } from '../api'
 import { passwordError } from '../validatePassword'
 import { useApp } from '../store'
 import { DeleteAccountModal } from './DeleteAccountModal'
+import { RETRO_BTN } from '../styles/tw'
 
 const OTP = { '42': '/forty_two.png', github: '/github.png', google: '/google.png' } as const
 const PROVIDERS = ['google', 'github', '42'] as const
@@ -142,7 +143,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
           <div style={{ fontWeight: 900, fontSize: '0.95rem', fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>
             {t('profileEdit.title')}
           </div>
-          <button className="retro-btn" onClick={onClose} style={{ padding: '3px 9px', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+          <button className={RETRO_BTN} onClick={onClose} style={{ padding: '3px 9px', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
             {t('profileEdit.close')}
           </button>
         </div>
@@ -165,7 +166,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>{t('profileEdit.twoFactorDesc')}</div>
           </div>
           <button
-            className="retro-btn"
+            className={RETRO_BTN}
             onClick={() => setTwoFactorEnabled((v) => !v)}
             style={{ padding: '2px 9px', fontSize: '0.66rem', color: 'var(--accent-cyan)' }}
           >
@@ -208,7 +209,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
                   {linked ? t('profileEdit.linked') : t('profileEdit.notLinked')}
                 </span>
                 <button
-                  className="retro-btn"
+                  className={RETRO_BTN}
                   disabled={busy}
                   onClick={() => (linked ? removeOAuth(p) : addOAuth(p))}
                   style={{ padding: '2px 8px', fontSize: '0.62rem', color: linked ? '#ff0055' : 'var(--accent-cyan)' }}
@@ -224,7 +225,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
         {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
 
         <button
-          className="retro-btn"
+          className={RETRO_BTN}
           disabled={busy}
           onClick={handleSave}
           style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900 }}
@@ -233,7 +234,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
         </button>
 
         <button
-          className="retro-btn"
+          className={RETRO_BTN}
           disabled={busy}
           onClick={() => setDeleteOpen(true)}
           style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: 8 }}

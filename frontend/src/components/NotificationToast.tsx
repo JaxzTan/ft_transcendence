@@ -7,6 +7,7 @@ import { navigate } from '../router'
 import { apiFetch } from '../api'
 import type { PlayerColor } from '../game/types'
 import { retroAudio } from '../utils/audio'
+import { RETRO_BTN } from '../styles/tw'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -355,7 +356,7 @@ function Toast({
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button
               onClick={acceptInvite}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 flex: 1,
                 height: 38,
@@ -376,7 +377,7 @@ function Toast({
             </button>
             <button
               onClick={dismiss}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 flex: 1,
                 height: 38,
@@ -403,7 +404,7 @@ function Toast({
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button
               onClick={acceptFriend}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 flex: 1,
                 height: 38,
@@ -424,7 +425,7 @@ function Toast({
             </button>
             <button
               onClick={declineFriend}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 flex: 1,
                 height: 38,
@@ -451,7 +452,7 @@ function Toast({
           <div style={{ display: 'flex', marginTop: 4 }}>
             <button
               onClick={dismiss}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 width: '100%',
                 height: 38,

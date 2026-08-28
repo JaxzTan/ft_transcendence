@@ -6,6 +6,7 @@ import { navigate } from '../router'
 import { useApp } from '../store'
 import type { PlayerColor } from '../game/types'
 import { retroAudio } from '../utils/audio'
+import { RETRO_BTN, THEME_TRIGGER_BTN_BASE } from '../styles/tw'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ export function NotificationBell({
       {/* Old-School Tactical Receiver Button */}
       {fullWidth ? (
         <button
-          className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
+          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${open ? 'active' : ''}`}
           onClick={toggleOpen}
           title={t('notifications.title')}
           style={{
@@ -254,7 +255,7 @@ export function NotificationBell({
         </button>
       ) : (
         <button
-          className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
+          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${open ? 'active' : ''}`}
           onClick={toggleOpen}
           title={t('notifications.title')}
           style={{
@@ -280,7 +281,7 @@ export function NotificationBell({
             }}
           />
 
-          <span className="theme-btn-text" style={{ fontSize: '0.62rem' }}>
+          <span className="text-[0.62rem] tracking-[0.5px] leading-none whitespace-nowrap" style={{ fontSize: '0.62rem' }}>
             {t('notifications.title')}{count > 0 ? ` [${count < 10 ? `0${count}` : count}]` : ''}
           </span>
         </button>

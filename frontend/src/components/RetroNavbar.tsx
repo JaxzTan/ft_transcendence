@@ -6,6 +6,15 @@ import { retroAudio } from '../utils/audio'
 import { UserAvatar } from './UserAvatar'
 import { NotificationBell } from './NotificationBell'
 import { useNotifications, type Notification } from '../hooks/useNotifications'
+import {
+	RETRO_BTN,
+	THEME_TRIGGER_BTN_BASE,
+	THEME_POPOVER_MENU_BASE,
+	THEME_POPOVER_MENU_HIDDEN,
+	THEME_POPOVER_MENU_ACTIVE_DOWN,
+	THEME_POPOVER_MENU_ACTIVE_UP,
+	RETRO_FLOATING_DOCK,
+} from '../styles/tw'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
 
@@ -88,18 +97,15 @@ export function RetroNavbar({
 
   return (
     <nav
-      className="navbar retro-floating-dock"
+      className={RETRO_FLOATING_DOCK}
       id="mainNav"
       style={{
-        position: 'fixed',
-        left: 28,
-        top: '50%',
-        transform: 'translateY(-50%)',
         width: 270,
         minWidth: 270,
         maxWidth: 270,
-        height: 'calc(100vh - 48px)',
-        maxHeight: '94vh',
+        height: 'calc(100vh - 64px)',
+        maxHeight: 'calc(100vh - 64px)',
+        margin: 0,
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
@@ -132,10 +138,10 @@ export function RetroNavbar({
         }}
       >
         {/* User Profile Pill Button -> Opens Account & Settings Popover Menu */}
-        <div className="theme-popover-wrapper" ref={accountPopoverRef} style={{ width: '100%', position: 'relative' }}>
+        <div className="z-10000 inline-block" ref={accountPopoverRef} style={{ width: '100%', position: 'relative' }}>
           <button
             type="button"
-            className={`retro-btn theme-trigger-btn ${isAccountPopoverOpen ? 'active' : ''}`}
+            className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${isAccountPopoverOpen ? 'active' : ''}`}
             id="userAccountBtn"
             aria-label="Account Settings, Language and 2FA"
             style={{
@@ -225,7 +231,7 @@ export function RetroNavbar({
 
           {/* Account & Settings Popover Menu */}
           <div
-            className={`theme-popover-menu ${isAccountPopoverOpen ? 'active' : ''}`}
+            className={`${THEME_POPOVER_MENU_BASE} ${isAccountPopoverOpen ? THEME_POPOVER_MENU_ACTIVE_DOWN : THEME_POPOVER_MENU_HIDDEN}`}
             id="accountPopoverMenu"
             style={{
               left: 'calc(100% + 14px)',
@@ -391,7 +397,7 @@ export function RetroNavbar({
 
             {/* 4. Logout / Disconnect Button */}
             <button
-              className="retro-btn"
+              className={RETRO_BTN}
               onClick={async () => {
                 setIsAccountPopoverOpen(false)
                 retroAudio.playUiBeep(330, 0.08)
@@ -477,7 +483,7 @@ export function RetroNavbar({
             return (
               <button
                 key={item.path}
-                className={`retro-btn theme-trigger-btn ${isActive ? 'active' : ''}`}
+                className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${isActive ? 'active' : ''}`}
                 style={{
                   width: '100%',
                   height: 52,
@@ -594,9 +600,9 @@ export function RetroNavbar({
         }}
       >
         {/* Theme Selector Popover */}
-        <div className="theme-popover-wrapper" ref={popoverRef} style={{ width: '100%', position: 'relative' }}>
+        <div className="z-10000 inline-block" ref={popoverRef} style={{ width: '100%', position: 'relative' }}>
           <button
-            className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
+            className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} ${isThemePopoverOpen ? 'active' : ''}`}
             id="themeModalBtn"
             aria-label="Toggle Theme Menu"
             style={{
@@ -641,7 +647,7 @@ export function RetroNavbar({
 
           {/* Upward Opening Theme Popover Menu */}
           <div
-            className={`theme-popover-menu open-up ${isThemePopoverOpen ? 'active' : ''}`}
+            className={`${THEME_POPOVER_MENU_BASE} ${isThemePopoverOpen ? THEME_POPOVER_MENU_ACTIVE_UP : THEME_POPOVER_MENU_HIDDEN}`}
             id="themePopoverMenu"
             style={{
               bottom: 'calc(100% + 8px)',

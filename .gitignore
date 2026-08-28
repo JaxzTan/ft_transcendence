@@ -93,3 +93,5 @@ docs
 .markdownlint.json
 e2e/
 *.skill
+screenshots
+

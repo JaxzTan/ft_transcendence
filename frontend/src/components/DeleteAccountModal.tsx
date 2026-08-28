@@ -5,6 +5,7 @@ import { deleteApi, patchApi } from '../api'
 import { passwordError } from '../validatePassword'
 import { useApp } from '../store'
 import { navigate } from '../router'
+import { RETRO_BTN } from '../styles/tw'
 
 type Step = 'confirm' | 'setPassword'
 
@@ -95,7 +96,7 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
               {t('profileEdit.deleteAccountSetPasswordDesc')}
             </div>
             {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
-            <button className="retro-btn" disabled={busy} onClick={handleSetPassword}
+            <button className={RETRO_BTN} disabled={busy} onClick={handleSetPassword}
               style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, marginTop: 6 }}>
               {busy ? t('profileEdit.saving') : t('profileEdit.deleteAccountSetPasswordBtn')}
             </button>
@@ -113,14 +114,14 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
               {t('profileEdit.deleteAccountAcknowledge')}
             </label>
             {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
-            <button className="retro-btn" disabled={busy || !acknowledge || !currentPassword} onClick={handleDelete}
+            <button className={RETRO_BTN} disabled={busy || !acknowledge || !currentPassword} onClick={handleDelete}
               style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: 6 }}>
               {busy ? t('profileEdit.saving') : t('profileEdit.deleteAccountDeleteBtn')}
             </button>
           </>
         )}
 
-        <button className="retro-btn" disabled={busy} onClick={onClose}
+        <button className={RETRO_BTN} disabled={busy} onClick={onClose}
           style={{ width: '100%', padding: '8px', fontSize: '0.72rem', marginTop: 8, color: 'var(--text-muted)' }}>
           {t('profileEdit.deleteAccountCancel')}
         </button>
