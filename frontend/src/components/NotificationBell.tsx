@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Notification } from '../hooks/useNotifications'
@@ -85,21 +86,54 @@ export function NotificationBell({
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const { setActiveMatch } = useApp()
 
   const list = Array.isArray(notifications) ? notifications : []
   const count = typeof unreadCount === 'number' ? unreadCount : list.filter((n) => !n?.read).length
 
-  // Close dropdown when clicking outside.
+  // Close dropdown when clicking outside (either the trigger or the
+  // portaled dropdown itself, which no longer lives inside `ref`).
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
+      const target = e.target as Node
+      if (ref.current?.contains(target)) return
+      if (dropdownRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  // The dropdown is portaled to <body> so it always renders above every
+  // other element on the page, regardless of which stacking context the
+  // bell happens to be nested in (e.g. a `position: sticky` sidebar creates
+  // its own stacking context, which traps even a very high z-index inside
+  // it — no in-place z-index value could ever escape that). Since it's no
+  // longer positioned relative to the trigger via CSS, its coordinates are
+  // computed from the trigger's live bounding box instead.
+  const [coords, setCoords] = useState<{ top: number; left: number; right: number; bottom: number } | null>(null)
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const updateCoords = () => {
+      const rect = ref.current?.getBoundingClientRect()
+      if (!rect) return
+      setCoords({
+        top: rect.bottom,
+        bottom: window.innerHeight - rect.bottom,
+        left: rect.right,
+        right: window.innerWidth - rect.right,
+      })
+    }
+    updateCoords()
+    window.addEventListener('scroll', updateCoords, true)
+    window.addEventListener('resize', updateCoords)
+    return () => {
+      window.removeEventListener('scroll', updateCoords, true)
+      window.removeEventListener('resize', updateCoords)
+    }
   }, [open])
 
   const toggleOpen = () => {
@@ -165,9 +199,9 @@ export function NotificationBell({
 
   const dropdownStyle: CSSProperties = isRight
     ? {
-        position: 'absolute',
-        left: 'calc(100% + 14px)',
-        bottom: 0,
+        position: 'fixed',
+        left: coords ? coords.left + 14 : -9999,
+        bottom: coords ? coords.bottom : -9999,
         top: 'auto',
         right: 'auto',
         width: 350,
@@ -176,7 +210,9 @@ export function NotificationBell({
         border: '1.5px solid var(--accent-cyan, #00f0ff)',
         boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 20px 60px rgba(0, 0, 0, 0.95)',
         borderRadius: 14,
-        zIndex: 10005,
+        // Portaled to <body> (see useLayoutEffect above), so this z-index
+        // only has to beat other <body>-level layers (modals at 10002).
+        zIndex: 100000,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -187,19 +223,18 @@ export function NotificationBell({
         transition: 'opacity 0.2s ease, transform 0.2s ease',
       }
     : {
-        position: 'absolute',
-        top: 'calc(100% + 8px)',
-        right: 0,
+        position: 'fixed',
+        top: coords ? coords.top + 8 : -9999,
+        right: coords ? coords.right : -9999,
         width: 380,
         maxHeight: 460,
         background: 'rgba(10, 4, 24, 0.96)',
         border: '1.5px solid var(--accent-cyan, #00f0ff)',
         boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 16px 40px rgba(0, 0, 0, 0.9)',
         borderRadius: 4,
-        // Was 120 — far below the app's other overlay layers (navbar 9999,
-        // popovers 10001-10005, modals 10002), so it could sit underneath
-        // them. Bumped above the highest z-index used anywhere else in the
-        // app (99999) so this dropdown is always the topmost element.
+        // Portaled to <body> (see useLayoutEffect above) so this always
+        // renders above every other element, regardless of which stacking
+        // context (e.g. a sticky sidebar) the bell trigger itself lives in.
         zIndex: 100000,
         display: 'flex',
         flexDirection: 'column',
@@ -291,8 +326,9 @@ export function NotificationBell({
         </button>
       )}
 
-      {/* Retro Dropdown Window Frame */}
-      <div style={dropdownStyle}>
+      {/* Retro Dropdown Window Frame — portaled to <body>, see useLayoutEffect above */}
+      {createPortal(
+      <div ref={dropdownRef} style={dropdownStyle}>
         {/* Window Header */}
         <div
           style={{
@@ -440,7 +476,9 @@ export function NotificationBell({
             })
           )}
         </div>
-      </div>
+      </div>,
+      document.body,
+      )}
     </div>
   )
 }
