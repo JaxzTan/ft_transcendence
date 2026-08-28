@@ -92,3 +92,5 @@ docs
 *.sh
 .markdownlint.json
 *.skill
+screenshots
+
