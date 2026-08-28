@@ -813,6 +813,8 @@ export const en = {
     themeCyberpunk: 'CYBERPUNK',
     themeWin95: 'WIN95',
     themeTerminal: 'TERMINAL',
+    rejoinActiveBtn: 'REJOIN MATCH',
+    rejoinActiveTooltip: 'Rejoin your active game in progress',
   },
   homeDeck: {
     title: '◖ CYBERSOUND DECK ◗',
