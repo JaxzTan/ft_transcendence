@@ -307,16 +307,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // never a render; Game.tsx flips it on mount/unmount via setPlaying.
   const playingRef = useRef(false)
   const sendHeartbeat = useCallback((playing: boolean) => {
-    fetch('/api/presence/heartbeat', {
+    apiFetch('/api/presence/heartbeat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ playing }),
     }).then((res) => {
-      // Session expired server-side — stop the loop instead of retrying
-      // every HEARTBEAT_INTERVAL_MS forever. Clearing `user` also lets
-      // App.tsx's route guard redirect to /login on its own.
-      if (res.status === 401) setUser(null)
+      if (res.status === 401 || res.status === 403) setUser(null)
     }).catch(() => undefined)
   }, [])
   const setPlaying = useCallback(
