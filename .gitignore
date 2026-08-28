@@ -91,4 +91,5 @@ docs
 *.md
 *.sh
 .markdownlint.json
-
+e2e/
+*.skill
