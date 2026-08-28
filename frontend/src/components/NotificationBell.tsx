@@ -196,7 +196,11 @@ export function NotificationBell({
         border: '1.5px solid var(--accent-cyan, #00f0ff)',
         boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 16px 40px rgba(0, 0, 0, 0.9)',
         borderRadius: 4,
-        zIndex: 120,
+        // Was 120 — far below the app's other overlay layers (navbar 9999,
+        // popovers 10001-10005, modals 10002), so it could sit underneath
+        // them. Bumped above the highest z-index used anywhere else in the
+        // app (99999) so this dropdown is always the topmost element.
+        zIndex: 100000,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
