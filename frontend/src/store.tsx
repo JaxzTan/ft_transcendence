@@ -160,6 +160,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
+    // Login/signup are reachable while genuinely signed out — /api/auth/me
+    // (and the /api/auth/refresh it triggers on a 401) would just fail there
+    // every time, so skip the round trip and let `user` stay null until an
+    // actual login/register call sets it. Every other route still restores
+    // the session normally on load/refresh.
+    const path = window.location.pathname
+    if (path === '/login' || path === '/signup') {
+      setAuthReady(true)
+      return
+    }
+
     const restore = async () => {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -301,6 +312,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ playing }),
+    }).then((res) => {
+      // Session expired server-side — stop the loop instead of retrying
+      // every HEARTBEAT_INTERVAL_MS forever. Clearing `user` also lets
+      // App.tsx's route guard redirect to /login on its own.
+      if (res.status === 401) setUser(null)
     }).catch(() => undefined)
   }, [])
   const setPlaying = useCallback(

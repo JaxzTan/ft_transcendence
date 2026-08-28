@@ -129,10 +129,6 @@ export class AuthService implements OnModuleDestroy {
       throw new UnauthorizedException('Invalid username, email, or password');
     }
 
-    if (!user.emailVerified) {
-      throw new ForbiddenException('Email not verified — open the link we sent you first');
-    }
-
     // 2FA off → password alone is enough; issue the session immediately.
     // 2FA on → password is only factor one; email a code and finish later.
     if (!user.twoFactorEnabled) {
