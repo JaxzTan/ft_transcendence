@@ -9,17 +9,29 @@ LAN_IP        := $(or $(call env_get,LAN_IP),$(shell ip route get 1.1.1.1 2>/dev
 OAUTH_VARS     = GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_CALLBACK_URL \
                  GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET GITHUB_CALLBACK_URL \
                  FORTYTWO_CLIENT_ID FORTYTWO_CLIENT_SECRET FORTYTWO_CALLBACK_URL
+# ngrok tunnel credentials: the backend's ngrok OAuth strategies requireSecret()
+# these at boot (they fail-fast if absent), and NGROK_AUTHTOKEN/DOMAIN/FRONTEND_URL
+# are what `make tunnel` needs. Required by the preflight below.
+TUNNEL_VARS    = NGROK_AUTHTOKEN NGROK_DOMAIN NGROK_FRONTEND_URL \
+                 NGROK_GOOGLE_CLIENT_ID NGROK_GOOGLE_CLIENT_SECRET NGROK_GOOGLE_CALLBACK_URL \
+                 NGROK_GITHUB_CLIENT_ID NGROK_GITHUB_CLIENT_SECRET NGROK_GITHUB_CALLBACK_URL \
+                 NGROK_FORTYTWO_CLIENT_ID NGROK_FORTYTWO_CLIENT_SECRET NGROK_FORTYTWO_CALLBACK_URL
 
 all: build start
 	@ echo "Frontend: https://localhost:$(HTTPS_PORT)"
 
 # One-command config pipeline: generate any missing derived values, then
-# preflight (fail hard) on the manual-only ones (OAuth apps). Used by every
-# build/start path exactly once. Values live in .env now, one KEY=VALUE per
-# line, read directly by compose's env_file: and by dotenv on the host side.
+# preflight (fail hard) on the manual-only ones (OAuth apps + ngrok tunnel
+# credentials — the backend's ngrok strategies fail-fast on boot without them).
+# Used by every build/start path exactly once. Values live in .env now, one
+# KEY=VALUE per line, read directly by compose's env_file: and by dotenv on
+# the host side.
 env:
-	@set -e; \
-	touch .env; \
+	@if [ ! -f .env ]; then \
+	  echo "❌ Build aborted — .env not found. Ensure you have copied over the correct .env file with all relevant credentials"; \
+	  exit 1; \
+	fi; \
+	set -e; \
 	get() { grep -m1 "^$$1=" .env 2>/dev/null | cut -d= -f2-; }; \
 	set_kv() { \
 	  if grep -q "^$$1=" .env 2>/dev/null; then \
@@ -44,7 +56,7 @@ env:
 	set_kv CONTAINER_DATABASE_URL "postgresql://$$user_val:$$pwd_val@db:5432/$$db_val"; \
 	chmod 600 .env; \
 	missing=""; \
-	for v in $(OAUTH_VARS); do [ -n "$$(get $$v)" ] || missing="$$missing $$v"; done; \
+	for v in $(OAUTH_VARS) $(TUNNEL_VARS); do [ -n "$$(get $$v)" ] || missing="$$missing $$v"; done; \
 	if [ -n "$$missing" ]; then \
 	  echo "❌ Preflight failed — required values missing in .env:"; \
 	  for v in $$missing; do echo "      $$v"; done; \
