@@ -63,11 +63,7 @@ function Bar({ color, presses, target }: { color: PlayerColor; presses: number; 
   const pct = Math.min(100, (safe / fullAt) * 100)
   return (
     <div
-      style={{
-        width: 180, height: 50, borderRadius: 10, background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)', overflow: 'hidden', margin: '6px auto 0',
-        position: 'relative',
-      }}
+      className="relative mx-auto mt-3 h-[50px] w-[180px] overflow-hidden rounded-[10px] border border-(--border-color) bg-(--bg-secondary)"
     >
       <div
         style={{
@@ -85,18 +81,15 @@ function Bar({ color, presses, target }: { color: PlayerColor; presses: number; 
 /** Name-plate — Defender sits LEFT (QWESAZXDC), Attacker RIGHT (UIOHJKNBM). */
 function Plate({ role, color, isMe }: { role: 'Defender' | 'Attacker'; color: PlayerColor; isMe: boolean }) {
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div className="text-center">
       <div
-        style={{
-          width: 76, height: 76, borderRadius: 18, background: COLORS[color],
-          display: 'grid', placeItems: 'center', fontWeight: 900, fontSize: 28, color: '#12100a',
-          margin: '0 auto 6px', boxShadow: `0 0 18px ${COLORS[color]}55`,
-        }}
+        className="mx-auto mb-2 grid h-[76px] w-[120px] place-items-center rounded-[18px] px-3 text-[28px] font-black tracking-[0.12em] text-[#12100a]"
+        style={{ background: COLORS[color], boxShadow: `0 0 18px ${COLORS[color]}55` }}
       >
         {(color ?? '').slice(0, 2).toUpperCase() || '?'}
       </div>
-      <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)' }}>{role}</div>
-      <div style={{ fontSize: 12, color: isMe ? 'var(--accent-yellow)' : 'var(--text-muted)', fontWeight: 700 }}>
+      <div className="text-[15px] font-extrabold text-(--text-main)">{role}</div>
+      <div className="text-xs font-bold" style={{ color: isMe ? 'var(--accent-yellow)' : 'var(--text-muted)' }}>
         {isMe ? 'YOU' : color.toUpperCase()}
       </div>
     </div>
@@ -107,11 +100,9 @@ function Plate({ role, color, isMe }: { role: 'Defender' | 'Attacker'; color: Pl
 function KeyBadge({ label, emphasized }: { label: string; emphasized: boolean }) {
   return (
     <div
+      className="mb-2 mt-3 inline-block rounded-[10px] px-[18px] py-2 text-[54px] font-black uppercase [font-family:var(--font-display)]"
       style={{
-        display: 'inline-block', margin: '12px 0 8px', padding: '8px 18px', borderRadius: 10,
         border: `2px solid ${emphasized ? 'var(--accent-yellow)' : 'var(--text-muted)'}`,
-        fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 54,
-        textTransform: 'uppercase',
         color: emphasized ? 'var(--text-main)' : 'var(--text-muted)',
         boxShadow: emphasized ? '0 0 14px var(--accent-yellow)' : 'none',
       }}
@@ -138,8 +129,19 @@ export function ClashOverlay({ clash, result, myColor, onKeyPress, onComplete, a
   // Keypresses ONLY count during the PRESSING phase (keys are revealed then).
   useEffect(() => {
     if (!iAmInClash || phase !== 'pressing' || result) return
+    // Robust key matching. The clash keys are single lowercase QWERTY letters
+    // (defender q/w/e/a/s/d/z/x/c, attacker u/i/o/h/j/k/b/n/m), but:
+    //   - `e.code` is the PHYSICAL key ("KeyZ", never "z") — compare with the
+    //     "Key" prefix so pressing the QWERTY position always works.
+    //   - `e.key` is the CHARACTER produced (layout-aware: AZERTY swaps q↔a and
+    //     w↔z, so the labeled key produces a different char on non-QWERTY) —
+    //     compare case-insensitively so CapsLock/Shift can't break it either.
+    // Either match is sufficient, so both position-pressers and
+    // label-pressers register regardless of browser or keyboard layout.
+    const hitKey = (e: KeyboardEvent, k: string) =>
+      e.code === `Key${k.toUpperCase()}` || (typeof e.key === 'string' && e.key.toLowerCase() === k)
     const handler = (e: KeyboardEvent) => {
-      const hit = listenerKeys.find((k) => e.code === k || e.key === k)
+      const hit = listenerKeys.find((k) => hitKey(e, k))
       if (hit) onKeyPress(hit)
     }
     window.addEventListener('keydown', handler)
@@ -158,9 +160,9 @@ export function ClashOverlay({ clash, result, myColor, onKeyPress, onComplete, a
 
   // Persistent "who's fighting" header — Defender LEFT / Attacker RIGHT (keyboard mirror).
   const plates = (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: 28, alignItems: 'center' }}>
+    <div className="flex items-center justify-center gap-7">
       <Plate role="Defender" color={clash.defender} isMe={defenderIsMe} />
-      <div style={{ fontSize: 24, color: 'var(--text-muted)', fontWeight: 900 }}>VS</div>
+      <div className="text-2xl font-black text-(--text-muted)">VS</div>
       <Plate role="Attacker" color={clash.attacker} isMe={attackerIsMe} />
     </div>
   )
@@ -191,70 +193,67 @@ export function ClashOverlay({ clash, result, myColor, onKeyPress, onComplete, a
             >
               {result.winner === myColor ? '⚔️ You won!' : `${result.winner.toUpperCase()} wins`}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 28, alignItems: 'center' }}>
+            <div className="flex items-center justify-center gap-7">
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 700 }}>Defender</div>
+                <div className="text-[13px] font-bold text-(--text-main)">Defender</div>
                 <Bar color={clash.defender} presses={result.winner === clash.defender ? result.winnerPresses : result.loserPresses} target={CLASH_TARGET} />
               </div>
-              <div style={{ fontSize: 24, color: 'var(--text-muted)', fontWeight: 900 }}>VS</div>
+              <div className="text-2xl font-black text-(--text-muted)">VS</div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 700 }}>Attacker</div>
+                <div className="text-[13px] font-bold text-(--text-main)">Attacker</div>
                 <Bar color={clash.attacker} presses={result.winner === clash.attacker ? result.winnerPresses : result.loserPresses} target={CLASH_TARGET} />
               </div>
             </div>
           </>
         ) : phase === 'announce' ? (
           <>
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: 66, letterSpacing: '.14em', color: 'var(--accent-yellow)', lineHeight: 1.1 }}>
+            <div className="[font-family:var(--font-heading)] text-[66px] tracking-[.14em] leading-[1.1] text-(--accent-yellow)">
               ⚔️ CLASH!
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 10 }}>A collision is about to happen!</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
+            <div className="mt-2.5 text-sm text-(--text-muted)">A collision is about to happen!</div>
+            <div className="mt-1 text-xs text-(--text-muted)">
               {CLASH_ANNOUNCE_MS / 1000}s reveal · {CLASH_COUNTDOWN_MS / 1000}s countdown · {CLASH_PRESS_MS / 1000}s clash
             </div>
-            <div style={{ marginTop: 22 }}>{plates}</div>
+            <div className="mt-[22px]">{plates}</div>
           </>
         ) : (
           <>
             {plates}
             <div
-              style={{
-                marginTop: 22, minHeight: 170, textAlign: 'center',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              }}
+              className="mt-[22px] flex min-h-[170px] flex-col items-center justify-center text-center"
             >
               {phase === 'countdown' ? (
                 <>
-                  <div style={{ fontFamily: 'var(--font-heading)', fontSize: 18, letterSpacing: '.18em', color: 'var(--accent-yellow)' }}>
+                  <div className="[font-family:var(--font-heading)] text-lg tracking-[.18em] text-(--accent-yellow)">
                     GET READY…
                   </div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 96, lineHeight: 1, color: 'var(--accent-yellow)' }}>
+                  <div className="[font-family:var(--font-display)] text-[96px] font-bold leading-none text-(--accent-yellow)">
                     {countdownSecs > 0 ? Math.min(countdownSecs, Math.ceil(CLASH_COUNTDOWN_MS / 1000)) : 'GO'}
                   </div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 8 }}>
+                  <div className="mt-2 text-[13px] text-(--text-muted)">
                     Your key will appear when the fight starts!
                   </div>
                 </>
               ) : (
                 <>
                   {fightFlash && (
-                    <div style={{ fontFamily: 'var(--font-heading)', fontSize: 42, letterSpacing: '.3em', color: 'var(--accent-yellow)' }}>
+                    <div className="[font-family:var(--font-heading)] text-[42px] tracking-[.3em] text-(--accent-yellow)">
                       ⚔️ FIGHT!
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 28, alignItems: 'flex-start', marginTop: 10 }}>
-                    <div style={{ textAlign: 'center' }}>
+                  <div className="mt-2.5 flex items-start justify-center gap-7">
+                    <div className="text-center">
                       <KeyBadge label={clash.defenderKey} emphasized={defenderIsMe} />
                       <Bar color={clash.defender} presses={clash.defenderPresses} target={CLASH_TARGET} />
                     </div>
-                    <div style={{ fontSize: 26, color: 'var(--text-muted)', fontWeight: 900, alignSelf: 'center', marginTop: 8 }}>VS</div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div className="mt-2 self-center text-[26px] font-black text-(--text-muted)">VS</div>
+                    <div className="text-center">
                       <KeyBadge label={clash.attackerKey} emphasized={attackerIsMe} />
                       <Bar color={clash.attacker} presses={clash.attackerPresses} target={CLASH_TARGET} />
                     </div>
                   </div>
-                  {!iAmInClash && <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 10 }}>Watching…</div>}
-                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 10 }}>
+                  {!iAmInClash && <div className="mt-2.5 text-[13px] text-(--text-muted)">Watching…</div>}
+                  <div className="mt-2.5 text-xs text-(--text-muted)">
                     {t('game.clashPressHint', { seconds: CLASH_PRESS_MS / 1000 })}
                   </div>
                 </>

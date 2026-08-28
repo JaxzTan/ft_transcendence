@@ -10,6 +10,18 @@ import { retroAudio } from '../utils/audio'
 import { getRankTier } from '../utils/ranks'
 import { RankBadge } from '../components/RankBadge'
 import '../styles/retrowave.css'
+import {
+	CRT_SCREEN,
+	HERO_SECTION,
+	HERO_TITLE,
+	RETRO_WINDOW,
+	WINDOW_HEADER,
+	WINDOW_CONTROLS,
+	WINDOW_BTN_MIN,
+	WINDOW_BTN_MAX,
+	WINDOW_BODY,
+	RETRO_BTN,
+} from '../styles/tw'
 
 interface UserProfile {
   id: string
@@ -322,9 +334,8 @@ export function Profile() {
 
       {/* CRT Monitor Overlay FX Container */}
       <div
-        className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
+        className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`}
         id="crtScreen"
-        style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         <div
           className="crt-scanlines"
@@ -333,26 +344,22 @@ export function Profile() {
         />
         <div className="crt-flicker" />
 
-        {/* Global Navigation Dock */}
-        <RetroNavbar
-          activeRoute="/profile"
-          crtEnabled={crtEnabled}
-          toggleCrt={toggleCrt}
-        />
+        {/* Dynamic Full-Width Seated Sidebar & Content Layout Container */}
+        <div className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border">
+          {/* Left-Seated Navigation Dock */}
+          <aside className="shrink-0 w-[270px] sticky top-8" style={{ margin: 0, padding: 0 }}>
+            <RetroNavbar
+              activeRoute="/profile"
+              crtEnabled={crtEnabled}
+              toggleCrt={toggleCrt}
+            />
+          </aside>
 
-        {/* Full-Width App Wrapper Matching Leaderboard */}
-        <div
-          className="app-wrapper"
-          style={{
-            height: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Top Hero Banner */}
-          <header className="hero-section" style={{ padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
-            <h1 className="hero-title" style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
+          {/* Main Content Flow */}
+          <div className="flex-1 w-full min-w-0 sticky top-8" style={{ margin: 0, padding: 0 }}>
+            {/* Top Hero Banner */}
+            <header className={HERO_SECTION} style={{ marginTop: 0, padding: '16px 0 18px', marginBottom: 12, flexShrink: 0 }}>
+            <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', margin: 0, letterSpacing: '1.5px' }}>
               {t('profile.heroTitle')}
             </h1>
           </header>
@@ -368,7 +375,7 @@ export function Profile() {
           ) : (
             /* Full-Width Unified Retro Window Container */
             <section
-              className="retro-window"
+              className={RETRO_WINDOW}
               style={{
                 width: '100%',
                 flex: 1,
@@ -380,7 +387,7 @@ export function Profile() {
             >
               {/* Window Header */}
               <div
-                className="window-header"
+                className={WINDOW_HEADER}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -393,15 +400,15 @@ export function Profile() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 'bold', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
                   <span>{t('profile.windowHeader', { username: (profile.displayName || profile.username).toUpperCase(), id: profile.id.slice(0, 8).toUpperCase() })}</span>
                 </div>
-                <div className="window-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className="window-btn min" />
-                  <span className="window-btn max" />
+                <div className={WINDOW_CONTROLS} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className={WINDOW_BTN_MIN} />
+                  <span className={WINDOW_BTN_MAX} />
                 </div>
               </div>
 
               {/* Fixed Viewport Window Body (No Page Scroll) */}
               <div
-                className="window-body"
+                className={WINDOW_BODY}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -579,7 +586,7 @@ export function Profile() {
                         {isOwnProfile ? (
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                             <button
-                              className="retro-btn"
+                              className={RETRO_BTN}
                               onClick={() => fileInputRef.current?.click()}
                               style={{
                                 padding: '3px 9px',
@@ -593,7 +600,7 @@ export function Profile() {
                               {t('profile.editAvatar')}
                             </button>
                             <button
-                              className="retro-btn"
+                              className={RETRO_BTN}
                               onClick={handleRemoveAvatar}
                               style={{
                                 padding: '3px 8px',
@@ -607,7 +614,7 @@ export function Profile() {
                               {t('profile.resetAvatar')}
                             </button>
                             <button
-                              className="retro-btn"
+                              className={RETRO_BTN}
                               onClick={() => setShowEdit(true)}
                               style={{
                                 padding: '3px 9px',
@@ -628,7 +635,7 @@ export function Profile() {
                           </div>
                         ) : (
                           <button
-                            className="retro-btn"
+                            className={RETRO_BTN}
                             onClick={() => {
                               retroAudio.playUiBeep(640, 0.04)
                               navigate('/profile')
@@ -868,7 +875,7 @@ export function Profile() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <button
-                          className="retro-btn"
+                          className={RETRO_BTN}
                           onClick={() => {
                             retroAudio.playUiBeep(520, 0.04)
                             setMainTab('history')
@@ -888,7 +895,7 @@ export function Profile() {
                           {t('profile.flightLogsTab', { count: gamesData?.total ?? 0 })}
                         </button>
                         <button
-                          className="retro-btn"
+                          className={RETRO_BTN}
                           onClick={() => {
                             retroAudio.playUiBeep(520, 0.04)
                             setMainTab('achievements')
@@ -1181,7 +1188,7 @@ export function Profile() {
                           {t('profile.friendsBoxTitle', { count: friendsData?.length ?? 0 })}
                         </span>
                         <button
-                          className="retro-btn"
+                          className={RETRO_BTN}
                           onClick={() => navigate('/friends')}
                           style={{
                             padding: '3px 9px',
@@ -1334,6 +1341,7 @@ export function Profile() {
           )}
         </div>
       </div>
+    </div>
 
       {showEdit && (
         <ProfileEditModal

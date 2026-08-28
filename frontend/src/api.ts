@@ -53,6 +53,59 @@ function refreshOnce(): Promise<RefreshResult> {
   return refreshing
 }
 
+// ---------------------------------------------------------------------------
+// Cross-tab refresh coordination.
+//
+// The access token is short-lived (15 min). When it expires, EVERY open tab
+// (this app keeps /home, /profile, /friends, /game all open) hits 401 at once.
+// If each tab then POSTs /api/auth/refresh with the SAME refresh cookie, the
+// server's refresh-token ROTATION consumes the token on the first call — the
+// losing tabs get a 401 from /refresh, apiFetch reports 'expired', and the user
+// is bounced to /login even though their session is perfectly fine.
+//
+// Cookies (including the rotated refresh cookie) are shared browser-wide, so
+// only ONE tab actually needs to refresh; the others wait for that refresh to
+// land, then retry their original request against the fresh cookie jar.
+// ---------------------------------------------------------------------------
+const REFRESH_LOCK_KEY = 'lr.refreshLock'
+const REFRESH_LOCK_TTL_MS = 6000
+const REFRESH_WAIT_MS = 5000
+
+/** Try to claim the cross-tab refresh lock (best-effort, TTL-guarded). */
+function acquireRefreshLock(): boolean {
+  const now = Date.now()
+  try {
+    const raw = localStorage.getItem(REFRESH_LOCK_KEY)
+    if (raw) {
+      const existing = JSON.parse(raw) as { at: number }
+      if (now - existing.at < REFRESH_LOCK_TTL_MS) return false // another tab holds it
+    }
+    localStorage.setItem(REFRESH_LOCK_KEY, JSON.stringify({ at: now }))
+    // Re-read to confirm we won the write race against another tab.
+    const got = JSON.parse(localStorage.getItem(REFRESH_LOCK_KEY) ?? 'null')
+    return got?.at === now
+  } catch {
+    return true // localStorage unavailable — fall back to the local single-flight
+  }
+}
+
+function releaseRefreshLock(): void {
+  try {
+    localStorage.removeItem(REFRESH_LOCK_KEY)
+  } catch { /* ignore */ }
+}
+
+/** Wait until the cross-tab refresh lock is released (bounded). */
+async function waitForRefreshLock(maxMs = REFRESH_WAIT_MS): Promise<void> {
+  const start = Date.now()
+  while (Date.now() - start < maxMs) {
+    try {
+      if (!localStorage.getItem(REFRESH_LOCK_KEY)) return
+    } catch { /* ignore */ }
+    await new Promise((r) => setTimeout(r, 50))
+  }
+}
+
 /**
  * Like fetch(), but for authenticated endpoints. On a 401 it attempts a single
  * silent token refresh and retries once.
@@ -71,17 +124,32 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   const res = await fetch(input, finalInit)
   if (res.status !== 401) return res
 
-  const result = await refreshOnce()
-  if (result.outcome === 'ok') return fetch(input, finalInit)
-  if (result.outcome === 'expired') return res // session really is over — hand back the 401
+  // Another tab is mid-refresh: wait for it, then retry against the shared
+  // cookie jar (which now holds the rotated tokens). Only if that still 401s
+  // do we perform our own refresh below.
+  if (!acquireRefreshLock()) {
+    await waitForRefreshLock()
+    const retry = await fetch(input, finalInit)
+    if (retry.status !== 401) return retry
+    // Retry still 401 (the other tab's refresh failed) — fall through.
+  }
 
-  // 'blocked': report the refresh's own status (429/5xx) rather than the
-  // misleading 401 from the original call. Synthesised locally — re-probing
-  // would mean another request at the limiter that just rejected us.
-  return new Response(null, {
-    status: result.status,
-    headers: result.retryAfter ? { 'Retry-After': result.retryAfter } : undefined,
-  })
+  const shouldRelease = acquireRefreshLock()
+  try {
+    const result = await refreshOnce()
+    if (result.outcome === 'ok') return fetch(input, finalInit)
+    if (result.outcome === 'expired') return res // session really is over — hand back the 401
+
+    // 'blocked': report the refresh's own status (429/5xx) rather than the
+    // misleading 401 from the original call. Synthesised locally — re-probing
+    // would mean another request at the limiter that just rejected us.
+    return new Response(null, {
+      status: result.status,
+      headers: result.retryAfter ? { 'Retry-After': result.retryAfter } : undefined,
+    })
+  } finally {
+    if (shouldRelease) releaseRefreshLock()
+  }
 }
 
 // ---------------------------------------------------------------------------

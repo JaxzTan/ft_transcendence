@@ -1,14 +1,31 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getApi, postApi } from '../api'
-import { UserAvatar } from '../components/UserAvatar'
 import { RetroNavbar } from '../components/RetroNavbar'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
 import { useApp } from '../store'
-import { COL } from '../theme'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
+import {
+	CRT_SCREEN,
+	HERO_SECTION,
+	HERO_TITLE,
+	HERO_SUBTITLE,
+	BADGE_BAR,
+	RETRO_BADGE,
+	DASHBOARD_GRID,
+	RETRO_WINDOW,
+	WINDOW_HEADER,
+	WINDOW_BODY,
+	RETRO_BTN,
+	RETRO_TICKET_PASS,
+	TICKET_PINK,
+	TICKET_YELLOW,
+	TICKET_GREEN,
+	TICKET_CYAN,
+	TICKET_ACTION_PILL,
+} from '../styles/tw'
 
 type Room = {
   id: string
@@ -30,14 +47,6 @@ type MatchResult = {
   playerCount: number
 }
 
-
-const ROOM_AVATAR_HUES = [COL.red.base, COL.green.base, COL.yellow.base, COL.blue.base]
-
-function hueForHost(host: string): string {
-  let hash = 0
-  for (let i = 0; i < host.length; i++) hash = (hash * 31 + host.charCodeAt(i)) >>> 0
-  return ROOM_AVATAR_HUES[hash % ROOM_AVATAR_HUES.length]
-}
 
 export function LudoLobby() {
   const { t } = useTranslation()
@@ -63,7 +72,7 @@ export function LudoLobby() {
   }
 
   const [rooms, setRooms] = useState<Room[] | null>(null)
-  const [roomFilter, setRoomFilter] = useState<'all' | 'classic' | 'duel'>('all')
+  const [roomFilter, setRoomFilter] = useState<'all' | 4 | 3 | 2>('all')
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null)
 
   const [hasActiveGame, setHasActiveGame] = useState(false)
@@ -168,30 +177,7 @@ export function LudoLobby() {
     }
   }
 
-  const badgeStyle = (badge: 'ranked' | 'semiRanked' | 'casual' | 'invite'): React.CSSProperties => {
-    const hue =
-      badge === 'ranked'
-        ? '#ffe600'
-        : badge === 'semiRanked'
-          ? '#00ff88'
-          : badge === 'casual'
-            ? '#00f0ff'
-            : '#ff007f'
-    return {
-      fontSize: '0.65rem',
-      fontWeight: 'bold',
-      letterSpacing: '0.5px',
-      color: hue,
-      background: `${hue}22`,
-      border: `1px solid ${hue}66`,
-      borderRadius: 4,
-      padding: '2px 8px',
-      fontFamily: 'var(--font-mono)',
-      textTransform: 'uppercase',
-    }
-  }
-
-  const filteredRooms = (rooms ?? []).filter((r) => roomFilter === 'all' || r.mode === roomFilter)
+  const filteredRooms = (rooms ?? []).filter((r) => roomFilter === 'all' || r.maxSeats === roomFilter)
 
   return (
     <>
@@ -205,7 +191,7 @@ export function LudoLobby() {
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
-      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
         <div
           className="crt-scanlines"
           id="crtOverlay"
@@ -213,26 +199,31 @@ export function LudoLobby() {
         />
         <div className="crt-flicker" />
 
-        {/* Main Content Wrapper */}
-        <div className="app-wrapper">
-          <RetroNavbar
-            activeRoute="/gamelobby"
-            crtEnabled={crtEnabled}
-            toggleCrt={toggleCrt}
-          />
+        {/* Dynamic Full-Width Seated Sidebar & Content Layout Container */}
+        <div className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border">
+          {/* Left-Seated Navigation Dock */}
+          <aside className="shrink-0 w-[270px] sticky top-8" style={{ margin: 0, padding: 0 }}>
+            <RetroNavbar
+              activeRoute="/gamelobby"
+              crtEnabled={crtEnabled}
+              toggleCrt={toggleCrt}
+            />
+          </aside>
 
-          {/* Hero Telemetry Banner */}
-          <header className="hero-section" style={{ padding: '16px 0 14px' }}>
-            <h1 className="hero-title" style={{ fontSize: '1.45rem', marginBottom: 4 }}>
+          {/* Main Content Flow */}
+          <div className="flex-1 w-full min-w-0 sticky top-8" style={{ margin: 0, padding: '0 2px 0 0' }}>
+            {/* Hero Telemetry Banner */}
+            <header className={HERO_SECTION} style={{ marginTop: 0, padding: '16px 0 14px' }}>
+            <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', marginBottom: 4 }}>
               {t('ludoLobbyExtra.heroTitle')}
             </h1>
-            <p className="hero-subtitle" style={{ fontSize: '0.75rem', marginBottom: 0 }}>
+            <p className={HERO_SUBTITLE} style={{ fontSize: '0.75rem', marginBottom: 0 }}>
               {t('ludoLobbyExtra.heroSubtitle')}
             </p>
 
-            <div className="badge-bar" style={{ marginTop: 12 }}>
+            <div className={BADGE_BAR} style={{ marginTop: 12 }}>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: '1px solid var(--accent-cyan)',
                   color: 'var(--accent-cyan)',
@@ -244,7 +235,7 @@ export function LudoLobby() {
                 {t('ludoLobbyExtra.activeSectors', { count: rooms ? rooms.length : 0 })}
               </span>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: '1px solid #00ff88',
                   color: '#00ff88',
@@ -253,7 +244,7 @@ export function LudoLobby() {
                 {t('ludoLobbyExtra.pilotLabel', { name: (user?.displayName ?? user?.username)?.toUpperCase() ?? t('ludoLobbyExtra.guestFallback') })}
               </span>
               <span
-                className="retro-badge"
+                className={RETRO_BADGE}
                 style={{
                   border: hasActiveGame ? '1px solid var(--accent-yellow)' : '1px dashed rgba(255,255,255,0.2)',
                   color: hasActiveGame ? 'var(--accent-yellow)' : 'var(--text-muted)',
@@ -264,9 +255,45 @@ export function LudoLobby() {
             </div>
           </header>
 
+          {/* Game Modifiers — Combat Arena rules (applied when hosting a table) */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+            <label
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem',
+                fontFamily: 'var(--font-mono)', color: 'var(--text-main)', cursor: 'pointer',
+                border: '1px solid var(--border-color)', borderRadius: 4, padding: '6px 10px',
+                background: 'rgba(0, 0, 0, 0.4)',
+              }}
+            >
+              <span>⚔️ {t('game.clashMode')}</span>
+              <input
+                type="checkbox"
+                checked={clashOn}
+                onChange={(e) => setClashOn(e.target.checked)}
+                style={{ accentColor: 'var(--accent-pink)', width: 15, height: 15, cursor: 'pointer' }}
+              />
+            </label>
+            <label
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem',
+                fontFamily: 'var(--font-mono)', color: 'var(--text-main)', cursor: 'pointer',
+                border: '1px solid var(--border-color)', borderRadius: 4, padding: '6px 10px',
+                background: 'rgba(0, 0, 0, 0.4)',
+              }}
+            >
+              <span>🛡 {t('game.safeZones')}</span>
+              <input
+                type="checkbox"
+                checked={safeZonesOn}
+                onChange={(e) => setSafeZonesOn(e.target.checked)}
+                style={{ accentColor: 'var(--accent-cyan)', width: 15, height: 15, cursor: 'pointer' }}
+              />
+            </label>
+          </div>
+
           {/* Main Tactical Single-Column / Stacked Layout */}
           <main
-            className="dashboard-grid"
+            className={DASHBOARD_GRID}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -287,7 +314,7 @@ export function LudoLobby() {
                   LEVEL 1: HOST NEW TABLE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className={`retro-ticket-pass ticket-pink ${hostBusy ? 'disabled' : ''}`}
+                className={`${RETRO_TICKET_PASS} ${TICKET_PINK} retro-ticket-pass ticket-pink ${hostBusy ? 'disabled' : ''}`}
                 onClick={hostBusy ? undefined : createRoom}
                 role="button"
                 tabIndex={0}
@@ -337,7 +364,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className="ticket-action-pill"
+                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
                   style={{
                     background: 'var(--accent-pink)',
                     color: '#ffffff',
@@ -347,65 +374,13 @@ export function LudoLobby() {
                 >
                   {hostBusy ? `▶ ${t('ludoLobbyPasses.creating')}` : `▶ ${t('ludoLobbyPasses.hostNewTable')}`}
                 </div>
-
-                <div onClick={(e) => e.stopPropagation()}>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      fontSize: '0.82rem',
-                      fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-main)',
-                      cursor: 'pointer',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 4,
-                      padding: '6px 10px',
-                      background: 'rgba(0, 0, 0, 0.4)',
-                    }}
-                  >
-                    <span>⚔️ {t('game.clashMode')}</span>
-                    <input
-                      type="checkbox"
-                      checked={clashOn}
-                      onChange={(e) => setClashOn(e.target.checked)}
-                      style={{ accentColor: 'var(--accent-pink)', width: 15, height: 15, cursor: 'pointer' }}
-                    />
-                  </label>
-                </div>
-
-                <div onClick={(e) => e.stopPropagation()}>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      fontSize: '0.82rem',
-                      fontFamily: 'var(--font-mono)',
-                      color: 'var(--text-main)',
-                      cursor: 'pointer',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 4,
-                      padding: '6px 10px',
-                      background: 'rgba(0, 0, 0, 0.4)',
-                    }}
-                  >
-                    <span>🛡 {t('game.safeZones')}</span>
-                    <input
-                      type="checkbox"
-                      checked={safeZonesOn}
-                      onChange={(e) => setSafeZonesOn(e.target.checked)}
-                      style={{ accentColor: 'var(--accent-cyan)', width: 15, height: 15, cursor: 'pointer' }}
-                    />
-                  </label>
-                </div>
               </div>
 
               {/* ════════════════════════════════════════════════════════════════════════════
                   LEVEL 2: HOTSEAT MODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass ticket-yellow"
+                className={`${RETRO_TICKET_PASS} ${TICKET_YELLOW} retro-ticket-pass ticket-yellow`}
                 onClick={() => {
                   retroAudio.playUiBeep(640, 0.05)
                   navigate('/gamelobby/table?mode=4&bots=0&local=1')
@@ -459,7 +434,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className="ticket-action-pill"
+                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
                   style={{
                     background: 'rgba(255, 230, 0, 0.22)',
                     border: '1.5px solid #ffe600',
@@ -475,7 +450,7 @@ export function LudoLobby() {
                   LEVEL 3: BOT MODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass ticket-green"
+                className={`${RETRO_TICKET_PASS} ${TICKET_GREEN} retro-ticket-pass ticket-green`}
                 onClick={() => {
                   retroAudio.playUiBeep(640, 0.05)
                   navigate('/gamelobby/table?mode=4&bots=1')
@@ -529,7 +504,7 @@ export function LudoLobby() {
                 </div>
 
                 <div
-                  className="ticket-action-pill"
+                  className={`${TICKET_ACTION_PILL} ticket-action-pill`}
                   style={{
                     background: 'rgba(0, 255, 136, 0.22)',
                     border: '1.5px solid #00ff88',
@@ -545,7 +520,7 @@ export function LudoLobby() {
                   LEVEL 4 (LAST): ACCESS VIA ROOM CODE TICKET
                  ════════════════════════════════════════════════════════════════════════════ */}
               <div
-                className="retro-ticket-pass ticket-cyan"
+                className={`${RETRO_TICKET_PASS} ${TICKET_CYAN} retro-ticket-pass ticket-cyan`}
                 onClick={() => {
                   if (roomCodeInput.trim().length > 0 && !joiningByCode) {
                     joinByCode(roomCodeInput)
@@ -631,7 +606,7 @@ export function LudoLobby() {
                     }}
                   />
                   <button
-                    className="retro-btn"
+                    className={RETRO_BTN}
                     onClick={(e) => {
                       e.stopPropagation()
                       joinByCode(roomCodeInput)
@@ -681,14 +656,14 @@ export function LudoLobby() {
             {/* ════════════════════════════════════════════════════════════════════════════
                 BELOW THEM: OPEN QUANTUM ROOMS
                ════════════════════════════════════════════════════════════════════════════ */}
-            <section className="retro-window" id="roomsWindow">
-              <div className="window-header" style={{ background: '#190a38', borderBottom: '1px solid rgba(0, 240, 255, 0.3)' }}>
+            <section className={`${RETRO_WINDOW}`} id="roomsWindow">
+              <div className={WINDOW_HEADER} style={{ background: '#190a38', borderBottom: '1px solid rgba(0, 240, 255, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span>{t('ludoLobbyPasses.openQuantumRooms')} ({filteredRooms.length})</span>
                 </div>
               </div>
 
-              <div className="window-body" style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className={WINDOW_BODY} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Filter Sub-Bar */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 4px' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
@@ -696,7 +671,7 @@ export function LudoLobby() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       style={{
                         padding: '4px 10px',
                         fontSize: '0.68rem',
@@ -710,32 +685,46 @@ export function LudoLobby() {
                       {t('ludoLobbyPasses.filterAll')}
                     </button>
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       style={{
                         padding: '4px 10px',
                         fontSize: '0.68rem',
-                        background: roomFilter === 'classic' ? 'var(--accent-pink)' : undefined,
+                        background: roomFilter === 4 ? 'var(--accent-pink)' : undefined,
                       }}
                       onClick={() => {
                         retroAudio.playUiBeep(520, 0.05)
-                        setRoomFilter('classic')
+                        setRoomFilter(4)
                       }}
                     >
-                      {t('ludoLobbyPasses.filterClassic4p')}
+                      {t('ludoLobbyPasses.filter4Players')}
                     </button>
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       style={{
                         padding: '4px 10px',
                         fontSize: '0.68rem',
-                        background: roomFilter === 'duel' ? 'var(--accent-pink)' : undefined,
+                        background: roomFilter === 3 ? 'var(--accent-pink)' : undefined,
                       }}
                       onClick={() => {
                         retroAudio.playUiBeep(520, 0.05)
-                        setRoomFilter('duel')
+                        setRoomFilter(3)
                       }}
                     >
-                      {t('ludoLobbyPasses.filterDuel2p')}
+                      {t('ludoLobbyPasses.filter3Players')}
+                    </button>
+                    <button
+                      className={RETRO_BTN}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '0.68rem',
+                        background: roomFilter === 2 ? 'var(--accent-pink)' : undefined,
+                      }}
+                      onClick={() => {
+                        retroAudio.playUiBeep(520, 0.05)
+                        setRoomFilter(2)
+                      }}
+                    >
+                      {t('ludoLobbyPasses.filter2Players')}
                     </button>
                   </div>
                 </div>
@@ -753,7 +742,7 @@ export function LudoLobby() {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1.5fr 0.8fr 1fr auto',
+                      gridTemplateColumns: '1fr 0.9fr auto',
                       gap: 8,
                       padding: '10px 14px',
                       background: 'rgba(25, 10, 56, 0.9)',
@@ -767,14 +756,12 @@ export function LudoLobby() {
                     }}
                   >
                     <div>{t('ludoLobbyPasses.colSectorCode')}</div>
-                    <div>{t('ludoLobbyPasses.colHostCallsign')}</div>
                     <div>{t('ludoLobbyPasses.colCapacity')}</div>
-                    <div>{t('ludoLobbyPasses.colStakes')}</div>
                     <div>{t('ludoLobbyPasses.colAction')}</div>
                   </div>
 
                   {/* Room Rows */}
-                  <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', paddingRight: 2 }}>
                     {rooms === null ? (
                       <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.78rem' }}>
                         {t('ludoLobbyExtra.scanningOpenSectors')}
@@ -788,13 +775,12 @@ export function LudoLobby() {
                       filteredRooms.map((room) => {
                         const isOwn = room.hostUsername === user?.username
                         const full = room.seats >= room.maxSeats
-                        const hue = hueForHost(room.host)
                         return (
                           <div
                             key={room.id}
                             style={{
                               display: 'grid',
-                              gridTemplateColumns: '1fr 1.5fr 0.8fr 1fr auto',
+                              gridTemplateColumns: '1fr 0.9fr auto',
                               gap: 8,
                               padding: '12px 14px',
                               borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
@@ -813,43 +799,6 @@ export function LudoLobby() {
                             >
                               {room.roomCode}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <UserAvatar
-                                username={room.hostUsername || room.host}
-                                size={28}
-                                fallbackStyle={{
-                                  width: 28,
-                                  height: 28,
-                                  flex: 'none',
-                                  borderRadius: 4,
-                                  display: 'grid',
-                                  placeItems: 'center',
-                                  fontWeight: 'bold',
-                                  fontSize: '0.7rem',
-                                  color: '#0d0221',
-                                  background: hue,
-                                }}
-                                style={{ borderRadius: 4, border: `1px solid ${hue}` }}
-                              />
-                              <div style={{ minWidth: 0 }}>
-                                <div
-                                  style={{
-                                    fontWeight: 'bold',
-                                    fontSize: '0.82rem',
-                                    color: '#ffffff',
-                                    fontFamily: 'var(--font-mono)',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                  }}
-                                >
-                                  {room.host}
-                                </div>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>
-                                  {room.maxSeats}P • {room.mode}
-                                </div>
-                              </div>
-                            </div>
                             <div
                               style={{
                                 fontWeight: 'bold',
@@ -861,11 +810,8 @@ export function LudoLobby() {
                               {room.seats}/{room.maxSeats}
                             </div>
                             <div>
-                              <span style={badgeStyle('ranked')}>{t('lobbyBrowser.ranked')}</span>
-                            </div>
-                            <div>
                               <button
-                                className="retro-btn"
+                                className={RETRO_BTN}
                                 onClick={() => (isOwn ? rejoinRoom(room) : joinRoom(room))}
                                 disabled={(!isOwn && full) || joiningRoomId === room.id}
                                 style={{
@@ -898,6 +844,7 @@ export function LudoLobby() {
           </main>
         </div>
       </div>
-    </>
-  )
+    </div>
+  </>
+)
 }

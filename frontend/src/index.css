@@ -1,3 +1,10 @@
+@import "tailwindcss";
+
+/* Reserve scrollbar space so it never obscures content (home/lobby etc.) */
+html {
+  scrollbar-gutter: stable;
+}
+
 * {
   box-sizing: border-box;
 }

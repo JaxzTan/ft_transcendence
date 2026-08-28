@@ -32,22 +32,78 @@ export class SocketHandlers {
     return run;
   }
 
+  /**
+   * Resolve the seat a socket should bind to when (re)joining a game.
+   *
+   * The JWT `color` claim is NOT trustworthy for rebinding: game tokens are
+   * signed once at join time (24h expiry) and are never re-issued on a lobby
+   * seat swap, so `tokenColor` can be stale. Rebinding to it re-populates the
+   * player's PREVIOUS seat and leaves their avatar on two slots at once. The
+   * match hash is the authoritative source — handleSelectColor updates the
+   * user's slot color there before any re-join happens — so prefer it.
+   * Spectators and guests have no hash slot and fall back to the token claim
+   * (then the requested color).
+   */
+  private async resolveEffectiveColor(
+    gameId: string,
+    userId: string | undefined,
+    isHotseat: boolean,
+    tokenColor: PlayerColor | undefined,
+    requestedColor: PlayerColor,
+  ): Promise<PlayerColor> {
+    if (isHotseat || !userId) return requestedColor;
+    const data = await this.store.getMatchData(gameId);
+    if (data) {
+      const ids = [data.player1_id, data.player2_id, data.player3_id, data.player4_id];
+      const colors = [data.player1_color, data.player2_color, data.player3_color, data.player4_color];
+      const slotIndex = ids.indexOf(userId);
+      if (slotIndex !== -1 && colors[slotIndex]) {
+        return colors[slotIndex] as PlayerColor;
+      }
+    }
+    return tokenColor || requestedColor;
+  }
+
   handleJoinGame(socket: GameSocket, gameId: string, playerColor: PlayerColor, userId?: string, displayName?: string): void {
     const effectiveGameId = socket.data.gameId || gameId;
     const effectiveUserId = socket.data.userId || userId;
     const effectiveUsername = displayName || socket.data.username;
+    const isHotseat = socket.data.mode === 'hotseat';
 
     this.withGameLock(effectiveGameId, async () => {
       try {
         socket.join(effectiveGameId);
         socket.data.gameId = effectiveGameId;
-        socket.data.playerColor = playerColor;
+        const effectiveColor = await this.resolveEffectiveColor(
+          effectiveGameId,
+          effectiveUserId,
+          isHotseat,
+          socket.data.tokenColor,
+          playerColor,
+        );
+        // Vacate the previous binding when this socket moves seats (e.g. the
+        // other player in a color swap rebinding after lobby_update), so the
+        // old seat never keeps this user's mapping.
+        const previousColor = socket.data.playerColor;
+        socket.data.playerColor = effectiveColor;
 
         if (effectiveUserId) {
           if (!this.userIdMap.has(effectiveGameId)) {
             this.userIdMap.set(effectiveGameId, new Map());
           }
-          this.userIdMap.get(effectiveGameId)!.set(playerColor, effectiveUserId);
+          // Vacate this socket's previous binding — but ONLY if that seat still
+          // maps to THIS user. In a color swap the vacating player's old color
+          // may now belong to the other player (whose re-join happens on their
+          // own lobby_update), and deleting it would wipe the other player's
+          // clash ownership entirely (their presses would never register).
+          if (
+            previousColor &&
+            previousColor !== effectiveColor &&
+            this.userIdMap.get(effectiveGameId)?.get(previousColor) === effectiveUserId
+          ) {
+            this.userIdMap.get(effectiveGameId)!.delete(previousColor);
+          }
+          this.userIdMap.get(effectiveGameId)!.set(effectiveColor, effectiveUserId);
         }
 
         let state = await this.store.loadGameState(effectiveGameId);
@@ -73,7 +129,7 @@ export class SocketHandlers {
         }
 
         if (state) {
-          const discIndex = state.disconnectedPlayers.findIndex(d => d.color === playerColor);
+          const discIndex = state.disconnectedPlayers.findIndex(d => d.color === effectiveColor);
           const isReconnectingPlayer = discIndex !== -1;
 
           // Socket locking: reject non-spectator, non-reconnecting joins to games already in progress
@@ -83,24 +139,24 @@ export class SocketHandlers {
           }
 
           if (isReconnectingPlayer) {
-            await this.engine.handlePlayerReconnect(effectiveGameId, playerColor);
+            await this.engine.handlePlayerReconnect(effectiveGameId, effectiveColor);
             state = await this.store.loadGameState(effectiveGameId);
             // The player is back on their old seat — tell the room so everyone
             // sees them flip from "Reconnecting…" back to active.
-            if (state && !state.disconnectedPlayers.some((d) => d.color === playerColor)) {
+            if (state && !state.disconnectedPlayers.some((d) => d.color === effectiveColor)) {
               this.engine.emitEvent({ type: 'player_reconnected', gameId: effectiveGameId, color: playerColor });
             }
           } else {
-            const player = state.players.find(p => p.color === playerColor);
+            const player = state.players.find(p => p.color === effectiveColor);
             if (player) player.status = 'active';
           }
 
           // Populate PlayerMeta with frontend-compatible fields.
           // `username` is the immutable identity (used for login/avatar/URLs);
           // `displayName` is what the UI actually shows in-game.
-          const meta = state.players.find(p => p.color === playerColor);
+          const meta = state.players.find(p => p.color === effectiveColor);
           if (meta) {
-            const resolvedUsername = effectiveUsername || effectiveUserId || (playerColor.charAt(0).toUpperCase() + playerColor.slice(1));
+            const resolvedUsername = effectiveUsername || effectiveUserId || (effectiveColor.charAt(0).toUpperCase() + effectiveColor.slice(1));
             meta.username = resolvedUsername;
             meta.displayName = displayName || socket.data.displayName || resolvedUsername;
             meta.isBot = isBotUserId(effectiveUserId);
@@ -119,7 +175,7 @@ export class SocketHandlers {
         }
 
         if (isBotUserId(effectiveUserId)) {
-          this.getOrCreateBot(effectiveGameId, playerColor, this.engine, this.store);
+          this.getOrCreateBot(effectiveGameId, effectiveColor, this.engine, this.store);
         }
 
         // PvE/Hotseat auto-start: neither has a second real remote player to
@@ -146,7 +202,11 @@ export class SocketHandlers {
           this.scheduleBotTurn?.(effectiveGameId);
         }
 
-        if (state) socket.emit('game_joined', state);
+        if (state) {
+          // Include the waiting-room host so clients can gate rule toggles.
+          const matchData = await this.store.getMatchData(effectiveGameId);
+          socket.emit('game_joined', matchData ? { ...state, hostId: matchData.player1_id || '' } : state);
+        }
       } catch (error) {
         socket.emit('error', `Failed to join game: ${error}`);
       }
@@ -305,20 +365,6 @@ export class SocketHandlers {
     })();
   }
 
-  handleReconnectClash(socket: GameSocket): void {
-    const gameId = socket.data.gameId;
-    const color = socket.data.playerColor;
-    if (!gameId || !color) return;
-
-    (async () => {
-      try {
-        await this.clashManager.handleReconnect(gameId, color);
-      } catch (error) {
-        console.error('Clash reconnect error:', error);
-      }
-    })();
-  }
-
   handlePlayerReady(socket: GameSocket): void {
     const gameId = socket.data.gameId;
     const color = socket.data.playerColor;
@@ -346,9 +392,46 @@ export class SocketHandlers {
 
     (async () => {
       try {
+        const previousColor = socket.data.playerColor;
         await this.engine.handlePlayerSelectColor(gameId, userId, color as PlayerColor);
+        // The engine seat swap already vacated the old seat's GameState entry;
+        // now vacate the socket binding too and rebind it to the newly selected
+        // color. Without this the socket stays bound to the old color, and the
+        // client's follow-up join_game rebinds against the stale JWT color
+        // claim (game tokens live 24h and are never re-issued on a seat swap),
+        // which re-populates the player's previous seat and leaves their avatar
+        // on two slots.
+        // Only vacate the old seat if it still maps to THIS user — during a swap
+        // the vacating socket's old color may have been handed to the opponent,
+        // and deleting it would strip their clash ownership.
+        if (
+          previousColor &&
+          previousColor !== color &&
+          this.userIdMap.get(gameId)?.get(previousColor) === userId
+        ) {
+          this.userIdMap.get(gameId)?.delete(previousColor);
+        }
+        this.userIdMap.get(gameId)?.set(color as PlayerColor, userId);
+        socket.data.playerColor = color as PlayerColor;
       } catch (error) {
         socket.emit('error', `Color selection failed: ${error}`);
+      }
+    })();
+  }
+
+  handleUpdateModifiers(socket: GameSocket, clashEnabled: boolean, safeZones: boolean): void {
+    const gameId = socket.data.gameId;
+    const userId = socket.data.userId;
+    if (!gameId || !userId) {
+      socket.emit('error', 'Not in a game');
+      return;
+    }
+
+    (async () => {
+      try {
+        await this.engine.handleUpdateModifiers(gameId, userId, clashEnabled, safeZones);
+      } catch (error) {
+        socket.emit('error', `Modifiers update failed: ${error}`);
       }
     })();
   }
@@ -397,10 +480,9 @@ export class SocketHandlers {
     (async () => {
       try {
         await this.engine.handlePlayerDisconnect(gameId, color, this.notifyAbort);
-        await this.clashManager.freezeClash(gameId, color);
-        // Option U instant disconnect resolve: settle a mid-clash disconnect
-        // IMMEDIATELY by meters (A>=D → attacker; A<D → defender) instead of
-        // freezing the QTE for the reconnect window.
+        // Instant disconnect resolve: settle a mid-clash disconnect IMMEDIATELY
+        // by meters (A>=D → attacker; A<D → defender) instead of freezing the
+        // QTE for a reconnect window.
         await this.engine.resolveClashOnDisconnect(gameId);
       } catch (error) {
         console.error('Disconnect handler error:', error);

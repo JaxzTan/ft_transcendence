@@ -50,9 +50,6 @@ export interface ClashState {
 	attackerPresses: number;
 	defenderPresses: number;
 	lastPressAt?: Partial<Record<PlayerColor, number>>;
-	disconnectTimestamp?: number;
-	reconnectDeadline?: number;
-	waitingForReconnect?: PlayerColor;
 }
 
 /** A deferred capture awaiting the clash QTE outcome. */
@@ -144,7 +141,7 @@ export type GameEvent =
 	| { type: 'clash_start'; gameId: string; attackerKey: string; defenderKey: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor; phase: ClashPhase; startAt: number; announceDeadline: number; countdownDeadline: number; pressDeadline: number; attackerPresses: number; defenderPresses: number }
 	| { type: 'clash_phase'; gameId: string; phase: ClashPhase; countdownDeadline: number; pressDeadline: number }
 	| { type: 'clash_press'; gameId: string; color: PlayerColor; presses: number }
-	| { type: 'clash_frozen'; gameId: string; reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }
 	| { type: 'clash_result'; gameId: string; winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number }
 	| { type: 'color_selected'; gameId: string; userId: string; color: PlayerColor }
-	| { type: 'lobby_update'; gameId: string; players: { userId: string; username: string; avatarStyle: string; color: PlayerColor; ready: boolean }[] };
+	| { type: 'lobby_update'; gameId: string; hostId: string; players: { userId: string; username: string; avatarStyle: string; color: PlayerColor; ready: boolean }[] }
+	| { type: 'modifiers_updated'; gameId: string; clashEnabled: boolean; safeZones: boolean };

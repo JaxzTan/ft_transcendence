@@ -240,18 +240,16 @@ function Yard({
       >
         {[0, 1, 2, 3].map((s) => {
           const piece = basePieces[s]
-          if (!piece) return <div key={s} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ring ck={ck} /></div>
+          if (!piece) return <div key={s} className="flex h-7 w-7 items-center justify-center"><Ring ck={ck} /></div>
           const isLegal = legalPieceIds.has(piece.id)
           return (
             <div
               key={s}
               onClick={() => isLegal && onPieceClick?.(piece.id)}
+              className="flex items-center justify-center"
               style={{
                 width: 32,
                 height: 32,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 cursor: isLegal ? 'pointer' : 'default',
                 animation: isLegal ? 'piecePulse 1.2s ease-in-out infinite' : 'none',
                 zIndex: isLegal ? 30 : 1,
@@ -499,6 +497,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
         <div
           key={p.id}
           onClick={() => p.isLegal && onPieceClick?.(p.id)}
+          className="flex items-center justify-center"
           style={{
             gridRow: r + 1,
             gridColumn: c + 1,
@@ -506,9 +505,6 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
             height: p.isLegal ? 36 : 30,
             alignSelf: 'center',
             justifySelf: 'center',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             animation: p.isLegal ? 'piecePulse 1.2s ease-in-out infinite' : 'none',
             cursor: p.isLegal ? 'pointer' : 'default',
             zIndex: p.isLegal ? 30 : 10,
@@ -522,33 +518,20 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
   }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="relative">
       <div
-        style={{
-          width: '100%',
-          aspectRatio: '1',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(15,1fr)',
-          gridTemplateRows: 'repeat(15,1fr)',
-          gap: 1,
-          padding: '2.5%',
-          borderRadius: 10,
-          background: 'var(--board-bg)',
-          border: '2px solid var(--board-border)',
-          boxShadow: 'var(--board-glow)',
-        }}
+        className="grid w-full aspect-square gap-px p-[2.5%] rounded-[10px] bg-(--board-bg) border-2 border-(--board-border) shadow-(--board-glow) [grid-template-columns:repeat(15,1fr)] [grid-template-rows:repeat(15,1fr)]"
       >
         <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} goalCount={goalCount('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
         <Yard r={0} c={9} ck="green" basePieces={basePieces('green')} goalCount={goalCount('green')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
         <Yard r={9} c={9} ck="yellow" basePieces={basePieces('yellow')} goalCount={goalCount('yellow')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
         <Yard r={9} c={0} ck="blue" basePieces={basePieces('blue')} goalCount={goalCount('blue')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
         <div
+          className="border-2 border-(--board-border) shadow-(--board-glow)"
           style={{
             gridRow: '7 / span 3',
             gridColumn: '7 / span 3',
             background: `conic-gradient(from 45deg, ${VAR_PLAYER.yellow} 0 90deg, ${VAR_PLAYER.blue} 90deg 180deg, ${VAR_PLAYER.red} 180deg 270deg, ${VAR_PLAYER.green} 270deg 360deg)`,
-            border: '2px solid var(--board-border)',
-            boxShadow: 'var(--board-glow)',
           }}
         />
         {cells}

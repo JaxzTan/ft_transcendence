@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Notification } from '../hooks/useNotifications'
@@ -6,6 +7,7 @@ import { navigate } from '../router'
 import { useApp } from '../store'
 import type { PlayerColor } from '../game/types'
 import { retroAudio } from '../utils/audio'
+import { RETRO_BTN, THEME_TRIGGER_BTN_BASE } from '../styles/tw'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -27,6 +29,10 @@ function getNotificationTypeBadge(type: string): { tagKey: string; defaultTag: s
       return { tagKey: 'notifications.friendRemovedTag', defaultTag: '[LINK_SEVERED]', color: '#ff007f' }
     case 'friend_declined':
       return { tagKey: 'notifications.friendDeclinedTag', defaultTag: '[LINK_REJECTED]', color: '#ffe600' }
+    case 'friend_online':
+      return { tagKey: 'notifications.friendOnlineTag', defaultTag: '[PILOT_ONLINE]', color: '#00ff88' }
+    case 'friend_offline':
+      return { tagKey: 'notifications.friendOfflineTag', defaultTag: '[PILOT_OFFLINE]', color: '#ffe600' }
     case 'profile_updated':
       return { tagKey: 'notifications.profileUpdatedTag', defaultTag: '[PROFILE_UPDATED]', color: '#00f0ff' }
     case 'display_name_changed':
@@ -61,6 +67,10 @@ function renderNotificationBody(n: Notification, t: (key: string, options?: any)
       return <span>{t('notifications.friendRemovedText', { username: from })}</span>
     case 'friend_declined':
       return <span>{t('notifications.friendDeclinedText', { username: from })}</span>
+    case 'friend_online':
+      return <span>{t('notifications.friendOnlineText', { displayName: payload?.displayName || from })}</span>
+    case 'friend_offline':
+      return <span>{t('notifications.friendOfflineText', { displayName: payload?.displayName || from })}</span>
     case 'match_cancelled':
       return payload?.reason === 'resign'
         ? <span>{t('notifications.matchResignedText', { username: from })}</span>
@@ -121,6 +131,24 @@ export function NotificationBell({
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  // The dropdown is portaled into document.body so it ALWAYS renders in the
+  // foreground (escapes any ancestor stacking context). This ref lets the
+  // outside-click handler still treat it as part of the bell.
+  const dropdownPortalRef = useRef<HTMLDivElement>(null)
+  const [dropdownPos, setDropdownPos] = useState<{ left: number; top: number } | null>(null)
+
+  // Clamp the portaled dropdown so its bottom edge never goes below the bottom
+  // of the page — the bell sits at the bottom of the nav, so an un-clamped
+  // position would push the card off-screen. Offset it 2cm up from the edge.
+  useLayoutEffect(() => {
+    if (!open || !dropdownPos || !dropdownPortalRef.current) return
+    const h = dropdownPortalRef.current.offsetHeight
+    // 2cm ≈ 75.6 CSS px at the 96dpi reference (1cm = 37.7953px)
+    const maxTop = window.innerHeight - h - 2 * 37.795275591
+    if (dropdownPos.top > maxTop) {
+      setDropdownPos((prev) => (prev ? { ...prev, top: maxTop } : prev))
+    }
+  }, [open, dropdownPos])
   const { setActiveMatch } = useApp()
 
   const list = Array.isArray(notifications) ? notifications : []
@@ -130,7 +158,12 @@ export function NotificationBell({
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (
+        ref.current &&
+        !ref.current.contains(e.target as Node) &&
+        dropdownPortalRef.current &&
+        !dropdownPortalRef.current.contains(e.target as Node)
+      ) {
         setOpen(false)
       }
     }
@@ -142,7 +175,18 @@ export function NotificationBell({
     try {
       retroAudio.playUiBeep(open ? 480 : 720, 0.05)
     } catch {}
-    setOpen(!open)
+    const next = !open
+    setOpen(next)
+    if (next) {
+      const r = ref.current?.getBoundingClientRect()
+      if (r) {
+        setDropdownPos(
+          isRight
+            ? { left: r.right + 14, top: r.top }
+            : { left: r.right - 380, top: r.bottom + 8 },
+        )
+      }
+    }
   }
 
   const handleItemClick = (n: Notification) => {
@@ -212,7 +256,7 @@ export function NotificationBell({
         border: '1.5px solid #00f0ff',
         boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 20px 60px rgba(0, 0, 0, 0.95)',
         borderRadius: 14,
-        zIndex: 10005,
+        zIndex: 30000,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -232,7 +276,7 @@ export function NotificationBell({
         border: '1.5px solid #00f0ff',
         boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 16px 40px rgba(0, 0, 0, 0.9)',
         borderRadius: 4,
-        zIndex: 120,
+        zIndex: 30000,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -248,7 +292,7 @@ export function NotificationBell({
       {/* Old-School Tactical Receiver Button */}
       {fullWidth ? (
         <button
-          className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
+          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${open ? 'active' : ''}`}
           onClick={toggleOpen}
           title={t('notifications.title')}
           style={{
@@ -291,7 +335,7 @@ export function NotificationBell({
         </button>
       ) : (
         <button
-          className={`retro-btn theme-trigger-btn ${open ? 'active' : ''}`}
+          className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${open ? 'active' : ''}`}
           onClick={toggleOpen}
           title={t('notifications.title')}
           style={{
@@ -323,8 +367,23 @@ export function NotificationBell({
         </button>
       )}
 
-      {/* Retro Dropdown Window Frame */}
-      <div style={dropdownStyle}>
+      {/* Retro Dropdown Window Frame — portaled to document.body so it ALWAYS
+          renders in the foreground (escapes any ancestor stacking context). */}
+      {open && dropdownPos && createPortal(
+      <div
+        ref={dropdownPortalRef}
+        style={{
+          ...dropdownStyle,
+          position: 'fixed',
+          left: dropdownPos.left,
+          top: dropdownPos.top,
+          right: 'auto',
+          bottom: 'auto',
+          opacity: 1,
+          transform: 'none',
+          pointerEvents: 'auto',
+        }}
+      >
         {/* Window Header */}
         <div
           style={{
@@ -472,7 +531,9 @@ export function NotificationBell({
             })
           )}
         </div>
-      </div>
+      </div>,
+      document.body,
+    )}
     </div>
   )
 }

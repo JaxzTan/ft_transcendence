@@ -51,14 +51,17 @@ export class LobbyManager {
       .find((id, idx) => id && id !== userId && (data[`player${idx + 1}_color`] as string) === color);
 
     if (takenBy) {
-      // Swap: give requested color to requester, take the other player's color
+      // Swap: give requested color to requester, take the other player's color.
+      // The other slot must get the REQUESTER's old color (currentColor) — not
+      // its own stale value — or the match hash ends up with both players on
+      // the same color, which then corrupts resolveEffectiveColor seat binding
+      // and userIdMap ownership (one player's clash presses get rejected).
       const otherSlot = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(takenBy);
       const otherColorKey = `player${otherSlot + 1}_color`;
-      const otherColor = data[otherColorKey] as PlayerColor;
 
       await this.store.updateMatchData(gameId, {
         [currentColorKey]: color,
-        [otherColorKey]: otherColor,
+        [otherColorKey]: currentColor,
       });
     } else {
       // Color is free, just assign
@@ -80,6 +83,32 @@ export class LobbyManager {
         Object.assign(b, aRest);
         await this.store.saveGameState(gameId, state);
       }
+    }
+  }
+
+  /**
+   * Host-only live update of the game rules (clash mode + safe zones) while the
+   * room is still waiting. Mirrors the change into both the match hash and the
+   * engine GameState so the engine's own capture logic (clashMode/safeZones)
+   * matches what the lobby shows.
+   */
+  async updateModifiers(gameId: string, userId: string, clashEnabled: boolean, safeZones: boolean): Promise<void> {
+    const data = await this.store.getMatchData(gameId);
+    if (!data || data.status !== 'WAITING') {
+      throw new Error('Game is not in waiting state');
+    }
+    if (data.player1_id !== userId) {
+      throw new Error('Only the host can change the game rules');
+    }
+    await this.store.updateMatchData(gameId, {
+      clashEnabled: String(clashEnabled),
+      safeZones: String(safeZones),
+    });
+    const state = await this.store.loadGameState(gameId);
+    if (state) {
+      state.clashMode = clashEnabled;
+      state.safeZones = safeZones;
+      await this.store.saveGameState(gameId, state);
     }
   }
 

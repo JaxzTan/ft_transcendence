@@ -687,7 +687,7 @@ export class LudoEngine {
   // ─── Player lifecycle handlers (delegated to player-handler.ts) ─────────────
 
   async handlePlayerDisconnect(gameId: string, color: PlayerColor, notifyAbort?: (gameId: string) => void): Promise<void> {
-    return this.withGameLock(gameId, () => handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, this.clashManager, notifyAbort));
+    return this.withGameLock(gameId, () => handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, notifyAbort));
   }
 
   /**
@@ -726,6 +726,27 @@ export class LudoEngine {
   }
 
   /**
+   * Host-only live update of the game rules (clash mode + safe zones) from the
+   * waiting room. The LobbyManager applies the change to both the match hash
+   * and the engine GameState under the game lock; afterwards the updated
+   * toggles are broadcast so every client's lobby stays in sync.
+   */
+  async handleUpdateModifiers(gameId: string, userId: string, clashEnabled: boolean, safeZones: boolean): Promise<void> {
+    if (!this.lobbyManager) {
+      throw new Error('Lobby manager not initialized');
+    }
+    await this.withGameLock(gameId, () => this.lobbyManager!.updateModifiers(gameId, userId, clashEnabled, safeZones));
+    await this.emitModifiersUpdate(gameId);
+  }
+
+  /** Broadcast the current rule toggles (clash mode + safe zones) to the room. */
+  async emitModifiersUpdate(gameId: string): Promise<void> {
+    const state = await this.store.loadGameState(gameId);
+    if (!state) return;
+    this.emit({ type: 'modifiers_updated', gameId, clashEnabled: state.clashMode, safeZones: state.safeZones });
+  }
+
+  /**
    * Broadcast the current waiting-room roster (seat, username, ready flag) so every
    * connected client's lobby screen stays in sync after a ready-toggle, color swap,
    * or a new player joining. Public: socket-handlers.ts calls this after join_game
@@ -734,6 +755,7 @@ export class LudoEngine {
   async emitLobbyUpdate(gameId: string): Promise<void> {
     const state = await this.store.loadGameState(gameId);
     if (!state) return;
+    const matchData = await this.store.getMatchData(gameId);
     const players = state.players
       .filter(p => p.status !== 'inactive')
       .map(p => ({
@@ -743,6 +765,6 @@ export class LudoEngine {
         color: p.color,
         ready: state.readyPlayers.includes(p.color),
       }));
-    this.emit({ type: 'lobby_update', gameId, players });
+    this.emit({ type: 'lobby_update', gameId, hostId: matchData?.player1_id || '', players });
   }
 }

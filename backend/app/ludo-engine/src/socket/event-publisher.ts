@@ -93,15 +93,6 @@ export class EventPublisher {
         }));
         break;
 
-      case 'clash_frozen':
-        this.store.publish(gameId, JSON.stringify({
-          type: 'clash_frozen',
-          reason: event.reason,
-          disconnectedPlayer: event.disconnectedPlayer,
-          reconnectDeadline: event.reconnectDeadline,
-        }));
-        break;
-
       case 'clash_result':
         this.store.publish(gameId, JSON.stringify({
           type: 'clash_result',
@@ -125,7 +116,17 @@ export class EventPublisher {
         this.store.publish(gameId, JSON.stringify({
           type: 'lobby_update',
           gameId: event.gameId,
+          hostId: event.hostId,
           players: event.players,
+        }));
+        break;
+
+      case 'modifiers_updated':
+        this.store.publish(gameId, JSON.stringify({
+          type: 'modifiers_updated',
+          gameId: event.gameId,
+          clashEnabled: event.clashEnabled,
+          safeZones: event.safeZones,
         }));
         break;
 

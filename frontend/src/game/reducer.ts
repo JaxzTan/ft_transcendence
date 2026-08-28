@@ -25,6 +25,9 @@ export type GameViewState = {
   myColor: PlayerColor
   readyPlayers: PlayerColor[]
   safeZones: boolean
+  clashMode: boolean
+  /** userId of the room host — only they can change game rules pre-launch. */
+  hostId?: string
   /** Last dice value rolled by each color (populated from dice_rolled events). */
   lastRolls: Partial<Record<PlayerColor, number>>
 }
@@ -44,6 +47,7 @@ export function initialView(myColor: PlayerColor): GameViewState {
     myColor,
     readyPlayers: [],
     safeZones: true,
+    clashMode: true,
     lastRolls: {},
   }
 }
@@ -83,6 +87,8 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
         clash: s.clash ?? state.clash,
         readyPlayers: s.readyPlayers ?? state.readyPlayers,
         safeZones: s.safeZones ?? state.safeZones,
+        clashMode: s.clashMode ?? state.clashMode,
+        hostId: (s as GameState & { hostId?: string }).hostId ?? state.hostId,
       }
     }
     case 'lobby_update': {
@@ -99,8 +105,11 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
         ...state,
         players,
         readyPlayers: payload.filter((p) => p.ready).map((p) => p.color),
+        hostId: (event.hostId as string | undefined) ?? state.hostId,
       }
     }
+    case 'modifiers_updated':
+      return { ...state, clashMode: Boolean(event.clashEnabled), safeZones: Boolean(event.safeZones) }
     case 'my_color_changed':
       return { ...state, myColor: event.color as PlayerColor }
     case 'game_started':

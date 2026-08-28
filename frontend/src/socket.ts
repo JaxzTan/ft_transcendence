@@ -2,7 +2,7 @@ import { io, Socket } from 'socket.io-client'
 import type { GameState, PlayerColor, LegalMove, MoveResult, ClashPhase } from './game/types'
 
 export type ServerEvents = {
-  game_joined: (state: GameState) => void
+  game_joined: (state: GameState & { hostId?: string }) => void
   dice_rolled: (e: { value: number; legalMoves: LegalMove[]; bonusRoll: boolean; currentTurn: PlayerColor; forfeited?: boolean }) => void
   piece_moved: (e: MoveResult) => void
   game_started: (e: { gameId: string }) => void
@@ -11,12 +11,12 @@ export type ServerEvents = {
   clash_phase: (e: { phase: ClashPhase; countdownDeadline: number; pressDeadline: number }) => void
   clash_press: (e: { color: PlayerColor; presses: number }) => void
   clash_result: (e: { winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number }) => void
-  clash_frozen: (e: { reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }) => void
   player_exited: (e: { color: PlayerColor }) => void
   player_aborted: (e: { color: PlayerColor; username: string }) => void
   player_disconnected: (e: { color: PlayerColor }) => void
   player_reconnected: (e: { color: PlayerColor }) => void
-  lobby_update: (e: { players: Array<{ username: string; color: PlayerColor; ready: boolean }> }) => void
+  lobby_update: (e: { players: Array<{ username: string; color: PlayerColor; ready: boolean }>; hostId?: string }) => void
+  modifiers_updated: (e: { clashEnabled: boolean; safeZones: boolean }) => void
   game_timeout: () => void
   game_expired: () => void
   game_created: (newGameId: string) => void
@@ -29,9 +29,9 @@ export type ClientEvents = {
   roll_dice: () => void
   move_piece: (pieceId: string) => void
   clash_input: (key: string) => void
-  reconnect_clash: () => void
   player_ready: () => void
   select_color: (color: PlayerColor) => void
+  update_modifiers: (clashEnabled: boolean, safeZones: boolean) => void
   leave_game: () => void
   resign: () => void
   end_game: () => void

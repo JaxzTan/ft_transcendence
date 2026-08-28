@@ -70,6 +70,8 @@ export class FriendsService {
       engineUrl: match.engineUrl,
       color: match.color,
       inviteCode: match.inviteCode,
+      mode: match.mode,
+      playerCount: match.playerCount,
     };
   }
 

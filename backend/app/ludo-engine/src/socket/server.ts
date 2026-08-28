@@ -180,8 +180,17 @@ export class SocketServer {
 				if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
 
 				const bot = getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
-				bot.takeTurn();
+				// takeTurn() already catches its own engine-call failures, but this
+				// is fire-and-forget (never awaited) — a rejection here would be an
+				// unhandled promise rejection that crashes the whole engine process,
+				// not just this one game. Belt-and-suspenders against future
+				// refactors reintroducing that.
+				bot.takeTurn().catch((err) => {
+					console.error(`[bot] unexpected takeTurn rejection for game ${gameId}:`, err instanceof Error ? err.message : err);
+				});
 				// Bonus roll / capture chains emit piece_moved -> handleEngineEvent -> triggerBotTurn again
+			}).catch((err) => {
+				console.error(`[bot] failed to load game state for ${gameId}:`, err instanceof Error ? err.message : err);
 			});
 		}, delayMs);
 		this.botTurnTimers.set(gameId, timer);
@@ -345,7 +354,13 @@ export class SocketServer {
 	private setupSocketHandlers(): void {
 		this.io.use((socket: GameSocket, next) => {
 			const token = socket.handshake.auth?.token;
-			if (!token) return next(); // Allow unauthenticated (bots, dev)
+			// A token is mandatory. This used to fall through to next() for
+			// "bots, dev" — but bots are driven server-side (triggerBotTurn),
+			// never over a socket, and the SPA always supplies a token
+			// (frontend/src/socket.ts). Allowing tokenless connections would
+			// make signature verification pointless: an attacker could simply
+			// omit the token and then assert gameId/colour via join_game.
+			if (!token) return next(new Error('Authentication required'));
 
 			const payload = verifyToken(token);
 			if (!payload) return next(new Error('Invalid token'));
@@ -355,6 +370,8 @@ export class SocketServer {
 			socket.data.displayName = payload.displayName;
 			socket.data.gameId = payload.gameId;
 			socket.data.role = payload.role as 'player' | 'spectator';
+			socket.data.tokenColor = payload.color;
+			socket.data.mode = payload.mode as 'pvp' | 'pve' | 'hotseat' | undefined;
 			next();
 		});
 
@@ -373,14 +390,14 @@ export class SocketServer {
 			socket.on('clash_input', (key: string) =>
 				this.handlers.handleClashInput(socket, key));
 
-			socket.on('reconnect_clash', () =>
-				this.handlers.handleReconnectClash(socket));
-
 			socket.on('player_ready', () =>
 				this.handlers.handlePlayerReady(socket));
 
 			socket.on('select_color', (color: string) =>
 				this.handlers.handleSelectColor(socket, color));
+
+			socket.on('update_modifiers', (clashEnabled: boolean, safeZones: boolean) =>
+				this.handlers.handleUpdateModifiers(socket, clashEnabled, safeZones));
 
 			socket.on('leave_game', () =>
 				this.handlers.handleLeaveGame(socket));

@@ -71,6 +71,43 @@ export class MatchCreatorService {
 			throw new BadRequestException('PvP mode requires at least 2 players');
 		}
 
+		return this.withUserCreateLock(userId, () =>
+			this.createMatchLocked(userId, mode, playerCount, botCount, clashEnabled, safeZones, botColors, seatColors),
+		);
+	}
+
+	private async withUserCreateLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+		const key = `lock:create_match:${userId}`;
+		const deadline = Date.now() + 5000;
+		while (Date.now() < deadline) {
+			// SET NX is atomic: exactly one caller can hold this at a time.
+			const acquired = await this.redis.set(key, '1', 'PX', 5000, 'NX');
+			if (acquired) {
+				try {
+					return await fn();
+				} finally {
+					await this.redis.del(key);
+				}
+			}
+			// Someone else is mid-create for this user. They finish in ms, and
+			// the SCAN will then find their room and we return that instead.
+			await new Promise((r) => setTimeout(r, 50));
+		}
+		// Lock never came free (holder wedged). Proceed unserialised rather than
+		// failing the request outright — worst case is the old behaviour.
+		return fn();
+	}
+
+	private async createMatchLocked(
+		userId: string,
+		mode: 'pvp' | 'pve' | 'hotseat',
+		playerCount: number,
+		botCount: number,
+		clashEnabled: boolean,
+		safeZones: boolean,
+		botColors?: string[],
+		seatColors?: string[],
+	) {
 		// SCAN guard: idempotent room creation — reuse existing WAITING/ACTIVE match if user already seated
 		let cursor = '0';
 		let foundExisting = false;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { retroAudio } from '../utils/audio'
+import { CYBER_MODAL_OVERLAY } from '../styles/tw'
 
 interface CyberButtonProps {
   label: string
@@ -182,7 +183,7 @@ export function CyberModal({
 
   return (
     <div
-      className={`cyber-modal-overlay ${isOpenActive ? 'active' : ''}`}
+      className={`${CYBER_MODAL_OVERLAY} cyber-modal-overlay ${isOpenActive ? 'active' : ''}`}
       onClick={handleCancel}
     >
       <div

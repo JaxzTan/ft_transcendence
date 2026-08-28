@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { navigate, useRoute } from '../router'
 import { useApp } from '../store'
@@ -6,6 +7,7 @@ import { retroAudio } from '../utils/audio'
 import { UserAvatar } from './UserAvatar'
 import { NotificationBell } from './NotificationBell'
 import { useNotifications, type Notification } from '../hooks/useNotifications'
+import { RETRO_BTN, THEME_TRIGGER_BTN_BASE, THEME_POPOVER_MENU_BASE } from '../styles/tw'
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal'
 
@@ -50,6 +52,37 @@ export function RetroNavbar({
 
   const [isThemePopoverOpen, setIsThemePopoverOpen] = useState(false)
   const [isAccountPopoverOpen, setIsAccountPopoverOpen] = useState(false)
+  const accountBtnRef = useRef<HTMLButtonElement>(null)
+  const themeBtnRef = useRef<HTMLButtonElement>(null)
+  // Portaled popovers render into document.body (escape the nav's stacking
+  // context so they ALWAYS sit above page content) — these refs let the
+  // outside-click handler still treat them as part of the popover.
+  const accountMenuPortalRef = useRef<HTMLDivElement>(null)
+  const themeMenuPortalRef = useRef<HTMLDivElement>(null)
+  const [accountPos, setAccountPos] = useState<{ left: number; top: number } | null>(null)
+  const [themePos, setThemePos] = useState<{ left: number; top: number; width: number } | null>(null)
+
+  // Clamp the portaled popovers so their bottom edge never goes below the
+  // bottom of the page — the theme trigger sits at the bottom of the nav, so
+  // an un-clamped position would push the card off-screen. Offset 2cm up.
+  useLayoutEffect(() => {
+    // 2cm ≈ 75.6 CSS px at the 96dpi reference (1cm = 37.7953px)
+    const BOTTOM_OFFSET = 2 * 37.795275591
+    if (isThemePopoverOpen && themePos && themeMenuPortalRef.current) {
+      const h = themeMenuPortalRef.current.offsetHeight
+      const maxTop = window.innerHeight - h - BOTTOM_OFFSET
+      if (themePos.top > maxTop) {
+        setThemePos((prev) => (prev ? { ...prev, top: maxTop } : prev))
+      }
+    }
+    if (isAccountPopoverOpen && accountPos && accountMenuPortalRef.current) {
+      const h = accountMenuPortalRef.current.offsetHeight
+      const maxTop = window.innerHeight - h - BOTTOM_OFFSET
+      if (accountPos.top > maxTop) {
+        setAccountPos((prev) => (prev ? { ...prev, top: maxTop } : prev))
+      }
+    }
+  }, [isThemePopoverOpen, themePos, isAccountPopoverOpen, accountPos])
   const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
   const popoverRef = useRef<HTMLDivElement>(null)
   const accountPopoverRef = useRef<HTMLDivElement>(null)
@@ -72,10 +105,20 @@ export function RetroNavbar({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node) &&
+        themeMenuPortalRef.current &&
+        !themeMenuPortalRef.current.contains(e.target as Node)
+      ) {
         setIsThemePopoverOpen(false)
       }
-      if (accountPopoverRef.current && !accountPopoverRef.current.contains(e.target as Node)) {
+      if (
+        accountPopoverRef.current &&
+        !accountPopoverRef.current.contains(e.target as Node) &&
+        accountMenuPortalRef.current &&
+        !accountMenuPortalRef.current.contains(e.target as Node)
+      ) {
         setIsAccountPopoverOpen(false)
       }
     }
@@ -88,19 +131,16 @@ export function RetroNavbar({
 
   return (
     <nav
-      className="navbar retro-floating-dock"
+      className="relative z-[20000] flex justify-between items-center px-5 py-2.5 min-h-14 bg-(--bg-card) [border:var(--card-border-style)] shadow-(--box-shadow) backdrop-blur-[10px] m-0 rounded-md box-border retro-floating-dock"
       id="mainNav"
       style={{
-        position: 'fixed',
-        left: 28,
-        top: '50%',
-        transform: 'translateY(-50%)',
         width: 270,
         minWidth: 270,
         maxWidth: 270,
-        height: 'calc(100vh - 48px)',
-        maxHeight: '94vh',
-        zIndex: 9999,
+        height: 'calc(100vh - 64px)',
+        maxHeight: 'calc(100vh - 64px)',
+        margin: 0,
+        zIndex: 20000,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -132,10 +172,11 @@ export function RetroNavbar({
         }}
       >
         {/* User Profile Pill Button -> Opens Account & Settings Popover Menu */}
-        <div className="theme-popover-wrapper" ref={accountPopoverRef} style={{ width: '100%', position: 'relative' }}>
+        <div className="z-10000 inline-block" ref={accountPopoverRef} style={{ width: '100%', position: 'relative' }}>
           <button
             type="button"
-            className={`retro-btn theme-trigger-btn ${isAccountPopoverOpen ? 'active' : ''}`}
+            ref={accountBtnRef}
+            className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${isAccountPopoverOpen ? 'active' : ''}`}
             id="userAccountBtn"
             aria-label="Account Settings, Language and 2FA"
             style={{
@@ -160,6 +201,10 @@ export function RetroNavbar({
               setIsThemePopoverOpen(false)
               const next = !isAccountPopoverOpen
               setIsAccountPopoverOpen(next)
+              if (next) {
+                const r = accountBtnRef.current?.getBoundingClientRect()
+                if (r) setAccountPos({ left: r.right + 14, top: r.top })
+              }
               retroAudio.playUiBeep(next ? 880 : 440, 0.05)
             }}
             onMouseEnter={(e) => {
@@ -223,14 +268,18 @@ export function RetroNavbar({
             </span>
           </button>
 
-          {/* Account & Settings Popover Menu */}
+          {/* Account & Settings Popover Menu — portaled to document.body so it
+              ALWAYS renders in the foreground (escapes the nav's stacking context). */}
+          {isAccountPopoverOpen && accountPos && createPortal(
           <div
-            className={`theme-popover-menu ${isAccountPopoverOpen ? 'active' : ''}`}
+            ref={accountMenuPortalRef}
+            className={`${THEME_POPOVER_MENU_BASE} theme-popover-menu ${isAccountPopoverOpen ? 'active' : ''}`}
             id="accountPopoverMenu"
             style={{
-              left: 'calc(100% + 14px)',
+              position: 'fixed',
+              left: accountPos.left,
+              top: accountPos.top,
               right: 'auto',
-              top: 0,
               bottom: 'auto',
               width: 275,
               padding: '16px 16px',
@@ -242,7 +291,7 @@ export function RetroNavbar({
               display: isAccountPopoverOpen ? 'flex' : 'none',
               flexDirection: 'column',
               gap: 12,
-              zIndex: 10005,
+              zIndex: 30000,
             }}
           >
             {/* 1. Language Selection (Cyber Segmented Tabs) */}
@@ -391,7 +440,7 @@ export function RetroNavbar({
 
             {/* 4. Logout / Disconnect Button */}
             <button
-              className="retro-btn"
+              className={RETRO_BTN}
               onClick={async () => {
                 setIsAccountPopoverOpen(false)
                 retroAudio.playUiBeep(330, 0.08)
@@ -420,7 +469,9 @@ export function RetroNavbar({
               <span>⏻</span>
               <span>{t('navbar.logoutBtn')}</span>
             </button>
-          </div>
+          </div>,
+          document.body,
+        )}
         </div>
       </div>
 
@@ -477,7 +528,7 @@ export function RetroNavbar({
             return (
               <button
                 key={item.path}
-                className={`retro-btn theme-trigger-btn ${isActive ? 'active' : ''}`}
+                className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${isActive ? 'active' : ''}`}
                 style={{
                   width: '100%',
                   height: 52,
@@ -594,9 +645,10 @@ export function RetroNavbar({
         }}
       >
         {/* Theme Selector Popover */}
-        <div className="theme-popover-wrapper" ref={popoverRef} style={{ width: '100%', position: 'relative' }}>
+        <div className="z-10000 inline-block" ref={popoverRef} style={{ width: '100%', position: 'relative' }}>
           <button
-            className={`retro-btn theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
+            ref={themeBtnRef}
+            className={`${RETRO_BTN} ${THEME_TRIGGER_BTN_BASE} theme-trigger-btn ${isThemePopoverOpen ? 'active' : ''}`}
             id="themeModalBtn"
             aria-label="Toggle Theme Menu"
             style={{
@@ -615,6 +667,10 @@ export function RetroNavbar({
               setIsAccountPopoverOpen(false)
               const next = !isThemePopoverOpen
               setIsThemePopoverOpen(next)
+              if (next) {
+                const r = themeBtnRef.current?.getBoundingClientRect()
+                if (r) setThemePos({ left: r.left, top: r.bottom + 8, width: r.width })
+              }
               retroAudio.playUiBeep(next ? 960 : 480, 0.05)
             }}
             onMouseEnter={(e) => {
@@ -639,20 +695,24 @@ export function RetroNavbar({
             </span>
           </button>
 
-          {/* Upward Opening Theme Popover Menu */}
+          {/* Theme Popover Menu — portaled to document.body so it ALWAYS
+              renders in the foreground (escapes the nav's stacking context). */}
+          {isThemePopoverOpen && themePos && createPortal(
           <div
-            className={`theme-popover-menu open-up ${isThemePopoverOpen ? 'active' : ''}`}
+            ref={themeMenuPortalRef}
+            className={`${THEME_POPOVER_MENU_BASE} theme-popover-menu ${isThemePopoverOpen ? 'active' : ''}`}
             id="themePopoverMenu"
             style={{
-              bottom: 'calc(100% + 8px)',
-              top: 'auto',
-              left: 0,
-              right: 0,
-              width: '100%',
+              position: 'fixed',
+              left: themePos.left,
+              top: themePos.top,
+              right: 'auto',
+              bottom: 'auto',
+              width: themePos.width,
               padding: '14px 16px',
               borderRadius: 14,
               boxSizing: 'border-box',
-              zIndex: 10005,
+              zIndex: 30000,
             }}
           >
             <fieldset
@@ -747,7 +807,9 @@ export function RetroNavbar({
                 <span style={{ fontWeight: 'bold' }}>{t('navbar.themeTerminal')}</span>
               </label>
             </fieldset>
-          </div>
+          </div>,
+          document.body,
+        )}
         </div>
 
         {/* Notifications Bell -> Accessible across ALL pages */}

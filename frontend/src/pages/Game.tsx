@@ -15,6 +15,18 @@ import { CyberButton, CyberModal } from '../components/CyberModal'
 import { ResultsModal } from '../components/ResultsModal'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
+import {
+	CRT_SCREEN,
+	APP_WRAPPER,
+	HERO_SECTION,
+	HERO_TITLE,
+	BADGE_BAR,
+	RETRO_BADGE,
+	RETRO_WINDOW,
+	WINDOW_HEADER,
+	WINDOW_BODY,
+	RETRO_BTN,
+} from '../styles/tw'
 
 const SEAT_HUES: Record<PlayerColor, string> = {
   red: '#ff007f',
@@ -79,6 +91,14 @@ const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 export function Game() {
   const { t } = useTranslation()
   const { user, activeMatch, seats, setPlaying, lastResult, setLastResult, setActiveMatch } = useApp()
+  // The socket-connect effect below keys off gameId/token only (see its
+  // dependency array) so patching activeMatch.mode/color/playerCount after
+  // connect — e.g. a lobby seat/color change — doesn't tear down and
+  // reopen the socket mid-handshake. Its long-lived handlers read this ref
+  // instead of closing over the (potentially stale) `activeMatch` so they
+  // still see those patches.
+  const activeMatchRef = useRef(activeMatch)
+  activeMatchRef.current = activeMatch
 
   // ------------------------------------------------------------------------
   // CRT & AUDIO CONTROLS
@@ -115,6 +135,42 @@ export function Game() {
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null)
   const [view, dispatch] = useReducer(applyEvent, null, () => initialView(activeMatch?.color ?? 'red'))
   const viewRef = useRef(view)
+  // Avatar metadata (avatarStyle + hasAvatarPhoto) per human player, fetched
+  // from the backend so the game screen shows their real avatar instead of the
+  // generic default. The engine's PlayerMeta only carries username/displayName.
+  const [avatarMeta, setAvatarMeta] = useState<Record<string, { avatarStyle?: string; hasAvatarPhoto?: boolean }>>({})
+  const playerUsernames = view.players
+    .filter((p) => !p.isBot && p.username)
+    .map((p) => p.username)
+    .sort()
+    .join(',')
+  useEffect(() => {
+    if (!playerUsernames) return
+    let cancelled = false
+    const usernames = playerUsernames.split(',')
+    Promise.all(
+      usernames.map(async (username) => {
+        try {
+          const res = await fetch(`/api/user/${encodeURIComponent(username)}`, { credentials: 'include' })
+          if (!res.ok) return null
+          const data = await res.json()
+          return {
+            username,
+            avatarStyle: data.avatarStyle as string | undefined,
+            hasAvatarPhoto: data.hasAvatarPhoto as boolean | undefined,
+          }
+        } catch {
+          return null
+        }
+      }),
+    ).then((results) => {
+      if (cancelled) return
+      const map: Record<string, { avatarStyle?: string; hasAvatarPhoto?: boolean }> = {}
+      for (const r of results) if (r) map[r.username] = { avatarStyle: r.avatarStyle, hasAvatarPhoto: r.hasAvatarPhoto }
+      setAvatarMeta((prev) => ({ ...prev, ...map }))
+    })
+    return () => { cancelled = true }
+  }, [playerUsernames])
   viewRef.current = view
   const [moveLogs, setMoveLogs] = useState<Array<{ ck: PlayerColor; text: string }>>([])
   const moveLogContainerRef = useRef<HTMLDivElement>(null)
@@ -135,6 +191,12 @@ export function Game() {
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [isMovingPiece, setIsMovingPiece] = useState(false)
   const isMovingPieceRef = useRef(false)
+  // Set the instant movePiece() emits, cleared once the server's piece_moved
+  // (or a rejection) comes back. Closes the window between the click and
+  // isMovingPieceRef flipping true — without it a second click on the same
+  // still-legal-looking piece before the server round-trip completes fires a
+  // duplicate move_piece the engine rejects with "Invalid turn phase".
+  const pendingMoveRef = useRef(false)
   const STEP_ANIM_MS = 180
   // Capture burst FX: a short cosmetic ring + sparks on the landing square
   // when a piece is captured. Set at the end of the mover's walk, cleared
@@ -238,26 +300,29 @@ export function Game() {
       fetch('/api/games/mine', { credentials: 'include' })
         .then((r) => (r.ok ? r.json() : null))
         .then((rooms: Array<{ id: string; gameType?: string }> | null) => {
-          const room = rooms?.find((x) => x.id === activeMatch.gameId)
+          const current = activeMatchRef.current
+          if (!current) return
+          const room = rooms?.find((x) => x.id === current.gameId)
           if (room?.gameType) {
             const mode = (room.gameType === 'PVP' ? 'pvp' : room.gameType === 'PVE' ? 'pve' : 'hotseat') as 'pvp' | 'pve' | 'hotseat'
-            setActiveMatch({ ...activeMatch, mode, playerCount: activeMatch.playerCount ?? 4 })
+            setActiveMatch({ ...current, mode, playerCount: current.playerCount ?? 4 })
           }
         })
         .catch(() => undefined)
     }
 
     socket.on('connect', () => {
+      const current = activeMatchRef.current
+      if (!current) return
       // Hotseat: one physical device controls every seat — the engine has no
       // separate accounts to join with, so this single socket must join_game
       // for every local color up front.
-      if (activeMatch.mode === 'hotseat') {
+      if (current.mode === 'hotseat') {
         for (const ck of Object.keys(localNames) as PlayerColor[]) {
-          socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
+          socket.emit('join_game', current.gameId, ck, undefined, localNames[ck])
         }
       }
-      socket.emit('join_game', activeMatch.gameId, activeMatch.color, user?.id, user?.displayName)
-      if (viewRef.current.clash) socket.emit('reconnect_clash')
+      socket.emit('join_game', current.gameId, current.color, user?.id, user?.displayName)
     })
 
     socket.on('connect_error', (err: Error) => {
@@ -306,6 +371,7 @@ export function Game() {
       }
 
       if (type === 'piece_moved') {
+        pendingMoveRef.current = false
         isMovingPieceRef.current = true
         setIsMovingPiece(true)
         const e = state as unknown as {
@@ -387,11 +453,13 @@ export function Game() {
       } else if (type === 'lobby_update') {
         const e = state as unknown as { players: Array<{ username: string; color: PlayerColor }> }
         const mine = e.players.find((p) => p.username === user?.username)
-        if (mine && mine.color !== viewRef.current.myColor) {
+        if (mine && mine.color !== viewRef.current.myColor && activeMatchRef.current) {
           dispatch({ type: 'my_color_changed', color: mine.color })
-          socket.emit('join_game', activeMatch.gameId, mine.color, user?.id, user?.displayName)
-          setActiveMatch({ ...activeMatch, color: mine.color })
+          socket.emit('join_game', activeMatchRef.current.gameId, mine.color, user?.id, user?.displayName)
+          setActiveMatch({ ...activeMatchRef.current, color: mine.color })
         }
+      } else if (type === 'modifiers_updated') {
+        dispatch({ type: 'modifiers_updated', ...(state as object) })
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
         retroAudio.playUiBeep(1100, 0.3, 'sawtooth')
@@ -408,24 +476,21 @@ export function Game() {
               piecesInGoal: inGoal,
             }
           })
-        if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
-          endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
+        const matchAtEnd = activeMatchRef.current
+        if (matchAtEnd?.mode === 'pvp' && matchAtEnd.playerCount && endedPlayers.length > matchAtEnd.playerCount) {
+          endedPlayers = endedPlayers.slice(0, matchAtEnd.playerCount)
         }
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
-          mode: activeMatch?.mode ?? 'pvp',
-          playerCount: activeMatch?.playerCount ?? endedPlayers.length,
+          mode: matchAtEnd?.mode ?? 'pvp',
+          playerCount: matchAtEnd?.playerCount ?? endedPlayers.length,
           players: endedPlayers,
           abandoned: false,
         })
         setTimeout(() => {
           setShowResultsModal(true)
         }, 900)
-      } else {
-        // Route remaining engine events (clash_*, player_*, game_started, …)
-        // to the reducer, which handles them by their original type.
-        dispatch({ type: type as string, ...(state as object) })
       }
     }
 
@@ -438,11 +503,11 @@ export function Game() {
     socket.on('player_disconnected', handleEngineEvent)
     socket.on('player_reconnected', handleEngineEvent)
     socket.on('clash_start', handleEngineEvent)
+    socket.on('clash_result', handleEngineEvent)
     socket.on('clash_phase', handleEngineEvent)
     socket.on('clash_press', handleEngineEvent)
-    socket.on('clash_result', handleEngineEvent)
-    socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
+    socket.on('modifiers_updated', handleEngineEvent)
 
     socket.on('player_aborted', (e: { color: PlayerColor; username: string; displayName?: string }) => {
       setMoveLogs((prev) => [
@@ -480,15 +545,16 @@ export function Game() {
           .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
       }
 
-      if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
-        players = players.slice(0, activeMatch.playerCount)
+      const matchNow = activeMatchRef.current
+      if (matchNow?.mode === 'pvp' && matchNow.playerCount && players.length > matchNow.playerCount) {
+        players = players.slice(0, matchNow.playerCount)
       }
 
       return {
         winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
         resultDetail: 'abandoned',
-        mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? players.length,
+        mode: matchNow?.mode ?? 'pvp',
+        playerCount: matchNow?.playerCount ?? players.length,
         players,
         abandoned: true,
       }
@@ -506,6 +572,7 @@ export function Game() {
     socket.on('error', (msg: string) => {
       console.error('[engine]', msg)
       setIsRolling(false)
+      pendingMoveRef.current = false
     })
 
     return () => {
@@ -576,9 +643,13 @@ export function Game() {
   }
 
   const movePiece = (pieceId: string) => {
-    if (isRolling || isRollingRef.current) return
+    if (isRolling || isRollingRef.current || isMovingPieceRef.current || pendingMoveRef.current) return
+    pendingMoveRef.current = true
     retroAudio.playUiBeep(640, 0.05)
     socketRef.current?.emit('move_piece', pieceId)
+    // Safety net: if the server never responds (dropped socket, etc.) don't
+    // leave the guard stuck forever.
+    setTimeout(() => { pendingMoveRef.current = false }, 3000)
   }
 
   const markReady = () => {
@@ -587,9 +658,13 @@ export function Game() {
   }
 
   const selectColor = (color: PlayerColor) => {
-    if (activeMatch?.mode === 'pvp') return
     retroAudio.playUiBeep(720, 0.05)
     socketRef.current?.emit('select_color', color)
+  }
+
+  const updateModifiers = (clashEnabled: boolean, safeZones: boolean) => {
+    retroAudio.playUiBeep(720, 0.05)
+    socketRef.current?.emit('update_modifiers', clashEnabled, safeZones)
   }
 
   const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
@@ -666,16 +741,16 @@ export function Game() {
           <div className="terminal-vector-core" />
         </div>
 
-        <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+        <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
           <div className="crt-scanlines" id="crtOverlay" style={{ display: crtEnabled ? 'block' : 'none' }} />
           <div className="crt-flicker" />
 
-          <div className="app-wrapper" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <section className="retro-window" style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
-              <div className="window-header">
+          <div className={APP_WRAPPER} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <section className={RETRO_WINDOW} style={{ maxWidth: 460, width: '90%', margin: '0 auto' }}>
+              <div className={`${WINDOW_HEADER} window-header`}>
                 <span>{t('game.noActiveSessionTitle')}</span>
               </div>
-              <div className="window-body" style={{ textAlign: 'center', padding: '30px 24px' }}>
+              <div className={WINDOW_BODY} style={{ textAlign: 'center', padding: '30px 24px' }}>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', color: 'var(--accent-yellow)', marginBottom: 10 }}>
                   NO MATCH CREDENTIALS DETECTED
                 </div>
@@ -683,7 +758,7 @@ export function Game() {
                   Please initialize or join a tactical Ludo arena from the Game Lobby first.
                 </div>
                 <button
-                  className="retro-btn"
+                  className={RETRO_BTN}
                   style={{ width: '100%', padding: '12px 0', fontSize: '0.8rem' }}
                   onClick={() => {
                     retroAudio.playUiBeep(600, 0.05)
@@ -723,7 +798,7 @@ export function Game() {
       </div>
 
       {/* CRT Monitor Overlay FX Container */}
-      <div className={`crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
+      <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'crt-curved' : ''}`} id="crtScreen">
         <div
           className="crt-scanlines"
           id="crtOverlay"
@@ -732,11 +807,11 @@ export function Game() {
         <div className="crt-flicker" />
 
         {/* Main Content Wrapper */}
-        <div className="app-wrapper game-page" style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
+        <div className={`${APP_WRAPPER} app-wrapper game-page`} style={{ marginLeft: 'auto', marginRight: 'auto', maxWidth: 1440, width: '100%' }}>
           {/* Hero Telemetry & Badge Bar */}
-          <header className="hero-section" style={{ padding: '12px 0 10px', textAlign: 'center' }}>
+          <header className={HERO_SECTION} style={{ padding: '12px 0 10px', textAlign: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <h1 className="hero-title" style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
+              <h1 className={HERO_TITLE} style={{ fontSize: '1.5rem', marginBottom: 2, textAlign: 'center' }}>
                 {t('game.heroTitle')}
               </h1>
 
@@ -821,9 +896,9 @@ export function Game() {
 
             {/* Badge Bar with Room Code */}
             {activeMatch.inviteCode && (
-              <div className="badge-bar" style={{ marginTop: 14, justifyContent: 'center' }}>
+              <div className={BADGE_BAR} style={{ marginTop: 14, justifyContent: 'center' }}>
                 <button
-                  className="retro-badge"
+                  className={RETRO_BADGE}
                   style={{
                     cursor: 'pointer',
                     background: 'var(--bg-secondary)',
@@ -846,27 +921,24 @@ export function Game() {
 
           {/* Main Tactical Grid Layout */}
           <main
-            className="dashboard-grid"
+            className="game-tactical-grid grid grid-cols-1 gap-3 lg:grid-cols-[260px_1fr_260px] lg:gap-2 xl:grid-cols-[310px_1fr_310px]"
             style={{
-              display: 'grid',
-              gridTemplateColumns: '310px 1fr 310px',
-              gap: 8,
               alignItems: 'start',
               width: '100%',
               margin: '0 auto',
             }}
           >
             {/* COLUMN 1: PILOT ROSTER // TACTICAL STATUS & SYSTEM CONTROL */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="order-2 lg:order-none" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Pilot Roster Window */}
-              <section className="retro-window" id="playersWindow">
-                <div className="window-header">
+              <section className={RETRO_WINDOW} id="playersWindow">
+                <div className={`${WINDOW_HEADER} window-header`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>{t('game.pilotRosterTitle')}</span>
                   </div>
                 </div>
 
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
                       {t('game.seatPilotHeader')}
@@ -900,7 +972,7 @@ export function Game() {
                       const takenByOther = Boolean(
                         occupied && !isYou && playerMeta?.username && playerMeta.username !== user?.username
                       )
-                      const canSelect = activeMatch?.mode !== 'pvp' && !takenByOther && !isYou
+                      const canSelect = !takenByOther && !isYou
 
                       return (
                         <div
@@ -910,7 +982,7 @@ export function Game() {
                               selectColor(ck)
                             }
                           }}
-                          title={isYou ? t('game.yourSeat', 'Your seat') : occupied ? t('game.occupied', 'Occupied seat') : t('game.emptySeat', 'Empty seat')}
+                          title={canSelect ? `Select ${ck.toUpperCase()} seat` : isYou ? 'Your seat' : 'Occupied seat'}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -933,7 +1005,7 @@ export function Game() {
                                   ? 'rgba(10, 5, 25, 0.5)'
                                   : 'rgba(10, 5, 25, 0.35)',
                             boxShadow: isYou ? `0 0 12px ${colorAccent}55` : 'none',
-                            opacity: occupied || isYou ? 1 : 0.5,
+                            opacity: occupied || canSelect ? 1 : 0.5,
                             transition: 'all 0.2s ease',
                           }}
                         >
@@ -941,6 +1013,8 @@ export function Game() {
                             <UserAvatar
                               username={playerMeta.username}
                               size={34}
+                              avatarStyle={avatarMeta[playerMeta.username]?.avatarStyle}
+                              hasAvatarPhoto={avatarMeta[playerMeta.username]?.hasAvatarPhoto}
                               fallbackStyle={{
                                 width: 34,
                                 height: 34,
@@ -996,15 +1070,15 @@ export function Game() {
                             <div style={{ fontSize: '0.68rem', color: isYou ? colorAccent : 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                               {isYou
                                 ? `// [${t('game.yourSeat', 'YOUR SEAT')}]`
-                                : occupied
+                                : takenByOther
                                   ? `// [${t('game.occupied', 'OCCUPIED')}]`
-                                  : `// [${t('game.emptySeat', 'EMPTY SEAT')}]`}
+                                  : `// [${t('game.availableSeat', 'CLICK TO CHOOSE')}]`}
                             </div>
                           </div>
 
                           {occupied ? (
                             <span
-                              className="retro-badge"
+                              className={RETRO_BADGE}
                               style={{
                                 padding: '2px 6px',
                                 fontSize: '0.62rem',
@@ -1016,7 +1090,7 @@ export function Game() {
                             </span>
                           ) : canSelect ? (
                             <span
-                              className="retro-badge"
+                              className={RETRO_BADGE}
                               style={{
                                 padding: '2px 6px',
                                 fontSize: '0.62rem',
@@ -1104,6 +1178,8 @@ export function Game() {
                           <UserAvatar
                             username={playerMeta.username}
                             size={36}
+                            avatarStyle={avatarMeta[playerMeta.username]?.avatarStyle}
+                            hasAvatarPhoto={avatarMeta[playerMeta.username]?.hasAvatarPhoto}
                             fallbackStyle={{
                               width: 36,
                               height: 36,
@@ -1170,14 +1246,14 @@ export function Game() {
               </section>
 
               {/* Controls, Shortcuts & Audio Window */}
-              <section className="retro-window" id="sectorControlWindow">
-                <div className="window-header">
+              <section className={RETRO_WINDOW} id="sectorControlWindow">
+                <div className={`${WINDOW_HEADER} window-header`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span>CONTROLS & SHORTCUTS</span>
                   </div>
                 </div>
 
-                <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
+                <div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>DICE ROLL:</span>
@@ -1197,7 +1273,7 @@ export function Game() {
 
                   {/* Audio Preferences Toggle Button */}
                   <button
-                    className="retro-badge"
+                    className={RETRO_BADGE}
                     style={{
                       cursor: 'pointer',
                       padding: '8px 10px',
@@ -1244,7 +1320,7 @@ export function Game() {
               {lastResult && (
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column' }}>
                   <button
-                    className="retro-btn"
+                    className={RETRO_BTN}
                     onClick={() => {
                       retroAudio.playUiBeep(640, 0.06)
                       setShowResultsModal(true)
@@ -1270,7 +1346,7 @@ export function Game() {
             </div>
 
             {/* COLUMN 2: QUANTUM LUDO MATRIX / BOARD */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 'min(650px, 66vh)', justifySelf: 'center' }}>
+            <div className="order-1 lg:order-none" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 'min(650px, 66vh)', justifySelf: 'center' }}>
               {(() => {
                 const currentTurnPlayer = view.players.find((p) => p.color === view.currentTurn)
                 const isBotTurn = currentTurnPlayer?.isBot ?? false
@@ -1293,15 +1369,15 @@ export function Game() {
             </div>
 
             {/* COLUMN 3: TACTICAL CONTROLS & LOGS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div className="order-3 lg:order-none" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               {view.status === 'waiting' ? (
                 /* WAITING ROOM SETUP WINDOW */
-                <section className="retro-window" id="waitingSetupWindow">
-                  <div className="window-header">
+                <section className={RETRO_WINDOW} id="waitingSetupWindow">
+                  <div className={`${WINDOW_HEADER} window-header`}>
                     <span>{t('game.waitingBayTitle')}</span>
                   </div>
 
-                  <div className="window-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                     {(() => {
                       const activeCount = view.players.filter((p) => p.status === 'active').length
                       const alreadyReady = view.readyPlayers.includes(view.myColor)
@@ -1309,7 +1385,7 @@ export function Game() {
                       const disabled = alreadyReady || soloRoom
                       return (
                         <button
-                          className="retro-btn"
+                          className={RETRO_BTN}
                           onClick={markReady}
                           disabled={disabled}
                           style={{
@@ -1335,6 +1411,59 @@ export function Game() {
                     <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
                       {t('game.readyPilots', { current: view.readyPlayers.length, total: view.players.filter((p) => p.status === 'active').length })}
                     </div>
+
+                    {/* Host-only rules control — clash mode + safe zones (PvP) */}
+                    {activeMatch?.mode === 'pvp' && (() => {
+                      const isHost = Boolean(view.hostId && user?.id && view.hostId === user?.id)
+                      return (
+                        <div style={{ borderTop: '1px solid rgba(0, 240, 255, 0.25)', paddingTop: 12 }}>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                            {t('game.rulesControl')}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <label
+                              style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                                fontSize: '0.78rem', fontFamily: 'var(--font-mono)', color: 'var(--text-main)', cursor: isHost ? 'pointer' : 'not-allowed',
+                                border: '1px solid var(--border-color)', borderRadius: 4, padding: '7px 10px',
+                                background: 'rgba(0, 0, 0, 0.4)', opacity: isHost ? 1 : 0.55,
+                              }}
+                            >
+                              <span>⚔️ {t('game.clashMode')}</span>
+                              <input
+                                type="checkbox"
+                                checked={view.clashMode}
+                                disabled={!isHost}
+                                onChange={(e) => updateModifiers(e.target.checked, view.safeZones)}
+                                style={{ accentColor: 'var(--accent-pink)', width: 15, height: 15, cursor: isHost ? 'pointer' : 'not-allowed' }}
+                              />
+                            </label>
+                            <label
+                              style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                                fontSize: '0.78rem', fontFamily: 'var(--font-mono)', color: 'var(--text-main)', cursor: isHost ? 'pointer' : 'not-allowed',
+                                border: '1px solid var(--border-color)', borderRadius: 4, padding: '7px 10px',
+                                background: 'rgba(0, 0, 0, 0.4)', opacity: isHost ? 1 : 0.55,
+                              }}
+                            >
+                              <span>🛡 {t('game.safeZones')}</span>
+                              <input
+                                type="checkbox"
+                                checked={view.safeZones}
+                                disabled={!isHost}
+                                onChange={(e) => updateModifiers(view.clashMode, e.target.checked)}
+                                style={{ accentColor: 'var(--accent-cyan)', width: 15, height: 15, cursor: isHost ? 'pointer' : 'not-allowed' }}
+                              />
+                            </label>
+                          </div>
+                          {!isHost && (
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                              {t('game.hostOnlyRules')}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
 
                     {activeMatch?.mode === 'pvp' && (
                       <div style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}>
@@ -1377,7 +1506,7 @@ export function Game() {
                                     </span>
                                   </div>
                                   <button
-                                    className="retro-btn"
+                                    className={RETRO_BTN}
                                     onClick={() => inviteFriend(f.id)}
                                     disabled={st !== 'idle'}
                                     style={{ padding: '3px 8px', fontSize: '0.62rem', flex: 'none' }}
@@ -1395,13 +1524,13 @@ export function Game() {
                 </section>
               ) : (
                 /* IN-GAME DICE CONTROLS WINDOW */
-                <section className="retro-window" id="diceControlWindow">
-                  <div className="window-header">
+                <section className={RETRO_WINDOW} id="diceControlWindow">
+                  <div className={`${WINDOW_HEADER} window-header`}>
                     <span>{t('game.diceSystemTitle')}</span>
                   </div>
 
                   <div
-                    className="window-body"
+                    className={WINDOW_BODY}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
@@ -1463,7 +1592,7 @@ export function Game() {
                     </div>
 
                     <button
-                      className="retro-btn"
+                      className={RETRO_BTN}
                       onClick={rollDice}
                       disabled={!canRoll || isRolling}
                       style={{
@@ -1503,14 +1632,14 @@ export function Game() {
               )}
 
               {/* MISSION TELEMETRY LOG WINDOW */}
-              <section className="retro-window" id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div className="window-header" style={{ flex: 'none' }}>
+              <section className={RETRO_WINDOW} id="moveLogWindow" style={{ height: 180, maxHeight: 180, flex: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div className={`${WINDOW_HEADER} window-header`} style={{ flex: 'none' }}>
                   <span>{t('game.reconLogsTitle')}</span>
                 </div>
 
                 <div
                   ref={moveLogContainerRef}
-                  className="window-body"
+                  className={WINDOW_BODY}
                   style={{
                     flex: 1,
                     height: '100%',
@@ -1562,7 +1691,7 @@ export function Game() {
               {/* RETURN TO LOBBY BUTTON (Shown whenever game has ended across all modes, or in online PvP) */}
               {(isGameEnded || (activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat')) && (
                 <button
-                  className="retro-btn"
+                  className={RETRO_BTN}
                   onClick={() => {
                     retroAudio.playUiBeep(440, 0.05)
                     setLastResult(null)
@@ -1827,9 +1956,6 @@ export function Game() {
           myColor={view.myColor}
           onKeyPress={clashInput}
           onComplete={clearClash}
-          // Hotseat: one device owns both seats, so both sides' keys must be
-          // accepted simultaneously (clash context decision #5).
-          allowBothSides={activeMatch?.mode === 'hotseat'}
         />
       )}
 

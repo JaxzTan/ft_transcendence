@@ -160,6 +160,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
+    // Login/signup are reachable while genuinely signed out — /api/auth/me
+    // (and the /api/auth/refresh it triggers on a 401) would just fail there
+    // every time, so skip the round trip and let `user` stay null until an
+    // actual login/register call sets it. Every other route still restores
+    // the session normally on load/refresh.
+    const path = window.location.pathname
+    if (path === '/login' || path === '/signup') {
+      setAuthReady(true)
+      return
+    }
+
     const restore = async () => {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -296,11 +307,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // never a render; Game.tsx flips it on mount/unmount via setPlaying.
   const playingRef = useRef(false)
   const sendHeartbeat = useCallback((playing: boolean) => {
-    fetch('/api/presence/heartbeat', {
+    // Goes through apiFetch so a 401 (expired 15-min access token) triggers the
+    // silent refresh (cross-tab coordinated) and retry instead of logging the
+    // user out on the spot — the heartbeat fires every 20s, so a raw fetch here
+    // would kick you to /login the first time the access token lapses.
+    apiFetch('/api/presence/heartbeat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ playing }),
+    }).then((res) => {
+      // A 401 surviving apiFetch means the REFRESH token itself is gone/revoked
+      // — the session really is over. Stop the loop instead of retrying every
+      // HEARTBEAT_INTERVAL_MS forever; clearing `user` also lets App.tsx's
+      // route guard redirect to /login on its own.
+      if (res.status === 401) setUser(null)
     }).catch(() => undefined)
   }, [])
   const setPlaying = useCallback(

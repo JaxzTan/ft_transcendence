@@ -16,6 +16,8 @@ export type NotificationType =
   | 'match_cancelled'
   | 'profile_updated'
   | 'display_name_changed'
+  | 'friend_online'
+  | 'friend_offline'
 
 export interface Notification {
   id: string
@@ -91,6 +93,15 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
             if (notification.type === 'display_name_changed') {
               const p = (notification.payload || {}) as Record<string, unknown>
               if (user && p.fromUserId === user.id) return
+              setToasts((prev) => [notification, ...prev])
+              return
+            }
+            // Friend presence is TRANSIENT — toast only, never the bell/unread
+            // badge (the backend sends these via notifyTransient, so they aren't
+            // persisted). Skip the actor's own tabs defensively.
+            if (notification.type === 'friend_online' || notification.type === 'friend_offline') {
+              const p = (notification.payload || {}) as Record<string, unknown>
+              if (user && p.userId === user.id) return
               setToasts((prev) => [notification, ...prev])
               return
             }

@@ -1,6 +1,5 @@
 import { GameState, PlayerColor, GameEvent } from './types';
 import { RedisGameStore } from './redis';
-import { ClashManager } from './clash';
 
 const COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 const DISCONNECT_GRACE_MS = 45000; // 45 seconds to reconnect before the player is pruned (PvP window)
@@ -64,7 +63,6 @@ export async function handlePlayerDisconnect(
   emit: (event: GameEvent) => void,
   gameId: string,
   color: PlayerColor,
-  clashManager?: ClashManager,
   notifyAbort?: (gameId: string) => void,
 ): Promise<void> {
   const state = await store.loadGameState(gameId);
@@ -108,10 +106,9 @@ export async function handlePlayerDisconnect(
     state.pauseTurnOwner = state.currentTurn;
   }
 
-  // If there's an active clash, freeze it — no separate timeout needed
-  if (clashManager && state.clash) {
-    await clashManager.freezeClash(gameId, color);
-  }
+  // A mid-clash disconnect is settled INSTANTLY by the caller
+  // (engine.resolveClashOnDisconnect — longest bar wins), so there is no
+  // clash freeze/reconnect machinery here.
 
   await store.saveGameState(gameId, state);
   // Announce a TEMPORARY disconnect (not a permanent exit): the room keeps the
@@ -134,16 +131,6 @@ export async function handlePlayerDisconnect(
 
     // Check if deadline has passed
     if (Date.now() >= disc.reconnectDeadline) {
-      // Resolve any frozen clash against this player
-      if (currentState.clash && currentState.clash.waitingForReconnect === color) {
-        const other = currentState.clash.attacker === color
-          ? currentState.clash.defender
-          : currentState.clash.attacker;
-        // Resolve the clash immediately
-        if (clashManager) {
-          await clashManager.resolveClash(gameId, other, color);
-        }
-      }
       await handlePlayerExit(store, emit, gameId, color);
       if (isBotMode) {
         // Definitive abort of the whole instance.

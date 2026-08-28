@@ -19,7 +19,9 @@ export type NotificationType =
   | 'match_finished'
   | 'match_cancelled'
   | 'profile_updated'
-  | 'display_name_changed';
+  | 'display_name_changed'
+  | 'friend_online'
+  | 'friend_offline';
 
 // Shape of the payload written to DB and pushed over SSE.
 export interface NotificationPayload {
@@ -192,6 +194,23 @@ export class NotificationService implements OnModuleDestroy {
       createdAt: new Date().toISOString(),
     };
     await this.pub.publish('notify:all', JSON.stringify(event));
+  }
+
+  /**
+   * Send a TRANSIENT per-user notification (SSE toast only, never persisted).
+   * Same delivery path as notify() — publishes to `notify:<userId>` so exactly
+   * that user's open tabs receive it — but skips the Postgres write, so
+   * ephemeral events (e.g. friend online/offline) can't flood the bell.
+   */
+  async notifyTransient(userId: string, type: NotificationType, payload: Record<string, unknown>): Promise<void> {
+    const event: NotificationPayload = {
+      id: randomUUID(),
+      type,
+      payload,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
   }
 
   // ─── REST helpers (for the controller) ───────────────────────────────────

@@ -77,46 +77,6 @@ export class ClashManager {
   }
 
   /**
-   * Freeze the clash due to player disconnect.
-   * Does NOT schedule a timeout — the caller (player-handler) owns the unified disconnect timeout.
-   */
-  async freezeClash(gameId: string, color: PlayerColor): Promise<void> {
-    const clash = await this.store.loadClashState(gameId);
-    if (!clash) return;
-
-    clash.disconnectTimestamp = Date.now();
-    clash.reconnectDeadline = Date.now() + 30000; // 30s reconnect window
-    clash.waitingForReconnect = color;
-    await this.store.saveClashState(gameId, clash);
-
-    this.publisher.publish({
-      type: 'clash_frozen',
-      gameId,
-      reason: 'player_disconnected',
-      disconnectedPlayer: color,
-      reconnectDeadline: clash.reconnectDeadline
-    });
-  }
-
-  async handleReconnect(gameId: string, color: PlayerColor): Promise<void> {
-    const clash = await this.store.loadClashState(gameId);
-    if (!clash) return;
-
-    // Check if reconnect is within the window
-    if (clash.reconnectDeadline && Date.now() <= clash.reconnectDeadline) {
-      // Player reconnected in time - clear disconnect state
-      delete clash.disconnectTimestamp;
-      delete clash.reconnectDeadline;
-      delete clash.waitingForReconnect;
-      await this.store.saveClashState(gameId, clash);
-    } else {
-      // Too late - player forfeits the clash
-      // This should have been handled by the timeout, but as a safety net
-      console.warn(`Player ${color} attempted late reconnect in clash for game ${gameId}`);
-    }
-  }
-
-  /**
    * Record a key press for the clash minigame.
    * Validates phase (pressing only), key match, press-cap, and press deadline.
    * `isBot` bypasses key/seat validation (bots pass '' as key).
@@ -133,11 +93,6 @@ export class ClashManager {
       // Validate key matches the player's assigned key.
       const expectedKey = color === clash.attacker ? clash.attackerKey : clash.defenderKey;
       if (key !== expectedKey) return 0;
-    }
-
-    // Don't allow presses if player is disconnected and past deadline
-    if (clash.waitingForReconnect && clash.reconnectDeadline && Date.now() > clash.reconnectDeadline) {
-      return 0;
     }
 
     // Server-side press cap: min CLASH_PRESS_CAP_MS between accepted presses per side.

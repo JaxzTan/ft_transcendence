@@ -7,6 +7,7 @@ import { navigate } from '../router'
 import { apiFetch } from '../api'
 import type { PlayerColor } from '../game/types'
 import { retroAudio } from '../utils/audio'
+import { RETRO_BTN } from '../styles/tw'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,24 @@ function getToastInfo(n: Notification, t: (key: string, options?: any) => string
         badgeBg: 'rgba(255, 230, 0, 0.18)',
         fromUser: from,
         actionMessage: t('notifications.actionFriendDeclined'),
+      }
+    case 'friend_online':
+      return {
+        tag: t('notifications.friendOnlineTag'),
+        badgeLabel: 'ON',
+        badgeColor: '#00ff88',
+        badgeBg: 'rgba(0, 255, 136, 0.18)',
+        fromUser: String(payload?.displayName || from),
+        actionMessage: t('notifications.actionFriendOnline', { displayName: payload?.displayName || from }),
+      }
+    case 'friend_offline':
+      return {
+        tag: t('notifications.friendOfflineTag'),
+        badgeLabel: 'OFF',
+        badgeColor: 'var(--accent-yellow, #ffe600)',
+        badgeBg: 'rgba(255, 230, 0, 0.18)',
+        fromUser: String(payload?.displayName || from),
+        actionMessage: t('notifications.actionFriendOffline', { displayName: payload?.displayName || from }),
       }
     case 'profile_updated': {
       const items = Array.isArray(payload?.items) ? (payload.items as string[]) : []
@@ -427,7 +446,7 @@ function Toast({
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button
               onClick={acceptInvite}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 flex: 1,
                 height: 38,
@@ -448,7 +467,7 @@ function Toast({
             </button>
             <button
               onClick={dismiss}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 flex: 1,
                 height: 38,
@@ -475,7 +494,7 @@ function Toast({
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button
               onClick={acceptFriend}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 flex: 1,
                 height: 38,
@@ -496,7 +515,7 @@ function Toast({
             </button>
             <button
               onClick={declineFriend}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 flex: 1,
                 height: 38,
@@ -523,7 +542,7 @@ function Toast({
           <div style={{ display: 'flex', marginTop: 4 }}>
             <button
               onClick={dismiss}
-              className="retro-btn"
+              className={RETRO_BTN}
               style={{
                 width: '100%',
                 height: 38,
