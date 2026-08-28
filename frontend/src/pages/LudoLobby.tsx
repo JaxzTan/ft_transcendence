@@ -69,6 +69,7 @@ export function LudoLobby() {
   const [hasActiveGame, setHasActiveGame] = useState(false)
   const [hostBusy, setHostBusy] = useState(false)
   const [clashOn, setClashOn] = useState(false)
+  const [safeZonesOn, setSafeZonesOn] = useState(true)
 
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [joiningByCode, setJoiningByCode] = useState(false)
@@ -106,7 +107,7 @@ export function LudoLobby() {
     setError(null)
     retroAudio.playUiBeep(920, 0.08)
     try {
-      const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: clashOn })
+      const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: clashOn, safeZones: safeZonesOn })
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {
@@ -369,6 +370,32 @@ export function LudoLobby() {
                       checked={clashOn}
                       onChange={(e) => setClashOn(e.target.checked)}
                       style={{ accentColor: 'var(--accent-pink)', width: 15, height: 15, cursor: 'pointer' }}
+                    />
+                  </label>
+                </div>
+
+                <div onClick={(e) => e.stopPropagation()}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: '0.82rem',
+                      fontFamily: 'var(--font-mono)',
+                      color: 'var(--text-main)',
+                      cursor: 'pointer',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      background: 'rgba(0, 0, 0, 0.4)',
+                    }}
+                  >
+                    <span>🛡 {t('game.safeZones')}</span>
+                    <input
+                      type="checkbox"
+                      checked={safeZonesOn}
+                      onChange={(e) => setSafeZonesOn(e.target.checked)}
+                      style={{ accentColor: 'var(--accent-cyan)', width: 15, height: 15, cursor: 'pointer' }}
                     />
                   </label>
                 </div>
@@ -733,7 +760,9 @@ export function LudoLobby() {
                       borderBottom: '1px solid rgba(0, 240, 255, 0.25)',
                       fontSize: '0.68rem',
                       fontWeight: 'bold',
-                      color: 'var(--accent-cyan)',
+                      // Fixed white: this band is dark in every theme, and win95
+                      // maps --accent-cyan to navy (#000080) — unreadable here.
+                      color: '#ffffff',
                       fontFamily: 'var(--font-mono)',
                     }}
                   >
@@ -751,7 +780,7 @@ export function LudoLobby() {
                         {t('ludoLobbyExtra.scanningOpenSectors')}
                       </div>
                     ) : filteredRooms.length === 0 ? (
-                      <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                      <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--accent-yellow)', fontSize: '0.78rem' }}>
                         {t('ludoLobbyPasses.noOpenRooms')}
                       </div>
                     ) : (

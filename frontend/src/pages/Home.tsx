@@ -1342,7 +1342,7 @@ export function Home() {
 
 					{/* Footer */}
 					<footer className="retro-footer">
-						<p>© 1942-2026 RETROLUDO '42 // 42KL // ALL RIGHTS RESERVED // WEB AUDIO & CANV-ARCADE</p>
+						<p>{t('home.footerCopyright')}</p>
 					</footer>
 				</div>
 			</div>

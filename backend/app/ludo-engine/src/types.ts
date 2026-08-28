@@ -93,6 +93,7 @@ export interface GameState {
 	botBusy?: boolean; // Prevents overlapping bot turns
 	clash?: ClashState;
 	clashMode: boolean; // Whether clash minigame is enabled (false = standard capture)
+	safeZones: boolean; // Whether safe/star squares are capture-immune (false = hardcore mod)
 	readyPlayers: PlayerColor[]; // Players who have clicked "ready"
 	pendingCapture?: PendingCapture; // Move deferred until the clash QTE resolves
 	resultCardUntil?: number; // Server-side input freeze after a clash result card

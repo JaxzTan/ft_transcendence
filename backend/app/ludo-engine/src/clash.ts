@@ -16,6 +16,17 @@ export const CLASH_SWEEP_GRACE_MS = 15000; // outer cleanup bound from clash sta
 export const CLASH_TARGET = 42;
 export const CLASH_PRESS_CAP_MS = 70; // min ms between accepted presses per side
 
+// ─── Bot clash presser tuning ────────────────────────────────────────────────
+// Bots auto-press during the press race. The engine pre-rolls the winner: the
+// WINNING bot mashes in the fast band, the LOSER in the slow band, so both
+// visibly spam but the pre-selected side reaches CLASH_TARGET first (or leads
+// at the press-deadline timeout). Jitter keeps the cadence human-looking.
+export const CLASH_BOT_WIN_MS_BASE = 125;        // winner's press interval base (ms)
+export const CLASH_BOT_LOSE_MS_BASE = 170;       // loser's press interval base (ms)
+export const CLASH_BOT_JITTER_MS = 30;           // random ± spread added to each interval (ms)
+export const CLASH_BOT_VS_BOT_WIN_CHANCE = 0.5;  // bot-vs-bot clash: coin flip
+export const CLASH_BOT_VS_HUMAN_WIN_CHANCE = 0.25; // bot vs human: bot win chance per clash
+
 export class ClashManager {
   private store: RedisGameStore;
   private publisher: EventPublisher;

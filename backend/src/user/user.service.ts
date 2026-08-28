@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
 import { ratingDeltaFor } from '../common/scoring';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly presence: PresenceService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async getPublicProfile(username: string) {
@@ -50,6 +52,10 @@ export class UserService {
       data: { avatarPhoto: data as any, avatarPhotoContentType: contentType },
     });
 
+    await this.notifications
+      .notify(userId, 'profile_updated', { items: ['avatar'] })
+      .catch(() => {});
+
     return { message: 'Avatar uploaded', contentType };
   }
 
@@ -70,6 +76,10 @@ export class UserService {
       where: { id: userId },
       data: { avatarPhoto: null, avatarPhotoContentType: null },
     });
+
+    await this.notifications
+      .notify(userId, 'profile_updated', { items: ['avatar'] })
+      .catch(() => {});
 
     return { message: 'Avatar deleted' };
   }

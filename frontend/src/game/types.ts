@@ -98,4 +98,5 @@ export interface GameState {
   clashMode: boolean
   readyPlayers: PlayerColor[]
   resultCardUntil?: number
+  safeZones?: boolean
 }

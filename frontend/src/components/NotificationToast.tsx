@@ -66,6 +66,78 @@ function getToastInfo(n: Notification, t: (key: string, options?: any) => string
         actionMessage: name ? `${name}!` : t('notifications.achievementUnlocked'),
       }
     }
+    case 'match_finished': {
+      const rank = payload?.rank
+      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival'
+      return {
+        tag: t('notifications.matchEndTag'),
+        badgeLabel: 'END',
+        badgeColor: '#00ff88',
+        badgeBg: 'rgba(0, 255, 136, 0.18)',
+        fromUser: null,
+        actionMessage: rank === 1 ? t('notifications.matchEndWonText') : t('notifications.matchEndLostText', { winner }),
+      }
+    }
+    case 'match_cancelled':
+      return payload?.reason === 'resign'
+        ? {
+            tag: t('notifications.matchCancelledTag'),
+            badgeLabel: 'ABRT',
+            badgeColor: 'var(--accent-yellow, #ffe600)',
+            badgeBg: 'rgba(255, 230, 0, 0.18)',
+            fromUser: from,
+            actionMessage: t('notifications.actionMatchResigned'),
+          }
+        : {
+            tag: t('notifications.matchCancelledTag'),
+            badgeLabel: 'ABRT',
+            badgeColor: 'var(--accent-yellow, #ffe600)',
+            badgeBg: 'rgba(255, 230, 0, 0.18)',
+            fromUser: from,
+            actionMessage: t('notifications.actionMatchCancelled'),
+          }
+    case 'friend_removed':
+      return {
+        tag: t('notifications.friendRemovedTag'),
+        badgeLabel: 'LINK',
+        badgeColor: 'var(--accent-pink, #ff007f)',
+        badgeBg: 'rgba(255, 0, 127, 0.18)',
+        fromUser: from,
+        actionMessage: t('notifications.actionFriendRemoved'),
+      }
+    case 'friend_declined':
+      return {
+        tag: t('notifications.friendDeclinedTag'),
+        badgeLabel: 'LINK',
+        badgeColor: 'var(--accent-yellow, #ffe600)',
+        badgeBg: 'rgba(255, 230, 0, 0.18)',
+        fromUser: from,
+        actionMessage: t('notifications.actionFriendDeclined'),
+      }
+    case 'profile_updated': {
+      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : []
+      const labels = items.map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`)).join(', ')
+      return {
+        tag: t('notifications.profileUpdatedTag'),
+        badgeLabel: 'PROF',
+        badgeColor: 'var(--accent-cyan, #00f0ff)',
+        badgeBg: 'rgba(0, 240, 255, 0.18)',
+        fromUser: null,
+        actionMessage: t('notifications.profileUpdatedText', { item: labels || '—' }),
+      }
+    }
+    case 'display_name_changed': {
+      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from
+      const newName = payload?.displayName ? String(payload.displayName) : 'UNKNOWN'
+      return {
+        tag: t('notifications.displayNameChangedTag'),
+        badgeLabel: 'CALL',
+        badgeColor: 'var(--accent-cyan, #00f0ff)',
+        badgeBg: 'rgba(0, 240, 255, 0.18)',
+        fromUser: null,
+        actionMessage: t('notifications.displayNameChangedText', { displayName: oldName, newDisplayName: newName }),
+      }
+    }
     default:
       return {
         tag: t('notifications.sysBroadcastTag'),

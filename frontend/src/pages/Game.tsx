@@ -1285,6 +1285,7 @@ export function Game() {
                       onPieceClick={isRolling || isBotTurn ? () => { } : movePiece}
                       animating={animatingPiece}
                       fx={captureFx}
+                      safeZones={view.safeZones}
                     />
                   </div>
                 )

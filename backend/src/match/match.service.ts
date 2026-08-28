@@ -21,19 +21,20 @@ export class MatchService {
 		playerCount: number,
 		botCount: number,
 		clashEnabled: boolean = true,
+		safeZones: boolean = true,
 		botColors?: string[],
 		seatColors?: string[],
 	) {
-		return this.creator.createMatch(userId, mode, playerCount, botCount, clashEnabled, botColors, seatColors);
+		return this.creator.createMatch(userId, mode, playerCount, botCount, clashEnabled, safeZones, botColors, seatColors);
 	}
-	async findRandomMatch(userId: string, clashEnabled: boolean = true) {
-		return this.creator.findRandomMatch(userId, clashEnabled, (gameId: string, uid: string) => this.player.joinMatch(gameId, uid), (uid: string) => this.query.listMyRooms(uid));
+	async findRandomMatch(userId: string, clashEnabled: boolean = true, safeZones: boolean = true) {
+		return this.creator.findRandomMatch(userId, clashEnabled, safeZones, (gameId: string, uid: string) => this.player.joinMatch(gameId, uid), (uid: string) => this.query.listMyRooms(uid));
 	}
-	async createInvite(userId: string, clashEnabled: boolean = true) {
-		return this.creator.createInvite(userId, clashEnabled);
+	async createInvite(userId: string, clashEnabled: boolean = true, safeZones: boolean = true) {
+		return this.creator.createInvite(userId, clashEnabled, safeZones);
 	}
-	async playBot(userId: string, playerCount: number = 2, clashEnabled: boolean = true) {
-		return this.creator.playBot(userId, playerCount, clashEnabled);
+	async playBot(userId: string, playerCount: number = 2, clashEnabled: boolean = true, safeZones: boolean = true) {
+		return this.creator.playBot(userId, playerCount, clashEnabled, safeZones);
 	}
 	async joinByInvite(inviteCode: string, userId: string) {
 		return this.creator.joinByInvite(inviteCode, userId, (gameId: string, uid: string) => this.player.joinMatch(gameId, uid));

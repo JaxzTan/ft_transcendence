@@ -8,8 +8,14 @@ import { apiFetch } from '../api'
 export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'
+  | 'friend_removed'
+  | 'friend_declined'
   | 'game_invite'
   | 'achievement'
+  | 'match_finished'
+  | 'match_cancelled'
+  | 'profile_updated'
+  | 'display_name_changed'
 
 export interface Notification {
   id: string
@@ -79,6 +85,15 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
           if (!event.data) return
           const notification: Notification = JSON.parse(event.data)
           if (notification && notification.id) {
+            // Global broadcasts are TRANSIENT — toast only, never the bell/unread
+            // badge. The actor also skips their own announcement (they already
+            // get the persisted `profile_updated` toast instead).
+            if (notification.type === 'display_name_changed') {
+              const p = (notification.payload || {}) as Record<string, unknown>
+              if (user && p.fromUserId === user.id) return
+              setToasts((prev) => [notification, ...prev])
+              return
+            }
             setNotifications((prev) => [notification, ...prev])
             setToasts((prev) => [notification, ...prev])
           }

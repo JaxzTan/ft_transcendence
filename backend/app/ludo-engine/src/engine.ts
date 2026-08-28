@@ -1,7 +1,7 @@
 import { GameState, PlayerColor, LegalMove, MoveResult, MovePieceOutput, PieceId, GameEvent, ClashState, ClashPhase } from './types';
 import { RedisGameStore } from './redis';
 import { MoveValidator } from './move-validator';
-import { ClashManager, CLASH_ANNOUNCE_MS, CLASH_COUNTDOWN_MS, CLASH_PRESS_MS, CLASH_SWEEP_GRACE_MS, CLASH_TARGET, CLASH_RESULT_FREEZE_MS } from './clash';
+import { ClashManager, CLASH_ANNOUNCE_MS, CLASH_COUNTDOWN_MS, CLASH_PRESS_MS, CLASH_SWEEP_GRACE_MS, CLASH_TARGET, CLASH_RESULT_FREEZE_MS, CLASH_BOT_WIN_MS_BASE, CLASH_BOT_LOSE_MS_BASE, CLASH_BOT_JITTER_MS, CLASH_BOT_VS_BOT_WIN_CHANCE, CLASH_BOT_VS_HUMAN_WIN_CHANCE } from './clash';
 import { advanceTurnInState } from './player-handler';
 import {
   handlePlayerDisconnect,
@@ -587,12 +587,12 @@ export class LudoEngine {
       // Bot pressers begin EXACTLY at press-phase start (they don't hunt keys).
       if (attackerIsBot || defenderIsBot) {
         if (attackerIsBot && defenderIsBot) {
-          const attackerWins = Math.random() < 0.5;
+          const attackerWins = Math.random() < CLASH_BOT_VS_BOT_WIN_CHANCE;
           this.simulateBotPressers(gameId, attacker, attackerWins);
           this.simulateBotPressers(gameId, defender, !attackerWins);
         } else {
           const botSide = attackerIsBot ? attacker : defender;
-          const botWins = Math.random() < 0.25;
+          const botWins = Math.random() < CLASH_BOT_VS_HUMAN_WIN_CHANCE;
           this.simulateBotPressers(gameId, botSide, botWins);
         }
       }
@@ -642,15 +642,16 @@ export class LudoEngine {
   /**
    * Make a bot hammer the clash at a human-realistic, jittered pace.
    * The winner is pre-rolled by the caller: the WINNING bot presses in the
-   * fast band (~130-160ms), the LOSER in the slow band (~175-205ms), so both
-   * visibly mash but the pre-selected winner naturally reaches 42 first (or
-   * leads at the most-presses timeout). No hard-coded "stop at target" — the
-   * time window + pace difference guarantee the outcome.
+   * fast band (CLASH_BOT_WIN_MS_BASE ± jitter), the LOSER in the slow band
+   * (CLASH_BOT_LOSE_MS_BASE ± jitter) — see the tuning block at the top of
+   * clash.ts — so both visibly mash but the pre-selected winner naturally
+   * reaches 42 first (or leads at the most-presses timeout). No hard-coded
+   * "stop at target" — the time window + pace difference guarantee the outcome.
    */
   private simulateBotPressers(gameId: string, botColor: PlayerColor, winner: boolean): void {
     const schedulePress = () => {
-      const base = winner ? 130 : 175;
-      const delay = base + Math.random() * 30;
+      const base = winner ? CLASH_BOT_WIN_MS_BASE : CLASH_BOT_LOSE_MS_BASE;
+      const delay = base + Math.random() * CLASH_BOT_JITTER_MS;
       setTimeout(() => {
         void (async () => {
           try {

@@ -24,6 +24,7 @@ export type GameViewState = {
   clashResult: ClashResult | null
   myColor: PlayerColor
   readyPlayers: PlayerColor[]
+  safeZones: boolean
   /** Last dice value rolled by each color (populated from dice_rolled events). */
   lastRolls: Partial<Record<PlayerColor, number>>
 }
@@ -42,6 +43,7 @@ export function initialView(myColor: PlayerColor): GameViewState {
     clashResult: null,
     myColor,
     readyPlayers: [],
+    safeZones: true,
     lastRolls: {},
   }
 }
@@ -80,6 +82,7 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
         diceValue: s.pendingDiceValue ?? state.diceValue,
         clash: s.clash ?? state.clash,
         readyPlayers: s.readyPlayers ?? state.readyPlayers,
+        safeZones: s.safeZones ?? state.safeZones,
       }
     }
     case 'lobby_update': {

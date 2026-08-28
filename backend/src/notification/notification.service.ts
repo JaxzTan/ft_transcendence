@@ -3,6 +3,7 @@ import { Subject, Observable } from 'rxjs';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma.service';
 
+import { randomUUID } from 'crypto';
 import { secret } from '../secrets';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -11,8 +12,14 @@ import { secret } from '../secrets';
 export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'
+  | 'friend_removed'
+  | 'friend_declined'
   | 'game_invite'
-  | 'achievement';
+  | 'achievement'
+  | 'match_finished'
+  | 'match_cancelled'
+  | 'profile_updated'
+  | 'display_name_changed';
 
 // Shape of the payload written to DB and pushed over SSE.
 export interface NotificationPayload {
@@ -38,6 +45,11 @@ export class NotificationService implements OnModuleDestroy {
   // every Subject in the array gets the event (= every open tab).
   private clients = new Map<string, Subject<NotificationPayload>[]>();
 
+  // Subjects connected to the GLOBAL broadcast channel ("notify:all").
+  // Every SSE client is added here too, so broadcast() events reach all
+  // online users without being persisted per-recipient.
+  private broadcastClients = new Set<Subject<NotificationPayload>>();
+
   constructor(private readonly prisma: PrismaService) {
     const host = process.env.REDIS_HOST || 'redis';
     const port = parseInt(process.env.REDIS_PORT || '6479', 10);
@@ -54,19 +66,31 @@ export class NotificationService implements OnModuleDestroy {
     // When a service calls notify(), it publishes to `notify:<userId>`.
     // This handler picks it up and pushes to every SSE Subject for that user.
     this.sub.on('message', (channel: string, message: string) => {
-      // channel = "notify:<userId>"
-      const userId = channel.replace('notify:', '');
-      const subjects = this.clients.get(userId);
-      if (!subjects || subjects.length === 0) return;
-
       try {
         const data: NotificationPayload = JSON.parse(message);
+        if (channel === 'notify:all') {
+          // Global broadcast — every connected SSE client gets it.
+          for (const subject of this.broadcastClients) {
+            subject.next(data);
+          }
+          return;
+        }
+        // channel = "notify:<userId>"
+        const userId = channel.replace('notify:', '');
+        const subjects = this.clients.get(userId);
+        if (!subjects || subjects.length === 0) return;
         for (const subject of subjects) {
           subject.next(data);
         }
       } catch {
         console.error('Failed to parse notification message:', message);
       }
+    });
+
+    // Subscribe the global broadcast channel once — every SSE connection also
+    // receives events published to `notify:all`.
+    this.sub.subscribe('notify:all').catch((err) => {
+      console.error('Failed to subscribe to notify:all:', err);
     });
   }
 
@@ -84,6 +108,7 @@ export class NotificationService implements OnModuleDestroy {
    */
   subscribe(userId: string): Observable<NotificationPayload> {
     const subject = new Subject<NotificationPayload>();
+    this.broadcastClients.add(subject);
 
     const existing = this.clients.get(userId);
     if (existing) {
@@ -109,6 +134,7 @@ export class NotificationService implements OnModuleDestroy {
 
   /** Remove a single SSE client. Unsubscribes from Redis when the last tab closes. */
   private removeClient(userId: string, subject: Subject<NotificationPayload>) {
+    this.broadcastClients.delete(subject);
     const subjects = this.clients.get(userId);
     if (!subjects) return;
 
@@ -150,6 +176,22 @@ export class NotificationService implements OnModuleDestroy {
     // 3. Publish to Redis — the subscriber handler (in constructor) pushes
     //    it to every SSE Subject for this user.
     await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
+  }
+
+  /**
+   * Send a TRANSIENT global broadcast to every online user (SSE toast only).
+   * Unlike notify(), nothing is persisted to Postgres — offline users simply
+   * don't see it, and the bell/unread badge is never flooded.
+   */
+  async broadcast(type: NotificationType, payload: Record<string, unknown>): Promise<void> {
+    const event: NotificationPayload = {
+      id: randomUUID(),
+      type,
+      payload,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    await this.pub.publish('notify:all', JSON.stringify(event));
   }
 
   // ─── REST helpers (for the controller) ───────────────────────────────────

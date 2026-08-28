@@ -63,7 +63,12 @@ export class SocketHandlers {
           // Clash mode follows the match's clashEnabled flag (set by the host's
           // lobby toggle) rather than being hardcoded on — the engine gate in
           // movePiece checks state.clashMode.
-          await this.store.createGame(effectiveGameId, creationMatchData?.clashEnabled === 'true', seatColors);
+          await this.store.createGame(
+            effectiveGameId,
+            creationMatchData?.clashEnabled === 'true',
+            seatColors,
+            creationMatchData?.safeZones !== 'false',
+          );
           state = await this.store.loadGameState(effectiveGameId);
         }
 

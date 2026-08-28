@@ -298,10 +298,12 @@ type BoardProps = {
   animating?: { pieceId: string; step: number } | null
   /** Transient capture burst: expanding ring + sparks on the cell the mover landed on. Pure cosmetic overlay. */
   fx?: { color: string; to: number } | null
+  /** Hardcore mod: when false, safe/star squares lose capture immunity (stars are hidden). */
+  safeZones?: boolean
 }
 
 /** The classic 15×15 cross board, rendered procedurally — no images. */
-export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating, fx }: BoardProps = {}) {
+export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating, fx, safeZones = true }: BoardProps = {}) {
   const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
   const activeColors = new Set(players.filter((p) => p.status === 'active' || p.status === 'disconnected').map((p) => p.color))
   const basePieces = (ck: ColorKey) =>
@@ -342,7 +344,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
             }}
           />
         )
-      } else if (SAFE_STAR_CELLS[key]) {
+      } else if (SAFE_STAR_CELLS[key] && safeZones) {
         inner = (
           <div
             style={{

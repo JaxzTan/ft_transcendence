@@ -30,6 +30,7 @@ export function Lobby() {
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
   const [clashOn, setClashOn] = useState(false)
+  const [safeZonesOn, setSafeZonesOn] = useState(true)
   const [editingSeat, setEditingSeat] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
 
@@ -93,6 +94,7 @@ export function Lobby() {
         botColors: botColors.length > 0 ? botColors : undefined,
         seatColors: (gameMode === 'hotseat' || gameMode === 'pve') && seatColors.length > 0 ? seatColors : undefined,
         clashEnabled: clashOn,
+        safeZones: safeZonesOn,
       })
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
@@ -618,6 +620,34 @@ export function Lobby() {
                         checked={clashOn}
                         onChange={(e) => setClashOn(e.target.checked)}
                         style={{ accentColor: 'var(--accent-pink)', width: 16, height: 16, cursor: 'pointer' }}
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    {/* Safe Zones Toggle */}
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        fontSize: '0.9rem',
+                        fontFamily: 'var(--font-mono)',
+                        color: 'var(--text-main)',
+                        cursor: 'pointer',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 4,
+                        padding: '10px 14px',
+                        background: 'rgba(0, 0, 0, 0.4)',
+                      }}
+                    >
+                      <span>🛡 {t('game.safeZones')}</span>
+                      <input
+                        type="checkbox"
+                        checked={safeZonesOn}
+                        onChange={(e) => setSafeZonesOn(e.target.checked)}
+                        style={{ accentColor: 'var(--accent-cyan)', width: 16, height: 16, cursor: 'pointer' }}
                       />
                     </label>
                   </div>

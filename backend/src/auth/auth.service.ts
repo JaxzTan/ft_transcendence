@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import Redis from 'ioredis';
@@ -11,8 +11,11 @@ import { MailService } from './mail.service';
 import { TwoFactorService } from './twofactor.service';
 import { SessionService } from './session.service';
 import { secret } from '../secrets';
+import { NotificationService } from '../notification/notification.service';
 
 const SALT_ROUNDS = 10;
+// A display name can be changed at most once every 2 hours.
+const DISPLAY_NAME_CHANGE_COOLDOWN_S = 2 * 60 * 60;
 // Also where the SPA lives; /api on the same origin reaches the backend
 // through whichever proxy (nginx or Vite) is serving it.
 const BASE_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
@@ -49,6 +52,7 @@ export class AuthService implements OnModuleDestroy {
     private readonly mail: MailService,
     private readonly twoFactor: TwoFactorService,
     private readonly session: SessionService,
+    private readonly notifications: NotificationService,
   ) {
     // Small Redis client for account-deletion cleanup (same idiom as
     // FriendsService / MatchPlayerService).
@@ -179,6 +183,13 @@ export class AuthService implements OnModuleDestroy {
     });
     // drop every existing session after a password reset
     await this.session.revokeAll(userId);
+
+    // Announce the password reset to the user (persisted — lands in the bell
+    // on their next sign-in, since this flow revokes all open sessions).
+    await this.notifications
+      .notify(userId, 'profile_updated', { items: ['password'] })
+      .catch(() => {});
+
     return { message: 'Password updated — you can log in with it now.' };
   }
 
@@ -331,8 +342,19 @@ export class AuthService implements OnModuleDestroy {
     const data: Record<string, unknown> = {};
     let emailChanged = false;
     let newEmail: string | undefined;
+    // Items actually changed in this request — feeds the profile_updated toast.
+    const changedItems: string[] = [];
 
     if (dto.displayName !== undefined && dto.displayName !== user.displayName) {
+      // Cooldown: a display name can be changed at most once every 2 hours.
+      const cooldownTtl = await this.redis.ttl(`dnChange:${userId}`);
+      if (cooldownTtl > 0) {
+        const minutes = Math.ceil(cooldownTtl / 60);
+        throw new HttpException(
+          `Display name change limit reached. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
       const taken = await this.prisma.db.user.findUnique({
         where: { displayName: dto.displayName },
       });
@@ -362,6 +384,7 @@ export class AuthService implements OnModuleDestroy {
     // OAuth: remove a linked sign-in method (lockout-guarded).
     if (dto.oauthToRemove !== undefined) {
       await this.removeOAuthMethod(userId, dto.oauthToRemove);
+      changedItems.push('oauthRemove');
     }
 
     // OAuth: adding a method needs the browser round-trip — mint a 10m
@@ -380,10 +403,44 @@ export class AuthService implements OnModuleDestroy {
         ? await this.prisma.db.user.update({ where: { id: userId }, data })
         : user;
 
+    // Start the display-name cooldown only AFTER a successful change, so a
+    // failed save (e.g. email conflict) doesn't burn the user's one change.
+    if (data.displayName !== undefined) {
+      await this.redis
+        .set(`dnChange:${userId}`, '1', 'EX', DISPLAY_NAME_CHANGE_COOLDOWN_S)
+        .catch(() => {});
+    }
+
     // Email change → auto-send a fresh verification link (reuse register's path).
     if (emailChanged && newEmail) {
       const token = await this.twoFactor.createVerifyToken(userId);
       await this.mail.sendVerification(newEmail, `${BASE_URL}/api/auth/verify-email?token=${token}`);
+    }
+
+    // ── Profile-change notifications ─────────────────────────────────────────
+    // 1) Self-confirmation (persisted): "You have updated your profile: …"
+    if (data.displayName !== undefined) changedItems.push('displayName');
+    if (emailChanged) changedItems.push('email');
+    if (dto.twoFactorEnabled !== undefined && dto.twoFactorEnabled !== user.twoFactorEnabled) {
+      changedItems.push('twoFactor');
+    }
+    if (changedItems.length > 0) {
+      await this.notifications
+        .notify(userId, 'profile_updated', { items: changedItems })
+        .catch(() => {});
+    }
+
+    // 2) Global announcement (transient toast, all online users):
+    //    "(Old DisplayName) has changed their Displayname to (New DisplayName)"
+    if (data.displayName !== undefined) {
+      await this.notifications
+        .broadcast('display_name_changed', {
+          fromUserId: userId,
+          fromUsername: user.username,
+          oldDisplayName: user.displayName,
+          displayName: dto.displayName,
+        })
+        .catch(() => {});
     }
 
     const accounts = await this.prisma.db.account.findMany({
@@ -428,6 +485,11 @@ export class AuthService implements OnModuleDestroy {
 
     // Log the user out everywhere — other devices must re-auth with the new password.
     await this.session.revokeAllExcept(userId, currentRefreshToken);
+
+    await this.notifications
+      .notify(userId, 'profile_updated', { items: ['password'] })
+      .catch(() => {});
+
     return { message: 'Password updated — other devices were signed out.' };
   }
 
@@ -561,6 +623,12 @@ export class AuthService implements OnModuleDestroy {
             providerAccountId: input.providerAccountId,
           },
         });
+
+        // Announce the newly linked sign-in method to the user.
+        await this.notifications
+          .notify(linkUserId, 'profile_updated', { items: ['oauthAdd'] })
+          .catch(() => {});
+
         return linked;
       }
       // The "add method" user no longer exists — e.g. this browser's session

@@ -37,7 +37,7 @@ export class RedisGameStore {
    * seats actually in play for this match size — colors outside that set get
    * no PlayerMeta entry at all, so unused seats never appear anywhere
    * downstream (sidebar, color picker, turn order). */
-  async createGame(gameId: string, clashMode: boolean = true, activeColors: PlayerColor[] = COLORS): Promise<void> {
+  async createGame(gameId: string, clashMode: boolean = true, activeColors: PlayerColor[] = COLORS, safeZones: boolean = true): Promise<void> {
     const pieces: Piece[] = [];
     for (const color of COLORS) {
       for (let i = 0; i < 4; i++) {
@@ -72,6 +72,7 @@ export class RedisGameStore {
       disconnectedPlayers: [],
       status: 'waiting',
       clashMode,
+      safeZones,
       readyPlayers: [],
     };
     

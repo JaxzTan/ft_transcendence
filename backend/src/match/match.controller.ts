@@ -14,8 +14,9 @@ export class MatchController {
 	pvpInvite(
 		@Request() req: { user: { id: string } },
 		@Body('clashEnabled') clashEnabled?: boolean,
+		@Body('safeZones') safeZones?: boolean,
 	) {
-		return this.match.createInvite(req.user.id, clashEnabled);
+		return this.match.createInvite(req.user.id, clashEnabled, safeZones);
 	}
 
 	// ─── PvP: Join by invite code ────────────────────────────────────────────
@@ -34,8 +35,9 @@ export class MatchController {
 	quickMatch(
 		@Request() req: { user: { id: string } },
 		@Body('clashEnabled') clashEnabled?: boolean,
+		@Body('safeZones') safeZones?: boolean,
 	) {
-		return this.match.findRandomMatch(req.user.id, clashEnabled);
+		return this.match.findRandomMatch(req.user.id, clashEnabled, safeZones);
 	}
 
 	// ─── PvE: Human vs Bot (1 - 3 bots) ────────────────────────────────────────
@@ -45,8 +47,9 @@ export class MatchController {
 		@Request() req: { user: { id: string } },
 		@Body('playerCount') playerCount: number,
 		@Body('clashEnabled') clashEnabled?: boolean,
+		@Body('safeZones') safeZones?: boolean,
 	) {
-		return this.match.playBot(req.user.id, playerCount || 2, clashEnabled);
+		return this.match.playBot(req.user.id, playerCount || 2, clashEnabled, safeZones);
 	}
 
 	// ─── Unified Match Creation ────────────────────────────────────────────────
@@ -58,6 +61,7 @@ export class MatchController {
 		@Body('playerCount') playerCount: number,
 		@Body('botCount') botCount: number,
 		@Body('clashEnabled') clashEnabled?: boolean,
+		@Body('safeZones') safeZones?: boolean,
 		@Body('botColors') botColors?: string[],
 		@Body('seatColors') seatColors?: string[],
 	) {
@@ -78,6 +82,7 @@ export class MatchController {
 			playerCount || 2,
 			botCount || 0,
 			clashEnabled,
+			safeZones,
 			botColors,
 			seatColors,
 		);

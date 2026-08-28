@@ -98,7 +98,9 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
     } catch (e) {
       const msg = (e as { message?: string })?.message ?? ''
-      setError(/last sign-in|keep at least one/i.test(msg) ? t('profileEdit.lastMethod')
+      const cooldownMinutes = (msg.match(/in (\d+) minute/) ?? [])[1]
+      setError(/display name change limit/i.test(msg) ? t('profileEdit.displayNameCooldown', { minutes: cooldownMinutes ?? '?' })
+        : /last sign-in|keep at least one/i.test(msg) ? t('profileEdit.lastMethod')
         : /linked to another user/i.test(msg) ? t('profileEdit.providerTaken')
         : /email.*(?:already|registered)/i.test(msg) ? t('profileEdit.emailTaken')
         : /display name.*(?:taken|already)/i.test(msg) ? t('profileEdit.displayNameTaken')

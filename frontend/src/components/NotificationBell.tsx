@@ -12,15 +12,27 @@ import { retroAudio } from '../utils/audio'
 function getNotificationTypeBadge(type: string): { tagKey: string; defaultTag: string; color: string } {
   switch (type) {
     case 'game_invite':
-      return { tagKey: 'notifications.matchChallengeTag', defaultTag: '[MATCH_INVITE]', color: 'var(--accent-cyan, #00f0ff)' }
+      return { tagKey: 'notifications.matchChallengeTag', defaultTag: '[MATCH_INVITE]', color: '#00f0ff' }
     case 'friend_request':
-      return { tagKey: 'notifications.linkReqTag', defaultTag: '[FRIEND_REQ]', color: 'var(--accent-pink, #ff007f)' }
+      return { tagKey: 'notifications.linkReqTag', defaultTag: '[FRIEND_REQ]', color: '#ff007f' }
     case 'friend_accepted':
-      return { tagKey: 'notifications.linkEstablishedTag', defaultTag: '[FRIEND_ACK]', color: 'var(--accent-yellow, #ffe600)' }
+      return { tagKey: 'notifications.linkEstablishedTag', defaultTag: '[FRIEND_ACK]', color: '#ffe600' }
     case 'achievement':
       return { tagKey: 'notifications.achievementTag', defaultTag: '[ACHIEVEMENT]', color: '#00ff88' }
+    case 'match_finished':
+      return { tagKey: 'notifications.matchEndTag', defaultTag: '[MATCH_COMPLETE]', color: '#00ff88' }
+    case 'match_cancelled':
+      return { tagKey: 'notifications.matchCancelledTag', defaultTag: '[MATCH_ABORTED]', color: '#ffe600' }
+    case 'friend_removed':
+      return { tagKey: 'notifications.friendRemovedTag', defaultTag: '[LINK_SEVERED]', color: '#ff007f' }
+    case 'friend_declined':
+      return { tagKey: 'notifications.friendDeclinedTag', defaultTag: '[LINK_REJECTED]', color: '#ffe600' }
+    case 'profile_updated':
+      return { tagKey: 'notifications.profileUpdatedTag', defaultTag: '[PROFILE_UPDATED]', color: '#00f0ff' }
+    case 'display_name_changed':
+      return { tagKey: 'notifications.displayNameChangedTag', defaultTag: '[CALLSIGN_CHANGED]', color: '#00f0ff' }
     default:
-      return { tagKey: 'notifications.sysBroadcastTag', defaultTag: '[SYS_MSG]', color: 'var(--accent-cyan, #00f0ff)' }
+      return { tagKey: 'notifications.sysBroadcastTag', defaultTag: '[SYS_MSG]', color: '#00f0ff' }
   }
 }
 
@@ -44,6 +56,31 @@ function renderNotificationBody(n: Notification, t: (key: string, options?: any)
       const nameKey = payload?.nameKey as string | undefined
       const name = nameKey ? t(nameKey) : ''
       return name ? <span>{name}!</span> : <span>{t('notifications.achievementUnlocked')}</span>
+    }
+    case 'friend_removed':
+      return <span>{t('notifications.friendRemovedText', { username: from })}</span>
+    case 'friend_declined':
+      return <span>{t('notifications.friendDeclinedText', { username: from })}</span>
+    case 'match_cancelled':
+      return payload?.reason === 'resign'
+        ? <span>{t('notifications.matchResignedText', { username: from })}</span>
+        : <span>{t('notifications.matchCancelledText', { username: from })}</span>
+    case 'match_finished': {
+      const rank = payload?.rank
+      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival'
+      return rank === 1
+        ? <span>{t('notifications.matchEndWonText')}</span>
+        : <span>{t('notifications.matchEndLostText', { winner })}</span>
+    }
+    case 'profile_updated': {
+      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : []
+      const labels = items.map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`)).join(', ')
+      return <span>{t('notifications.profileUpdatedText', { item: labels || '—' })}</span>
+    }
+    case 'display_name_changed': {
+      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from
+      const newName = payload?.displayName ? String(payload.displayName) : 'UNKNOWN'
+      return <span>{t('notifications.displayNameChangedText', { displayName: oldName, newDisplayName: newName })}</span>
     }
     default:
       return <span>{t('notifications.systemTransmissionText')}</span>
@@ -172,7 +209,7 @@ export function NotificationBell({
         width: 350,
         maxHeight: 460,
         background: 'linear-gradient(180deg, rgba(20, 6, 46, 0.96), rgba(10, 2, 28, 0.98))',
-        border: '1.5px solid var(--accent-cyan, #00f0ff)',
+        border: '1.5px solid #00f0ff',
         boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 20px 60px rgba(0, 0, 0, 0.95)',
         borderRadius: 14,
         zIndex: 10005,
@@ -192,7 +229,7 @@ export function NotificationBell({
         width: 380,
         maxHeight: 460,
         background: 'rgba(10, 4, 24, 0.96)',
-        border: '1.5px solid var(--accent-cyan, #00f0ff)',
+        border: '1.5px solid #00f0ff',
         boxShadow: '0 0 25px rgba(0, 240, 255, 0.25), 0 16px 40px rgba(0, 0, 0, 0.9)',
         borderRadius: 4,
         zIndex: 120,
@@ -223,7 +260,7 @@ export function NotificationBell({
             borderRadius: 10,
             background: 'rgba(255, 255, 255, 0.04)',
             border: '1px solid rgba(0, 240, 255, 0.3)',
-            color: 'var(--text-main)',
+            color: '#ffffff',
             ...buttonStyle,
           }}
         >
@@ -241,13 +278,13 @@ export function NotificationBell({
                 padding: '2px 7px',
                 borderRadius: 4,
                 background: count > 0 ? '#ff007f' : 'rgba(255, 255, 255, 0.1)',
-                color: count > 0 ? '#ffffff' : 'var(--text-muted)',
+                color: count > 0 ? '#ffffff' : '#8a7a64',
                 boxShadow: count > 0 ? '0 0 8px #ff007f' : 'none',
               }}
             >
               {count > 0 ? count : '0'}
             </span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
+            <span style={{ fontSize: '0.7rem', color: '#00f0ff', fontWeight: 'bold' }}>
               {open ? '▼' : '►'}
             </span>
           </div>
@@ -272,7 +309,7 @@ export function NotificationBell({
               width: 7,
               height: 7,
               borderRadius: '50%',
-              background: count > 0 ? 'var(--accent-pink, #ff007f)' : '#33ff88',
+              background: count > 0 ? '#ff007f' : '#33ff88',
               boxShadow: count > 0 ? '0 0 8px #ff007f' : '0 0 6px #33ff88',
               animation: count > 0 ? 'pulse 1.2s infinite' : 'none',
               flexShrink: 0,
@@ -304,7 +341,7 @@ export function NotificationBell({
               style={{
                 fontFamily: 'var(--font-heading, monospace)',
                 fontSize: '0.78rem',
-                color: 'var(--accent-cyan, #00f0ff)',
+                color: '#00f0ff',
                 letterSpacing: 1,
                 fontWeight: 'bold',
               }}
@@ -352,7 +389,7 @@ export function NotificationBell({
               style={{
                 padding: '36px 16px',
                 textAlign: 'center',
-                color: 'var(--text-muted, #8a7a64)',
+                color: '#8a7a64',
                 fontFamily: 'var(--font-mono, monospace)',
                 fontSize: '0.78rem',
                 letterSpacing: 0.5,
@@ -389,7 +426,7 @@ export function NotificationBell({
                     style={{
                       marginTop: 3,
                       fontSize: '0.65rem',
-                      color: n.read ? 'transparent' : 'var(--accent-pink, #ff007f)',
+                      color: n.read ? 'transparent' : '#ff007f',
                     }}
                   >
                     ◆
@@ -410,7 +447,7 @@ export function NotificationBell({
                       <span
                         style={{
                           fontSize: '0.62rem',
-                          color: 'var(--text-muted, #8a7a64)',
+                          color: '#8a7a64',
                           fontFamily: 'var(--font-mono, monospace)',
                         }}
                       >
@@ -422,7 +459,7 @@ export function NotificationBell({
                       style={{
                         fontSize: '0.78rem',
                         fontWeight: n.read ? 'normal' : 'bold',
-                        color: n.read ? 'var(--text-muted, #aaa)' : '#ffffff',
+                        color: n.read ? '#8a7a64' : '#ffffff',
                         lineHeight: 1.35,
                         fontFamily: 'var(--font-mono, monospace)',
                       }}

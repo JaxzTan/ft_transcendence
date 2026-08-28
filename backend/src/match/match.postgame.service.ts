@@ -5,6 +5,7 @@ import { secret } from '../secrets';
 import Redis from 'ioredis';
 import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
 import { AchievementsService } from '../achievements/achievements.service';
+import { NotificationService } from '../notification/notification.service';
 import { isBotUserId } from '../common/bot';
 import { ratingDeltaFor } from '../common/scoring'
 
@@ -24,6 +25,7 @@ export class MatchPostgameService {
 		private readonly jwt: JwtService,
 		private readonly leaderboardRedis: LeaderboardRedisService,
 		private readonly achievements: AchievementsService,
+		private readonly notifications: NotificationService,
 	) {
 		const host = process.env.REDIS_HOST || 'redis';
 		const port = parseInt(process.env.REDIS_PORT || '6479', 10);
@@ -162,8 +164,39 @@ export class MatchPostgameService {
 			console.warn(`Achievements evaluation failed for game ${gameId}:`, err);
 		});
 
+		// Match-finished notifications — tell every human player the match
+		// concluded and their personal rank. MUST never fail the game-end request.
+		await this.notifyMatchFinished(gameId, gameType, participants).catch((err) => {
+			console.warn(`Match-finished notifications failed for game ${gameId}:`, err);
+		});
+
 		await this.redis.del(`match:${gameId}`);
 		return { message: 'Game processed', gameId };
+	}
+
+	/** Notify each human participant that the match concluded, with their own rank. */
+	private async notifyMatchFinished(
+		gameId: string,
+		gameType: string,
+		participants: Array<{ userId: string; color: string; rank: number }>,
+	) {
+		const winner = participants.find((p) => p.rank === 1);
+		let winnerUsername = 'A rival';
+		if (winner && !isBotUserId(winner.userId)) {
+			const wu = await this.prisma.db.user.findUnique({ where: { id: winner.userId }, select: { username: true } });
+			winnerUsername = wu?.username || 'A rival';
+		}
+
+		for (const p of participants) {
+			if (isBotUserId(p.userId)) continue;
+			await this.notifications.notify(p.userId, 'match_finished', {
+				gameId,
+				mode: (gameType || 'PVP').toLowerCase(),
+				rank: p.rank,
+				winnerColor: winner?.color?.toLowerCase(),
+				winnerUsername,
+			});
+		}
 	}
 
 	// Create a rematch from a completed game if at least 2 original players confirm.
