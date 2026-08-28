@@ -67,7 +67,7 @@ export class MatchQueryService {
 		const hostIds = [...new Set(rooms.map((r) => r.hostId))];
 		const hosts = await this.prisma.db.user.findMany({
 			where: { id: { in: hostIds } },
-			select: { id: true, username: true, displayName: true },
+			select: { id: true, username: true, displayName: true, avatarPhotoContentType: true },
 		});
 		const hostMap = new Map(hosts.map((u) => [u.id, u]));
 
@@ -81,6 +81,7 @@ export class MatchQueryService {
 				// avatar URLs and ownership checks.
 				host: h?.displayName ?? h?.username ?? 'Unknown',
 				hostUsername: h?.username ?? r.hostId,
+				hasAvatarPhoto: h?.avatarPhotoContentType != null,
 				seats: r.seats,
 				maxSeats: r.maxSeats,
 				mode: r.maxSeats === 2 ? 'duel' : 'classic',

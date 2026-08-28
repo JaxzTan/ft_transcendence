@@ -79,6 +79,14 @@ const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow']
 export function Game() {
   const { t } = useTranslation()
   const { user, activeMatch, seats, setPlaying, lastResult, setLastResult, setActiveMatch } = useApp()
+  // The socket-connect effect below keys off gameId/token only (see its
+  // dependency array) so patching activeMatch.mode/color/playerCount after
+  // connect — e.g. a lobby seat/color change — doesn't tear down and
+  // reopen the socket mid-handshake. Its long-lived handlers read this ref
+  // instead of closing over the (potentially stale) `activeMatch` so they
+  // still see those patches.
+  const activeMatchRef = useRef(activeMatch)
+  activeMatchRef.current = activeMatch
 
   // ------------------------------------------------------------------------
   // CRT & AUDIO CONTROLS
@@ -135,6 +143,12 @@ export function Game() {
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [isMovingPiece, setIsMovingPiece] = useState(false)
   const isMovingPieceRef = useRef(false)
+  // Set the instant movePiece() emits, cleared once the server's piece_moved
+  // (or a rejection) comes back. Closes the window between the click and
+  // isMovingPieceRef flipping true — without it a second click on the same
+  // still-legal-looking piece before the server round-trip completes fires a
+  // duplicate move_piece the engine rejects with "Invalid turn phase".
+  const pendingMoveRef = useRef(false)
   const STEP_ANIM_MS = 180
   // Capture burst FX: a short cosmetic ring + sparks on the landing square
   // when a piece is captured. Set at the end of the mover's walk, cleared
@@ -238,25 +252,29 @@ export function Game() {
       fetch('/api/games/mine', { credentials: 'include' })
         .then((r) => (r.ok ? r.json() : null))
         .then((rooms: Array<{ id: string; gameType?: string }> | null) => {
-          const room = rooms?.find((x) => x.id === activeMatch.gameId)
+          const current = activeMatchRef.current
+          if (!current) return
+          const room = rooms?.find((x) => x.id === current.gameId)
           if (room?.gameType) {
             const mode = (room.gameType === 'PVP' ? 'pvp' : room.gameType === 'PVE' ? 'pve' : 'hotseat') as 'pvp' | 'pve' | 'hotseat'
-            setActiveMatch({ ...activeMatch, mode, playerCount: activeMatch.playerCount ?? 4 })
+            setActiveMatch({ ...current, mode, playerCount: current.playerCount ?? 4 })
           }
         })
         .catch(() => undefined)
     }
 
     socket.on('connect', () => {
+      const current = activeMatchRef.current
+      if (!current) return
       // Hotseat: one physical device controls every seat — the engine has no
       // separate accounts to join with, so this single socket must join_game
       // for every local color up front.
-      if (activeMatch.mode === 'hotseat') {
+      if (current.mode === 'hotseat') {
         for (const ck of Object.keys(localNames) as PlayerColor[]) {
-          socket.emit('join_game', activeMatch.gameId, ck, undefined, localNames[ck])
+          socket.emit('join_game', current.gameId, ck, undefined, localNames[ck])
         }
       }
-      socket.emit('join_game', activeMatch.gameId, activeMatch.color, user?.id, user?.displayName)
+      socket.emit('join_game', current.gameId, current.color, user?.id, user?.displayName)
       if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
@@ -306,6 +324,7 @@ export function Game() {
       }
 
       if (type === 'piece_moved') {
+        pendingMoveRef.current = false
         isMovingPieceRef.current = true
         setIsMovingPiece(true)
         const e = state as unknown as {
@@ -387,10 +406,10 @@ export function Game() {
       } else if (type === 'lobby_update') {
         const e = state as unknown as { players: Array<{ username: string; color: PlayerColor }> }
         const mine = e.players.find((p) => p.username === user?.username)
-        if (mine && mine.color !== viewRef.current.myColor) {
+        if (mine && mine.color !== viewRef.current.myColor && activeMatchRef.current) {
           dispatch({ type: 'my_color_changed', color: mine.color })
-          socket.emit('join_game', activeMatch.gameId, mine.color, user?.id, user?.displayName)
-          setActiveMatch({ ...activeMatch, color: mine.color })
+          socket.emit('join_game', activeMatchRef.current.gameId, mine.color, user?.id, user?.displayName)
+          setActiveMatch({ ...activeMatchRef.current, color: mine.color })
         }
       } else if (type === 'game_ended') {
         const e = state as unknown as { winner: PlayerColor; resultDetail: string }
@@ -408,14 +427,15 @@ export function Game() {
               piecesInGoal: inGoal,
             }
           })
-        if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && endedPlayers.length > activeMatch.playerCount) {
-          endedPlayers = endedPlayers.slice(0, activeMatch.playerCount)
+        const matchAtEnd = activeMatchRef.current
+        if (matchAtEnd?.mode === 'pvp' && matchAtEnd.playerCount && endedPlayers.length > matchAtEnd.playerCount) {
+          endedPlayers = endedPlayers.slice(0, matchAtEnd.playerCount)
         }
         setLastResult({
           winner: e.winner,
           resultDetail: e.resultDetail,
-          mode: activeMatch?.mode ?? 'pvp',
-          playerCount: activeMatch?.playerCount ?? endedPlayers.length,
+          mode: matchAtEnd?.mode ?? 'pvp',
+          playerCount: matchAtEnd?.playerCount ?? endedPlayers.length,
           players: endedPlayers,
           abandoned: false,
         })
@@ -474,15 +494,16 @@ export function Game() {
           .filter((p): p is { color: PlayerColor; username: string; isBot: boolean; piecesInGoal: number } => p !== null)
       }
 
-      if (activeMatch?.mode === 'pvp' && activeMatch.playerCount && players.length > activeMatch.playerCount) {
-        players = players.slice(0, activeMatch.playerCount)
+      const matchNow = activeMatchRef.current
+      if (matchNow?.mode === 'pvp' && matchNow.playerCount && players.length > matchNow.playerCount) {
+        players = players.slice(0, matchNow.playerCount)
       }
 
       return {
         winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
         resultDetail: 'abandoned',
-        mode: activeMatch?.mode ?? 'pvp',
-        playerCount: activeMatch?.playerCount ?? players.length,
+        mode: matchNow?.mode ?? 'pvp',
+        playerCount: matchNow?.playerCount ?? players.length,
         players,
         abandoned: true,
       }
@@ -500,6 +521,7 @@ export function Game() {
     socket.on('error', (msg: string) => {
       console.error('[engine]', msg)
       setIsRolling(false)
+      pendingMoveRef.current = false
     })
 
     return () => {
@@ -512,7 +534,11 @@ export function Game() {
       setAnimatingPiece(null)
       setCaptureFx(null)
     }
-  }, [activeMatch, setLastResult])
+    // Keyed on the identity fields only (gameId/token never change for a
+    // given match) — NOT the whole activeMatch object, so patching
+    // mode/color/playerCount later (see activeMatchRef above) doesn't tear
+    // down and reopen the socket mid-handshake.
+  }, [activeMatch?.gameId, activeMatch?.token, setLastResult])
 
   useEffect(() => {
     if (!activeMatch || activeMatch.mode !== 'hotseat') return
@@ -570,9 +596,13 @@ export function Game() {
   }
 
   const movePiece = (pieceId: string) => {
-    if (isRolling || isRollingRef.current) return
+    if (isRolling || isRollingRef.current || isMovingPieceRef.current || pendingMoveRef.current) return
+    pendingMoveRef.current = true
     retroAudio.playUiBeep(640, 0.05)
     socketRef.current?.emit('move_piece', pieceId)
+    // Safety net: if the server never responds (dropped socket, etc.) don't
+    // leave the guard stuck forever.
+    setTimeout(() => { pendingMoveRef.current = false }, 3000)
   }
 
   const markReady = () => {
@@ -699,7 +729,11 @@ export function Game() {
   const isMyTurn = isHotseat
     ? (!activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active')
     : (effectiveTurn === view.myColor || (user?.username ? activeTurnPlayer?.username === user?.username : false))
-  const canRoll = isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece && !isMovingPiece && !captureFx
+  // `status === 'active'` closes a narrow race at game-end: the winning
+  // move can leave canRoll's other inputs looking rollable for one render
+  // before the game_ended status update lands, letting a click slip through
+  // as a "Roll failed: Game not active" rejection from the engine.
+  const canRoll = view.status === 'active' && isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece && !isMovingPiece && !captureFx
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
     : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${effectiveTurn.toUpperCase()}'S TURN`
@@ -889,7 +923,13 @@ export function Game() {
                       if (activeMatch?.playerCount && SEAT_COLORS.indexOf(ck) >= activeMatch.playerCount) {
                         return null
                       }
-                      const isYou = ck === view.myColor
+                      // `ck === view.myColor` alone lags a socket round-trip for a
+                      // PvP joiner: the seat assigned server-side (lobby_update ->
+                      // my_color_changed) can arrive after this first paint, so
+                      // this seat briefly looks like someone else's. Falling back
+                      // to a direct username match (already used below for the
+                      // active-game pilot card) recognizes it immediately.
+                      const isYou = ck === view.myColor || (occupied && !!user?.username && playerMeta?.username === user.username)
                       const isReady = view.readyPlayers.includes(ck)
                       const takenByOther = Boolean(
                         occupied && !isYou && playerMeta?.username && playerMeta.username !== user?.username
@@ -934,6 +974,9 @@ export function Game() {
                           {occupied && playerMeta?.username ? (
                             <UserAvatar
                               username={playerMeta.username}
+                              // Always use the generated avatar in-game — never hit
+                              // /api/user/:username/avatar over the network here.
+                              hasAvatarPhoto={false}
                               size={34}
                               fallbackStyle={{
                                 width: 34,
@@ -1097,6 +1140,9 @@ export function Game() {
                         {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
                             username={playerMeta.username}
+                            // Always use the generated avatar in-game — never hit
+                            // /api/user/:username/avatar over the network here.
+                            hasAvatarPhoto={false}
                             size={36}
                             fallbackStyle={{
                               width: 36,

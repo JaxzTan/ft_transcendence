@@ -261,6 +261,7 @@ export function Lobby() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <UserAvatar
                                   username={user?.username || ''}
+                                  hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
                                   size={40}
                                   fallbackStyle={{
                                     width: 40,
