@@ -2,10 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import i18n from './i18n'
 import { BOT_POOL } from './theme'
-import { apiFetch } from './api'
+import { apiFetch, refreshOnce } from './api'
 import type { PlayerColor } from './game/types'
 
-export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean }
+export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean; avatarStyle?: string | null; hasAvatarPhoto?: boolean }
 
 /** Pulls a readable message out of nestjs error body  */
 function apiError(body: unknown, fallback: string): string {
@@ -48,6 +48,12 @@ function storedTheme(): ThemeType {
 }
 
 const HEARTBEAT_INTERVAL_MS = 20_000
+// Access tokens expire every 15m (backend/src/auth/auth.module.ts's
+// `expiresIn: '15m'`). Refreshing 1min early means the heartbeat (and any
+// other call) never lands on an expired token — otherwise every request
+// that does gets a 401 the browser logs to the console on its own, even
+// though apiFetch's reactive refresh-and-retry already recovers from it.
+const ACCESS_TOKEN_REFRESH_MS = 14 * 60 * 1000
 /** settingOn/toggleSetting key for "show the rules popup when a match starts" — read by Lobby's Rules button and Game.tsx. */
 export const RULES_ON_START_KEY = 'rulesShowOnStart'
 /** Defaults for the settings toggles, keyed "<group>-<row>". */
@@ -158,12 +164,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
-    // apiFetch: if the access token has expired but the refresh token is still
-    // good, this silently refreshes and we stay logged in across reloads.
-    apiFetch('/api/auth/me')
-      .then(async (res) => setUser(res.ok ? (await res.json()).user : null))
-      .catch(() => setUser(null))
-      .finally(() => setAuthReady(true))
+    let cancelled = false
+
+    // Login/signup are reachable while genuinely signed out — /api/auth/me
+    // (and the /api/auth/refresh it triggers on a 401) would just fail there
+    // every time, so skip the round trip and let `user` stay null until an
+    // actual login/register call sets it. Every other route still restores
+    // the session normally on load/refresh.
+    const path = window.location.pathname
+    if (path === '/login' || path === '/signup') {
+      setAuthReady(true)
+      return
+    }
+
+    const restore = async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await apiFetch('/api/auth/me')
+          if (cancelled) return
+
+          if (res.ok) {
+            setUser((await res.json()).user)
+            return
+          }
+          if (res.status === 401 || res.status === 403) {
+            setUser(null) // genuinely signed out
+            return
+          }
+
+          // 429/5xx — retry, honouring Retry-After when the server sends one.
+          const retryAfter = Number(res.headers.get('Retry-After'))
+          const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+            ? Math.min(retryAfter * 1000, 8000)
+            : 1000 * 2 ** attempt
+          await new Promise((r) => setTimeout(r, waitMs))
+        } catch {
+          if (cancelled) return
+          // Network error — also not a logout. Back off and try again.
+          await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
+        }
+      }
+      // Out of attempts and still no clear answer: leave `user` as it is rather
+      // than inventing a logout. authReady still resolves below, so the UI
+      // renders instead of hanging on a spinner.
+    }
+
+    restore().finally(() => {
+      if (!cancelled) setAuthReady(true)
+    })
+
+    return () => { cancelled = true }
   }, [])
 
   // Login — factor one. Password OK means a code was emailed; the session
@@ -263,11 +313,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // never a render; Game.tsx flips it on mount/unmount via setPlaying.
   const playingRef = useRef(false)
   const sendHeartbeat = useCallback((playing: boolean) => {
-    fetch('/api/presence/heartbeat', {
+    apiFetch('/api/presence/heartbeat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ playing }),
+    }).then((res) => {
+      if (res.status === 401 || res.status === 403) setUser(null)
     }).catch(() => undefined)
   }, [])
   const setPlaying = useCallback(
@@ -286,6 +338,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const id = setInterval(() => sendHeartbeat(playingRef.current), HEARTBEAT_INTERVAL_MS)
     return () => clearInterval(id)
   }, [user, sendHeartbeat])
+
+  // Proactive token refresh: mints a new access token before the 15m one
+  // expires, so the heartbeat loop above never triggers the reactive 401
+  // path in apiFetch (which works, but leaves a 401 in the console every
+  // time). If the refresh token itself is dead, this just no-ops — the
+  // heartbeat's own 401 handling still logs the user out correctly.
+  useEffect(() => {
+    if (!user) return
+    const id = setInterval(() => { refreshOnce() }, ACCESS_TOKEN_REFRESH_MS)
+    return () => clearInterval(id)
+  }, [user])
 
   const [playerCount, setPlayerCount] = useState<PlayerCount>(4)
   const [seats, setSeats] = useState<Seat[]>(() => {
@@ -369,7 +432,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addPlayer = useCallback((i: number) => {
     setSeats((prev) => {
       const existing = prev.filter((s) => s.type === 'player').length
-      const name = `Player ${existing + 2}`
+      const name = i18n.t('lobby.defaultPlayerName', { num: existing + 2 })
       const next = prev.slice()
       next[i] = { type: 'player', name }
       return next

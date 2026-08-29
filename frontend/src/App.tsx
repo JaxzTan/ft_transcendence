@@ -13,8 +13,11 @@ import { Profile } from './pages/Profile'
 import { TwoFactor } from './pages/TwoFactor'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
+import { LegalPage } from './pages/LegalPage'
 import { navigate, useRoute } from './router'
 import { AppProvider, useApp } from './store'
+import { NotificationsProvider, useNotifications } from './hooks/useNotifications'
+import { NotificationToasts } from './components/NotificationToast'
 
 /** Screens that render inside the app shell (rail + header). */
 const SHELL_ROUTES: Record<string, () => ReactNode> = {}
@@ -33,15 +36,26 @@ const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/gamelobby': () => <LudoLobby />,
   '/gamelobby/table': () => <Lobby />,	
   '/game': () => <Game />,
+  '/privacy': () => <LegalPage initialDoc="privacy" />,
+  '/terms': () => <LegalPage initialDoc="terms" />,
   // '/results': () => <Results />,
 }
 
 /** Public routes, can be reached wihout a session */
-const PUBLIC_ROUTES = new Set(['/login', '/signup', '/2fa', '/forgot-password', '/reset-password'])
+const PUBLIC_ROUTES = new Set([
+  '/login',
+  '/signup',
+  '/2fa',
+  '/forgot-password',
+  '/reset-password',
+  '/privacy',
+  '/terms',
+])
 
 function Screen() {
   const { path, query } = useRoute()
   const { user, authReady } = useApp()
+  const { toasts, dismissToast } = useNotifications()
   const known = path in SHELL_ROUTES || path in FULL_ROUTES
   const isPublic = PUBLIC_ROUTES.has(path)
   // Account-action arrivals via link/redirect: a result notice (verified /
@@ -68,14 +82,20 @@ function Screen() {
   if (!authReady) return null
   if (!known || (!user && !isPublic) || (user && isPublic && !hasNotice)) return null
 
-  if (path in SHELL_ROUTES) return <Shell>{SHELL_ROUTES[path]()}</Shell>
-  return <>{FULL_ROUTES[path]()}</>
+  return (
+    <>
+      {path in SHELL_ROUTES ? <Shell>{SHELL_ROUTES[path]()}</Shell> : FULL_ROUTES[path]()}
+      {user && <NotificationToasts toasts={toasts} onDismiss={dismissToast} />}
+    </>
+  )
 }
 
 export default function App() {
   return (
     <AppProvider>
-      <Screen />
+      <NotificationsProvider>
+        <Screen />
+      </NotificationsProvider>
     </AppProvider>
   )
 }

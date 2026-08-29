@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import { secret } from '../secrets';
 import Redis from 'ioredis';
 import { isBotUserId } from '../common/bot';
@@ -14,6 +15,7 @@ export class MatchPlayerService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly jwt: JwtService,
+		private readonly notificationService: NotificationService,
 	) {
 		const host = process.env.REDIS_HOST || 'redis';
 		const port = parseInt(process.env.REDIS_PORT || '6479', 10);
@@ -26,6 +28,12 @@ export class MatchPlayerService {
 	async joinMatch(gameId: string, userId: string) {
 		const data = await this.redis.hgetall(`match:${gameId}`);
 		if (!data || !data.id) throw new NotFoundException('Game not found');
+
+		// If player already in game, then hand back the same seat instead of allocating another
+		const seatedSlot = [data.player1_id, data.player2_id, data.player3_id, data.player4_id]
+			.indexOf(userId);
+		if (seatedSlot !== -1) return this.rejoin(gameId, userId);
+
 		if (data.status !== 'WAITING') throw new ForbiddenException('Game already started');
 		// Humans can only join human rooms — PvE/hotseat rooms are auto-started
 		// and never accept a second human via this endpoint.
@@ -107,6 +115,7 @@ export class MatchPlayerService {
 		if (!friendship) throw new ForbiddenException('You are not friends with this user');
 
 		const friendSeat = await this.joinMatch(gameId, friendId);
+		const fromUsername = (await this.resolveUsername(hostId)) || 'A friend';
 
 		await this.redis.set(
 			`invite:${friendId}`,
@@ -116,11 +125,22 @@ export class MatchPlayerService {
 				engineUrl: friendSeat.engineUrl,
 				color: friendSeat.color,
 				inviteCode: data.inviteCode || undefined,
-				fromUsername: (await this.resolveUsername(hostId)) || 'A friend',
+				fromUsername,
 				createdAt: Date.now(),
 			}),
 			'EX', 300,
 		);
+
+		// Push real-time notification to the friend via SSE / Redis pub/sub
+		await this.notificationService.notify(friendId, 'game_invite', {
+			gameId: friendSeat.gameId,
+			token: friendSeat.token,
+			engineUrl: friendSeat.engineUrl,
+			color: friendSeat.color,
+			inviteCode: data.inviteCode || undefined,
+			fromUsername,
+			playerCount: parseInt(data.playerCount || '4', 10),
+		});
 
 		return { message: 'Invite sent', gameId: friendSeat.gameId };
 	}
@@ -198,7 +218,7 @@ export class MatchPlayerService {
 	}
 
 	// Cancel (abort) a match, setting its status to ABORTED.
-	async cancelGame(gameId: string, userId: string) {
+	async cancelGame(gameId: string, userId: string, reason: 'cancel' | 'resign' = 'cancel') {
 		const data = await this.redis.hgetall(`match:${gameId}`);
 		if (!data || !data.id) throw new NotFoundException('Game not found');
 
@@ -209,12 +229,40 @@ export class MatchPlayerService {
 		await this.redis.hset(`match:${gameId}`, 'status', 'ABORTED');
 		await this.redis.expire(`match:${gameId}`, 3600);
 
+		// Notify the other human players that the match was aborted/resigned.
+		await this.notifyMatchAbort(gameId, data, userId, reason);
+
 		return { message: 'Game cancelled', gameId };
 	}
 
 	// Alias for cancelGame — player resigns from the match.
 	async resign(gameId: string, userId: string) {
-		return this.cancelGame(gameId, userId);
+		return this.cancelGame(gameId, userId, 'resign');
+	}
+
+	/** Notify the other human players when a match is aborted or a player resigns. */
+	private async notifyMatchAbort(
+		gameId: string,
+		data: Record<string, string>,
+		actorId: string,
+		reason: 'cancel' | 'resign',
+	) {
+		const actor = await this.prisma.db.user.findUnique({ where: { id: actorId }, select: { username: true } });
+		const targets = [data.player1_id, data.player2_id, data.player3_id, data.player4_id]
+			.filter((id): id is string => !!id && id !== actorId && !isBotUserId(id));
+
+		for (const targetId of targets) {
+			try {
+				await this.notificationService.notify(targetId, 'match_cancelled', {
+					gameId,
+					reason,
+					fromUserId: actorId,
+					fromUsername: actor?.username || 'A player',
+				});
+			} catch (err) {
+				console.warn(`Failed to notify ${targetId} about match ${gameId} cancellation:`, err);
+			}
+		}
 	}
 
 	// listOpenRooms only ever shows WAITING rooms — without this, a match stays
