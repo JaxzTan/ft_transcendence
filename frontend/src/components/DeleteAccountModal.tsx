@@ -28,7 +28,8 @@ function inputStyle(): CSSProperties {
  */
 export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => void; hasPassword: boolean }) {
   const { t } = useTranslation()
-  const { logout } = useApp()
+  const { logout, user } = useApp()
+  const username = user?.username ?? ''
 
   const [step, setStep] = useState<Step>(hasPassword ? 'confirm' : 'setPassword')
   const [newPassword, setNewPassword] = useState('')
@@ -86,6 +87,8 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
               {t('profileEdit.deleteAccountNeedPassword')}
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleSetPassword() }}>
+              {/* Hidden username field — satisfies Chrome's "password forms should have (optionally hidden) username fields" accessibility heuristic. */}
+              <input type="text" name="username" autoComplete="username" value={username} readOnly tabIndex={-1} aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 }} />
               <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.deleteAccountSetPasswordLabel')}</label>
               <input style={inputStyle()} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
                 placeholder={t('profileEdit.newPasswordPlaceholder')} autoComplete="new-password" />
@@ -108,6 +111,8 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
               {t('profileEdit.deleteAccountWarning')}
             </div>
             <form onSubmit={(e) => { e.preventDefault(); handleDelete() }}>
+              {/* Hidden username field — satisfies Chrome's "password forms should have (optionally hidden) username fields" accessibility heuristic. */}
+              <input type="text" name="username" autoComplete="username" value={username} readOnly tabIndex={-1} aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 }} />
               <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.deleteAccountPasswordLabel')}</label>
               <input style={inputStyle()} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder={t('profileEdit.deleteAccountPasswordPlaceholder')} autoComplete="current-password" />

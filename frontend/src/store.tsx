@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import i18n from './i18n'
 import { BOT_POOL } from './theme'
-import { apiFetch } from './api'
+import { apiFetch, restoreMe } from './api'
 import type { PlayerColor } from './game/types'
 
 export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean; avatarStyle?: string | null; hasAvatarPhoto?: boolean }
@@ -173,16 +173,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Restore is always authoritative: the session lives entirely in httpOnly
     // cookies, so /api/auth/me is the single source of truth for "who am I?".
+    // /me self-heals server-side and never answers 401: signed out → 200
+    // { user: null }; a stale access token with a valid refresh cookie is
+    // rotated and returns 200 { user } with fresh cookies. (restoreMe() routes
+    // the call through the cross-tab refresh lock so several tabs restoring at
+    // once don't race each other's token rotation.)
+    //
     // (An earlier lr_session presence-marker cookie gated this call to silence
     // the console 401 on logged-out loads — but it added a second source of
-    // truth about the session for a purely cosmetic gain, and /me already
-    // answers 401 + X-Auth-Session: none when signed out, so no /refresh round
-    // trip happens anyway. Reverted in favour of always restoring via /me.)
+    // truth about the session for a purely cosmetic gain. Reverted in favour of
+    // always restoring via /me, which now returns 200 in every state.)
 
     const restore = async () => {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const res = await apiFetch('/api/auth/me')
+          const res = await restoreMe()
           if (cancelled) return
 
           if (res.ok) {

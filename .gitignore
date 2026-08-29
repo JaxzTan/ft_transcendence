@@ -41,7 +41,7 @@ Ludo_Rules.md
 fixdice.md
 context.md
 tailwind-migration.md
-browser patches.md
+browser-patches.md
 
 # dependencies
 /node_modules

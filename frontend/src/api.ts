@@ -124,13 +124,6 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   const res = await fetch(input, finalInit)
   if (res.status !== 401) return res
 
-  // The /api/auth/me session check answers X-Auth-Session: none when the
-  // browser carries no refresh cookie at all — there is genuinely nothing to
-  // refresh, so return the 401 immediately instead of the pointless POST
-  // /api/auth/refresh (which would 401 too, adding a wasted round trip and a
-  // second console error on every unauthenticated page load).
-  if (res.headers.get('X-Auth-Session') === 'none') return res
-
   // Another tab is mid-refresh: wait for it, then retry against the shared
   // cookie jar (which now holds the rotated tokens). Only if that still 401s
   // do we perform our own refresh below.
@@ -154,6 +147,30 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
       status: result.status,
       headers: result.retryAfter ? { 'Retry-After': result.retryAfter } : undefined,
     })
+  } finally {
+    if (shouldRelease) releaseRefreshLock()
+  }
+}
+
+/**
+ * Mount-time "who am I?" probe (used by AppProvider's session restore).
+ *
+ * `/api/auth/me` now self-heals on the backend — it never answers 401 (a stale
+ * access token with a valid refresh cookie is rotated server-side and returns
+ * 200), so this is a plain locked fetch rather than a pass through apiFetch's
+ * 401→refresh→retry path.
+ *
+ * The self-heal ROTATES the refresh token, so several tabs restoring against
+ * the same expired access token at once would each present the same — now
+ * consumed — refresh token, and all but the first would be told "signed out".
+ * Routing the restore through the cross-tab refresh lock keeps one tab
+ * restoring while the others wait for the cookie jar to come back fresh.
+ */
+export async function restoreMe(): Promise<Response> {
+  if (!acquireRefreshLock()) await waitForRefreshLock()
+  const shouldRelease = acquireRefreshLock()
+  try {
+    return fetch('/api/auth/me', withNgrokHeader())
   } finally {
     if (shouldRelease) releaseRefreshLock()
   }

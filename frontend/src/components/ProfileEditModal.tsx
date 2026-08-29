@@ -180,6 +180,24 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
           style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}
           onSubmit={(e) => { e.preventDefault(); handleSave() }}
         >
+          {/*
+            Hidden username field. This form only edits password fields, so
+            Chrome's password-manager heuristic warns "Password forms should
+            have (optionally hidden) username fields for accessibility". A
+            visually-hidden input carrying autoComplete="username" (with the
+            account's immutable username) satisfies that heuristic and lets
+            the browser associate the new password with the account.
+          */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            value={username}
+            readOnly
+            tabIndex={-1}
+            aria-hidden="true"
+            style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0 }}
+          />
           <div style={{ fontSize: '0.8rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: 'var(--text-main)', marginBottom: 8 }}>
             {hasPassword ? t('profileEdit.password') : t('profileEdit.passwordSet')}
           </div>
