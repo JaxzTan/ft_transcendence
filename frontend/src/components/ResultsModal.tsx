@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { UserAvatar } from './UserAvatar'
 import { useApp, type LastResult } from '../store'
 import { retroAudio } from '../utils/audio'
+import { localizedBotName } from '../utils/botName'
 import '../styles/retrowave.css'
 import {
 	RETRO_BTN,
@@ -83,7 +84,7 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
   const winnerName = winnerPlayer
     ? winnerPlayer.color === myColor
       ? t('common.you')
-      : winnerPlayer.username
+      : localizedBotName(t, winnerPlayer.username)
     : t(winnerColorName)
 
   const modeLabels: Record<string, string> = {
@@ -188,7 +189,7 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                   {ranked.map((p, index) => {
                     const isWinner = index === 0 && hasRealWinner
                     const isMe = p.color === myColor
-                    const pName = isMe ? t('common.you') : p.username
+                    const pName = isMe ? t('common.you') : localizedBotName(t, p.username)
 
                     return (
                       <li key={p.color} className={PAYERS_LI}>

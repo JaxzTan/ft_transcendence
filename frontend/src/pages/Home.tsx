@@ -708,7 +708,7 @@ export function Home() {
 										outline: 'none',
 									}}
 									onClick={handleToggleAudio}
-									title="Click to toggle Chiptune Audio"
+									title={t('homeExtended.chiptuneToggleTitle')}
 								>
 									{isPlayingAudio ? t('homeExtended.audioActive') : t('homeExtended.audioStandby')}
 								</button>
@@ -1185,7 +1185,7 @@ export function Home() {
 							<section className={`${RETRO_WINDOW} ${COL_4}`} id="cyberSoundDeckWindow">
 								<div className={WINDOW_HEADER}>
 									<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-										<span>◖ CYBERSOUND DECK ◗</span>
+										<span>{t('homeExtended.chiptuneDeckTitle')}</span>
 										<span
 											style={{
 												fontSize: '0.62rem',
@@ -1210,7 +1210,7 @@ export function Home() {
 													boxShadow: isPlayingAudio ? '0 0 6px var(--accent-cyan)' : 'none',
 												}}
 											/>
-											{isPlayingAudio ? 'LIVE STEREO' : 'STANDBY'}
+											{isPlayingAudio ? t('homeExtended.chiptuneLiveStereo') : t('homeExtended.chiptuneStandby')}
 										</span>
 									</div>
 									<div className={WINDOW_CONTROLS}>
@@ -1233,10 +1233,10 @@ export function Home() {
 										<div className={OLED_SCREEN}>
 											<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 												<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--accent-pink)', fontWeight: 'bold' }}>
-													TRACK 0{audioTrackIndex + 1} / 0{retroAudio.tracks.length}
+													{t('homeExtended.chiptuneTrackLabel')} 0{audioTrackIndex + 1} / 0{retroAudio.tracks.length}
 												</span>
 												<span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: isPlayingAudio ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
-													{isPlayingAudio ? '● PLAYING' : '■ IDLE'}
+													{isPlayingAudio ? t('homeExtended.chiptunePlaying') : t('homeExtended.chiptuneIdle')}
 												</span>
 											</div>
 											<div className={OLED_TITLE}>
@@ -1266,29 +1266,29 @@ export function Home() {
 											type="button"
 											className={CYBER_DECK_KEY}
 											onClick={handlePrevTrack}
-											title="Previous Audio Track"
+											title={t('homeExtended.chiptunePrevTrackTitle')}
 										>
 											<span className={CYBER_KEY_ICON} style={{ color: 'var(--accent-cyan)' }}>
 												⏮
 											</span>
-											<span className={CYBER_KEY_LABEL}>PREV</span>
-											<span className={CYBER_KEY_SUB}>RW // TRACK</span>
+											<span className={CYBER_KEY_LABEL}>{t('homeExtended.chiptunePrev')}</span>
+											<span className={CYBER_KEY_SUB}>{t('homeExtended.chiptuneRwTrack')}</span>
 										</button>
 
 										<button
 											type="button"
 											className={`${CYBER_DECK_KEY} ${CYBER_DECK_KEY_PLAY} ${isPlayingAudio ? CYBER_DECK_KEY_PLAY_ACTIVE : ''}`}
 											onClick={handleToggleAudio}
-											title={isPlayingAudio ? 'Pause Chiptune Audio' : 'Play Chiptune Audio'}
+											title={isPlayingAudio ? t('homeExtended.chiptunePauseAudio') : t('homeExtended.chiptunePlayAudio')}
 										>
 											<span className={CYBER_KEY_ICON} style={{ color: isPlayingAudio ? '#ffffff' : 'var(--accent-pink)' }}>
 												{isPlayingAudio ? '⏸' : '▶'}
 											</span>
 											<span className={CYBER_KEY_LABEL} style={{ color: '#ffffff', fontSize: '0.64rem' }}>
-												{isPlayingAudio ? 'PAUSE' : 'PLAY SYNTH'}
+												{isPlayingAudio ? t('homeExtended.chiptunePause') : t('homeExtended.chiptunePlaySynth')}
 											</span>
 											<span className={CYBER_KEY_SUB} style={{ color: isPlayingAudio ? 'var(--accent-yellow)' : 'var(--accent-cyan)' }}>
-												{isPlayingAudio ? '● LIVE AUDIO' : '○ STANDBY'}
+												{isPlayingAudio ? t('homeExtended.chiptuneLiveAudio') : `○ ${t('homeExtended.chiptuneStandby')}`}
 											</span>
 										</button>
 
@@ -1296,13 +1296,13 @@ export function Home() {
 											type="button"
 											className={CYBER_DECK_KEY}
 											onClick={handleNextTrack}
-											title="Next Audio Track"
+											title={t('homeExtended.chiptuneNextTrackTitle')}
 										>
 											<span className={CYBER_KEY_ICON} style={{ color: 'var(--accent-cyan)' }}>
 												⏭
 											</span>
-											<span className={CYBER_KEY_LABEL}>NEXT</span>
-											<span className={CYBER_KEY_SUB}>FF // TRACK</span>
+											<span className={CYBER_KEY_LABEL}>{t('homeExtended.chiptuneNext')}</span>
+											<span className={CYBER_KEY_SUB}>{t('homeExtended.chiptuneFfTrack')}</span>
 										</button>
 									</div>
 
@@ -1313,7 +1313,7 @@ export function Home() {
 												type="button"
 												className={CYBER_VOL_STEP_BTN}
 												onClick={() => handleStepVolume(-10)}
-												title="Decrease Volume (-10%)"
+												title={t('homeExtended.chiptuneDecreaseVolume')}
 											>
 												-
 											</button>
@@ -1321,7 +1321,7 @@ export function Home() {
 											{/* 10 Interactive LED Bar Segments */}
 											<div
 												className={CYBER_VOL_LED_BAR}
-												title={`Volume: ${audioVolume}% (Click segment to set)`}
+												title={t('homeExtended.chiptuneVolume', { volume: audioVolume })}
 											>
 												{Array.from({ length: 10 }).map((_, idx) => {
 													const isLit = audioVolume >= (idx + 1) * 10 - 5
@@ -1340,7 +1340,7 @@ export function Home() {
 												type="button"
 												className={CYBER_VOL_STEP_BTN}
 												onClick={() => handleStepVolume(10)}
-												title="Increase Volume (+10%)"
+												title={t('homeExtended.chiptuneIncreaseVolume')}
 											>
 												+
 											</button>

@@ -1,5 +1,4 @@
 # secrets & prisma generated client
-secrets/
 backend/generated/
 backend/dist/
 
@@ -30,15 +29,8 @@ dist-ssr
 *.sw?
 
 # planning
-roadmap.md
-roadmap2.md
 
 # generated documentation
-TYPESCRIPT.md
-API-list.md
-Ludo_Rules.md
-fixdice.md
-context.md
 
 # dependencies
 /node_modules

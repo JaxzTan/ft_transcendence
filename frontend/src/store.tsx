@@ -432,7 +432,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addPlayer = useCallback((i: number) => {
     setSeats((prev) => {
       const existing = prev.filter((s) => s.type === 'player').length
-      const name = `Player ${existing + 2}`
+      const name = i18n.t('lobby.defaultPlayerName', { num: existing + 2 })
       const next = prev.slice()
       next[i] = { type: 'player', name }
       return next

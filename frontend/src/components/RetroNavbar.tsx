@@ -585,10 +585,10 @@ export function RetroNavbar({
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', minWidth: 0 }}>
                 <span style={{ fontSize: '0.8rem', color: '#ffffff', fontWeight: 900, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-                  {isRejoining ? 'REJOINING...' : t('navbar.rejoinActiveBtn')}
+                  {isRejoining ? t('navbar.rejoining') : t('navbar.rejoinActiveBtn')}
                 </span>
                 <span style={{ fontSize: '0.62rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  {activeGame.roomCode ? `ROOM: ${activeGame.roomCode}` : `STATUS: ${activeGame.status}`}
+                  {activeGame.roomCode ? `${t('navbar.rejoinRoomLabel')} ${activeGame.roomCode}` : `${t('navbar.rejoinStatusLabel')} ${activeGame.status}`}
                 </span>
               </div>
             </div>

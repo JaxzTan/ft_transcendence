@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { COL, type ColorKey } from '../theme'
 
 const CELL_BG = '#050515'
@@ -158,8 +159,9 @@ function Yard({
   legalPieceIds: Set<string>
   onPieceClick?: (pieceId: string) => void
 }) {
+  const { t } = useTranslation()
   const col = COL[ck]
-  const label = ck === 'yellow' ? 'YELLOW-BAY' : `${ck.toUpperCase()}-BAY`
+  const label = t(`board.${ck}Bay`)
   return (
     <div
       style={{

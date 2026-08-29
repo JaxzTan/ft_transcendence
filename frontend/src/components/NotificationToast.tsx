@@ -469,7 +469,7 @@ function Toast({
                 margin: 0,
               }}
             >
-              DISMISS
+              {t('notifications.dismiss')}
             </button>
           </div>
         )}
