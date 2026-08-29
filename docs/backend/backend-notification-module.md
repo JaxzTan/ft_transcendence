@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Overview](#overview) — Real-time notifications via SSE + Redis pub/sub
+- [SSE & Redis Pub/Sub transport](#sse--redis-pubsub-transport) — how events bridge Redis → SSE
 - [Failure contract](#failure-contract) — notifications never throw; delivery is best-effort
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — NotificationType, NotificationPayload
@@ -23,6 +24,29 @@ The Notification module delivers real-time, persisted notifications to users. It
 Notification types: `friend_request`, `friend_accepted`, `game_invite`, `achievement`.
 
 > The module is imported by `FriendsModule`, `MatchModule`, and `AchievementsModule`, which inject `NotificationService` and call `notify()`. It exports `NotificationService` so any module can send a notification.
+
+---
+
+## SSE & Redis Pub/Sub transport
+
+Notifications move over two linked transports:
+
+- **Redis Pub/Sub** is the message bus. `notify()` publishes the event to the
+  recipient's per-user channel (`notify:<userId>`); `broadcast()` publishes to
+  the global channel (`notify:all`). Redis decouples the emitter from the SSE
+  layer — any backend service can publish without knowing who is connected.
+- **SSE** is the last mile to the browser. Each open tab holds one
+  `GET /api/notifications/stream` connection, backed by an rxjs `Subject` in
+  the service's in-memory `clients` map (one user, multiple tabs ⇒ multiple
+  Subjects) plus `broadcastClients` (every Subject, for `notify:all`).
+
+A subscriber handler on the Redis client bridges the two: a message on
+`notify:<userId>` is pushed into every Subject for that user, and a message on
+`notify:all` into every broadcast Subject; NestJS then writes each emission as
+an SSE `data:` frame. Teardown is symmetric: when the HTTP stream closes, NestJS
+unsubscribes, the service's `finalize(() => subject.complete())` completes the
+Subject, and `removeClient()` drops it from the maps and unsubscribes from the
+per-user Redis channel when the last tab for that user closes.
 
 ---
 
