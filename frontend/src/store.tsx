@@ -171,6 +171,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // Restore is always authoritative: the session lives entirely in httpOnly
+    // cookies, so /api/auth/me is the single source of truth for "who am I?".
+    // (An earlier lr_session presence-marker cookie gated this call to silence
+    // the console 401 on logged-out loads — but it added a second source of
+    // truth about the session for a purely cosmetic gain, and /me already
+    // answers 401 + X-Auth-Session: none when signed out, so no /refresh round
+    // trip happens anyway. Reverted in favour of always restoring via /me.)
+
     const restore = async () => {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
@@ -423,7 +431,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addPlayer = useCallback((i: number) => {
     setSeats((prev) => {
       const existing = prev.filter((s) => s.type === 'player').length
-      const name = `Player ${existing + 2}`
+      const name = i18n.t('lobby.defaultPlayerName', { num: existing + 2 })
       const next = prev.slice()
       next[i] = { type: 'player', name }
       return next

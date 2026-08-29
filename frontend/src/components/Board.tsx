@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ColorKey } from '../theme'
 
 // Theme-driven player colors + board surface — each `[data-theme]` block in
@@ -169,7 +170,8 @@ function Yard({
   legalPieceIds: Set<string>
   onPieceClick?: (pieceId: string) => void
 }) {
-  const label = ck === 'yellow' ? 'YELLOW-BAY' : `${ck.toUpperCase()}-BAY`
+  const { t } = useTranslation()
+  const label = t(`board.${ck}Bay`)
   return (
     <div
       style={{

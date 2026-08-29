@@ -52,15 +52,15 @@ export class MailService {
   sendVerification(to: string, link: string): Promise<void> {
     return this.send(
       to,
-      'Verify your Ludo Royale account',
-      `Welcome to Ludo Royale!\n\nConfirm this email address by opening:\n\n${link}\n\nThe link expires in 24 hours. If you did not sign up, ignore this mail.`,
+      'Verify your Retro Ludo account',
+      `Welcome to Retro Ludo!\n\nConfirm this email address by opening:\n\n${link}\n\nThe link expires in 24 hours. If you did not sign up, ignore this mail.`,
     );
   }
 
   sendPasswordReset(to: string, link: string): Promise<void> {
     return this.send(
       to,
-      'Reset your Ludo Royale password',
+      'Reset your Retro Ludo password',
       `We received a request to reset your password.\n\nChoose a new one here:\n\n${link}\n\nThe link expires in 1 hour and can be used once. If you did not request this, ignore this mail — your password stays unchanged.`,
     );
   }
@@ -68,7 +68,7 @@ export class MailService {
   send2faCode(to: string, code: string): Promise<void> {
     return this.send(
       to,
-      `${code} is your Ludo Royale login code`,
+      `${code} is your Retro Ludo login code`,
       `Your login code is: ${code}\n\nIt expires in 5 minutes. If you did not try to log in, someone knows your password — change it.`,
     );
   }

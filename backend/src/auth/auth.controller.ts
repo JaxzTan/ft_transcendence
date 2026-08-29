@@ -155,6 +155,7 @@ export class AuthController {
     await this.authService.logout(req.cookies?.[REFRESH_COOKIE]);
     res.clearCookie(ACCESS_COOKIE, { path: '/' });
     res.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH });
+    res.clearCookie('lr_session', { path: '/' });
     return { ok: true };
   }
 
@@ -363,5 +364,9 @@ export class AuthController {
     res.cookie(ACCESS_COOKIE, accessToken, { ...base, path: '/', maxAge: ACCESS_MAX_AGE_MS });
     // Refresh token: path /api/auth so it's only sent to refresh + logout.
     res.cookie(REFRESH_COOKIE, refreshToken, { ...base, path: REFRESH_PATH, maxAge: REFRESH_MAX_AGE_MS });
+    // (The lr_session presence-marker cookie was removed: the frontend now
+    // restores via /me on every load, and /me's inline session check answers
+    // 401 + X-Auth-Session: none when signed out — so a JS-readable marker
+    // would only be a second source of truth about the session, for nothing.)
   }
 }

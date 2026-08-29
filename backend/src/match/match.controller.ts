@@ -1,5 +1,5 @@
 import { Controller, Post, UseGuards, Request, Body, Param, Get, Headers, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { MatchService, ENGINE_WS_URL } from './match.service';
+import { MatchService } from './match.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { requireSecret } from '../secrets';
@@ -143,16 +143,6 @@ export class MatchController {
 	@Post('api/game/:id/rejoin')
 	rejoin(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
 		return this.match.rejoin(gameId, req.user.id);
-	}
-
-	@UseGuards(JwtAuthGuard)
-	@Post('api/games/:id/spectate')
-	spectate(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
-		const token = this.jwt.sign(
-			{ gameId, playerId: null, role: 'spectator' },
-			{ expiresIn: '24h' },
-		);
-		return { gameId, token, engineUrl: ENGINE_WS_URL };
 	}
 
 	// ─── Game End (called by ludo-engine) ──────────────────────────────────

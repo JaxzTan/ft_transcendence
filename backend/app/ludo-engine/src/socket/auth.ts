@@ -40,21 +40,12 @@ export interface SocketData {
   userId?: string;
   username?: string;
   displayName?: string;
-  role?: 'player' | 'spectator';
+  role?: 'player';
   clashEnabled?: boolean;
   mode?: 'pvp' | 'pve' | 'hotseat';
 }
 
 /** Custom socket wrapper to provide typed data */
 export type GameSocket = Socket & { data: SocketData };
-
-/** Check if a socket is a spectator — emits error and returns false if so */
-export function requirePlayer(socket: GameSocket): boolean {
-  if (socket.data.role === 'spectator') {
-    socket.emit('error', 'Spectators cannot perform game actions');
-    return false;
-  }
-  return true;
-}
 
 export const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:3000';

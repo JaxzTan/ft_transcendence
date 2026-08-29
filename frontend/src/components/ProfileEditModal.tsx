@@ -176,14 +176,17 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}>
+        <form
+          style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}
+          onSubmit={(e) => { e.preventDefault(); handleSave() }}
+        >
           <div style={{ fontSize: '0.8rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: 'var(--text-main)', marginBottom: 8 }}>
             {hasPassword ? t('profileEdit.password') : t('profileEdit.passwordSet')}
           </div>
           {hasPassword && (
             <>
             <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.currentPassword')}</label>
-            <input style={inputStyle()} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t('profileEdit.currentPasswordPlaceholder')} />
+            <input style={inputStyle()} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t('profileEdit.currentPasswordPlaceholder')} autoComplete="current-password" />
             </>
           )}
           <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.newPassword')}</label>
@@ -193,7 +196,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
           <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', lineHeight: 1.5, marginBottom: 12 }}>
             {t('profileEdit.passwordHint')}
           </div>
-        </div>
+        </form>
 
         <div style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}>
           <div style={{ fontSize: '0.8rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: 'var(--text-main)', marginBottom: 8 }}>

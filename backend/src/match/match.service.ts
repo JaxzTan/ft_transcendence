@@ -47,9 +47,6 @@ export class MatchService {
 	async rejoin(gameId: string, userId: string) {
 		return this.player.rejoin(gameId, userId);
 	}
-	async spectate(gameId: string) {
-		return this.player.spectate(gameId);
-	}
 	async inviteFriendToGame(gameId: string, userId: string, friendId: string) {
 		return this.player.inviteFriendToGame(gameId, userId, friendId);
 	}

@@ -67,7 +67,11 @@ export class SocketHandlers {
   handleJoinGame(socket: GameSocket, gameId: string, playerColor: PlayerColor, userId?: string, displayName?: string): void {
     const effectiveGameId = socket.data.gameId || gameId;
     const effectiveUserId = socket.data.userId || userId;
-    const effectiveUsername = displayName || socket.data.username;
+    // Prefer the AUTHENTICATED token's username over the client-supplied
+    // displayName: `username` is the immutable identity (used for login/avatar/
+    // URLs) and the token is backend-signed, while `displayName` is a label.
+    // (Hotseat/local joins have no token — displayName is the fallback.)
+    const effectiveUsername = socket.data.username || displayName;
     const isHotseat = socket.data.mode === 'hotseat';
 
     this.withGameLock(effectiveGameId, async () => {
@@ -132,9 +136,20 @@ export class SocketHandlers {
           const discIndex = state.disconnectedPlayers.findIndex(d => d.color === effectiveColor);
           const isReconnectingPlayer = discIndex !== -1;
 
-          // Socket locking: reject non-spectator, non-reconnecting joins to games already in progress
-          if (state.status !== 'waiting' && socket.data.role !== 'spectator' && !isReconnectingPlayer) {
-            socket.emit('error', 'Game already in progress — only spectators can join');
+          // Socket locking: a player may (re)join an in-progress match only if
+          // they're already seated in it (or reconnecting). The seat check uses
+          // the Redis match record — disconnectedPlayers alone is in-memory and
+          // would wrongly reject a refresh/reconnect after an engine restart.
+          // Spectators were removed from the app; hotseat is always the same
+          // physical device, so its seat (re)joins are allowed.
+          const match = await this.store.getMatchData(effectiveGameId);
+          const seatIds = match
+            ? [match.player1_id, match.player2_id, match.player3_id, match.player4_id].filter(Boolean)
+            : [];
+          const isSeatedPlayer = !!effectiveUserId && seatIds.includes(effectiveUserId);
+          const isHotseatMatch = match?.gameType === 'HOTSEAT';
+          if (state.status !== 'waiting' && !isReconnectingPlayer && !isSeatedPlayer && !isHotseatMatch) {
+            socket.emit('error', 'Game already in progress');
             return;
           }
 

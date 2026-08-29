@@ -146,20 +146,6 @@ export class MatchPlayerService {
 		return { message: 'Invite sent', gameId: friendSeat.gameId };
 	}
 
-	// Generate a spectator token for an ACTIVE match.
-	async spectate(gameId: string) {
-		const data = await this.redis.hgetall(`match:${gameId}`);
-		if (!data || !data.id) throw new NotFoundException('Game not found');
-		if (data.status !== 'ACTIVE') throw new ForbiddenException('Game is not active');
-
-		const token = this.jwt.sign(
-			{ gameId, playerId: null, role: 'spectator' },
-			{ expiresIn: '24h' },
-		);
-
-		return { gameId, token, engineUrl: 'ws://localhost:3001' };
-	}
-
 	// Toggle the ready flag for a player in a WAITING match.
 	async readyGame(gameId: string, userId: string) {
 		const data = await this.redis.hgetall(`match:${gameId}`);

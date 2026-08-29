@@ -93,13 +93,15 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
     }
     case 'lobby_update': {
       const payload = (event.players as Array<{ username: string; color: PlayerColor; ready: boolean }>) ?? []
-      // The engine only includes active seats in this payload.
+      // The engine only includes active/disconnected seats in this payload.
       // Any seat omitted from the payload is empty and must be reset to inactive.
       const players = state.players.map((p) => {
         const seat = payload.find((e) => e.color === p.color)
-        return seat
-          ? { ...p, username: seat.username, displayName: seat.username, status: 'active' as const }
-          : { ...p, username: '', displayName: '', status: 'inactive' as const }
+        if (!seat) return { ...p, username: '', displayName: '', status: 'inactive' as const }
+        // An exited seat must never be resurrected by a roster refresh — the
+        // engine pruned the player (pieces cleared). Keep the exit sticky.
+        if (p.status === 'exited') return p
+        return { ...p, username: seat.username, displayName: seat.username, status: 'active' as const }
       })
       return {
         ...state,
@@ -163,8 +165,17 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
     case 'clash_clear':
       return { ...state, clash: null, clashResult: null }
     case 'player_exited':
+      // Mirror the engine's handlePlayerExit: the player's pieces are cleared
+      // (step -1) so nothing is left to render. Status alone is not enough —
+      // a later lobby_update that re-includes the seat would flip it back to
+      // 'active' and the stale pieces would reappear on the board.
       return {
         ...state,
+        pieces: state.pieces.map((pc) =>
+          pc.color === (event.color as PlayerColor)
+            ? { ...pc, step: -1, isInBase: false, isInGoal: false }
+            : pc,
+        ),
         players: state.players.map((p) =>
           p.color === (event.color as PlayerColor) ? { ...p, status: 'exited' } : p,
         ),

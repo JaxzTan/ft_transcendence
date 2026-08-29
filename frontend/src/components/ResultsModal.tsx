@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { UserAvatar } from './UserAvatar'
+import { localizedBotName } from '../utils/botName'
 import { useApp, type LastResult } from '../store'
 import { retroAudio } from '../utils/audio'
 import '../styles/retrowave.css'
@@ -164,7 +165,7 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                   {ranked.map((p, index) => {
                     const isWinner = index === 0 && hasRealWinner
                     const isMe = p.color === myColor
-                    const pName = isMe ? t('common.you') : p.username
+                    const pName = isMe ? t('common.you') : localizedBotName(t, p.username)
 
                     return (
                       <li key={p.color}>

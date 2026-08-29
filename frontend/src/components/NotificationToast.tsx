@@ -147,7 +147,7 @@ function getToastInfo(n: Notification, t: (key: string, options?: any) => string
     }
     case 'display_name_changed': {
       const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from
-      const newName = payload?.displayName ? String(payload.displayName) : 'UNKNOWN'
+      const newName = payload?.displayName ? String(payload.displayName) : t('notifications.unknown')
       return {
         tag: t('notifications.displayNameChangedTag'),
         badgeLabel: 'CALL',
@@ -559,7 +559,7 @@ function Toast({
                 margin: 0,
               }}
             >
-              DISMISS
+              {t('notifications.dismiss')}
             </button>
           </div>
         )}

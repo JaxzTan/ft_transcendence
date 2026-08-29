@@ -2740,7 +2740,7 @@ canvas#snakeCanvas {
   --modal-accent: var(--accent-cyan, #00f0ff);
   --modal-shadow: var(--accent-pink, #ff007f);
   color: var(--modal-accent);
-  width: clamp(340px, 90vw, 500px);
+  width: clamp(460px, 92vw, 820px);
   position: relative;
   box-sizing: border-box;
   font-family: var(--font-display, sans-serif);

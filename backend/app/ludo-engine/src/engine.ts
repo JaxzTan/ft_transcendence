@@ -757,7 +757,12 @@ export class LudoEngine {
     if (!state) return;
     const matchData = await this.store.getMatchData(gameId);
     const players = state.players
-      .filter(p => p.status !== 'inactive')
+      // Exited players must not appear in the waiting-room roster: the engine
+      // prunes them (pieces cleared, seat freed) but keeps the 'exited' entry
+      // in state.players for turn/result logic. If they were included here,
+      // the client's lobby_update handler would flip the seat back to
+      // 'active' and re-render their stale pieces on the board.
+      .filter(p => p.status === 'active' || p.status === 'disconnected')
       .map(p => ({
         userId: '',
         username: p.username,

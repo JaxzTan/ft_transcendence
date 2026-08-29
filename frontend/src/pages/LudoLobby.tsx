@@ -572,7 +572,7 @@ export function LudoLobby() {
                     placeholder={t('ludoLobbyPasses.enterCodePlaceholder')}
                     maxLength={8}
                     style={{
-                      width: 150,
+                      width: 185,
                       height: 50,
                       background: 'rgba(5, 2, 18, 0.92)',
                       border: '1.5px solid var(--accent-cyan)',

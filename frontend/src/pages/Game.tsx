@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
 import { ClashOverlay } from '../game/ClashOverlay'
+import { localizedBotName } from '../utils/botName'
 import { applyEvent, initialView } from '../game/reducer'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
@@ -1122,8 +1123,8 @@ export function Game() {
                       : !playerMeta.isBot && playerMeta.username === user?.username
                     const name =
                       localNames[ck] ||
-                      playerMeta.displayName ||
-                      playerMeta.username ||
+                      localizedBotName(t, playerMeta.displayName) ||
+                      localizedBotName(t, playerMeta.username) ||
                       (playerMeta.isBot
                         ? t('common.bot')
                         : isYou
@@ -1256,23 +1257,23 @@ export function Game() {
               <section className={RETRO_WINDOW} id="sectorControlWindow">
                 <div className={`${WINDOW_HEADER} window-header`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>CONTROLS & SHORTCUTS</span>
+                    <span>{t('game.controlsShortcuts')}</span>
                   </div>
                 </div>
 
                 <div className={WINDOW_BODY} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 14px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>DICE ROLL:</span>
+                      <span>{t('game.controlsDiceRoll')}</span>
                       <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>SELECT PIECE:</span>
+                      <span>{t('game.controlsSelectPiece')}</span>
                       <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>GOAL:</span>
-                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>4 PIECES HOME</span>
+                      <span>{t('game.controlsGoal')}</span>
+                      <span style={{ color: '#ffe600', fontFamily: 'var(--font-mono)' }}>{t('game.controlsGoalValue')}</span>
                     </div>
                   </div>
 
@@ -1303,14 +1304,14 @@ export function Game() {
                       boxSizing: 'border-box',
                     }}
                     onClick={toggleSound}
-                    title="Toggle Audio"
+                    title={t('game.toggleAudio')}
                   >
                     <span>{soundMuted ? '🔇' : '🔊'}</span>
                     <span>{soundMuted ? t('game.audioOff') : t('game.audioOn')}</span>
                   </button>
 
                   <CyberButton
-                    label="GAME RULES"
+                    label={t('game.gameRulesBtn')}
                     shortcut="?"
                     variant="cyan"
                     onClick={() => {
@@ -1737,7 +1738,7 @@ export function Game() {
                 const isBotOrHotseat = activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
                 return (
                   <CyberButton
-                    label={isBotOrHotseat ? 'ABORT SIMULATION' : t('game.abortMatchBtn')}
+                    label={isBotOrHotseat ? t('game.abortSimulationBtn') : t('game.abortMatchBtn')}
                     shortcut="ESC"
                     variant="danger"
                     onClick={() => setIsAbortModalOpen(true)}
@@ -1754,39 +1755,39 @@ export function Game() {
       {/* Cyberpunk Glitch Confirmation Modal */}
       <CyberModal
         isOpen={isAbortModalOpen}
-        title="PROTOCOL TERMINATION"
+        title={t('game.abortTitle')}
         versionTag={activeMatch?.gameId ? `ARENA.${activeMatch.gameId.slice(0, 8)}` : 'v001.e1349837856'}
         message={
           activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
-            ? 'You are about to terminate this tactical simulation. Combat records for this session will be halted.'
-            : 'You are about to withdraw and forfeit this ranked arena match. Match telemetry will be finalized as a defeat.'
+            ? t('game.abortSimulationMsg')
+            : t('game.abortMatchMsg')
         }
-        subMessage="Do you want to confirm protocol abort?"
+        subMessage={t('game.abortConfirmMsg')}
         onCancel={() => setIsAbortModalOpen(false)}
         onProceed={() => {
           setIsAbortModalOpen(false)
           endGame()
         }}
-        cancelLabel="CANCEL"
-        proceedLabel="CONFIRM ABORT"
+        cancelLabel={t('game.abortCancel')}
+        proceedLabel={t('game.abortConfirmBtn')}
         cancelShortcut="ESC"
         proceedShortcut="↵"
         isDanger
       />
 
-      {/* Cyberpunk System Control & Multi-Page Rules Modal (6 Pages) */}
+      {/* Cyberpunk System Control & Multi-Page Rules Modal (9 Pages) */}
       <CyberModal
         isOpen={isSystemModalOpen}
-        title="ARENA PROTOCOLS & RULES"
+        title={t('game.rules.title')}
         versionTag="RULES.v42.SYS"
-        cancelLabel="CLOSE"
-        proceedLabel={rulesPage < 5 ? 'NEXT PAGE ▶' : 'START PLAYING'}
+        cancelLabel={t('game.rules.close')}
+        proceedLabel={rulesPage < 8 ? t('game.rules.nextPage') : t('game.rules.startPlaying')}
         cancelShortcut="ESC"
-        proceedShortcut={rulesPage < 5 ? '→' : '↵'}
-        closeOnProceed={rulesPage >= 5}
+        proceedShortcut={rulesPage < 8 ? '→' : '↵'}
+        closeOnProceed={rulesPage >= 8}
         onCancel={() => setIsSystemModalOpen(false)}
         onProceed={() => {
-          if (rulesPage < 5) {
+          if (rulesPage < 8) {
             retroAudio.playUiBeep(700, 0.05)
             setRulesPage((p) => p + 1)
           } else {
@@ -1794,16 +1795,19 @@ export function Game() {
           }
         }}
         message={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 380, maxWidth: 520 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 480, maxWidth: 800 }}>
             {/* Page Navigation Tabs: Compact 1-row layout */}
             <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid rgba(0, 240, 255, 0.25)', paddingBottom: 10 }}>
               {[
-                { id: 0, label: '1. GOAL' },
-                { id: 1, label: '2. ROLL 6' },
-                { id: 2, label: '3. ENEMY' },
-                { id: 3, label: '4. STAR' },
-                { id: 4, label: '5. BLOCK' },
-                { id: 5, label: '6. HOME' },
+                { id: 0, label: t('game.rules.tabGoal') },
+                { id: 1, label: t('game.rules.tabRoll6') },
+                { id: 2, label: t('game.rules.tabEnemy') },
+                { id: 3, label: t('game.rules.tabStar') },
+                { id: 4, label: t('game.rules.tabBlock') },
+                { id: 5, label: t('game.rules.tabHome') },
+                { id: 6, label: t('game.rules.tabGameMods') },
+                { id: 7, label: t('game.rules.tabClashMode') },
+                { id: 8, label: t('game.rules.tabNoSafeZones') },
               ].map((p) => (
                 <button
                   key={p.id}
@@ -1814,8 +1818,8 @@ export function Game() {
                   }}
                   style={{
                     flex: 1,
-                    padding: '6px 2px',
-                    fontSize: '0.68rem',
+                    padding: '5px 2px',
+                    fontSize: '0.6rem',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 'bold',
                     background: rulesPage === p.id ? 'rgba(0, 240, 255, 0.22)' : 'rgba(255, 255, 255, 0.04)',
@@ -1837,19 +1841,19 @@ export function Game() {
             {rulesPage === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
                 <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  // MISSION OBJECTIVE
+                  {t('game.rules.missionTitle')}
                 </div>
                 <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                  Be the first pilot to move all four of your combat pieces from the Starting Area to the Home Triangle in the center!
+                  {t('game.rules.missionBody')}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(5, 2, 18, 0.65)', padding: 14, borderRadius: 6, border: '1px solid rgba(255, 0, 127, 0.3)' }}>
-                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.5px' }}>COMBAT CONTROLS:</div>
+                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.5px' }}>{t('game.rules.combatControls')}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Roll Quantum Dice:</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('game.rules.rollDice')}</span>
                     <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem' }}>SPACEBAR</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Select / Warp Piece:</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('game.rules.selectPiece')}</span>
                     <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '0.85rem' }}>LEFT CLICK</span>
                   </div>
                 </div>
@@ -1860,20 +1864,20 @@ export function Game() {
             {rulesPage === 1 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
                 <div style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  // ROLLING A 6
+                  {t('game.rules.rolling6Title')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-yellow)', border: '1px solid rgba(255, 230, 0, 0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
                     <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>⚡</span>
-                    <span>Roll a <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> → you get to roll again!</span>
+                    <span>{t('game.rules.roll6Pre')} <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> {t('game.rules.roll6Post')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
                     <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>🚀</span>
-                    <span>A <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> lets you bring a new piece onto the board.</span>
+                    <span>{t('game.rules.newPiecePre')} <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> {t('game.rules.newPiecePost')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
                     <span style={{ color: '#ff0055', fontSize: '1.2rem' }}>⛔</span>
-                    <span>Roll <strong style={{ color: '#ff0055', fontSize: '1.05rem' }}>three 6s in a row</strong> → your turn immediately ends!</span>
+                    <span>{t('game.rules.three6Pre')} <strong style={{ color: '#ff0055', fontSize: '1.05rem' }}>{t('game.rules.three6Bold')}</strong> {t('game.rules.three6Post')}</span>
                   </div>
                 </div>
               </div>
@@ -1883,19 +1887,19 @@ export function Game() {
             {rulesPage === 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
                 <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  // LANDING ON ENEMY PIECE
+                  {t('game.rules.enemyTitle')}
                 </div>
                 <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                  If you land on another player's piece:
+                  {t('game.rules.enemyIntro')}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-pink)', border: '1px solid rgba(255, 0, 127, 0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
                     <span style={{ color: 'var(--accent-pink)', fontSize: '1.2rem' }}>⚔</span>
-                    <span>Their piece gets <strong style={{ color: 'var(--accent-pink)', fontSize: '1.05rem' }}>kicked home</strong> back to their base!</span>
+                    <span>{t('game.rules.kickedHomePre')} <strong style={{ color: 'var(--accent-pink)', fontSize: '1.05rem' }}>{t('game.rules.kickedHomeBold')}</strong> {t('game.rules.kickedHomePost')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
                     <span style={{ color: '#00ff88', fontSize: '1.2rem' }}>✦</span>
-                    <span>You get a combat bonus: <strong style={{ color: '#00ff88', fontSize: '1.05rem' }}>roll again!</strong></span>
+                    <span>{t('game.rules.combatBonusPre')} <strong style={{ color: '#00ff88', fontSize: '1.05rem' }}>{t('game.rules.combatBonusBold')}</strong></span>
                   </div>
                 </div>
               </div>
@@ -1905,14 +1909,14 @@ export function Game() {
             {rulesPage === 3 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
                 <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  // THE STAR
+                  {t('game.rules.starTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                    ★ Star spaces are safe!
+                    {t('game.rules.starSafe')}
                   </div>
                   <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    Nobody can knock your piece off a star. Multiple pilots can safely occupy the same star space without combat captures.
+                    {t('game.rules.starBody')}
                   </p>
                 </div>
               </div>
@@ -1922,14 +1926,14 @@ export function Game() {
             {rulesPage === 4 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
                 <div style={{ color: '#00ff88', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  // TWO PIECES TOGETHER (BLOCKADE)
+                  {t('game.rules.blockTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #00ff88', border: '1px solid rgba(0, 255, 136, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ color: '#00ff88', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                    🛡 Impassable Shield
+                    {t('game.rules.blockShield')}
                   </div>
                   <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    Having <strong style={{ color: '#00ff88' }}>two pieces together</strong> will stop other players from crossing or landing on that space!
+                    {t('game.rules.blockBodyPre')} <strong style={{ color: '#00ff88' }}>{t('game.rules.blockBodyBold')}</strong> {t('game.rules.blockBodyPost')}
                   </p>
                 </div>
               </div>
@@ -1939,14 +1943,59 @@ export function Game() {
             {rulesPage === 5 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
                 <div style={{ color: '#9d00ff', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                  // HOME LANE & FINISH
+                  {t('game.rules.homeTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #9d00ff', border: '1px solid rgba(157, 0, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    You are <strong style={{ color: '#00ff88' }}>safe</strong> once you reach your coloured lane. Opponents cannot enter your home stretch!
+                    {t('game.rules.homeSafePre')} <strong style={{ color: '#00ff88' }}>{t('game.rules.homeSafeBold')}</strong> {t('game.rules.homeSafePost')}
                   </p>
                   <p style={{ margin: 0, color: '#ffe600', fontWeight: 'bold', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
-                    🎯 Just get to the center! (if you can get the exact steps!)
+                    {t('game.rules.homeCenter')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 6: Game Mods */}
+            {rulesPage === 6 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#ff007f', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  {t('game.rules.gameModsTitle')}
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #ff007f', border: '1px solid rgba(255, 0, 127, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    {t('game.rules.gameModsBody1')}
+                  </p>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    {t('game.rules.gameModsBody2')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 7: Clash Mode */}
+            {rulesPage === 7 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  {t('game.rules.clashTitle')}
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    {t('game.rules.clashBody')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* PAGE 8: No Safe Zones */}
+            {rulesPage === 8 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#ffe600', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  {t('game.rules.noSafeTitle')}
+                </div>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #ffe600', border: '1px solid rgba(255, 230, 0, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                    {t('game.rules.noSafeBody')}
                   </p>
                 </div>
               </div>

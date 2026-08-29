@@ -72,6 +72,13 @@ export async function handlePlayerDisconnect(
   const existing = state.disconnectedPlayers.find(d => d.color === color);
   if (existing) return; // Already in grace period
 
+  // An already-exited/finished player's socket closing (e.g. immediately after
+  // they aborted via end_game) must NOT re-enter the grace list or broadcast
+  // player_disconnected — that would flip the seat back to 'disconnected'
+  // client-side and resurrect pieces the exit already cleared.
+  const discPlayer = state.players.find(p => p.color === color);
+  if (!discPlayer || discPlayer.status !== 'active') return;
+
   // Determine mode up-front: bot-mode games PAUSE on disconnect (and use a
   // long reconnect window), PvP games HOLD the disconnected player's turn for
   // the short window then prune on expiry.

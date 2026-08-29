@@ -85,15 +85,17 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
             <div style={{ fontSize: '0.74rem', color: 'var(--text-main)', fontFamily: 'var(--font-mono)', lineHeight: 1.6, marginBottom: 12 }}>
               {t('profileEdit.deleteAccountNeedPassword')}
             </div>
-            <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.deleteAccountSetPasswordLabel')}</label>
-            <input style={inputStyle()} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-              placeholder={t('profileEdit.newPasswordPlaceholder')} autoComplete="new-password" />
-            <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.confirmPassword')}</label>
-            <input style={inputStyle()} type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder={t('profileEdit.confirmPasswordPlaceholder')} autoComplete="new-password" />
-            <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', lineHeight: 1.5, marginBottom: 8 }}>
-              {t('profileEdit.deleteAccountSetPasswordDesc')}
-            </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleSetPassword() }}>
+              <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.deleteAccountSetPasswordLabel')}</label>
+              <input style={inputStyle()} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                placeholder={t('profileEdit.newPasswordPlaceholder')} autoComplete="new-password" />
+              <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.confirmPassword')}</label>
+              <input style={inputStyle()} type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder={t('profileEdit.confirmPasswordPlaceholder')} autoComplete="new-password" />
+              <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', lineHeight: 1.5, marginBottom: 8 }}>
+                {t('profileEdit.deleteAccountSetPasswordDesc')}
+              </div>
+            </form>
             {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
             <button className="retro-btn" disabled={busy} onClick={handleSetPassword}
               style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, marginTop: 6 }}>
@@ -105,13 +107,15 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
             <div style={{ fontSize: '0.74rem', color: '#ff8c8c', fontFamily: 'var(--font-mono)', lineHeight: 1.6, marginBottom: 12 }}>
               {t('profileEdit.deleteAccountWarning')}
             </div>
-            <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.deleteAccountPasswordLabel')}</label>
-            <input style={inputStyle()} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder={t('profileEdit.deleteAccountPasswordPlaceholder')} autoComplete="current-password" />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.7rem', color: 'var(--text-main)', marginBottom: 12 }}>
-              <input type="checkbox" checked={acknowledge} onChange={(e) => setAcknowledge(e.target.checked)} />
-              {t('profileEdit.deleteAccountAcknowledge')}
-            </label>
+            <form onSubmit={(e) => { e.preventDefault(); handleDelete() }}>
+              <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.deleteAccountPasswordLabel')}</label>
+              <input style={inputStyle()} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder={t('profileEdit.deleteAccountPasswordPlaceholder')} autoComplete="current-password" />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.7rem', color: 'var(--text-main)', marginBottom: 12 }}>
+                <input type="checkbox" checked={acknowledge} onChange={(e) => setAcknowledge(e.target.checked)} />
+                {t('profileEdit.deleteAccountAcknowledge')}
+              </label>
+            </form>
             {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
             <button className="retro-btn" disabled={busy || !acknowledge || !currentPassword} onClick={handleDelete}
               style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: 6 }}>
