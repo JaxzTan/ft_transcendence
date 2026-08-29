@@ -802,6 +802,8 @@ export const fr = {
     filter4Players: '4 JOUEURS',
     filter3Players: '3 JOUEURS',
     filter2Players: '2 JOUEURS',
+    rejoinPvpGame: 'REJOINDRE LA PARTIE PVP',
+    rejoining: 'RECONNEXION...',
     colSectorCode: 'CODE SECTEUR',
     colHostCallsign: 'HÔTE',
     colCapacity: 'CAPACITÉ',

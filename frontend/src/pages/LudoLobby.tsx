@@ -75,10 +75,11 @@ export function LudoLobby() {
   const [roomFilter, setRoomFilter] = useState<'all' | 4 | 3 | 2>('all')
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null)
 
-  const [hasActiveGame, setHasActiveGame] = useState(false)
+  // The WAITING/ACTIVE game this user is seated in (from /api/games/mine) — the
+  // Rejoin PVP Game button targets it after leaving a match back to the lobby.
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null)
+  const hasActiveGame = activeRoomId !== null
   const [hostBusy, setHostBusy] = useState(false)
-  const [clashOn, setClashOn] = useState(false)
-  const [safeZonesOn, setSafeZonesOn] = useState(true)
 
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [joiningByCode, setJoiningByCode] = useState(false)
@@ -92,7 +93,7 @@ export function LudoLobby() {
 
   const fetchHasActiveGame = () => {
     getApi<Array<{ id: string }>>('/api/games/mine')
-      .then((data) => setHasActiveGame(data.length > 0))
+      .then((data) => setActiveRoomId(data[0]?.id ?? null))
       .catch(() => { })
   }
 
@@ -102,7 +103,7 @@ export function LudoLobby() {
     const iv = setInterval(() => {
       fetchRooms()
       fetchHasActiveGame()
-    }, 1000)
+    }, 3000)
     return () => clearInterval(iv)
   }, [])
 
@@ -116,7 +117,10 @@ export function LudoLobby() {
     setError(null)
     retroAudio.playUiBeep(920, 0.08)
     try {
-      const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: clashOn, safeZones: safeZonesOn })
+      // Clash/safe-zone rules are no longer pre-set here — the host controls
+      // them live in the in-game rules popup (PvP, WAITING state). Pass the
+      // same defaults the removed checkboxes used so nothing changes.
+      const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: false, safeZones: true })
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {
@@ -174,6 +178,22 @@ export function LudoLobby() {
       setError(err instanceof Error ? err.message : 'Failed to join room')
       setJoiningRoomId(null)
       fetchRooms()
+    }
+  }
+
+  const rejoinActiveGame = async () => {
+    if (!activeRoomId) return
+    setJoiningRoomId(activeRoomId)
+    setError(null)
+    retroAudio.playUiBeep(780, 0.06)
+    try {
+      const res = await postApi<MatchResult>(`/api/game/${activeRoomId}/rejoin`, {})
+      setActiveMatch(res)
+      navigate(`/game?gameId=${res.gameId}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to rejoin game')
+      setJoiningRoomId(null)
+      fetchHasActiveGame() // the game may have just ended — refresh the active-room state
     }
   }
 
@@ -254,42 +274,6 @@ export function LudoLobby() {
               </span>
             </div>
           </header>
-
-          {/* Game Modifiers — Combat Arena rules (applied when hosting a table) */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
-            <label
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem',
-                fontFamily: 'var(--font-mono)', color: 'var(--text-main)', cursor: 'pointer',
-                border: '1px solid var(--border-color)', borderRadius: 4, padding: '6px 10px',
-                background: 'rgba(0, 0, 0, 0.4)',
-              }}
-            >
-              <span>⚔️ {t('game.clashMode')}</span>
-              <input
-                type="checkbox"
-                checked={clashOn}
-                onChange={(e) => setClashOn(e.target.checked)}
-                style={{ accentColor: 'var(--accent-pink)', width: 15, height: 15, cursor: 'pointer' }}
-              />
-            </label>
-            <label
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem',
-                fontFamily: 'var(--font-mono)', color: 'var(--text-main)', cursor: 'pointer',
-                border: '1px solid var(--border-color)', borderRadius: 4, padding: '6px 10px',
-                background: 'rgba(0, 0, 0, 0.4)',
-              }}
-            >
-              <span>🛡 {t('game.safeZones')}</span>
-              <input
-                type="checkbox"
-                checked={safeZonesOn}
-                onChange={(e) => setSafeZonesOn(e.target.checked)}
-                style={{ accentColor: 'var(--accent-cyan)', width: 15, height: 15, cursor: 'pointer' }}
-              />
-            </label>
-          </div>
 
           {/* Main Tactical Single-Column / Stacked Layout */}
           <main
@@ -665,10 +649,31 @@ export function LudoLobby() {
 
               <div className={WINDOW_BODY} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Filter Sub-Bar */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 4px' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                    {t('ludoLobbyPasses.filterSector')}
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '2px 4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    {hasActiveGame && (
+                      <button
+                        className={RETRO_BTN}
+                        onClick={rejoinActiveGame}
+                        disabled={joiningRoomId === activeRoomId}
+                        style={{
+                          padding: '10px 22px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.08em',
+                          background: 'var(--accent-pink)',
+                          color: '#ffffff',
+                          border: '2px solid var(--accent-cyan)',
+                          boxShadow: '0 0 12px rgba(0, 240, 255, 0.35)',
+                        }}
+                      >
+                        ⏪ {joiningRoomId === activeRoomId ? t('ludoLobbyPasses.rejoining') : t('ludoLobbyPasses.rejoinPvpGame')}
+                      </button>
+                    )}
+                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                      {t('ludoLobbyPasses.filterSector')}
+                    </span>
+                  </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button
                       className={RETRO_BTN}

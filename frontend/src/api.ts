@@ -124,6 +124,13 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   const res = await fetch(input, finalInit)
   if (res.status !== 401) return res
 
+  // The /api/auth/me session check answers X-Auth-Session: none when the
+  // browser carries no refresh cookie at all — there is genuinely nothing to
+  // refresh, so return the 401 immediately instead of the pointless POST
+  // /api/auth/refresh (which would 401 too, adding a wasted round trip and a
+  // second console error on every unauthenticated page load).
+  if (res.headers.get('X-Auth-Session') === 'none') return res
+
   // Another tab is mid-refresh: wait for it, then retry against the shared
   // cookie jar (which now holds the rotated tokens). Only if that still 401s
   // do we perform our own refresh below.

@@ -140,7 +140,11 @@ export function Game() {
   // generic default. The engine's PlayerMeta only carries username/displayName.
   const [avatarMeta, setAvatarMeta] = useState<Record<string, { avatarStyle?: string; hasAvatarPhoto?: boolean }>>({})
   const playerUsernames = view.players
-    .filter((p) => !p.isBot && p.username)
+    // Only players who have actually joined/selected a seat ('active'). During
+    // the pre-join window the engine still lists empty seats by color name
+    // ("Red"/"Green"/"Yellow") with isBot=false — fetching those fires real
+    // 404s on /api/user/<color>. Bots are excluded once flagged.
+    .filter((p) => p.status === 'active' && !p.isBot && p.username)
     .map((p) => p.username)
     .sort()
     .join(',')
@@ -1014,7 +1018,10 @@ export function Game() {
                               username={playerMeta.username}
                               size={34}
                               avatarStyle={avatarMeta[playerMeta.username]?.avatarStyle}
-                              hasAvatarPhoto={avatarMeta[playerMeta.username]?.hasAvatarPhoto}
+                              // Bots ("Red"/"Green"/"Yellow") are not real users —
+                              // never fetch an avatar for them, render the dicebear
+                              // fallback directly (also stops the repeat-404 spam).
+                              hasAvatarPhoto={playerMeta.isBot ? false : avatarMeta[playerMeta.username]?.hasAvatarPhoto}
                               fallbackStyle={{
                                 width: 34,
                                 height: 34,

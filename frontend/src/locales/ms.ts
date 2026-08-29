@@ -802,6 +802,8 @@ export const ms = {
     filter4Players: '4 PEMAIN',
     filter3Players: '3 PEMAIN',
     filter2Players: '2 PEMAIN',
+    rejoinPvpGame: 'SERTAI SEMULA PVP',
+    rejoining: 'MENYERTAI SEMULA...',
     colSectorCode: 'KOD SEKTOR',
     colHostCallsign: 'PANGGILAN HOS',
     colCapacity: 'KAPASITI',

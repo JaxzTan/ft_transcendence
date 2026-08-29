@@ -1,7 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Patch, Post, Query, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { JwtPayload } from './jwt-payload';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { TwoFactorDto } from './dto/twofactor.dto';
@@ -45,7 +47,10 @@ function originFromRequest(req: Request): string {
 
 @Controller('api/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   // No cookie here anymore: the account must be email-verified before its
   // first login, and every login must pass the 2FA code step.
@@ -153,12 +158,33 @@ export class AuthController {
     return { ok: true };
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('me')
-  async me(@Req() req: Request) {
+  async me(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    // Inline session check instead of JwtAuthGuard: when the browser carries no
+    // refresh cookie at all, this is "genuinely signed out". Answer 401 with
+    // X-Auth-Session: none so the frontend skips the pointless POST
+    // /api/auth/refresh (which would 401 too — a wasted round trip + a second
+    // console error on every unauthenticated page load).
+    if (!req.cookies?.[REFRESH_COOKIE]) {
+      res.set('X-Auth-Session', 'none');
+      throw new UnauthorizedException();
+    }
+
+    // Refresh cookie present → a session exists. Verify the access token the
+    // same way JwtStrategy does (cookie `token`, JWT_SECRET).
+    let userId: string;
+    try {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(
+        req.cookies?.[ACCESS_COOKIE] ?? '',
+      );
+      userId = payload.sub;
+    } catch {
+      throw new UnauthorizedException();
+    }
+
     // The JWT only carries the immutable username. displayName is editable, so
     // fetch the live value from the DB each time (cheap single-row lookup).
-    const profile = await this.authService.getProfile((req.user as { id: string }).id);
+    const profile = await this.authService.getProfile(userId);
     return { user: profile.user };
   }
 

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { useApp } from '../store'
 import { apiFetch } from '../api'
+import { bumpAvatarVersion } from '../avatarCache'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ export type NotificationType =
   | 'display_name_changed'
   | 'friend_online'
   | 'friend_offline'
+  | 'avatar_changed'
 
 export interface Notification {
   id: string
@@ -103,6 +105,14 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
               const p = (notification.payload || {}) as Record<string, unknown>
               if (user && p.userId === user.id) return
               setToasts((prev) => [notification, ...prev])
+              return
+            }
+            // Avatar photo changes are TRANSIENT cache-bust signals — no bell
+            // entry, no toast. Just bump the per-user avatar version so every
+            // open <UserAvatar> for that username re-fetches the photo.
+            if (notification.type === 'avatar_changed') {
+              const p = (notification.payload || {}) as Record<string, unknown>
+              if (p.username) bumpAvatarVersion(String(p.username))
               return
             }
             setNotifications((prev) => [notification, ...prev])

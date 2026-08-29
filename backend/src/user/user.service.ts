@@ -3,6 +3,12 @@ import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
 import { ratingDeltaFor } from '../common/scoring';
 import { NotificationService } from '../notification/notification.service';
+import { createAvatar } from '@dicebear/core';
+import { avataaars, bottts, identicon } from '@dicebear/collection';
+
+// Same mapping + default the frontend uses in src/dicebear.ts, so the
+// server-generated fallback looks identical to the client-side one.
+const AVATAR_STYLES = { avataaars, bottts, identicon } as const;
 
 @Injectable()
 export class UserService {
@@ -56,16 +62,35 @@ export class UserService {
       .notify(userId, 'profile_updated', { items: ['avatar'] })
       .catch(() => {});
 
+    // Live push: broadcast a TRANSIENT event so every connected client busts
+    // its cached /api/user/<username>/avatar URL for this user (their own other
+    // tabs included). No persistence — the bell stays clean, the photo refreshes.
+    await this.notifications
+      .broadcast('avatar_changed', {
+        userId: user.id,
+        username: user.username,
+        updatedAt: new Date().toISOString(),
+      })
+      .catch(() => {});
+
     return { message: 'Avatar uploaded', contentType };
   }
 
   async getAvatar(username: string): Promise<{ data: Buffer; contentType: string } | null> {
     const user = await this.prisma.db.user.findUnique({
       where: { username },
-      select: { avatarPhoto: true, avatarPhotoContentType: true },
+      select: { avatarPhoto: true, avatarPhotoContentType: true, avatarStyle: true },
     });
-    if (!user || !user.avatarPhoto || !user.avatarPhotoContentType) return null;
-    return { data: Buffer.from(user.avatarPhoto), contentType: user.avatarPhotoContentType };
+    if (user?.avatarPhoto && user.avatarPhotoContentType) {
+      return { data: Buffer.from(user.avatarPhoto), contentType: user.avatarPhotoContentType };
+    }
+    // No uploaded photo — or no such user at all (bots are named "Red"/"Green"/
+    // "Yellow" and hit this endpoint) — silently serve the same generated pixel
+    // avatar the UI falls back to (dicebear, seeded by username), so avatar
+    // URLs never 404 and never spam the console with failed loads.
+    const style = AVATAR_STYLES[(user?.avatarStyle ?? 'bottts') as keyof typeof AVATAR_STYLES] ?? bottts;
+    const svg = createAvatar(style as any, { seed: username }).toString();
+    return { data: Buffer.from(svg), contentType: 'image/svg+xml' };
   }
 
   async deleteAvatar(userId: string) {
@@ -79,6 +104,16 @@ export class UserService {
 
     await this.notifications
       .notify(userId, 'profile_updated', { items: ['avatar'] })
+      .catch(() => {});
+
+    // Same live push as uploadAvatar — clients showing this user's photo must
+    // re-fetch (and correctly fall back to the generated pixel avatar).
+    await this.notifications
+      .broadcast('avatar_changed', {
+        userId: user.id,
+        username: user.username,
+        updatedAt: new Date().toISOString(),
+      })
       .catch(() => {});
 
     return { message: 'Avatar deleted' };

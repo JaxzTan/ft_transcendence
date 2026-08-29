@@ -21,7 +21,8 @@ export type NotificationType =
   | 'profile_updated'
   | 'display_name_changed'
   | 'friend_online'
-  | 'friend_offline';
+  | 'friend_offline'
+  | 'avatar_changed';
 
 // Shape of the payload written to DB and pushed over SSE.
 export interface NotificationPayload {

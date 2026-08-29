@@ -1,5 +1,6 @@
 # secrets & prisma generated client
-secrets/
+.env
+.env example
 backend/generated/
 backend/dist/
 
@@ -40,6 +41,7 @@ Ludo_Rules.md
 fixdice.md
 context.md
 tailwind-migration.md
+browser patches.md
 
 # dependencies
 /node_modules

@@ -48,7 +48,11 @@ export class UserController {
       throw new NotFoundException('No custom avatar set');
     }
     res.set('Content-Type', result.contentType);
-    res.set('Cache-Control', 'public, max-age=86400');
+    // Never cache avatars: the photo lives in Postgres and can change at any
+    // moment. `no-store` (instead of the old `public, max-age=86400`) is what
+    // makes live avatar updates via the SSE `avatar_changed` broadcast actually
+    // visible — a cached copy would swallow every refetch for up to a day.
+    res.set('Cache-Control', 'no-store');
     res.send(result.data);
   }
 

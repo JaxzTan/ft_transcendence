@@ -482,7 +482,6 @@ export function Profile() {
                             fontWeight: 900,
                             fontFamily: 'var(--font-display)',
                           }}
-                          cacheBuster={avatarBuster}
                         />
                       </div>
 

@@ -5,7 +5,12 @@ NGROK_PORT    := $(or $(call env_get,NGROK_PORT),8443)
 NGROK_DOMAIN  := $(call env_get,NGROK_DOMAIN)
 HTTPS_PORT    := $(or $(call env_get,HTTPS_PORT),8443)
 NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
-LAN_IP        := $(or $(call env_get,LAN_IP),$(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null))
+# LAN IP is AUTO-DETECTED first — the stored .env value can go stale when DHCP
+# hands the machine a new address (which silently breaks the "Other devices on
+# this WiFi" URL). Detection falls back to the .env value only when the machine
+# has no LAN address (e.g. not on WiFi). The env target re-writes the detected
+# value back into .env so the config never drifts.
+LAN_IP        := $(or $(shell ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'),$(shell ipconfig getifaddr en0 2>/dev/null),$(shell ipconfig getifaddr en1 2>/dev/null),$(call env_get,LAN_IP))
 OAUTH_VARS     = GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_CALLBACK_URL \
                  GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET GITHUB_CALLBACK_URL \
                  FORTYTWO_CLIENT_ID FORTYTWO_CLIENT_SECRET FORTYTWO_CALLBACK_URL
@@ -49,8 +54,12 @@ env:
 	seed POSTGRES_USER     'db_bossman'; \
 	seed POSTGRES_DB       'transcendence'; \
 	seed FRONTEND_URL      'https://localhost:8443'; \
-	seed NGROK_PORT        '8080'; \
+	seed NGROK_PORT        '8443'; \
 	seed HTTPS_PORT        '8443'; \
+	lan_ip=$$(ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'); \
+	[ -n "$$lan_ip" ] || lan_ip=$$(ipconfig getifaddr en0 2>/dev/null); \
+	[ -n "$$lan_ip" ] || lan_ip=$$(ipconfig getifaddr en1 2>/dev/null); \
+	if [ -n "$$lan_ip" ]; then set_kv LAN_IP "$$lan_ip"; fi; \
 	pwd_val=$$(get POSTGRES_PASSWORD); user_val=$$(get POSTGRES_USER); db_val=$$(get POSTGRES_DB); \
 	set_kv DATABASE_URL           "postgresql://$$user_val:$$pwd_val@localhost:5432/$$db_val"; \
 	set_kv CONTAINER_DATABASE_URL "postgresql://$$user_val:$$pwd_val@db:5432/$$db_val"; \
@@ -117,8 +126,10 @@ re: fclean all
 
 
 # ── LAN MODE ────────────────────────────────────────────────────────────────
-# Same WiFi. No env changes needed: nginx single-origins /api, so relative
-# paths resolve against whatever host the client typed.
+# Same WiFi. No OAuth env changes needed: nginx single-origins /api, so relative
+# paths resolve against whatever host the client typed. LAN_IP is auto-detected
+# and written back into .env on every build (see the env target), so the URL
+# printed below always matches the machine's current address.
 lan: all
 	@if [ -z "$(LAN_IP)" ]; then echo "❌  No LAN IP on en0/en1 — are you on WiFi?"; exit 1; fi
 	@echo ""
