@@ -20,7 +20,7 @@ The Bot AI module provides an automated opponent for single-player (PvE) games. 
 3. **Scores the remaining moves** — otherwise it ranks each move and picks the highest score.
 4. **Mimics a human** — it waits ~1.2s before moving so the dice animation can play.
 
-Bot turns are scheduled by the `SocketServer` (not by the bot itself) so two bot turns never overlap.
+Bot turns are scheduled by the `BotTurnScheduler` (`socket/bot-scheduler.ts`, driven by `SocketServer`) — never by the bot itself — so two bot turns never overlap.
 
 ---
 

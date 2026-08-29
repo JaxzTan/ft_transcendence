@@ -160,15 +160,16 @@ from Redis each turn** via `loadGameState`. That keeps bots stateless and cheap.
 
 ### How turns are scheduled (one timer, run by the server)
 
-Bots never act on their own. The `SocketServer` tells them when to play:
+Bots never act on their own. The `BotTurnScheduler` (`socket/bot-scheduler.ts`)
+tells them when to play:
 
 ```text
-game_started  → triggerBotTurn(gameId, BOT_THINK_MS)          // 500ms "thinking"
-piece_moved   → triggerBotTurn(gameId, path.length*220 + 500) // wait for the move animation
-dice_rolled   → if no legal moves → triggerBotTurn(gameId, 750 + 500)
+game_started  → BotTurnScheduler.schedule(gameId, BOT_THINK_MS)          // 500ms "thinking"
+piece_moved   → BotTurnScheduler.schedule(gameId, path.length*220 + 500) // wait for the move animation
+dice_rolled   → if no legal moves → BotTurnScheduler.schedule(gameId, 750 + 500)
 ```
 
-`triggerBotTurn` keeps **one timer per game** (`botTurnTimers`): it cancels the
+`schedule()` keeps **one timer per game** (`botTurnTimers`): it cancels the
 old timer before starting a new one, so bot turns never overlap. When the timer
 fires, it checks the current turn is a bot (`isBotPlayer`), gets the bot from
 `getOrCreateBot`, and calls `bot.takeTurn()`.
@@ -185,7 +186,7 @@ fires, it checks the current turn is a bot (`isBotPlayer`), gets the bot from
 
 ```mermaid
 sequenceDiagram
-    participant Server as SocketServer
+    participant Server as BotTurnScheduler
     participant Cache as botMap (per game+color)
     participant Bot as LudoBot
     participant R as Redis
@@ -198,7 +199,7 @@ sequenceDiagram
     R-->>Bot: state (authoritative)
     Bot->>R: rollDice → movePiece (same engine path as humans)
     R-->>Bot: result
-    Note over Server,Bot: bonus/capture → engine event → triggerBotTurn again
+    Note over Server,Bot: bonus/capture → engine event → schedule again
 ```
 
 ### How bots are identified

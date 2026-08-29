@@ -3,6 +3,11 @@ import type { GameState, PlayerColor, PieceId, Piece, PlayerMeta, ClashState } f
 
 const COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
+// Storage TTLs (seconds): the game-state hash expires 24h after its last save,
+// and an aborted match drops out of open-room listings after 1h.
+const GAME_STATE_TTL_SECONDS = 86400; // 24h
+const ABORTED_MATCH_TTL_SECONDS = 3600; // 1h
+
 /**
  * RedisGameStore is a PERSISTENCE LAYER.
  * All game state is stored as a single serialized GameState object.
@@ -23,11 +28,13 @@ export class RedisGameStore {
     this.subscriber = this.client.duplicate();
   }
 
+  /** Open both Redis connections (game store + pub/sub subscriber). */
   async connect(): Promise<void> {
     await this.client.connect();
     await this.subscriber.connect();
   }
 
+  /** Close both Redis connections. */
   async disconnect(): Promise<void> {
     await this.client.quit();
     await this.subscriber.quit();
@@ -38,6 +45,7 @@ export class RedisGameStore {
    * no PlayerMeta entry at all, so unused seats never appear anywhere
    * downstream (sidebar, color picker, turn order). */
   async createGame(gameId: string, clashMode: boolean = true, activeColors: PlayerColor[] = COLORS, safeZones: boolean = true): Promise<void> {
+    // All 16 pieces start in prison (step 0) — 4 per color.
     const pieces: Piece[] = [];
     for (const color of COLORS) {
       for (let i = 0; i < 4; i++) {
@@ -45,6 +53,7 @@ export class RedisGameStore {
       }
     }
 
+    // One PlayerMeta per seat actually in play; unused seats get no entry.
     const players: PlayerMeta[] = activeColors.map(color => ({
       color,
       status: 'inactive',
@@ -59,6 +68,7 @@ export class RedisGameStore {
       stats: { turns: 0, captures: 0, piecesInGoal: 0, clashDefends: 0, clashAttacksWon: 0 }
     }));
     
+    // Fresh waiting-room state: blue leads turn order until a real player joins.
     const state: GameState = {
       id: gameId,
       pieces,
@@ -89,7 +99,7 @@ export class RedisGameStore {
   /** Save the entire GameState to Redis (single operation) */
   async saveGameState(gameId: string, state: GameState): Promise<void> {
     await this.client.hset(this.gameKey(gameId), 'state', JSON.stringify(state));
-    await this.client.expire(this.gameKey(gameId), 86400);
+    await this.client.expire(this.gameKey(gameId), GAME_STATE_TTL_SECONDS);
   }
 
   /** Move history (separate, not part of main state) */
@@ -98,12 +108,13 @@ export class RedisGameStore {
     await this.client.ltrim(this.movesKey(gameId), 0, 199);
   }
 
-  /** Clash state management */
+  /** Get the live clash (if any) embedded in the game state. */
   async loadClashState(gameId: string): Promise<ClashState | null> {
     const state = await this.loadGameState(gameId);
     return state?.clash ?? null;
   }
 
+  /** Persist an active clash (phase deadlines) into the game state. */
   async saveClashState(gameId: string, clash: ClashState): Promise<void> {
     const state = await this.loadGameState(gameId);
     if (!state) return;
@@ -112,6 +123,7 @@ export class RedisGameStore {
     await this.saveGameState(gameId, state);
   }
 
+  /** Remove the clash from the game state (resolved or aborted). */
   async clearClashState(gameId: string): Promise<void> {
     const state = await this.loadGameState(gameId);
     if (!state) return;
@@ -120,6 +132,7 @@ export class RedisGameStore {
     await this.saveGameState(gameId, state);
   }
 
+  /** Count a press for the attacker/defender side; returns the side's new total. */
   async recordClashPress(gameId: string, color: PlayerColor): Promise<number> {
     const state = await this.loadGameState(gameId);
     if (!state?.clash) return 0;
@@ -210,7 +223,7 @@ export class RedisGameStore {
    /** Mark a match ABORTED with a short TTL so it drops out of open-room listings. */
    async abortMatch(gameId: string): Promise<void> {
      await this.client.hset(this.matchKey(gameId), 'status', 'ABORTED');
-     await this.client.expire(this.matchKey(gameId), 3600);
+     await this.client.expire(this.matchKey(gameId), ABORTED_MATCH_TTL_SECONDS);
    }
 
    /** Delete the engine-side game state/moves for a match. */
@@ -218,7 +231,7 @@ export class RedisGameStore {
      await this.client.del(this.gameKey(gameId), this.movesKey(gameId));
    }
 
-   private matchKey(gameId: string): string { return `match:${gameId}`; }
-   private gameKey(gameId: string): string { return `game:${gameId}`; }
-   private movesKey(gameId: string): string { return `game:${gameId}:moves`; }
+   private matchKey(gameId: string): string { return `match:${gameId}`; } // match metadata hash
+   private gameKey(gameId: string): string { return `game:${gameId}`; } // game state hash
+   private movesKey(gameId: string): string { return `game:${gameId}:moves`; } // move history list
  }

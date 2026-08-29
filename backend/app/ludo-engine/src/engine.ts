@@ -11,6 +11,9 @@ import {
 } from './player-handler';
 import { LobbyManager } from './lobby';
 
+// Cadence of the boot-time clash recovery sweep (re-arms stale phase timers).
+const CLASH_SWEEP_INTERVAL_MS = 5000;
+
 export class LudoEngine {
   private store: RedisGameStore;
   private eventHandler?: (event: GameEvent) => void;
@@ -559,7 +562,7 @@ export class LudoEngine {
         } catch { /* scan errors are transient — retry next tick */ }
       })();
     };
-    setInterval(tick, 5000);
+    setInterval(tick, CLASH_SWEEP_INTERVAL_MS);
   }
 
   /** Boot-time re-arm: restore exact phase timers from persisted deadlines. */

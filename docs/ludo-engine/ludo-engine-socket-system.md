@@ -16,7 +16,7 @@
 
 The ludo-engine exposes a Socket.IO server on port 3001. All game communication happens through events. The engine requires JWT authentication in the handshake `auth` object.
 
-The server is started by `index.ts` which calls `SocketServer.start(3001)`. The `SocketServer` class in `socket/server.ts` registers all event handlers and manages the `engine` (game state machine) and `redisGameStore` (persistence).
+The server is started by `index.ts` which calls `SocketServer.start(3001)`. The `SocketServer` class in `socket/server.ts` is the orchestration root: it wires the engine (game state machine) and Redis store, then routes engine events and socket events to the dedicated modules (`SocketHandlers`, `JoinManager`, `BotTurnScheduler`, `PostGameManager`).
 
 ---
 
@@ -25,9 +25,12 @@ The server is started by `index.ts` which calls `SocketServer.start(3001)`. The 
 | File | Role |
 |------|------|
 | `index.ts` | Entry point — `SocketServer.start(3001)` |
-| `socket/server.ts` | `SocketServer` class — event routing, JWT middleware, engine lifecycle |
+| `socket/server.ts` | `SocketServer` — composition root: engine wiring, JWT middleware, engine-event routing, socket wiring |
 | `socket/auth.ts` | `GameSocket` type, JWT extraction middleware |
-| `socket/socket-handlers.ts` | All client→server event handlers (join, roll, move, etc.) |
+| `socket/socket-handlers.ts` | `SocketHandlers` — client→server gameplay/lobby/lifecycle handlers; delegates `join_game` to `JoinManager` |
+| `socket/join-manager.ts` | `JoinManager` — the `join_game` flow (seat resolution, game creation, reconnects, auto-start, resume) |
+| `socket/bot-scheduler.ts` | `BotTurnScheduler` — bot turn timers + clash-freeze gating |
+| `socket/post-game.ts` | `PostGameManager` — post-game timeout, rematch voting, `end_game` |
 | `socket/event-publisher.ts` | Redis pub/sub → Socket.IO bridge for multi-instance scaling |
 | `socket/redis-broadcaster.ts` | Room-based state broadcasts via Redis |
 | `socket/result-submitter.ts` | POST /api/game/end callback to backend |

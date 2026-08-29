@@ -6,6 +6,9 @@ import type { PlayerColor, PieceId, GameState, LegalMove } from './types';
 
 const botMap = new Map<string, Map<PlayerColor, LudoBot>>();
 
+// Delay before a bot moves so the frontend dice-roll animation finishes first.
+const BOT_MOVE_DELAY_MS = 1200;
+
 export function getOrCreateBot(
   gameId: string,
   color: PlayerColor,
@@ -140,7 +143,7 @@ export class LudoBot {
       if (!bestMove) return false;
 
       // Delay piece movement so frontend dice roll animation finishes first and displays the number
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await new Promise((resolve) => setTimeout(resolve, BOT_MOVE_DELAY_MS));
 
       // Execute move — engine emits piece_moved and game_ended events via handleEngineEvent
       const { state: finalState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);

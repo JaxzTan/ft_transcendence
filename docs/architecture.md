@@ -308,8 +308,11 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   │       ├── redis.ts              # RedisGameStore (persistence)
 │   │   │       ├── types.ts              # GameState, PlayerColor, events
 │   │   │       └── socket/
-│   │   │           ├── server.ts             # SocketServer, event routing
-│   │   │           ├── socket-handlers.ts    # join_game, roll_dice, move_piece, …
+│   │   │           ├── server.ts             # SocketServer, engine-event routing + wiring
+│   │   │           ├── socket-handlers.ts    # roll_dice, move_piece, clash_input, …
+│   │   │           ├── join-manager.ts       # JoinManager — join_game flow
+│   │   │           ├── bot-scheduler.ts      # BotTurnScheduler — bot turn timers
+│   │   │           ├── post-game.ts          # PostGameManager — rematch / end_game
 │   │   │           ├── auth.ts               # JWT middleware, GameSocket type
 │   │   │           ├── event-publisher.ts    # Redis pub/sub → Socket.IO bridge
 │   │   │           ├── redis-broadcaster.ts  # Room-based state broadcasts

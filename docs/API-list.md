@@ -1783,7 +1783,7 @@ JWT payload structure:
 
 #### `join_game`
 
-**Source:** `backend/app/ludo-engine/src/socket/socket-handlers.ts` (`handleJoinGame`)
+**Source:** `backend/app/ludo-engine/src/socket/join-manager.ts` (`JoinManager.handleJoinGame`)
 
 Join or create a game room. If all players have joined, transitions game from `waiting` to `active` automatically.
 
@@ -1893,7 +1893,7 @@ socket.emit('leave_game');
 
 #### `end_game`
 
-**Source:** `backend/app/ludo-engine/src/socket/server.ts` (`handleEndGame`)
+**Source:** `backend/app/ludo-engine/src/socket/post-game.ts` (`PostGameManager.handleEndGame`)
 
 End the game prematurely (host/admin action).
 
@@ -1923,7 +1923,7 @@ socket.emit('resign');
 
 #### `rematch`
 
-**Source:** `backend/app/ludo-engine/src/socket/server.ts` (`handleRematch`)
+**Source:** `backend/app/ludo-engine/src/socket/post-game.ts` (`PostGameManager.handleRematch`)
 
 Vote for a rematch after the game has ended. At least 2 player votes are required to trigger a rematch.
 
@@ -1938,7 +1938,7 @@ socket.emit('rematch');
 
 #### `exit_post_game`
 
-**Source:** `backend/app/ludo-engine/src/socket/server.ts` (`handleExitPostGame`)
+**Source:** `backend/app/ludo-engine/src/socket/post-game.ts` (`PostGameManager.handleExitPostGame`)
 
 Acknowledge the end of a game and leave the post-game lobby. Removes rematch vote if present.
 
