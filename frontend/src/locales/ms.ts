@@ -519,6 +519,7 @@ export const ms = {
   game: {
     rules: {
       title: 'PROTOKOL & PERATURAN ARENA',
+      versionTag: 'PERATURAN.v42.SYS',
       close: 'TUTUP',
       nextPage: 'HALAMAN SETERUSNYA ▶',
       startPlaying: 'MULA BERMAIN',

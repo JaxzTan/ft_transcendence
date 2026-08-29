@@ -519,6 +519,7 @@ export const fr = {
   game: {
     rules: {
       title: "PROTOCOLES & RÈGLES DE L'ARÈNE",
+      versionTag: 'RÈGLES.v42.SYS',
       close: 'FERMER',
       nextPage: 'PAGE SUIVANTE ▶',
       startPlaying: 'COMMENCER À JOUER',

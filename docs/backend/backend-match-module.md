@@ -285,4 +285,13 @@ GET /api/games/active
 | `REDIS_PORT` | `6479` | Redis port |
 | `REDIS_PASSWORD` | (from secrets) | Redis authentication |
 | `ENGINE_API_KEY` | (from secrets) | Validates `POST /api/game/end` and `/api/game/:id/started` from engine |
+
+### Tunable constants
+
+| Constant | File | Default | What it controls |
+|----------|------|---------|------------------|
+| `SLOT_COLORS` | `match.creator.service.ts`, `match.player.service.ts` | blue, red, green, yellow | Seat order used when creating/joining rooms |
+| `ENGINE_WS_URL` | `match.creator.service.ts` | derived from `FRONTEND_URL` | WebSocket URL handed to clients for the ludo-engine |
+| `POINTS_PER_PIECE` | `common/scoring.ts` | 2 | Rating points per piece brought home (halved for PvE) |
+| `WIN_BONUS_PIECE` | `common/scoring.ts` | 1 | Extra "piece" counted for the winner when scoring |
 | `FRONTEND_URL` | `https://localhost:8443` | Derives `ENGINE_WS_URL` (same origin, `ws://`) returned to clients |

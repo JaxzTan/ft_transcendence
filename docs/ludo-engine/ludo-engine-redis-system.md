@@ -164,9 +164,9 @@ Bots never act on their own. The `BotTurnScheduler` (`socket/bot-scheduler.ts`)
 tells them when to play:
 
 ```text
-game_started  → BotTurnScheduler.schedule(gameId, BOT_THINK_MS)          // 500ms "thinking"
-piece_moved   → BotTurnScheduler.schedule(gameId, path.length*220 + 500) // wait for the move animation
-dice_rolled   → if no legal moves → BotTurnScheduler.schedule(gameId, 750 + 500)
+game_started  → BotTurnScheduler.schedule(gameId, BOT_THINK_MS)                       // 500ms "thinking"
+piece_moved   → BotTurnScheduler.schedule(gameId, path.length*BOT_STEP_ANIM_MS + BOT_THINK_MS)  // wait for the move animation
+dice_rolled   → if no legal moves → BotTurnScheduler.schedule(gameId, DICE_ANIM_MS + BOT_THINK_MS)
 ```
 
 `schedule()` keeps **one timer per game** (`botTurnTimers`): it cancels the
@@ -348,9 +348,9 @@ model already *is* the occupancy map: **16 nodes with a `step` field answer
 
 | Pattern | Type | TTL | Description |
 |---------|------|-----|-------------|
-| `game:{gameId}` | Hash | 86400s (24h) | One field `state` = serialized GameState JSON |
+| `game:{gameId}` | Hash | 86400s (24h) — `GAME_STATE_TTL_SECONDS` (redis.ts) | One field `state` = serialized GameState JSON |
 | `game:{gameId}:moves` | List | — | Move history, trimmed to 200 entries |
-| `match:{gameId}` | Hash | 3600s (aborted) | Match metadata: `player{1-4}_id`, `player{1-4}_color`, `readyPlayers`, `status`, `gameType`, `inviteCode`, `idleSince` |
+| `match:{gameId}` | Hash | 3600s (aborted) — `ABORTED_MATCH_TTL_SECONDS` (redis.ts) | Match metadata: `player{1-4}_id`, `player{1-4}_color`, `readyPlayers`, `status`, `gameType`, `inviteCode`, `idleSince` |
 
 ### Value Format
 

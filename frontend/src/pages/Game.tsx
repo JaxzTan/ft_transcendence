@@ -1265,11 +1265,11 @@ export function Game() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>{t('game.controlsDiceRoll')}</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>SPACEBAR</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-cyan)' }}>{t('gameExtra.spacebarKey')}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>{t('game.controlsSelectPiece')}</span>
-                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>LEFT CLICK</span>
+                      <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.15)', padding: '2px 6px', borderRadius: 3, border: '1px solid var(--accent-pink)' }}>{t('gameExtra.leftClickKey')}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>{t('game.controlsGoal')}</span>
@@ -1779,7 +1779,7 @@ export function Game() {
       <CyberModal
         isOpen={isSystemModalOpen}
         title={t('game.rules.title')}
-        versionTag="RULES.v42.SYS"
+        versionTag={t('game.rules.versionTag')}
         cancelLabel={t('game.rules.close')}
         proceedLabel={rulesPage < 8 ? t('game.rules.nextPage') : t('game.rules.startPlaying')}
         cancelShortcut="ESC"
@@ -1850,11 +1850,11 @@ export function Game() {
                   <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.5px' }}>{t('game.rules.combatControls')}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('game.rules.rollDice')}</span>
-                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem' }}>SPACEBAR</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem' }}>{t('gameExtra.spacebarKey')}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('game.rules.selectPiece')}</span>
-                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '0.85rem' }}>LEFT CLICK</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '0.85rem' }}>{t('gameExtra.leftClickKey')}</span>
                   </div>
                 </div>
               </div>

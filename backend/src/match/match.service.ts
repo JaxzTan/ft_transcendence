@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
+
 import { MatchCreatorService } from './match.creator.service';
-export { ENGINE_WS_URL } from './match.creator.service';
 import { MatchPlayerService } from './match.player.service';
-import { MatchQueryService } from './match.query.service';
 import { MatchPostgameService } from './match.postgame.service';
+import { MatchQueryService } from './match.query.service';
+
+// Re-export so callers can reach the engine WebSocket URL without depending
+// on the creator service directly.
+export { ENGINE_WS_URL } from './match.creator.service';
 
 @Injectable()
 export class MatchService {

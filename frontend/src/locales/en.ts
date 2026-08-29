@@ -520,6 +520,7 @@ export const en = {
   game: {
     rules: {
       title: 'ARENA PROTOCOLS & RULES',
+      versionTag: 'RULES.v42.SYS',
       close: 'CLOSE',
       nextPage: 'NEXT PAGE ▶',
       startPlaying: 'START PLAYING',

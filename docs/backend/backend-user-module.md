@@ -237,3 +237,9 @@ DELETE /api/user/avatar (JWT)
 |-----------|---------|
 | `PrismaService` | Database access (User, GameParticipant, Game models) |
 | `JwtAuthGuard` | Protects avatar write/delete endpoints |
+
+### Tunable constants
+
+| Constant | File | Default | What it controls |
+|----------|------|---------|------------------|
+| `AVATAR_STYLES` | `user.service.ts` | avataaars, bottts, identicon | Allowed DiceBear avatar styles for the server-generated fallback |

@@ -1977,7 +1977,7 @@ Automatically handled when the WebSocket connection drops. Marks player as disco
 | `game_ended` | `{ winner, resultDetail }` | Game finished |
 | `game_timeout` | none | Post-game lobby expired (60s) or rematch quorum broken |
 | `game_created` | `newGameId` (string) | Rematch quorum reached — broadcast to new game room |
-| `game_expired` | none | Lobby game expired (1 hour inactivity) |
+| `game_expired` | none | Idle lobby expired (5 min, < 2 seated) |
 | `player_exited` | `{ color }` | Player disconnected/resigned |
 | `player_aborted` | `{ color, username }` | A player aborted the game |
 | `player_disconnected` | `{ color }` | A player's connection dropped |

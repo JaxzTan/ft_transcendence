@@ -81,7 +81,7 @@ export interface PlayerMeta {
   bonusRoll: boolean;    // Rolled a 6 → rolls again
   isFinished: boolean;   // true when all 4 pieces in goal
   finishedAt?: string;   // ISO timestamp
-  stats: { turns: number; captures: number; piecesInGoal: number };  // Per-game counters
+  stats: { turns: number; captures: number; piecesInGoal: number; clashDefends: number; clashAttacksWon: number };  // Per-game counters
 }
 ```
 
@@ -106,7 +106,12 @@ export interface GameState {
   resultDetail?: string;           // Human-readable finish reason
   resultSubmitted?: boolean;       // prevents duplicate backend submissions
   botBusy?: boolean;               // prevents overlapping bot turns
+  clash?: ClashState;              // Active clash QTE, if any
+  clashMode: boolean;              // Clash minigame on vs standard capture
+  safeZones: boolean;              // Safe/star squares capture-immune
   readyPlayers: PlayerColor[];     // Players who clicked "ready"
+  pendingCapture?: PendingCapture; // Capture deferred until the clash resolves
+  resultCardUntil?: number;        // Input freeze while the clash result card shows
   paused?: boolean;                // Whether the game is paused
   pauseTurnOwner?: PlayerColor;    // Whose turn it was when paused
 }
@@ -135,6 +140,7 @@ export interface MoveResult {
   capturedPieceIds?: PieceId[];  // all opponent pieces sent home from the landing square
   enteredHome: boolean;        // Whether the piece entered the home lane
   bonusRoll: boolean;          // Rolled a 6 → rolls again
+  clashOutcome?: 'attacker_won' | 'defender_won';  // Set when this move ended a clash
 }
 ```
 
@@ -152,8 +158,13 @@ export type GameEvent =
   | { type: 'player_aborted'; gameId; color; username }                                         // A player aborted the game
   | { type: 'player_disconnected'; gameId; color }                                              // A player's connection dropped
   | { type: 'player_reconnected'; gameId; color }                                               // A player reconnected
+  | { type: 'clash_start'; gameId; attackerKey; defenderKey; attacker; defender; ... }           // Clash QTE began (keys + phase deadlines)
+  | { type: 'clash_phase'; gameId; phase }                                                      // Clash advanced phase (announce → countdown → pressing)
+  | { type: 'clash_press'; gameId; color; presses }                                             // A side landed a press (live meters)
+  | { type: 'clash_result'; gameId; winner; loser; winnerPresses; loserPresses }                // Clash resolved; deferred capture applied
   | { type: 'color_selected'; gameId; userId; color }                                           // A player picked a color in the lobby
   | { type: 'lobby_update'; gameId; players };                                                  // Lobby seats changed
+  | { type: 'modifiers_updated'; gameId; clashEnabled; safeZones };                             // Host changed the game rules
 ```
 
 ---
@@ -261,3 +272,22 @@ move_piece(pieceId)
 | `REDIS_PASSWORD` | (from secrets) | RedisGameStore |
 | `BACKEND_URL` | `http://localhost:3000` | ResultSubmitter |
 | `ENGINE_API_KEY` | (from secrets) | ResultSubmitter |
+
+### Tunable constants
+
+Module-level constants in the engine's support files — edit at the top of each file to tweak:
+
+| Constant | File | Default | What it controls |
+|----------|------|---------|------------------|
+| `DISCONNECT_GRACE_MS` | `player-handler.ts` | 45 s | PvP reconnect window before a disconnected player is pruned |
+| `BOT_DISCONNECT_GRACE_MS` | `player-handler.ts` | 1 h | Bot-mode reconnect window before the game auto-aborts |
+| `DISCONNECT_PRUNE_BUFFER_MS` | `player-handler.ts` | 1 s | Extra delay so the PvP prune timer fires after the reconnect deadline |
+| `CLASH_ANNOUNCE_MS` | `clash.ts` | 1500 ms | "CLASH!" flash before keys appear |
+| `CLASH_COUNTDOWN_MS` | `clash.ts` | 3000 ms | 3-2-1 countdown (keys hidden) |
+| `CLASH_PRESS_MS` | `clash.ts` | 5000 ms | Press-race window |
+| `CLASH_RESULT_MS` | `clash.ts` | 2000 ms | Result card shown client-side |
+| `CLASH_RESULT_FREEZE_MS` | `clash.ts` | 4000 ms | Server-side input freeze after a clash resolves (must exceed the client card) |
+| `CLASH_TARGET` | `clash.ts` | 42 | Presses needed to win a clash |
+| `CLASH_PRESS_CAP_MS` | `clash.ts` | 70 ms | Min gap between accepted presses per side |
+| `CLASH_SWEEP_GRACE_MS` | `clash.ts` | 15 s | Recovery sweep force-resolves orphaned clashes older than this |
+| `CLASH_SWEEP_INTERVAL_MS` | `clash-engine.ts` | 5 s | Cadence of the clash recovery sweep |

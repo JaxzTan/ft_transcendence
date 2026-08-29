@@ -72,7 +72,7 @@ sequenceDiagram
         Bot-->>Game: Pass the turn
     else Moves available
         Bot->>Bot: Pick the best move (capture > free from jail on 6 > most points)
-        Bot->>Bot: Wait ~1 second (so the dice animation shows)
+        Bot->>Bot: Wait ~1.2 seconds (BOT_MOVE_DELAY_MS, so the dice animation shows)
         Bot->>Engine: Make the move
         Engine-->>Bot: result
         alt The game is over
@@ -167,3 +167,16 @@ takeTurn()
 | `RedisGameStore` | Loads/saves game state |
 | `BoardMapper` | `isSafeZoneStep()` used in move scoring |
 | `socket/auth.ts` | `isBotUserId()` for bot detection |
+
+---
+
+## Tunable constants
+
+| Constant | File | Default | What it controls |
+|----------|------|---------|------------------|
+| `BOT_MOVE_DELAY_MS` | `bot.ts` | 1200 ms | Bot pauses this long before moving so the dice animation shows |
+| `CLASH_BOT_WIN_MS_BASE` | `clash.ts` | 125 ms | Winning bot's press interval (smaller = wins sooner) |
+| `CLASH_BOT_LOSE_MS_BASE` | `clash.ts` | 170 ms | Losing bot's press interval |
+| `CLASH_BOT_JITTER_MS` | `clash.ts` | 30 ms | Random ± spread on bot press intervals (human-looking cadence) |
+| `CLASH_BOT_VS_BOT_WIN_CHANCE` | `clash.ts` | 0.5 | Bot-vs-bot clash: coin flip |
+| `CLASH_BOT_VS_HUMAN_WIN_CHANCE` | `clash.ts` | 0.25 | Bot's win chance when clashing a human |

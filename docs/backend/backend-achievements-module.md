@@ -29,14 +29,14 @@ Hotseat games never reach the backend, so they are not counted. Bots (`user_id` 
 |------|------|
 | `achievements.controller.ts` | HTTP routes: GET list, POST check |
 | `achievements.service.ts` | Business logic: evaluate rules, unlock flags, fire notifications |
-| `achievements.registry.ts` | Single source of truth: 13 rules with keys, types, and thresholds |
+| `achievements.registry.ts` | Single source of truth: 15 rules with keys, types, and thresholds |
 | `achievements.module.ts` | NestJS module — registers controller, service, PrismaService |
 
 ---
 
 ## Key Types / Interfaces
 
-### The 13 Achievements
+### The 15 Achievements
 
 The registry (`achievements.registry.ts`) defines two rule types:
 - **`lifetime`** — cumulative thresholds over PvP/PvE history.
@@ -57,8 +57,12 @@ The registry (`achievements.registry.ts`) defines two rule types:
 | 11 | `achLoveTheMachine` | Love The Machine | lifetime | 3-game PvE streak | `User.pveGameStreak` |
 | 12 | `achSpeedDemon` | Speed Demon | per-game | Win in under 30 minutes | rank 1 + game duration (`Game.startedAt` / `Game.endedAt`) |
 | 13 | `achUnstoppable` | Unstoppable | per-game | Capture ≥ 3 pieces in one game | `GameParticipant.piecesCaptured` |
+| 14 | `achSteadyDefender` | Steady Defender | per-game | Defend ≥ 2 clashes in one game | `GameParticipant.clashDefends` |
+| 15 | `achMercilessAttacker` | Merciless Attacker | per-game | Win ≥ 2 clash attacks in one game | `GameParticipant.clashAttacksWon` |
 
-> **Lifetime rule sources** (`wins`, `botWins`, `humanWins`) come from `LifecycleCounts`, computed once per evaluation from the user's `COMPLETED` PVP/PVE participations (`rank === 1`). The streak inputs (`winStreak`, `pveGameStreak`) live on the **`User`** model, not on `Achievement` — the `Achievement` row stores only the 13 unlocked flags. In-app display copy for each name/description lives in `frontend/src/locales/en.ts` (`achXxx` / `achXxxDesc` keys).
+> **Lifetime rule sources** (`wins`, `botWins`, `humanWins`) come from `LifecycleCounts`, computed once per evaluation from the user's `COMPLETED` PVP/PVE participations (`rank === 1`). The streak inputs (`winStreak`, `pveGameStreak`) live on the **`User`** model, not on `Achievement` — the `Achievement` row stores only the 15 unlocked flags. In-app display copy for each name/description lives in `frontend/src/locales/en.ts` (`achXxx` / `achXxxDesc` keys).
+
+To add or tweak an achievement, edit `ACHIEVEMENT_KEYS` / `ACHIEVEMENT_RULES` in `achievements.registry.ts` — no new endpoints or logic are needed.
 
 ### Response Shapes
 
@@ -78,6 +82,8 @@ The registry (`achievements.registry.ts`) defines two rule types:
   achLoveTheMachine: { unlocked: boolean; progress: number; target: number };  // Love The Machine achievement (3 PvE streak)
   achSpeedDemon: { unlocked: boolean; progress: number; target: number };  // Speed Demon achievement (win under 30 min)
   achUnstoppable: { unlocked: boolean; progress: number; target: number };  // Unstoppable achievement (3 captures in a game)
+  achSteadyDefender: { unlocked: boolean; progress: number; target: number };  // Steady Defender achievement (2 clash defends)
+  achMercilessAttacker: { unlocked: boolean; progress: number; target: number };  // Merciless Attacker achievement (2 clash attacks won)
 }
 
 // POST /api/achievements/check returns:
@@ -92,7 +98,7 @@ The registry (`achievements.registry.ts`) defines two rule types:
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `GET` | `/api/achievements` | JWT | Report for all 13 achievements: `{ unlocked, progress, target }` per key |
+| `GET` | `/api/achievements` | JWT | Report for all 15 achievements: `{ unlocked, progress, target }` per key |
 | `POST` | `/api/achievements/check` | JWT | Force re-evaluate (silent backfill), return newly-unlocked keys |
 
 ---

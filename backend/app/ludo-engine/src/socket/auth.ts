@@ -2,6 +2,23 @@ import { Socket } from 'socket.io';
 import type { PlayerColor } from '../types';
 
 export const BOT_PREFIX = 'bot-';
+export const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:3000';
+
+/** Data stored on each connected socket */
+export interface SocketData {
+  gameId?: string;
+  playerColor?: PlayerColor;
+  tokenColor?: PlayerColor;
+  userId?: string;
+  username?: string;
+  displayName?: string;
+  role?: 'player';
+  clashEnabled?: boolean;
+  mode?: 'pvp' | 'pve' | 'hotseat';
+}
+
+/** Custom socket wrapper to provide typed data */
+export type GameSocket = Socket & { data: SocketData };
 
 export function isBotUserId(userId: string | undefined): boolean {
   return !!userId && userId.startsWith(BOT_PREFIX);
@@ -31,21 +48,3 @@ export function verifyToken(token: string): { gameId: string; userId: string; us
     return null;
   }
 }
-
-/** Data stored on each connected socket */
-export interface SocketData {
-  gameId?: string;
-  playerColor?: PlayerColor;
-  tokenColor?: PlayerColor;
-  userId?: string;
-  username?: string;
-  displayName?: string;
-  role?: 'player';
-  clashEnabled?: boolean;
-  mode?: 'pvp' | 'pve' | 'hotseat';
-}
-
-/** Custom socket wrapper to provide typed data */
-export type GameSocket = Socket & { data: SocketData };
-
-export const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:3000';

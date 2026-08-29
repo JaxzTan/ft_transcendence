@@ -1,23 +1,14 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import Redis from 'ioredis';
+import { BOT_PREFIX, isBotUserId } from '../common/bot';
+import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
 import { PrismaService } from '../prisma.service';
 import { secret } from '../secrets';
-import Redis from 'ioredis';
-import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
-import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
-
-function generateInviteCode(): string {
-	const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-	let code = '';
-	for (let i = 0; i < 6; i++) {
-		code += chars[Math.floor(Math.random() * chars.length)];
-	}
-	return code;
-}
 
 @Injectable()
 export class MatchCreatorService {
@@ -295,4 +286,13 @@ export class MatchCreatorService {
 		const user = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { displayName: true } });
 		return user?.displayName ?? undefined;
 	}
+}
+
+function generateInviteCode(): string {
+	const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+	let code = '';
+	for (let i = 0; i < 6; i++) {
+		code += chars[Math.floor(Math.random() * chars.length)];
+	}
+	return code;
 }

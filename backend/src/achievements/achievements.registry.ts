@@ -11,57 +11,6 @@
  * client (which may not exist at type-check time in some environments).
  */
 
-export type AchKey =
-  | 'achFirstBlood'
-  | 'achOnFire'
-  | 'achDiceMaster'
-  | 'achBabySteps'
-  | 'achTheDiceLoveMe'
-  | 'achTactician'
-  | 'achMaster'
-  | 'achGrandBotMaster'
-  | 'achWorldChampion'
-  | 'achft_Transcendence'
-  | 'achLoveTheMachine'
-  | 'achSpeedDemon'
-  | 'achUnstoppable'
-  | 'achSteadyDefender'
-  | 'achMercilessAttacker';
-
-/** Minimal structural shape of a GameParticipant row (fields we read). */
-export interface GameParticipantLike {
-  rank: number;
-  piecesCaptured: number;
-  piecesInGoal: number;
-  clashDefends: number;
-  clashAttacksWon: number;
-}
-
-/** Minimal structural shape of a Game row (fields we read). */
-export interface GameLike {
-  startedAt: Date | string | null;
-  endedAt: Date | string | null;
-}
-
-export interface LifecycleCounts {
-  wins: number;        // rank-1 in PVP + PVE
-  botWins: number;     // rank-1 in PVE
-  humanWins: number;   // rank-1 in PVP
-  totalGames: number;  // participations in PVP + PVE
-  winStreak: number;   // User.winStreak
-  pveGameStreak: number; // User.pveGameStreak (consecutive PvE games, any outcome)
-}
-
-export interface AchievementRule {
-  key: AchKey;
-  nameKey: string; // i18n key, e.g. 'dashboard.achDiceMaster'
-  type: 'lifetime' | 'per-game';
-  target?: number; // lifetime threshold (per-game uses perGameTarget)
-  source?: (ctx: LifecycleCounts) => number; // lifetime: count
-  perGameSource?: (part: GameParticipantLike, game: GameLike) => number; // per-game: value
-  perGameTarget?: number;
-}
-
 export const ACHIEVEMENT_KEYS: AchKey[] = [
   'achFirstBlood',
   'achOnFire',
@@ -193,6 +142,57 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     perGameSource: (part) => part.clashAttacksWon,
   },
 ];
+
+export type AchKey =
+  | 'achFirstBlood'
+  | 'achOnFire'
+  | 'achDiceMaster'
+  | 'achBabySteps'
+  | 'achTheDiceLoveMe'
+  | 'achTactician'
+  | 'achMaster'
+  | 'achGrandBotMaster'
+  | 'achWorldChampion'
+  | 'achft_Transcendence'
+  | 'achLoveTheMachine'
+  | 'achSpeedDemon'
+  | 'achUnstoppable'
+  | 'achSteadyDefender'
+  | 'achMercilessAttacker';
+
+/** Minimal structural shape of a GameParticipant row (fields we read). */
+export interface GameParticipantLike {
+  rank: number;
+  piecesCaptured: number;
+  piecesInGoal: number;
+  clashDefends: number;
+  clashAttacksWon: number;
+}
+
+/** Minimal structural shape of a Game row (fields we read). */
+export interface GameLike {
+  startedAt: Date | string | null;
+  endedAt: Date | string | null;
+}
+
+export interface LifecycleCounts {
+  wins: number;        // rank-1 in PVP + PVE
+  botWins: number;     // rank-1 in PVE
+  humanWins: number;   // rank-1 in PVP
+  totalGames: number;  // participations in PVP + PVE
+  winStreak: number;   // User.winStreak
+  pveGameStreak: number; // User.pveGameStreak (consecutive PvE games, any outcome)
+}
+
+export interface AchievementRule {
+  key: AchKey;
+  nameKey: string; // i18n key, e.g. 'dashboard.achDiceMaster'
+  type: 'lifetime' | 'per-game';
+  target?: number; // lifetime threshold (per-game uses perGameTarget)
+  source?: (ctx: LifecycleCounts) => number; // lifetime: count
+  perGameSource?: (part: GameParticipantLike, game: GameLike) => number; // per-game: value
+  perGameTarget?: number;
+}
 
 export function getRule(key: AchKey): AchievementRule | undefined {
   return ACHIEVEMENT_RULES.find((r) => r.key === key);
