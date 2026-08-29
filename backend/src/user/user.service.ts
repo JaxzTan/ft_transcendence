@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
 import { ratingDeltaFor } from '../common/scoring';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly presence: PresenceService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async getPublicProfile(username: string) {
@@ -50,6 +52,21 @@ export class UserService {
       data: { avatarPhoto: data as any, avatarPhotoContentType: contentType },
     });
 
+    await this.notifications
+      .notify(userId, 'profile_updated', { items: ['avatar'] })
+      .catch(() => {});
+
+    // Live push: broadcast a TRANSIENT event so every connected client busts
+    // its cached /api/user/<username>/avatar URL for this user (their own other
+    // tabs included). No persistence — the bell stays clean, the photo refreshes.
+    await this.notifications
+      .broadcast('avatar_changed', {
+        userId: user.id,
+        username: user.username,
+        updatedAt: new Date().toISOString(),
+      })
+      .catch(() => {});
+
     return { message: 'Avatar uploaded', contentType };
   }
 
@@ -70,6 +87,20 @@ export class UserService {
       where: { id: userId },
       data: { avatarPhoto: null, avatarPhotoContentType: null },
     });
+
+    await this.notifications
+      .notify(userId, 'profile_updated', { items: ['avatar'] })
+      .catch(() => {});
+
+    // Same live push as uploadAvatar — clients showing this user's photo must
+    // re-fetch (and correctly fall back to the generated pixel avatar).
+    await this.notifications
+      .broadcast('avatar_changed', {
+        userId: user.id,
+        username: user.username,
+        updatedAt: new Date().toISOString(),
+      })
+      .catch(() => {});
 
     return { message: 'Avatar deleted' };
   }

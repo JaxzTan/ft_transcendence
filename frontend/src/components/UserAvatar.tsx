@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { dicebearAvatar } from '../dicebear'
+import { useAvatarVersion } from '../avatarCache'
 
 type UserAvatarProps = {
   username: string
@@ -13,6 +14,10 @@ type UserAvatarProps = {
 
 export function UserAvatar({ username, size, fallbackStyle, avatarStyle, style, cacheBuster, hasAvatarPhoto }: UserAvatarProps) {
   const [error, setError] = useState(false)
+  // Live avatar-change propagation: bumped by the `avatar_changed` SSE event.
+  // Used as the img `key` so a bump remounts the <img> and re-fetches the photo.
+  // The avatar endpoint serves Cache-Control: no-store, so the refetch is fresh.
+  const liveVersion = useAvatarVersion(username)
 
   // Reset error state if username or cache buster changes
   useEffect(() => {
@@ -49,6 +54,7 @@ export function UserAvatar({ username, size, fallbackStyle, avatarStyle, style, 
 
   return (
     <img
+      key={liveVersion}
       src={src}
       onError={error ? undefined : () => setError(true)}
       style={{

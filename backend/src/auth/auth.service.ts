@@ -11,6 +11,7 @@ import { MailService } from './mail.service';
 import { TwoFactorService } from './twofactor.service';
 import { SessionService } from './session.service';
 import { secret } from '../secrets';
+import { NotificationService } from '../notification/notification.service';
 
 const SALT_ROUNDS = 10;
 // Also where the SPA lives; /api on the same origin reaches the backend
@@ -49,6 +50,7 @@ export class AuthService implements OnModuleDestroy {
     private readonly mail: MailService,
     private readonly twoFactor: TwoFactorService,
     private readonly session: SessionService,
+    private readonly notifications: NotificationService,
   ) {
     // Small Redis client for account-deletion cleanup (same idiom as
     // FriendsService / MatchPlayerService).
@@ -175,6 +177,13 @@ export class AuthService implements OnModuleDestroy {
     });
     // drop every existing session after a password reset
     await this.session.revokeAll(userId);
+
+    // Announce the password reset to the user (persisted — lands in the bell
+    // on their next sign-in, since this flow revokes all open sessions).
+    await this.notifications
+      .notify(userId, 'profile_updated', { items: ['password'] })
+      .catch(() => {});
+
     return { message: 'Password updated — you can log in with it now.' };
   }
 
@@ -382,6 +391,33 @@ export class AuthService implements OnModuleDestroy {
       await this.mail.sendVerification(newEmail, `${BASE_URL}/api/auth/verify-email?token=${token}`);
     }
 
+    // ── Profile-change notifications ─────────────────────────────────────────
+    // 1) Self-confirmation (persisted): "You have updated your profile: …"
+    const changedItems: string[] = [];
+    if (data.displayName !== undefined) changedItems.push('displayName');
+    if (emailChanged) changedItems.push('email');
+    if (dto.twoFactorEnabled !== undefined && dto.twoFactorEnabled !== user.twoFactorEnabled) {
+      changedItems.push('twoFactor');
+    }
+    if (changedItems.length > 0) {
+      await this.notifications
+        .notify(userId, 'profile_updated', { items: changedItems })
+        .catch(() => {});
+    }
+
+    // 2) Global announcement (transient toast, all online users):
+    //    "(Old DisplayName) has changed their Displayname to (New DisplayName)"
+    if (data.displayName !== undefined) {
+      await this.notifications
+        .broadcast('display_name_changed', {
+          fromUserId: userId,
+          fromUsername: user.username,
+          oldDisplayName: user.displayName,
+          displayName: dto.displayName,
+        })
+        .catch(() => {});
+    }
+
     const accounts = await this.prisma.db.account.findMany({
       where: { userId },
       select: { provider: true },
@@ -424,6 +460,11 @@ export class AuthService implements OnModuleDestroy {
 
     // Log the user out everywhere — other devices must re-auth with the new password.
     await this.session.revokeAllExcept(userId, currentRefreshToken);
+
+    await this.notifications
+      .notify(userId, 'profile_updated', { items: ['password'] })
+      .catch(() => {});
+
     return { message: 'Password updated — other devices were signed out.' };
   }
 
@@ -557,6 +598,12 @@ export class AuthService implements OnModuleDestroy {
             providerAccountId: input.providerAccountId,
           },
         });
+
+        // Announce the newly linked sign-in method to the user.
+        await this.notifications
+          .notify(linkUserId, 'profile_updated', { items: ['oauthAdd'] })
+          .catch(() => {});
+
         return linked;
       }
       // The "add method" user no longer exists — e.g. this browser's session

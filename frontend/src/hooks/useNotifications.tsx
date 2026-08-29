@@ -2,14 +2,24 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { useApp } from '../store'
 import { apiFetch } from '../api'
+import { bumpAvatarVersion } from '../avatarCache'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'
+  | 'friend_removed'
+  | 'friend_declined'
   | 'game_invite'
   | 'achievement'
+  | 'match_finished'
+  | 'match_cancelled'
+  | 'profile_updated'
+  | 'display_name_changed'
+  | 'friend_online'
+  | 'friend_offline'
+  | 'avatar_changed'
 
 export interface Notification {
   id: string
@@ -79,6 +89,32 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
           if (!event.data) return
           const notification: Notification = JSON.parse(event.data)
           if (notification && notification.id) {
+            // Global broadcasts are TRANSIENT — toast only, never the bell/unread
+            // badge. The actor also skips their own announcement (they already
+            // get the persisted `profile_updated` toast instead).
+            if (notification.type === 'display_name_changed') {
+              const p = (notification.payload || {}) as Record<string, unknown>
+              if (user && p.fromUserId === user.id) return
+              setToasts((prev) => [notification, ...prev])
+              return
+            }
+            // Friend presence is TRANSIENT — toast only, never the bell/unread
+            // badge (the backend sends these via notifyTransient, so they aren't
+            // persisted). Skip the actor's own tabs defensively.
+            if (notification.type === 'friend_online' || notification.type === 'friend_offline') {
+              const p = (notification.payload || {}) as Record<string, unknown>
+              if (user && p.userId === user.id) return
+              setToasts((prev) => [notification, ...prev])
+              return
+            }
+            // Avatar photo changes are TRANSIENT cache-bust signals — no bell
+            // entry, no toast. Just bump the per-user avatar version so every
+            // open <UserAvatar> for that username re-fetches the photo.
+            if (notification.type === 'avatar_changed') {
+              const p = (notification.payload || {}) as Record<string, unknown>
+              if (p.username) bumpAvatarVersion(String(p.username))
+              return
+            }
             setNotifications((prev) => [notification, ...prev])
             setToasts((prev) => [notification, ...prev])
           }
