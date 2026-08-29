@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Subject, Observable } from 'rxjs';
+import { Subject, Observable, finalize } from 'rxjs';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma.service';
 
@@ -132,7 +132,15 @@ export class NotificationService implements OnModuleDestroy {
       error: () => this.removeClient(userId, subject),
     });
 
-    return subject.asObservable();
+    // Return the Subject wrapped so the cleanup path actually runs: when the
+    // HTTP connection closes, NestJS UNSUBSCRIBES from the returned Observable
+    // (it does not complete it), so the `complete` handler above would never
+    // fire on its own. finalize() runs on unsubscribe, and completing the
+    // Subject there triggers the cleanup handler → removeClient() removes the
+    // Subject from the maps and unsubscribes from Redis when the last tab goes.
+    return subject.asObservable().pipe(
+      finalize(() => subject.complete()),
+    );
   }
 
   /** Remove a single SSE client. Unsubscribes from Redis when the last tab closes. */
@@ -162,10 +170,25 @@ export class NotificationService implements OnModuleDestroy {
     type: NotificationType,
     payload: Record<string, unknown>,
   ): Promise<void> {
+    // ── Failure contract ─────────────────────────────────────────────────────
+    // Notifications are a NON-CRITICAL side effect of whatever action the
+    // caller is performing (friend request, game invite, game end, …). This
+    // method therefore NEVER throws: the persisted row is the source of truth
+    // for the bell (it still shows up on the recipient's next page load even
+    // when the live push fails), and a notification failure must never make a
+    // successful action look failed to the caller. Failures are logged so the
+    // degradation stays visible to operators.
+    let row: { id: string; createdAt: Date };
+
     // 1. Persist to DB so it shows up in the bell dropdown on next page load.
-    const row = await this.prisma.db.notification.create({
-      data: { userId, type, payload: payload as Record<string, any> },
-    });
+    try {
+      row = await this.prisma.db.notification.create({
+        data: { userId, type, payload: payload as Record<string, any> },
+      });
+    } catch (err) {
+      console.error(`[notifications] persist failed for ${type} -> user ${userId}:`, err);
+      return;
+    }
 
     // 2. Build the SSE payload.
     const event: NotificationPayload = {
@@ -177,8 +200,13 @@ export class NotificationService implements OnModuleDestroy {
     };
 
     // 3. Publish to Redis — the subscriber handler (in constructor) pushes
-    //    it to every SSE Subject for this user.
-    await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
+    //    it to every SSE Subject for this user. Best-effort: a failure here
+    //    only delays the toast; the persisted row lands in the bell next load.
+    try {
+      await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
+    } catch (err) {
+      console.warn(`[notifications] live push failed for ${type} -> user ${userId} (persisted, will show on next load):`, err);
+    }
   }
 
   /**
@@ -194,7 +222,14 @@ export class NotificationService implements OnModuleDestroy {
       read: false,
       createdAt: new Date().toISOString(),
     };
-    await this.pub.publish('notify:all', JSON.stringify(event));
+    // Best-effort (transient toast only — nothing persisted). Never throws, so
+    // callers (avatar upload/delete, display-name change) can't fail because a
+    // live broadcast hiccuped.
+    try {
+      await this.pub.publish('notify:all', JSON.stringify(event));
+    } catch (err) {
+      console.warn(`[notifications] global broadcast failed for ${type}:`, err);
+    }
   }
 
   /**
@@ -211,7 +246,13 @@ export class NotificationService implements OnModuleDestroy {
       read: false,
       createdAt: new Date().toISOString(),
     };
-    await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
+    // Best-effort (transient toast only — nothing persisted). Never throws, so
+    // presence heartbeats/logout can't be disturbed by a delivery failure.
+    try {
+      await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
+    } catch (err) {
+      console.warn(`[notifications] transient push failed for ${type} -> user ${userId}:`, err);
+    }
   }
 
   // ─── REST helpers (for the controller) ───────────────────────────────────

@@ -4,6 +4,7 @@ import { Board } from '../components/Board'
 import { Die } from '../components/Die'
 import { ClashOverlay } from '../game/ClashOverlay'
 import { localizedBotName } from '../utils/botName'
+import { ClashModeDiagram, SafeZonesDiagram, GameModsDiagram } from '../components/RulesDiagrams'
 import { applyEvent, initialView } from '../game/reducer'
 import type { PlayerColor } from '../game/types'
 import { navigate } from '../router'
@@ -1795,7 +1796,7 @@ export function Game() {
           }
         }}
         message={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 480, maxWidth: 800 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 540, maxWidth: 880 }}>
             {/* Page Navigation Tabs: Compact 1-row layout */}
             <div style={{ display: 'flex', gap: 6, borderBottom: '1px solid rgba(0, 240, 255, 0.25)', paddingBottom: 10 }}>
               {[
@@ -1818,8 +1819,8 @@ export function Game() {
                   }}
                   style={{
                     flex: 1,
-                    padding: '5px 2px',
-                    fontSize: '0.6rem',
+                    padding: '6px 3px',
+                    fontSize: '0.68rem',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 'bold',
                     background: rulesPage === p.id ? 'rgba(0, 240, 255, 0.22)' : 'rgba(255, 255, 255, 0.04)',
@@ -1839,22 +1840,22 @@ export function Game() {
 
             {/* PAGE 0: Objective & Controls */}
             {rulesPage === 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.missionTitle')}
                 </div>
-                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '1.1rem' }}>
                   {t('game.rules.missionBody')}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(5, 2, 18, 0.65)', padding: 14, borderRadius: 6, border: '1px solid rgba(255, 0, 127, 0.3)' }}>
-                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.5px' }}>{t('game.rules.combatControls')}</div>
+                  <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '1rem', letterSpacing: '0.5px' }}>{t('game.rules.combatControls')}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('game.rules.rollDice')}</span>
-                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '0.85rem' }}>{t('gameExtra.spacebarKey')}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '1.05rem' }}>{t('game.rules.rollDice')}</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(0, 240, 255, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-cyan)', fontWeight: 'bold', fontSize: '1rem' }}>{t('gameExtra.spacebarKey')}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('game.rules.selectPiece')}</span>
-                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '0.85rem' }}>{t('gameExtra.leftClickKey')}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '1.05rem' }}>{t('game.rules.selectPiece')}</span>
+                    <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', background: 'rgba(255, 0, 127, 0.2)', padding: '3px 10px', borderRadius: 4, border: '1px solid var(--accent-pink)', fontWeight: 'bold', fontSize: '1rem' }}>{t('gameExtra.leftClickKey')}</span>
                   </div>
                 </div>
               </div>
@@ -1862,22 +1863,22 @@ export function Game() {
 
             {/* PAGE 1: Rolling a 6 */}
             {rulesPage === 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-yellow)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.rolling6Title')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-yellow)', border: '1px solid rgba(255, 230, 0, 0.2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>⚡</span>
-                    <span>{t('game.rules.roll6Pre')} <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> {t('game.rules.roll6Post')}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.1rem' }}>
+                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.3rem' }}>⚡</span>
+                    <span>{t('game.rules.roll6Pre')} <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>6</strong> {t('game.rules.roll6Post')}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>🚀</span>
-                    <span>{t('game.rules.newPiecePre')} <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.05rem' }}>6</strong> {t('game.rules.newPiecePost')}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.1rem' }}>
+                    <span style={{ color: 'var(--accent-yellow)', fontSize: '1.3rem' }}>🚀</span>
+                    <span>{t('game.rules.newPiecePre')} <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>6</strong> {t('game.rules.newPiecePost')}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: '#ff0055', fontSize: '1.2rem' }}>⛔</span>
-                    <span>{t('game.rules.three6Pre')} <strong style={{ color: '#ff0055', fontSize: '1.05rem' }}>{t('game.rules.three6Bold')}</strong> {t('game.rules.three6Post')}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.1rem' }}>
+                    <span style={{ color: '#ff0055', fontSize: '1.3rem' }}>⛔</span>
+                    <span>{t('game.rules.three6Pre')} <strong style={{ color: '#ff0055', fontSize: '1.2rem' }}>{t('game.rules.three6Bold')}</strong> {t('game.rules.three6Post')}</span>
                   </div>
                 </div>
               </div>
@@ -1885,21 +1886,21 @@ export function Game() {
 
             {/* PAGE 2: Landing on Enemy Piece */}
             {rulesPage === 2 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.enemyTitle')}
                 </div>
-                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                <p style={{ margin: 0, color: '#f0f0f0', fontSize: '1.1rem' }}>
                   {t('game.rules.enemyIntro')}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-pink)', border: '1px solid rgba(255, 0, 127, 0.2)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: 'var(--accent-pink)', fontSize: '1.2rem' }}>⚔</span>
-                    <span>{t('game.rules.kickedHomePre')} <strong style={{ color: 'var(--accent-pink)', fontSize: '1.05rem' }}>{t('game.rules.kickedHomeBold')}</strong> {t('game.rules.kickedHomePost')}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.1rem' }}>
+                    <span style={{ color: 'var(--accent-pink)', fontSize: '1.3rem' }}>⚔</span>
+                    <span>{t('game.rules.kickedHomePre')} <strong style={{ color: 'var(--accent-pink)', fontSize: '1.2rem' }}>{t('game.rules.kickedHomeBold')}</strong> {t('game.rules.kickedHomePost')}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.95rem' }}>
-                    <span style={{ color: '#00ff88', fontSize: '1.2rem' }}>✦</span>
-                    <span>{t('game.rules.combatBonusPre')} <strong style={{ color: '#00ff88', fontSize: '1.05rem' }}>{t('game.rules.combatBonusBold')}</strong></span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.1rem' }}>
+                    <span style={{ color: '#00ff88', fontSize: '1.3rem' }}>✦</span>
+                    <span>{t('game.rules.combatBonusPre')} <strong style={{ color: '#00ff88', fontSize: '1.2rem' }}>{t('game.rules.combatBonusBold')}</strong></span>
                   </div>
                 </div>
               </div>
@@ -1907,15 +1908,15 @@ export function Game() {
 
             {/* PAGE 3: The Star */}
             {rulesPage === 3 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.starTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontSize: '1.1rem' }}>
                     {t('game.rules.starSafe')}
                   </div>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '1.1rem' }}>
                     {t('game.rules.starBody')}
                   </p>
                 </div>
@@ -1924,15 +1925,15 @@ export function Game() {
 
             {/* PAGE 4: Two Pieces Together (Blockade) */}
             {rulesPage === 4 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#00ff88', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#00ff88', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.blockTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #00ff88', border: '1px solid rgba(0, 255, 136, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ color: '#00ff88', fontWeight: 'bold', fontSize: '1.1rem' }}>
                     {t('game.rules.blockShield')}
                   </div>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '1.1rem' }}>
                     {t('game.rules.blockBodyPre')} <strong style={{ color: '#00ff88' }}>{t('game.rules.blockBodyBold')}</strong> {t('game.rules.blockBodyPost')}
                   </p>
                 </div>
@@ -1941,15 +1942,15 @@ export function Game() {
 
             {/* PAGE 5: Home Lane */}
             {rulesPage === 5 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#9d00ff', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#9d00ff', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.homeTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #9d00ff', border: '1px solid rgba(157, 0, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '1.1rem' }}>
                     {t('game.rules.homeSafePre')} <strong style={{ color: '#00ff88' }}>{t('game.rules.homeSafeBold')}</strong> {t('game.rules.homeSafePost')}
                   </p>
-                  <p style={{ margin: 0, color: '#ffe600', fontWeight: 'bold', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+                  <p style={{ margin: 0, color: '#ffe600', fontWeight: 'bold', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                     {t('game.rules.homeCenter')}
                   </p>
                 </div>
@@ -1958,16 +1959,14 @@ export function Game() {
 
             {/* PAGE 6: Game Mods */}
             {rulesPage === 6 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#ff007f', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#ff007f', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.gameModsTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #ff007f', border: '1px solid rgba(255, 0, 127, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    {t('game.rules.gameModsBody1')}
-                  </p>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    {t('game.rules.gameModsBody2')}
+                  <GameModsDiagram />
+                  <p style={{ margin: 0, color: '#c9c9c9', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+                    {t('game.rules.gameModsNote')}
                   </p>
                 </div>
               </div>
@@ -1975,26 +1974,25 @@ export function Game() {
 
             {/* PAGE 7: Clash Mode */}
             {rulesPage === 7 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: 'var(--accent-cyan)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.clashTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-cyan)', border: '1px solid rgba(0, 240, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
-                    {t('game.rules.clashBody')}
-                  </p>
+                  <ClashModeDiagram />
                 </div>
               </div>
             )}
 
             {/* PAGE 8: No Safe Zones */}
             {rulesPage === 8 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '0.95rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#ffe600', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.05rem', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                <div style={{ color: '#ffe600', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.noSafeTitle')}
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #ffe600', border: '1px solid rgba(255, 230, 0, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '0.95rem' }}>
+                  <SafeZonesDiagram />
+                  <p style={{ margin: 0, color: '#f0f0f0', fontSize: '1.05rem', textAlign: 'center' }}>
                     {t('game.rules.noSafeBody')}
                   </p>
                 </div>
