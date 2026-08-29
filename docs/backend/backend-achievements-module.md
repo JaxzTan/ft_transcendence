@@ -4,7 +4,7 @@
 
 - [Overview](#overview) — Achievement evaluation and retrieval
 - [Files](#files) — Source file inventory
-- [Key Types / Interfaces](#key-types--interfaces) — The 13 achievements and response shape
+- [Key Types / Interfaces](#key-types--interfaces) — The 15 achievements and response shape
 - [API Endpoints](#api-endpoints) — Both routes
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagram of check flow
 - [Logic Paths Summary](#logic-paths-summary) — Decision trees
@@ -14,7 +14,7 @@
 
 ## Overview
 
-The Achievements module tracks 13 achievement badges earned from match performance. Achievements are stored as true/false columns on the 1:1 `Achievement` model (see `backend-database-schema-system.md`). They are evaluated in two ways:
+The Achievements module tracks 15 achievement badges earned from match performance. Achievements are stored as true/false columns on the 1:1 `Achievement` model (see `backend-database-schema-system.md`). They are evaluated in two ways:
 
 1. **Automatically after a game** — `evaluateAfterGame(gameId)` runs after every PvP/PvE game ends, checks each real (non-bot) player, and sends a notification when an achievement unlocks.
 2. **On demand** — `POST /api/achievements/check` re-evaluates the current user silently (no notifications), which is useful after a rule change.
@@ -164,7 +164,7 @@ POST /api/achievements/check (JWT)
 - **`achLoveTheMachine` depends on `User.pveGameStreak`**, which increments on any PVE game (any rank) and resets to 0 on a PVP game (`match.postgame.service.ts`). It is not derivable from lifetime win/loss counts, so seed data approximates it rather than guaranteeing it.
 - **`achSpeedDemon` needs both `startedAt` and `endedAt`** on the game; if either is missing, progress is 0 (no unlock) — it does not error.
 - **`POST /achievements/check`** runs the same rules with `announce: false` — a silent backfill pass useful after schema/seed changes. Because no single game is passed in, it replays the user's full `COMPLETED` game history so per-game rules can unlock from historical games, not just the latest one.
-- **Frontend badge counter** (`achievementsBadge` / `achievementsTab`) is `unlocked / 13`.
+- **Frontend badge counter** (`achievementsBadge` / `achievementsTab`) is `unlocked / 15` (from `ACHIEVEMENTS_DEF.length` in `Profile.tsx`).
 
 ## Dependencies
 

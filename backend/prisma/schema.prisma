@@ -93,6 +93,8 @@ model Achievement {
   achft_Transcendence  Boolean @default(false)
   achSpeedDemon        Boolean @default(false)
   achUnstoppable       Boolean @default(false)
+  achSteadyDefender    Boolean @default(false)
+  achMercilessAttacker Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

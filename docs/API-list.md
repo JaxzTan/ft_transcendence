@@ -1,6 +1,6 @@
 # **API List**
 
-Complete reference of all HTTP and WebSocket APIs in the project. Updated 8 Aug 2026
+Complete reference of all HTTP and WebSocket APIs in the project. Updated 29 Aug 2026
 
 ---
 
@@ -601,6 +601,7 @@ Get a user's public profile.
   "bestWinStreak": 0,
   "botWins": 0,
   "humanWins": 0,
+  "hasAvatarPhoto": false,
   "status": "online | playing | offline"
 }
 
@@ -643,7 +644,9 @@ Get a user's game history.
       "participants": [
         {
           "username": "string",
+          "displayName": "string",
           "avatarStyle": "bottts",
+          "hasAvatarPhoto": false,
           "color": "RED",
           "rank": 1,
           "piecesInGoal": 4
@@ -678,7 +681,7 @@ Upload an avatar image (max 2 MB, PNG/JPEG/GIF/WebP).
 
 ```json
 {
-  "message": "Avatar updated"
+  "message": "Avatar uploaded"
 }
 
 ```
@@ -691,13 +694,11 @@ Upload an avatar image (max 2 MB, PNG/JPEG/GIF/WebP).
 
 **Source:** `backend/src/user/user.controller.ts` — UserModule
 
-Retrieve a user's custom avatar image.
+Retrieve a user's avatar image.
 
 **Headers:** None  
 **Path:** `:username` = username string  
-**Response:** Binary image data with `Content-Type` set to the stored MIME type.
-
-**Errors:** 404 if no custom avatar set.
+**Response:** Binary image data with `Content-Type` set to the stored MIME type, served with `Cache-Control: no-store`. If the user has no uploaded photo (or the user is a bot), the server generates and serves a DiceBear pixel avatar (seeded by username) as `image/svg+xml` instead — avatar URLs never 404.
 
 ---
 
@@ -754,7 +755,8 @@ Find or create a random PvP match.
 
 ```json
 {
-  "color": "red"
+  "clashEnabled": true,
+  "safeZones": true
 }
 
 ```
@@ -768,7 +770,7 @@ Find or create a random PvP match.
   "engineUrl": "ws://localhost:8443",
   "color": "blue",
   "mode": "pvp",
-  "playerCount": 2
+  "playerCount": 4
 }
 
 ```
@@ -776,6 +778,7 @@ Find or create a random PvP match.
 **Notes:**
 - If a WAITING PvP game with an open slot exists, joins it immediately.
 - Otherwise, creates a new WAITING game.
+- `clashEnabled` / `safeZones` are optional game modifiers (default `true`). Seat `color` is assigned by the server — clients can no longer pick their own color.
 
 ---
 
@@ -790,7 +793,8 @@ Create a PvP invite game with a shareable code.
 
 ```json
 {
-  "color": "red"
+  "clashEnabled": true,
+  "safeZones": true
 }
 
 ```
@@ -805,7 +809,7 @@ Create a PvP invite game with a shareable code.
   "engineUrl": "ws://localhost:8443",
   "color": "blue",
   "mode": "pvp",
-  "playerCount": 2
+  "playerCount": 4
 }
 
 ```
@@ -813,6 +817,7 @@ Create a PvP invite game with a shareable code.
 **Notes:**
 - Share `inviteCode` via chat/friend list.
 - Recipient joins via `POST /api/match/join/:code`.
+- `clashEnabled` / `safeZones` are optional game modifiers (default `true`). Seat `color` is assigned by the server.
 
 ---
 
@@ -824,14 +829,7 @@ Join a PvP game by invite code.
 
 **Headers:** 🔒 (requires `token` cookie)  
 **Path:** `:code` = 6-char invite code  
-**Body:**
-
-```json
-{
-  "color": "red"
-}
-
-```
+**Body:** None (seat `color` is assigned by the server)
 
 **Response:**
 
@@ -842,12 +840,12 @@ Join a PvP game by invite code.
   "engineUrl": "ws://localhost:8443",
   "color": "red",
   "mode": "pvp",
-  "playerCount": 2
+  "playerCount": 4
 }
 
 ```
 
-**Errors:** 404 if code not found/expired, 403 if game already started, 400 if joining own invite.
+**Errors:** 404 if code not found/expired, 400 if joining own invite.
 
 ---
 
@@ -863,7 +861,8 @@ Start a PvE (vs bot) game.
 ```json
 {
   "playerCount": 2,
-  "color": "red"
+  "clashEnabled": true,
+  "safeZones": true
 }
 
 ```
@@ -885,6 +884,7 @@ Start a PvE (vs bot) game.
 **Notes:**
 - Game is `ACTIVE` immediately.
 - Bots fill remaining slots automatically.
+- `playerCount` must be 2 or 4; `clashEnabled` / `safeZones` are optional modifiers (default `true`). Seat `color` is assigned by the server.
 
 ---
 
@@ -900,9 +900,12 @@ Unified match creation — supports PvP, PvE, and hotseat modes.
 ```json
 {
   "mode": "pvp",
-  "playerCount": 2,
+  "playerCount": 4,
   "botCount": 0,
-  "color": "red"
+  "clashEnabled": true,
+  "safeZones": true,
+  "botColors": ["red", "green"],
+  "seatColors": ["yellow", "blue"]
 }
 
 ```
@@ -916,11 +919,17 @@ Unified match creation — supports PvP, PvE, and hotseat modes.
   "engineUrl": "ws://localhost:8443",
   "color": "blue",
   "mode": "pvp",
-  "playerCount": 2,
+  "playerCount": 4,
   "inviteCode": "ABCD12"
 }
 
 ```
+
+**Notes:**
+- `mode` is **required** and must be `pvp`, `pve`, or `hotseat` (no silent fallback).
+- `playerCount` accepts 1-4; `botCount` must be 0 to `playerCount-1`. Bots are only allowed in PvE games.
+- `clashEnabled` / `safeZones` are optional game modifiers (default `true`).
+- `botColors` / `seatColors` (optional string arrays) can override the default slot colors. Seat `color` is otherwise assigned by the server.
 
 ---
 
@@ -1268,6 +1277,7 @@ Get paginated leaderboard rankings.
 Get the current user's achievement report (unlocked state + progress + target per achievement).
 
 **Headers:** 🔒 (requires `token` cookie)  
+**Query Params:** optional `?username=<username>` returns another user's achievement report.  
 **Response:**
 
 ```json
@@ -1284,7 +1294,9 @@ Get the current user's achievement report (unlocked state + progress + target pe
   "achft_Transcendence": { "unlocked": false, "progress": 0, "target": 10 },
   "achLoveTheMachine": { "unlocked": false, "progress": 0, "target": 3 },
   "achSpeedDemon": { "unlocked": false, "progress": 0, "target": 1 },
-  "achUnstoppable": { "unlocked": false, "progress": 0, "target": 3 }
+  "achUnstoppable": { "unlocked": false, "progress": 0, "target": 3 },
+  "achSteadyDefender": { "unlocked": false, "progress": 0, "target": 2 },
+  "achMercilessAttacker": { "unlocked": false, "progress": 0, "target": 2 }
 }
 
 ```
@@ -1306,6 +1318,8 @@ Get the current user's achievement report (unlocked state + progress + target pe
 | `achLoveTheMachine` | lifetime | 3-game PvE streak |
 | `achSpeedDemon` | per-game | Win in under 30 minutes |
 | `achUnstoppable` | per-game | Capture ≥ 3 pieces in one game |
+| `achSteadyDefender` | per-game | Defend ≥ 2 clashes in one game |
+| `achMercilessAttacker` | per-game | Win ≥ 2 clash attacks in one game |
 
 ---
 
@@ -1321,12 +1335,12 @@ Force re-evaluate achievements for the current user.
 
 ```json
 {
-  "unlocked": ["First Blood"]
+  "unlocked": ["achFirstBlood"]
 }
 
 ```
 
-The `unlocked` array contains the display names of any achievements newly unlocked by this evaluation.
+The `unlocked` array contains the **keys** of any achievements newly unlocked by this evaluation (e.g. `achFirstBlood`). This backfill runs silently (`announce=false` — no notification burst fires).
 
 ---
 
@@ -1649,6 +1663,24 @@ Clear presence (e.g. on logout).
 
 ---
 
+#### `GET /api/presence/online-count`
+
+**Source:** `backend/src/presence/presence.controller.ts` — PresenceModule
+
+Get the site-wide count of currently online users (for the homepage badge bar).
+
+**Headers:** 🔒 (requires `token` cookie)  
+**Response:**
+
+```json
+{
+  "count": 12
+}
+
+```
+
+---
+
 ---
 
 ### 18. Notifications
@@ -1673,7 +1705,7 @@ SSE stream — pushes new notifications to the browser in real time.
 
 ```
 
-Types: `friend_request` | `friend_accepted` | `game_invite` | `achievement`
+Types: `friend_request` | `friend_accepted` | `friend_removed` | `friend_declined` | `game_invite` | `achievement` | `match_finished` | `match_cancelled` | `profile_updated` | `display_name_changed` | `friend_online` | `friend_offline` | `avatar_changed`
 
 ---
 

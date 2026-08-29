@@ -21,7 +21,7 @@ The Notification module delivers real-time, persisted notifications to users. It
 1. **Persistence** — every notification is written to the `Notification` table (PostgreSQL), so missed notifications appear in the bell dropdown on next page load.
 2. **Real-time push** — a Server-Sent Events (SSE) stream (`/api/notifications/stream`) delivers new notifications instantly to open tabs, bridged via Redis Pub/Sub.
 
-Notification types: `friend_request`, `friend_accepted`, `game_invite`, `achievement`.
+Notification types: `friend_request`, `friend_accepted`, `friend_removed`, `friend_declined`, `game_invite`, `achievement`, `match_finished`, `match_cancelled`, `profile_updated`, `display_name_changed`, `friend_online`, `friend_offline`, `avatar_changed`.
 
 > The module is imported by `FriendsModule`, `MatchModule`, and `AchievementsModule`, which inject `NotificationService` and call `notify()`. It exports `NotificationService` so any module can send a notification.
 
@@ -97,8 +97,17 @@ therefore guarantees:
 export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'
+  | 'friend_removed'
+  | 'friend_declined'
   | 'game_invite'
-  | 'achievement';
+  | 'achievement'
+  | 'match_finished'
+  | 'match_cancelled'
+  | 'profile_updated'
+  | 'display_name_changed'
+  | 'friend_online'
+  | 'friend_offline'
+  | 'avatar_changed';
 ```
 
 ### NotificationPayload

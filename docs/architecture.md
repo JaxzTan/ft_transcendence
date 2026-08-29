@@ -144,7 +144,7 @@ engine process.
 
 Prisma-managed, schema at `backend/prisma/schema.prisma`.
 
-**Models:** `User` (account + per-user stats, avatar, counters), `Account` (OAuth provider links), `Achievement` (13 achievement flags), `Game`, `GameParticipant`, `Friendship`, `LeaderboardSnapshot`, `Notification`
+**Models:** `User` (account + per-user stats, avatar, counters), `Account` (OAuth provider links), `Achievement` (15 achievement flags), `Game`, `GameParticipant`, `Friendship`, `LeaderboardSnapshot`, `Notification`
 **Enums:** `FriendshipStatus`, `PlayerColor`, `GameStatus`, `GameType`
 
 Schema is applied with `npx prisma db push --accept-data-loss` from
@@ -184,7 +184,7 @@ notification services all authenticate their Redis connections via
 | `UserModule` | `/api/user` | Profile, avatar, game history |
 | `FriendsModule` | `/api/friends` | Requests, accept/decline, block |
 | `LeaderboardModule` | `/api/leaderboard` | Rankings, Redis-backed with Postgres fallback |
-| `AchievementsModule` | `/api/achievements` | 13 Ludo achievements |
+| `AchievementsModule` | `/api/achievements` | 15 Ludo achievements |
 | `StatsModule` | `/api/stats` | Per-player aggregates |
 | `MatchModule` | `/api/match`, `/api/game` | Matchmaking (PvP/PvE/hotseat), game lifecycle |
 | `PresenceModule` | `/api/presence` | Online/offline/playing presence tracking |
@@ -310,7 +310,7 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   │   ├── leaderboard-redis.service.ts  # Redis sorted sets
 │   │   │   └── leaderboard.module.ts
 │   │   │
-│   │   ├── achievements/         # 13 Ludo achievements
+│   │   ├── achievements/         # 15 Ludo achievements
 │   │   │   ├── achievements.controller.ts  # GET, POST /check
 │   │   │   ├── achievements.service.ts
 │   │   │   ├── achievements.registry.ts

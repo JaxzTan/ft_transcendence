@@ -16,7 +16,7 @@
 
 The ludo-engine exposes a Socket.IO server on port 3001. All game communication happens through events. The engine requires JWT authentication in the handshake `auth` object.
 
-The server is started by `index.ts` which calls `SocketServer.start(3001)`. The `SocketServer` class in `socket/server.ts` is the orchestration root: it wires the engine (game state machine) and Redis store, then routes engine events and socket events to the dedicated modules (`SocketHandlers`, `JoinManager`, `BotTurnScheduler`, `PostGameManager`).
+The server is started by `index.ts` which calls `SocketServer.start(3001)`. The `SocketServer` class in `socket/server.ts` is the orchestration root / composition root: it constructs and wires **all** of the engine's split services — `RedisGameStore` (persistence), `EventPublisher` (Redis pub/sub), `RedisBroadcaster` (room state broadcasts), `ClashManager` (clash QTE), `LudoEngine` (game state machine), `LobbyManager` (colors + ready check), `ResultSubmitter` (POST /api/game/end callback), `SocketHandlers` (which delegates `join_game` to `JoinManager`), `BotTurnScheduler` (bot turn timers), and `PostGameManager` (post-game timeout / rematch) — then routes engine events and socket events to those modules.
 
 ---
 
@@ -25,7 +25,7 @@ The server is started by `index.ts` which calls `SocketServer.start(3001)`. The 
 | File | Role |
 |------|------|
 | `index.ts` | Entry point — `SocketServer.start(3001)` |
-| `socket/server.ts` | `SocketServer` — composition root: engine wiring, JWT middleware, engine-event routing, socket wiring |
+| `socket/server.ts` | `SocketServer` — composition root: constructs/wires `RedisGameStore`, `EventPublisher`, `RedisBroadcaster`, `ClashManager`, `LudoEngine`, `LobbyManager`, `ResultSubmitter`, `SocketHandlers` (+ `JoinManager`), `BotTurnScheduler`, `PostGameManager`; also JWT middleware, engine-event routing, and socket wiring |
 | `socket/auth.ts` | `GameSocket` type, JWT extraction middleware |
 | `socket/socket-handlers.ts` | `SocketHandlers` — client→server gameplay/lobby/lifecycle handlers; delegates `join_game` to `JoinManager` |
 | `socket/join-manager.ts` | `JoinManager` — the `join_game` flow (seat resolution, game creation, reconnects, auto-start, resume) |

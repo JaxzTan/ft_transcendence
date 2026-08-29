@@ -238,7 +238,7 @@ All project documentation lives under `docs/`, grouped by category. Each file is
 | [docs/backend/backend-friends-module.md](docs/backend/backend-friends-module.md) | Friend requests, accept/decline, block/unblock, game invites |
 | [docs/backend/backend-match-module.md](docs/backend/backend-match-module.md) | Matchmaking (PvP/PvE/hotseat) and game lifecycle |
 | [docs/backend/backend-leaderboard-module.md](docs/backend/backend-leaderboard-module.md) | Rankings with Redis cache + PostgreSQL fallback |
-| [docs/backend/backend-achievements-module.md](docs/backend/backend-achievements-module.md) | 13 achievement badges and their evaluation |
+| [docs/backend/backend-achievements-module.md](docs/backend/backend-achievements-module.md) | 15 achievement badges and their evaluation |
 | [docs/backend/backend-player-stats-module.md](docs/backend/backend-player-stats-module.md) | Per-player lifetime statistics |
 | [docs/backend/backend-presence-module.md](docs/backend/backend-presence-module.md) | Online / in-game / offline presence tracking |
 | [docs/backend/backend-notification-module.md](docs/backend/backend-notification-module.md) | Real-time notifications (SSE + Redis pub/sub) |

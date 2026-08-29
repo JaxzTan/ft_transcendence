@@ -44,6 +44,7 @@ The User module manages public user profiles, game history, and avatar images.
   username: string;  // Player's username
   displayName: string;  // Name shown in the game
   avatarStyle: string;      // Avatar style (from User)
+  hasAvatarPhoto: boolean;  // Whether a custom photo is set (from avatarPhotoContentType)
   rating: number;           // Rating (from User)
   highestRating: number;    // Peak rating (from User)
   wins: number;  // Games won
@@ -73,7 +74,9 @@ The User module manages public user profiles, game history, and avatar images.
   endedAt: string | null;  // When the game ended
   participants: Array<{  // Everyone who played
     username: string;  // Player's username
+    displayName: string;  // Player's display name
     avatarStyle: string;  // Avatar style name
+    hasAvatarPhoto: boolean;  // Whether the player has a custom avatar photo
     color: string;  // Seat color
     rank: number;  // Position in the ranking
     piecesInGoal: number;  // Pieces finished (0-4)
@@ -218,8 +221,9 @@ POST /api/user/avatar (JWT)
 ```
 GET /api/user/:username/avatar
   ├── getAvatar(username) via User.avatarPhoto
-  │   ├── null → 404
-  │   └── found → res.set(Content-Type), send binary (Cache-Control: 1 day)
+  │   ├── Has uploaded photo → res.set(Content-Type to stored MIME), send binary (Cache-Control: no-store)
+  │   └── No photo (or user is a bot) → generate DiceBear pixel avatar (seeded by username),
+  │       send as image/svg+xml (Cache-Control: no-store) — avatar URLs never 404
 ```
 
 ### Delete Avatar Path

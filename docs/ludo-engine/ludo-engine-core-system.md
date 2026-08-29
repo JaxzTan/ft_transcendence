@@ -30,7 +30,7 @@ The engine core is the game's referee: it runs inside the `ludo-engine` service 
 
 | File | Role |
 |------|------|
-| `engine.ts` | `LudoEngine` — orchestrator: per-game lock, event stream, `rollDice`/`movePiece`, player-lifecycle + lobby wrappers |
+| `engine.ts` | `LudoEngine` — orchestrator: per-game lock, event stream, `rollDice`/`movePiece`, player-lifecycle + lobby wrappers; composes `MoveValidator`, `BoardMapper`, `RedisGameStore`, `PlayerHandler`, `LobbyManager`, `ClashEngine`, and `applyMoveOutcome` (`turn.ts`) |
 | `clash-engine.ts` | `ClashEngine` — clash QTE orchestration: phase timers, recovery sweep, bot pressers, press recording, deferred-capture resolution |
 | `turn.ts` | `applyMoveOutcome` — shared move-completion (stats, win check, bonus/turn advance) used by `movePiece` and clash resolution |
 | `types.ts` | Type definitions: `GameState`, `PlayerMeta`, `Piece`, `LegalMove`, `MoveResult`, `GameEvent` |

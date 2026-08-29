@@ -40,17 +40,68 @@ The Leaderboard module shows a **ranked list of players**, sorted by rating
 
 ### How Redis sorted sets rank players
 
-Redis keeps one **sorted set** per mode:
+Redis keeps one **sorted set** per mode.
+
+**What a sorted set is (plain English):** a Redis *sorted set* is a collection
+of unique members (here, `userId`s) where **each member carries a numeric
+"score"** (here, the player's rating). Redis keeps the set **ordered by that
+score automatically** — every insert immediately lands in the right position,
+in `O(log n)` time. You never sort by hand: to read the leaderboard you just
+ask Redis for a slice of the already-sorted set, and to move a player up or
+down you just change their score (via `ZADD` with the new rating) and Redis
+repositions them for free. It is the canonical Redis data structure for
+leaderboards for exactly this reason.
 
 | Redis command | What it does | Where it is used |
 |---------------|--------------|------------------|
-| `ZADD leaderboard:global <rating> <userId>` | Add a player, or update their score | seed, game end, fill-on-demand |
+| `ZADD leaderboard:global <rating> <userId>` | Add a player, or **update** their score (inserts or repositions) | seed, game end, fill-on-demand |
 | `ZREVRANGE key start stop WITHSCORES` | Read one page, **highest rating first** | `getLeaderboardFromRedis` |
 | `ZREVRANK key userId` | A player's position (starts at 0, so add 1) | `getUserRank` (the `myRank` highlight) |
 | `ZCARD key` | How many players are in the set | `getLeaderboardCount` |
 
+A few concrete points about how the app uses them:
+
+- **`ZADD` doubles as "insert" and "update".** If the `userId` is already in the
+  set, `ZADD` just overwrites its score — you do not need a separate check or
+  delete. That is why game-end scoring can blindly `ZADD` a player's new rating
+  without knowing whether they were already ranked.
+- **`ZREVRANGE ... WITHSCORES` returns a flat array** `[userId1, rating1, userId2,
+  rating2, ...]`. The app steps through it two elements at a time to build the
+  `{ userId, rating }` entries (see `getLeaderboardFromRedis`).
+- **`ZREVRANK` is 0-based**, so the app adds 1 to turn it into a human "rank"
+  (1st place = index 0 → rank 1).
+- **Ascending vs descending:** `ZREVRANGE` reads *highest score first*
+  (reverse order). Redis also has `ZRANGE` for ascending — this app always uses
+  the reverse variant because a leaderboard ranks the top players first.
+- **Ties:** when two players share a rating, Redis orders them by *member*
+  (the `userId` string) as a tiebreaker. Two users with the same rating will
+  still have a deterministic, stable order — no "equal rank" logic is needed
+  downstream.
+
 The set is always in rating order, so reading the top N players is just one
 `ZREVRANGE` call — no sorting needed in the app.
+
+#### The leaderboard writes (`ZADD`) and reads in one picture
+
+```mermaid
+sequenceDiagram
+    participant Post as MatchPostgameService
+    participant L as LeaderboardRedisService
+    participant R as Redis sorted set (leaderboard:{mode})
+    participant API as LeaderboardService
+
+    Note over Post,R: On every game end
+    Post->>Post: compute new rating for a human player
+    Post->>L: updateLeaderboardEntry(userId, newRating, 'global')
+    L->>R: ZADD leaderboard:global newRating userId
+    Note over R: Redis re-sorts automatically
+
+    Note over API,R: When a client asks
+    API->>L: getLeaderboardFromRedis('global', page, limit)
+    L->>R: ZREVRANGE leaderboard:global start end WITHSCORES
+    R-->>L: [{userId, rating}] already highest-first
+    L-->>API: entries (then enriched with usernames from Postgres)
+```
 
 ### Scenario 1 — First startup with seeded data
 

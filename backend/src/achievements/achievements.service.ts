@@ -81,7 +81,7 @@ export class AchievementsService {
     const perGameRules = ACHIEVEMENT_RULES.filter((r) => r.type === 'per-game');
     if (game) {
       for (const rule of perGameRules) {
-        await this.evaluateRule(userId, user, rule, counts, game, announce, unlocked);
+        await this.evaluateRule(userId, user.achievement, rule, counts, game, announce, unlocked);
       }
     } else {
       const games = await this.prisma.db.game.findMany({

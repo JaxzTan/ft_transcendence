@@ -31,7 +31,7 @@ The module uses Redis for short-lived match data (queues, active games, rematch 
 | File | Role |
 |------|------|
 | `match.controller.ts` | HTTP routes: matchmaking, game actions, browse games, engine callbacks, cleanup |
-| `match.service.ts` | Facade — composes the four split services and re-exports `ENGINE_WS_URL` |
+| `match.service.ts` | Facade — composes the four split services (`MatchCreatorService`, `MatchPlayerService`, `MatchQueryService`, `MatchPostgameService`) and re-exports `ENGINE_WS_URL` |
 | `match.creator.service.ts` | Match creation: PvP/PvE/hotseat, invite codes, random match, bot seeding |
 | `match.player.service.ts` | In-game actions: join, rejoin, invite friend, ready, exit, cancel, resign |
 | `match.query.service.ts` | Browse queries: active games, open rooms, my rooms |
@@ -52,10 +52,13 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
 
 ```typescript
 {
-  mode?: 'pvp' | 'pve' | 'hotseat';  // Game mode
-  playerCount?: number;      // 2 or 4
-  botCount?: number;         // 0-3 (PvE only)
-  color?: 'red';  // Seat color
+  mode: 'pvp' | 'pve' | 'hotseat';  // REQUIRED — no silent fallback
+  playerCount?: number;      // 1-4 (2 or 4 for PvE)
+  botCount?: number;         // 0 - (playerCount-1), PvE only
+  clashEnabled?: boolean;    // Clash-mode QTE (default true)
+  safeZones?: boolean;       // Safe-zone squares (default true)
+  botColors?: string[];      // Optional per-bot slot colors
+  seatColors?: string[];     // Optional human seat colors
 }
 ```
 
@@ -66,7 +69,7 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
   gameId: string;            // UUID of the match
   token: string;             // JWT for Socket.IO handshake
   engineUrl: string;         // "ws://localhost:8443" (derived from FRONTEND_URL)
-  color: string;             // Assigned seat color
+  color: string;             // Assigned seat color (server-chosen)
   mode: 'pvp' | 'pve' | 'hotseat';  // Game mode (persisted for refresh/rejoin)
   playerCount: number;       // How many players/seats
   inviteCode?: string;       // 6-char code (invite games only)
@@ -80,10 +83,10 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `POST` | `/api/match/pvp/random` | JWT | Find or create random PvP match |
-| `POST` | `/api/match/pvp/invite` | JWT | Create invite-only PvP match |
+| `POST` | `/api/match/pvp/invite` | JWT | Create invite-only PvP match (body: `clashEnabled`, `safeZones`) |
 | `POST` | `/api/match/join/:code` | JWT | Join PvP match by invite code |
 | `POST` | `/api/match/pve` | JWT | Start PvE (vs bot) game |
-| `POST` | `/api/match/create` | JWT | Unified match creation (mode required: pvp/pve/hotseat) |
+| `POST` | `/api/match/create` | JWT | Unified match creation (mode required: pvp/pve/hotseat; body supports `clashEnabled`, `safeZones`, `botColors`, `seatColors`) |
 | `POST` | `/api/match/rematch/:gameId` | JWT | Vote for rematch after game ends |
 | `POST` | `/api/match/cleanup` | JWT | Clean up stale match data |
 | `POST` | `/api/game/:id/ready` | JWT | Signal player is ready |
