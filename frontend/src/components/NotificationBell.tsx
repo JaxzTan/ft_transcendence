@@ -193,10 +193,10 @@ export function NotificationBell({
   const bellContainerStyle: CSSProperties = {
     position: 'relative',
     userSelect: 'none',
-    display: fullWidth && !compact ? 'flex' : 'inline-flex',
+    display: fullWidth ? 'flex' : 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: fullWidth && !compact ? '100%' : 'auto',
+    width: fullWidth ? '100%' : 'auto',
     height: fullWidth ? 44 : 38,
     ...containerStyle,
   }
@@ -259,7 +259,7 @@ export function NotificationBell({
           onClick={toggleOpen}
           title={t('notifications.title')}
           style={{
-            width: 44,
+            width: '100%',
             height: 44,
             justifyContent: 'center',
             padding: 0,
@@ -267,25 +267,26 @@ export function NotificationBell({
             background: 'rgba(255, 255, 255, 0.04)',
             border: '1px solid rgba(0, 240, 255, 0.3)',
             color: 'var(--text-main)',
-            position: 'relative',
             ...buttonStyle,
           }}
         >
-          <span style={{ fontSize: '1.1rem' }}>🔔</span>
-          {count > 0 && (
-            <span
-              style={{
-                position: 'absolute',
-                top: 4,
-                right: 4,
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: '#ff007f',
-                boxShadow: '0 0 6px #ff007f',
-              }}
-            />
-          )}
+          <span style={{ fontSize: '1.1rem', position: 'relative' }}>
+            🔔
+            {count > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -6,
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#ff007f',
+                  boxShadow: '0 0 6px #ff007f',
+                }}
+              />
+            )}
+          </span>
         </button>
       ) : fullWidth ? (
         <button
