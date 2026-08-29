@@ -37,7 +37,12 @@ type RefreshResult =
 
 let refreshing: Promise<RefreshResult> | null = null
 
-function refreshOnce(): Promise<RefreshResult> {
+// Exported so callers (store.tsx's proactive refresh timer) can mint a new
+// access token *before* it expires, instead of only reacting to a 401 —
+// that reactive path still works, but every 401 it triggers gets logged to
+// the browser console by the network stack itself, outside app control.
+// Shares the same single-flight promise as the reactive path in apiFetch.
+export function refreshOnce(): Promise<RefreshResult> {
   if (!refreshing) {
     refreshing = fetch('/api/auth/refresh', withNgrokHeader({ method: 'POST' }))
       .then((r): RefreshResult => {

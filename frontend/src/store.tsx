@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import i18n from './i18n'
 import { BOT_POOL } from './theme'
-import { apiFetch } from './api'
+import { apiFetch, refreshOnce } from './api'
 import type { PlayerColor } from './game/types'
 
 export type AuthUser = { id: string; username: string; displayName?: string; email?: string | null; twoFactorEnabled?: boolean; avatarStyle?: string | null; hasAvatarPhoto?: boolean }
@@ -48,6 +48,12 @@ function storedTheme(): ThemeType {
 }
 
 const HEARTBEAT_INTERVAL_MS = 20_000
+// Access tokens expire every 15m (backend/src/auth/auth.module.ts's
+// `expiresIn: '15m'`). Refreshing 1min early means the heartbeat (and any
+// other call) never lands on an expired token — otherwise every request
+// that does gets a 401 the browser logs to the console on its own, even
+// though apiFetch's reactive refresh-and-retry already recovers from it.
+const ACCESS_TOKEN_REFRESH_MS = 14 * 60 * 1000
 /** settingOn/toggleSetting key for "show the rules popup when a match starts" — read by Lobby's Rules button and Game.tsx. */
 export const RULES_ON_START_KEY = 'rulesShowOnStart'
 /** Defaults for the settings toggles, keyed "<group>-<row>". */
@@ -332,6 +338,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const id = setInterval(() => sendHeartbeat(playingRef.current), HEARTBEAT_INTERVAL_MS)
     return () => clearInterval(id)
   }, [user, sendHeartbeat])
+
+  // Proactive token refresh: mints a new access token before the 15m one
+  // expires, so the heartbeat loop above never triggers the reactive 401
+  // path in apiFetch (which works, but leaves a 401 in the console every
+  // time). If the refresh token itself is dead, this just no-ops — the
+  // heartbeat's own 401 handling still logs the user out correctly.
+  useEffect(() => {
+    if (!user) return
+    const id = setInterval(() => { refreshOnce() }, ACCESS_TOKEN_REFRESH_MS)
+    return () => clearInterval(id)
+  }, [user])
 
   const [playerCount, setPlayerCount] = useState<PlayerCount>(4)
   const [seats, setSeats] = useState<Seat[]>(() => {
