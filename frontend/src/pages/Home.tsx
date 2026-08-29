@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { getApi } from '../api'
 import { UserAvatar } from '../components/UserAvatar'
 import { RetroNavbar } from '../components/RetroNavbar'
+import { LegalModal, type LegalDocType } from '../components/LegalModal'
 import { useNotifications } from '../hooks/useNotifications'
 import { navigate } from '../router'
 import { useApp } from '../store'
@@ -80,6 +81,7 @@ const STATUS_STYLE: Record<string, { label: string; color: string; border: strin
 export function Home() {
 	const { t } = useTranslation()
 	const { user, theme } = useApp()
+	const [legalModalDoc, setLegalModalDoc] = useState<LegalDocType | null>(null)
 	const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
 
 	// ------------------------------------------------------------------------
@@ -1351,10 +1353,39 @@ export function Home() {
 						{/* Footer */}
 						<footer className={RETRO_FOOTER}>
 							<p>© 1942-2026 RETROLUDO '42 // 42KL // ALL RIGHTS RESERVED // WEB AUDIO & CANV-ARCADE</p>
+							<div style={{ display: 'flex', gap: 14, justifyContent: 'center', alignItems: 'center', marginTop: 8, fontSize: '0.74rem', fontFamily: 'var(--font-mono)' }}>
+								<button
+									type="button"
+									onClick={() => {
+										retroAudio.playUiBeep(640, 0.05)
+										setLegalModalDoc('privacy')
+									}}
+									style={{ color: 'var(--accent-cyan)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+								>
+									{t('legal.privacyPolicy', 'PRIVACY POLICY')}
+								</button>
+								<span style={{ color: 'var(--text-muted)' }}>//</span>
+								<button
+									type="button"
+									onClick={() => {
+										retroAudio.playUiBeep(640, 0.05)
+										setLegalModalDoc('terms')
+									}}
+									style={{ color: 'var(--accent-cyan)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+								>
+									{t('legal.termsOfService', 'TERMS OF SERVICE')}
+								</button>
+							</div>
 						</footer>
 					</div>
 				</div>
 			</div>
+
+			<LegalModal
+				isOpen={legalModalDoc !== null}
+				initialDoc={legalModalDoc ?? 'privacy'}
+				onClose={() => setLegalModalDoc(null)}
+			/>
 		</>
 	)
 }

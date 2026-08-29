@@ -911,5 +911,12 @@ export const fr = {
     rulesPage5Line2: "Il suffit d'atteindre le centre ! (si vous obtenez le nombre exact de pas !)",
     opponentFallback: 'ADVERSAIRE',
   },
+  legal: {
+    privacyPolicy: 'POLITIQUE DE CONFIDENTIALITÉ',
+    termsOfService: "CONDITIONS D'UTILISATION",
+    tabPrivacy: 'CONFIDENTIALITÉ',
+    tabTerms: 'CONDITIONS',
+    acceptClose: 'FERMER',
+  },
 }
 

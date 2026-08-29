@@ -912,5 +912,12 @@ export const en = {
     rulesPage5Line2: 'Just get to the center! (if you can get the exact steps!)',
     opponentFallback: 'OPPONENT',
   },
+  legal: {
+    privacyPolicy: 'PRIVACY POLICY',
+    termsOfService: 'TERMS OF SERVICE',
+    tabPrivacy: 'PRIVACY',
+    tabTerms: 'TERMS',
+    acceptClose: 'CLOSE ARCHIVE',
+  },
 }
 

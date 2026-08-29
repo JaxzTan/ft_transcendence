@@ -911,5 +911,12 @@ export const ms = {
     rulesPage5Line2: 'Cuma sampai ke tengah! (jika anda dapat langkah yang tepat!)',
     opponentFallback: 'LAWAN',
   },
+  legal: {
+    privacyPolicy: 'DASAR PRIVASI',
+    termsOfService: 'SYARAT PERKHIDMATAN',
+    tabPrivacy: 'PRIVASI',
+    tabTerms: 'SYARAT',
+    acceptClose: 'TUTUP',
+  },
 }
 
