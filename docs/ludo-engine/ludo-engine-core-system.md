@@ -30,10 +30,13 @@ The engine core is the game's referee: it runs inside the `ludo-engine` service 
 
 | File | Role |
 |------|------|
-| `engine.ts` | `LudoEngine` class — state machine, turn logic, dice rolling, piece movement, per-game locks |
+| `engine.ts` | `LudoEngine` — orchestrator: per-game lock, event stream, `rollDice`/`movePiece`, player-lifecycle + lobby wrappers |
+| `clash-engine.ts` | `ClashEngine` — clash QTE orchestration: phase timers, recovery sweep, bot pressers, press recording, deferred-capture resolution |
+| `turn.ts` | `applyMoveOutcome` — shared move-completion (stats, win check, bonus/turn advance) used by `movePiece` and clash resolution |
 | `types.ts` | Type definitions: `GameState`, `PlayerMeta`, `Piece`, `LegalMove`, `MoveResult`, `GameEvent` |
 | `move-validator.ts` | Legal move computation based on board geometry |
 | `board-mapper.ts` | Board geometry — safe zones, track positions, goal entries |
+| `clash.ts` | Clash constants + `ClashManager` (start, press validation, publish) |
 | `redis.ts` | `RedisGameStore` — Redis persistence layer |
 | `bot.ts` | Heuristic bot AI |
 | `player-handler.ts` | Disconnect/reconnect/exit/ready management and turn advance |
@@ -221,8 +224,9 @@ roll_dice()
 move_piece(pieceId)
   ├── Validate game active and turnPhase = WAITING_FOR_MOVE
   ├── Verify pieceId is in pendingLegalMoves (server snapshot from the roll)
+  ├── Clash gate: if clashMode + capture → defer to ClashEngine (pendingCapture → QTE → resolveClashOutcome)
   ├── executeMove → move the piece; resolve any captures immediately (captured pieces → base)
-  ├── recordMove (history) + moveCounter++
+  ├── recordMove (history) + applyMoveOutcome (turn.ts): moveCounter++, stats, win check, bonus/turn advance
   ├── Check win condition (all 4 pieces at step 57)
   │   ├── Win → status='finished', emit game_ended
   │   └── No win → sync piecesInGoal
@@ -243,6 +247,8 @@ move_piece(pieceId)
 | `RedisGameStore` | Redis persistence for game state |
 | `player-handler` | Disconnect/reconnect/exit/ready + `advanceTurnInState` |
 | `LobbyManager` | Color selection and ready check |
+| `ClashEngine` | Clash QTE orchestration (phase timers, pressers, deferred-capture resolution) |
+| `applyMoveOutcome` (`turn.ts`) | Shared move-completion (stats, win check, bonus/turn advance) |
 
 ---
 

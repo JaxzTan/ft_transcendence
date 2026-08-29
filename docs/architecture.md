@@ -299,9 +299,12 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   │   ├── tsconfig.json
 │   │   │   └── src/
 │   │   │       ├── index.ts              # Entry point → SocketServer.start(3001)
-│   │   │       ├── engine.ts             # Game state machine (roll, move, win)
+│   │   │       ├── engine.ts             # LudoEngine orchestrator (roll, move, lock, events)
+│   │   │       ├── clash-engine.ts       # ClashEngine — clash QTE orchestration
+│   │   │       ├── turn.ts               # applyMoveOutcome — shared move completion
 │   │   │       ├── move-validator.ts     # Legal move computation
 │   │   │       ├── board-mapper.ts       # Board geometry (safe zones, tracks)
+│   │   │       ├── clash.ts              # Clash constants + ClashManager
 │   │   │       ├── bot.ts                # Heuristic bot AI
 │   │   │       ├── player-handler.ts     # Disconnect/reconnect/exit/ready
 │   │   │       ├── lobby.ts              # Lobby management (color selection)
