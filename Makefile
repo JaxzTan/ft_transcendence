@@ -4,6 +4,7 @@ env_get = $(shell grep -m1 '^$(1)=' .env 2>/dev/null | cut -d= -f2-)
 NGROK_PORT    := $(or $(call env_get,NGROK_PORT),8443)
 NGROK_DOMAIN  := $(call env_get,NGROK_DOMAIN)
 HTTPS_PORT    := $(or $(call env_get,HTTPS_PORT),8443)
+NGROK_AUTHTOKEN := $(call env_get,NGROK_AUTHTOKEN)
 NGROK_FLAGS    = $(if $(NGROK_DOMAIN),--url=https://$(NGROK_DOMAIN),)
 # LAN IP is AUTO-DETECTED first — the stored .env value can go stale when DHCP
 # hands the machine a new address (which silently breaks the "Other devices on
@@ -142,29 +143,25 @@ lan: all
 
 # ── NGROK MODE ──────────────────────────────────────────────────────────────
 ngrok-auth:
-	@token=$$(grep -m1 '^NGROK_AUTHTOKEN=' .env 2>/dev/null | cut -d= -f2-); \
-	if [ -z "$$token" ]; then echo "❌  ngrok authtoken missing — set NGROK_AUTHTOKEN in .env"; exit 1; fi; \
-	ngrok config add-authtoken "$$token" >/dev/null && echo "🔑  ngrok authtoken configured"
+	@if [ -z "$(NGROK_AUTHTOKEN)" ]; then echo "❌  ngrok authtoken missing — set NGROK_AUTHTOKEN in .env"; exit 1; fi; \
+	ngrok config add-authtoken "$(NGROK_AUTHTOKEN)" >/dev/null && echo "🔑  ngrok authtoken configured"
 
-# Tunnels nginx's TLS listener (127.0.0.1:8443) — the address is given as
+# Tunnels nginx's TLS listener (localhost:8443) — the address is given as
 # https:// so ngrok speaks TLS to the local backend instead of forwarding
 # plain HTTP at it. ngrok doesn't verify the upstream cert by default (that's
 # opt-in via --upstream-tls-verify), so the self-signed cert isn't a problem.
+# Builds + starts the stack first (via `all`), then opens the tunnel.
+# Ctrl-C stops ngrok only; containers keep running (use `make stop-tunnel`).
 tunnel: all ngrok-auth
 	@echo "🔀  Switching backend into tunnel mode (ngrok OAuth apps)…"
 	@TUNNEL_MODE=true docker compose -f $(COMPOSE_FILE) up -d --no-deps backend
-	@echo "🚇  Tunnelling https://127.0.0.1:$(NGROK_PORT) … (URL also shown by: make tunnel-url)"
+	@echo "🚇  Tunnelling https://localhost:$(NGROK_PORT) … (URL also shown by: make tunnel-url)"
 	@ngrok http https://localhost:$(NGROK_PORT) $(NGROK_FLAGS)
 
 # Public URL of a tunnel that's already running, from ngrok's local API.
 tunnel-url:
-	@url=$$(curl -s http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1); \
+	@url=$$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*\.ngrok[^"]*' | head -1); \
 	if [ -n "$$url" ]; then echo "$$url"; else echo "No tunnel running — start one with: make tunnel"; fi
-
-# One command: build + start the stack (detached), then open the public tunnel.
-# Stack runs in the background; ngrok stays in the foreground (Ctrl-C stops the
-# tunnel, containers keep running — use `make stop-tunnel` to stop everything).
-tunnel_up: all tunnel
 
 dev-tunnel:
 	@osascript -e 'tell application "Terminal" to do script "cd $(PWD) && make dev"'
@@ -176,5 +173,5 @@ stop-tunnel:
 	@echo "Stopped."
 
 .PHONY: all build start env \
-        dev stop down logs clean fclean prune re l \
-        lan ngrok-auth tunnel tunnel-url up-tunnel dev-tunnel stop-tunnel
+        dev stop down logs clean fclean prune re \
+        lan ngrok-auth tunnel tunnel-url dev-tunnel stop-tunnel

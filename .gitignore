@@ -1,6 +1,6 @@
 # secrets & prisma generated client
 .env
-.env example
+.env.example
 backend/generated/
 backend/dist/
 
