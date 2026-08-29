@@ -13,7 +13,6 @@ import {
   RETRO_BTN,
   THEME_TRIGGER_BTN_BASE,
   THEME_POPOVER_MENU_BASE,
-  THEME_POPOVER_MENU_HIDDEN,
   THEME_POPOVER_MENU_ACTIVE_DOWN,
   THEME_POPOVER_MENU_ACTIVE_UP,
   RETRO_FLOATING_DOCK,
@@ -80,6 +79,8 @@ export function RetroNavbar({
   const [isAccountPopoverOpen, setIsAccountPopoverOpen] = useState(false)
   const [soundMuted, setSoundMuted] = useState(retroAudio.muted)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const themePopoverContentRef = useRef<HTMLDivElement>(null)
+  const [themePopoverPos, setThemePopoverPos] = useState({ left: 0, bottom: 0, width: 0 })
   const accountPopoverRef = useRef<HTMLDivElement>(null)
   const accountPopoverContentRef = useRef<HTMLDivElement>(null)
   const [accountPopoverPos, setAccountPopoverPos] = useState({ top: 0, left: 0 })
@@ -142,10 +143,12 @@ export function RetroNavbar({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const insideThemeTrigger = popoverRef.current?.contains(target)
+      const insideThemePortal = themePopoverContentRef.current?.contains(target)
+      if (!insideThemeTrigger && !insideThemePortal) {
         setIsThemePopoverOpen(false)
       }
-      const target = e.target as Node
       const insideTrigger = accountPopoverRef.current?.contains(target)
       const insidePortal = accountPopoverContentRef.current?.contains(target)
       if (!insideTrigger && !insidePortal) {
@@ -176,6 +179,28 @@ export function RetroNavbar({
       window.removeEventListener('resize', updatePosition)
     }
   }, [isAccountPopoverOpen])
+
+  // Same reasoning as the account popover: portal to document.body so the
+  // theme menu can't be clipped/covered by an ancestor's stacking context.
+  useEffect(() => {
+    if (!isThemePopoverOpen) return
+    const updatePosition = () => {
+      const rect = popoverRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setThemePopoverPos({
+        left: rect.left,
+        bottom: window.innerHeight - rect.top + 8,
+        width: isCompact ? 240 : rect.width,
+      })
+    }
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isThemePopoverOpen, isCompact])
 
   const username = user?.username || 'PILOT'
   const displayName = user?.displayName || username
@@ -579,33 +604,33 @@ export function RetroNavbar({
           position: 'relative',
           width: '100%',
           flex: 1,
+          minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          overflow: 'visible',
+          // `overflow-y: auto` is a safety net, not the primary layout — the
+          // 5 items are meant to always fit without scrolling. Previously
+          // this viewport also translateY-shifted the track to "coverflow"
+          // the active item toward center (up to ±95px, via an (idx-2.5)*38
+          // formula). At short window heights (verified at the reported
+          // 1180x688 tab size, reproduces at ANY sidebar width — it's a
+          // height bug, not a compact-mode one) that shift exceeded the
+          // available slack and pushed the last item down to overlap the
+          // theme button below. Removed the shift; items now just stack
+          // statically (still dimmed/scaled by distance from active for the
+          // same visual highlight, just without repositioning them).
+          overflowY: 'auto',
           padding: '8px 0',
         }}
       >
-        {/* Sliding Nav Items Track */}
+        {/* Nav Items Track */}
         <div
           style={{
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
-            transform: `translateY(${-((navItems.findIndex((it) => {
-              if (it.path === '/home') return currentPath === '/home' || currentPath === '/'
-              if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
-              if (it.path === '/profile') return currentPath.startsWith('/profile')
-              return currentPath === it.path
-            }) >= 0 ? navItems.findIndex((it) => {
-              if (it.path === '/home') return currentPath === '/home' || currentPath === '/'
-              if (it.path === '/gamelobby') return currentPath === '/gamelobby' || currentPath === '/ludolobby'
-              if (it.path === '/profile') return currentPath.startsWith('/profile')
-              return currentPath === it.path
-            }) : 0) - 2.5) * 38}px)`,
-            transition: 'transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
             zIndex: 2,
           }}
         >
@@ -793,16 +818,20 @@ export function RetroNavbar({
             )}
           </button>
 
-          {/* Upward Opening Theme Popover Menu */}
+          {/* Upward Opening Theme Popover Menu — portaled to document.body,
+              see accountPopoverMenu above for why. */}
+          {isThemePopoverOpen && createPortal(
           <div
-            className={`${THEME_POPOVER_MENU_BASE} ${isThemePopoverOpen ? THEME_POPOVER_MENU_ACTIVE_UP : THEME_POPOVER_MENU_HIDDEN}`}
+            ref={themePopoverContentRef}
+            className={`${THEME_POPOVER_MENU_BASE} ${THEME_POPOVER_MENU_ACTIVE_UP}`}
             id="themePopoverMenu"
             style={{
-              bottom: 'calc(100% + 8px)',
+              position: 'fixed',
+              bottom: themePopoverPos.bottom,
               top: 'auto',
-              left: 0,
-              right: isCompact ? 'auto' : 0,
-              width: isCompact ? 240 : '100%',
+              left: themePopoverPos.left,
+              right: 'auto',
+              width: themePopoverPos.width,
               padding: '14px 16px',
               borderRadius: 14,
               boxSizing: 'border-box',
@@ -901,7 +930,9 @@ export function RetroNavbar({
                 <span style={{ fontWeight: 'bold' }}>{t('navbar.themeTerminal')}</span>
               </label>
             </fieldset>
-          </div>
+          </div>,
+          document.body
+          )}
         </div>
 
         {/* Notifications Bell -> Accessible across ALL pages */}

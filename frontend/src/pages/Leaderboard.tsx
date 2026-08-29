@@ -451,7 +451,7 @@ export function Leaderboard() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '270px 1.4fr 170px 170px 150px',
+                    gridTemplateColumns: '1.8fr 2.2fr 1.1fr 1.1fr 1fr',
                     gap: 20,
                     padding: '14px 28px',
                     background: 'rgba(25, 10, 56, 0.98)',
@@ -502,7 +502,7 @@ export function Leaderboard() {
                           key={entry.rank}
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '270px 1.4fr 170px 170px 150px',
+                            gridTemplateColumns: '1.8fr 2.2fr 1.1fr 1.1fr 1fr',
                             gap: 20,
                             padding: isRankOne ? '20px 28px' : isTopThree ? '16px 28px' : '14px 28px',
                             borderBottom: isRankOne
