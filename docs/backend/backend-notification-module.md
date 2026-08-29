@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Overview](#overview) — Real-time notifications via SSE + Redis pub/sub
+- [Failure contract](#failure-contract) — notifications never throw; delivery is best-effort
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — NotificationType, NotificationPayload
 - [API Endpoints](#api-endpoints) — REST + SSE routes
@@ -22,6 +23,35 @@ The Notification module delivers real-time, persisted notifications to users. It
 Notification types: `friend_request`, `friend_accepted`, `game_invite`, `achievement`.
 
 > The module is imported by `FriendsModule`, `MatchModule`, and `AchievementsModule`, which inject `NotificationService` and call `notify()`. It exports `NotificationService` so any module can send a notification.
+
+---
+
+## Failure contract
+
+Notifications are a **non-critical side effect** of the actions that trigger them
+(friend request/accept/decline/remove, game invite, game end, achievement unlock,
+avatar update, …). A notification failure must never make a successful action look
+failed, and must never partially fail the action it accompanies. The service
+therefore guarantees:
+
+- **`notify()`, `broadcast()` and `notifyTransient()` never throw.** No caller
+  needs a try/catch around them; any existing `.catch()` is defensive only.
+- **`notify()` persists to Postgres first.** If the persist fails, the
+  notification is dropped and logged (`[notifications] persist failed …`) — the
+  caller's action is unaffected. If only the live Redis publish fails, the
+  persisted row is kept: the recipient still sees it in the bell on their next
+  page load, just without a real-time toast (`[notifications] live push
+  failed …`).
+- **`broadcast()` / `notifyTransient()` are purely ephemeral** (SSE toast only,
+  nothing persisted). A failed publish logs a warning and nothing is lost —
+  there was nothing to persist in the first place.
+- **SSE connection teardown is wired for real.** `subscribe()` returns the
+  per-tab Subject wrapped in `finalize(() => subject.complete())`. When NestJS
+  unsubscribes on a closed connection (tab close, navigation, network drop) —
+  it does *not* complete the observable — the finalize completes the Subject,
+  which fires the service's `complete` handler → `removeClient()` removes the
+  Subject from the in-memory maps and unsubscribes from Redis when the last tab
+  for a user closes. No dead Subjects accumulate.
 
 ---
 

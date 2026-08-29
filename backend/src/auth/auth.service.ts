@@ -336,6 +336,8 @@ export class AuthService implements OnModuleDestroy {
     const data: Record<string, unknown> = {};
     let emailChanged = false;
     let newEmail: string | undefined;
+    // Items actually changed in this request — feeds the profile_updated toast.
+    const changedItems: string[] = [];
 
     if (dto.displayName !== undefined && dto.displayName !== user.displayName) {
       const taken = await this.prisma.db.user.findUnique({
@@ -367,6 +369,7 @@ export class AuthService implements OnModuleDestroy {
     // OAuth: remove a linked sign-in method (lockout-guarded).
     if (dto.oauthToRemove !== undefined) {
       await this.removeOAuthMethod(userId, dto.oauthToRemove);
+      changedItems.push('oauthRemove');
     }
 
     // OAuth: adding a method needs the browser round-trip — mint a 10m
@@ -393,7 +396,6 @@ export class AuthService implements OnModuleDestroy {
 
     // ── Profile-change notifications ─────────────────────────────────────────
     // 1) Self-confirmation (persisted): "You have updated your profile: …"
-    const changedItems: string[] = [];
     if (data.displayName !== undefined) changedItems.push('displayName');
     if (emailChanged) changedItems.push('email');
     if (dto.twoFactorEnabled !== undefined && dto.twoFactorEnabled !== user.twoFactorEnabled) {
