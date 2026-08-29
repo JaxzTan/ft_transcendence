@@ -11,12 +11,12 @@ import {
   RETRO_BTN,
 } from '../styles/tw'
 
-import privacyEn from '../content/docs/privacy-en.md?raw'
-import privacyFr from '../content/docs/privacy-fr.md?raw'
-import privacyMs from '../content/docs/privacy-ms.md?raw'
-import termsEn from '../content/docs/terms-en.md?raw'
-import termsFr from '../content/docs/terms-fr.md?raw'
-import termsMs from '../content/docs/terms-ms.md?raw'
+import privacyEn from '../content/docs/Privacy-Policy-en.md?raw'
+import privacyFr from '../content/docs/Privacy-Policy-fr.md?raw'
+import privacyMs from '../content/docs/Privacy-Policy-my.md?raw'
+import termsEn from '../content/docs/Terms-of-Service-en.md?raw'
+import termsFr from '../content/docs/Terms-of-Service-fr.md?raw'
+import termsMs from '../content/docs/Terms-of-Service-my.md?raw'
 
 export type LegalDocType = 'privacy' | 'terms'
 
