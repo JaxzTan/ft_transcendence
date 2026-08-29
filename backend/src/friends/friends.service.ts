@@ -191,6 +191,13 @@ export class FriendsService {
       where: { id: requestId },
     });
 
+    // Notify the original sender that their request was declined.
+    const decliner = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+    await this.notificationService.notify(request.userId, 'friend_declined', {
+      fromUserId: userId,
+      fromUsername: decliner?.username || 'A pilot',
+    });
+
     return { message: 'Friend request declined' };
   }
 
@@ -211,6 +218,13 @@ export class FriendsService {
 
     await this.prisma.db.friendship.delete({
       where: { id: friendship.id },
+    });
+
+    // Notify the removed friend that the link was severed.
+    const remover = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+    await this.notificationService.notify(friendId, 'friend_removed', {
+      fromUserId: userId,
+      fromUsername: remover?.username || 'A pilot',
     });
 
     return { message: 'Friend removed' };

@@ -218,7 +218,7 @@ export class MatchPlayerService {
 	}
 
 	// Cancel (abort) a match, setting its status to ABORTED.
-	async cancelGame(gameId: string, userId: string) {
+	async cancelGame(gameId: string, userId: string, reason: 'cancel' | 'resign' = 'cancel') {
 		const data = await this.redis.hgetall(`match:${gameId}`);
 		if (!data || !data.id) throw new NotFoundException('Game not found');
 
@@ -229,12 +229,40 @@ export class MatchPlayerService {
 		await this.redis.hset(`match:${gameId}`, 'status', 'ABORTED');
 		await this.redis.expire(`match:${gameId}`, 3600);
 
+		// Notify the other human players that the match was aborted/resigned.
+		await this.notifyMatchAbort(gameId, data, userId, reason);
+
 		return { message: 'Game cancelled', gameId };
 	}
 
 	// Alias for cancelGame — player resigns from the match.
 	async resign(gameId: string, userId: string) {
-		return this.cancelGame(gameId, userId);
+		return this.cancelGame(gameId, userId, 'resign');
+	}
+
+	/** Notify the other human players when a match is aborted or a player resigns. */
+	private async notifyMatchAbort(
+		gameId: string,
+		data: Record<string, string>,
+		actorId: string,
+		reason: 'cancel' | 'resign',
+	) {
+		const actor = await this.prisma.db.user.findUnique({ where: { id: actorId }, select: { username: true } });
+		const targets = [data.player1_id, data.player2_id, data.player3_id, data.player4_id]
+			.filter((id): id is string => !!id && id !== actorId && !isBotUserId(id));
+
+		for (const targetId of targets) {
+			try {
+				await this.notificationService.notify(targetId, 'match_cancelled', {
+					gameId,
+					reason,
+					fromUserId: actorId,
+					fromUsername: actor?.username || 'A player',
+				});
+			} catch (err) {
+				console.warn(`Failed to notify ${targetId} about match ${gameId} cancellation:`, err);
+			}
+		}
 	}
 
 	// listOpenRooms only ever shows WAITING rooms — without this, a match stays

@@ -21,6 +21,22 @@ function getNotificationTypeBadge(type: string): { tagKey: string; defaultTag: s
       return { tagKey: 'notifications.linkEstablishedTag', defaultTag: '[FRIEND_ACK]', color: 'var(--accent-yellow, #ffe600)' }
     case 'achievement':
       return { tagKey: 'notifications.achievementTag', defaultTag: '[ACHIEVEMENT]', color: '#00ff88' }
+    case 'match_finished':
+      return { tagKey: 'notifications.matchEndTag', defaultTag: '[MATCH_COMPLETE]', color: '#00ff88' }
+    case 'match_cancelled':
+      return { tagKey: 'notifications.matchCancelledTag', defaultTag: '[MATCH_ABORTED]', color: 'var(--accent-yellow, #ffe600)' }
+    case 'friend_removed':
+      return { tagKey: 'notifications.friendRemovedTag', defaultTag: '[LINK_SEVERED]', color: 'var(--accent-pink, #ff007f)' }
+    case 'friend_declined':
+      return { tagKey: 'notifications.friendDeclinedTag', defaultTag: '[LINK_REJECTED]', color: 'var(--accent-yellow, #ffe600)' }
+    case 'friend_online':
+      return { tagKey: 'notifications.friendOnlineTag', defaultTag: '[PILOT_ONLINE]', color: '#00ff88' }
+    case 'friend_offline':
+      return { tagKey: 'notifications.friendOfflineTag', defaultTag: '[PILOT_OFFLINE]', color: 'var(--accent-yellow, #ffe600)' }
+    case 'profile_updated':
+      return { tagKey: 'notifications.profileUpdatedTag', defaultTag: '[PROFILE_UPDATED]', color: 'var(--accent-cyan, #00f0ff)' }
+    case 'display_name_changed':
+      return { tagKey: 'notifications.displayNameChangedTag', defaultTag: '[CALLSIGN_CHANGED]', color: 'var(--accent-cyan, #00f0ff)' }
     default:
       return { tagKey: 'notifications.sysBroadcastTag', defaultTag: '[SYS_MSG]', color: 'var(--accent-cyan, #00f0ff)' }
   }
@@ -46,6 +62,35 @@ function renderNotificationBody(n: Notification, t: (key: string, options?: any)
       const nameKey = payload?.nameKey as string | undefined
       const name = nameKey ? t(nameKey) : ''
       return name ? <span>{name}!</span> : <span>{t('notifications.achievementUnlocked')}</span>
+    }
+    case 'friend_removed':
+      return <span>{t('notifications.friendRemovedText', { username: from })}</span>
+    case 'friend_declined':
+      return <span>{t('notifications.friendDeclinedText', { username: from })}</span>
+    case 'friend_online':
+      return <span>{t('notifications.friendOnlineText', { displayName: payload?.displayName || from })}</span>
+    case 'friend_offline':
+      return <span>{t('notifications.friendOfflineText', { displayName: payload?.displayName || from })}</span>
+    case 'match_cancelled':
+      return payload?.reason === 'resign'
+        ? <span>{t('notifications.matchResignedText', { username: from })}</span>
+        : <span>{t('notifications.matchCancelledText', { username: from })}</span>
+    case 'match_finished': {
+      const rank = payload?.rank
+      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival'
+      return rank === 1
+        ? <span>{t('notifications.matchEndWonText')}</span>
+        : <span>{t('notifications.matchEndLostText', { winner })}</span>
+    }
+    case 'profile_updated': {
+      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : []
+      const labels = items.map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`)).join(', ')
+      return <span>{t('notifications.profileUpdatedText', { item: labels || '—' })}</span>
+    }
+    case 'display_name_changed': {
+      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from
+      const newName = payload?.displayName ? String(payload.displayName) : 'UNKNOWN'
+      return <span>{t('notifications.displayNameChangedText', { displayName: oldName, newDisplayName: newName })}</span>
     }
     default:
       return <span>{t('notifications.systemTransmissionText')}</span>
