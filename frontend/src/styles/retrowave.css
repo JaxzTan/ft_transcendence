@@ -409,37 +409,12 @@ body {
   margin-left: auto !important;
   margin-right: auto !important;
   width: 100% !important;
-  max-width: 100% !important;
-}
-
-@media (min-width: 1024px) {
-  .app-wrapper.game-page {
-    overflow: hidden !important;
-  }
-
-  body:has(.game-page),
-  html:has(.game-page) {
-    overflow: hidden !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
-  }
-}
-
-body:has(.game-page) *::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
-}
-
-body:has(.game-page) * {
-  scrollbar-width: none !important;
+  max-width: 1440px !important;
+  box-sizing: border-box !important;
 }
 
 body:has(.game-page) .crt-screen {
-  min-height: unset !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  overflow: hidden !important;
+  min-height: 100vh !important;
 }
 
 /* --------------------------------------------------------------------------

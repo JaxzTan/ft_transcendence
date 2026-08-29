@@ -877,7 +877,7 @@ export function Game() {
 
           {/* Main Tactical Grid Layout */}
           <main
-            className="game-tactical-grid grid grid-cols-1 gap-3 lg:grid-cols-[260px_1fr_260px] lg:gap-2 xl:grid-cols-[310px_1fr_310px]"
+            className="game-tactical-grid grid grid-cols-1 gap-3 lg:grid-cols-[250px_1fr_250px] lg:gap-2.5 xl:grid-cols-[285px_1fr_285px] 2xl:grid-cols-[310px_1fr_310px]"
             style={{
               alignItems: 'start',
               width: '100%',
