@@ -19,7 +19,7 @@ achievement system, and the whole interface is available in multiple languages.
 - **Authentication** — local accounts, OAuth 2.0 sign-in (Google, GitHub, 42), email verification, and two-factor authentication (email code)
 - **Progression** — match history, statistics, leaderboard, and achievements
 - **Multilingual UI** — English, Malay, and French
-- **Notifications, file upload, game customization, and extended browser support**
+- **Notifications, game customization, and extended browser support**
 
 ## Instructions
 
@@ -27,7 +27,7 @@ achievement system, and the whole interface is available in multiple languages.
 
 - **Docker** and **Docker Compose** (the only runtime requirement).
 - **make** (to use the provided build commands).
-- A restored `secrets/` directory (see [Secrets](#secrets) below). The stack refuses to start if a required secret file is missing.
+- A `.env` file at the repo root (see [Configuration (.env)](#configuration-env) below). The stack refuses to start if required values are missing.
 - OAuth client IDs and secrets for Google, GitHub, and 42 — **optional**. Local sign-up and login work without them.
 - At least one free port: `8443` (HTTPS). Ports `3000`, `3001`, `5432`, `5555`, `6479` are used inside/for debugging.
 
@@ -39,7 +39,7 @@ cd ft_transcendence
 make
 ```
 
-`make` builds the images and starts the stack (required secrets are prepared automatically). Then open https://localhost:8443 in your browser — accept the self-signed certificate warning on first visit.
+`make` builds the images and starts the stack (the `make env` step it runs first validates the `.env` values and refreshes `LAN_IP`). Then open https://localhost:8443 in your browser — accept the self-signed certificate warning on first visit.
 
 ### Development mode (hot reload)
 
@@ -53,13 +53,18 @@ make dev
 
 | Command | Effect |
 |---|---|
-| `make secrets` | Prepare required secrets |
+| `make env` | Validate required `.env` values, refresh `LAN_IP` |
 | `make` or `make all` | Build images and start the stack |
-| `make dev` | Start the Vite dev server with hot reload |
+| `make build` | Build images only (runs `make env` first) |
+| `make start` | Start the stack (detached) |
+| `make dev` | Vite HMR dev + prod SPA (`compose watch`) |
 | `make stop` / `make down` | Stop services / remove containers |
 | `make logs` | Tail service logs |
-| `make clean` / `make re` | Clean everything / full rebuild |
-| `make lan` / `make tunnel` | LAN mode / public ngrok tunnel |
+| `make clean` / `make prune` | Remove all Docker data / `docker system prune` |
+| `make fclean` / `make re` | `prune` + `clean` / full rebuild from scratch |
+| `make lan` | Print the LAN URL for other devices on the same WiFi |
+| `make tunnel` / `make tunnel-url` | Start the ngrok tunnel / print its public URL |
+| `make stop-tunnel` | Kill ngrok and stop the dev containers |
 
 ### Access
 
@@ -71,12 +76,9 @@ make dev
 | `http://localhost:5555` | Prisma Studio (database browser) | default |
 | `wss://<host>/socket.io/` | Game engine connection (same-origin through nginx / Vite proxy) | default |
 
-### Secrets
+### Configuration (.env)
 
-The project stores configuration in plain-text files under `secrets/`, one value per file, named after the variable in lowercase (for example `JWT_SECRET` → `secrets/jwt_secret.txt`). The directory is mounted read-only into the containers. **Never commit this folder to git** (it is already ignored).
-
-- `make secrets` generates and seeds everything that can be derived.
-- OAuth credentials must be obtained from the provider consoles (Google Cloud, GitHub, 42 intra) and placed manually.
+All config lives in the root `.env` (`KEY=VALUE` per line), loaded into containers via compose's `env_file:`. It is gitignored and shared between the team only (via Discord). `make` validates it and **fails early** if `.env` is missing or any required field is empty, and refreshes `LAN_IP`. OAuth credentials are added manually from the provider consoles (Google, GitHub, 42).
 
 ## Team Information
 
@@ -188,31 +190,38 @@ consistently on any machine.
 | 6 | Gamification | `bleow` | Achievements, badges and leaderboards |
 | 7 | User activity analytics | `chtan` | Insights dashboard |
 | 8 | Notification system | `hang` | Notifications on create, update and delete actions |
-| 9 | File upload and management | `liyu-her` | Validation, secure storage, preview and delete |
-| 10 | Game customization options | `liyu-her` | Power-ups, maps and settings |
-| 11 | Custom minor module | `chtan` | Ngrok tunneling for exposing the local stack for remote testing |
+| 9 | Game customization options | `liyu-her` | Power-ups, maps and settings |
+| 10 | Custom minor module | `chtan` | Ngrok tunneling for exposing the local stack for remote testing |
+
+### Points calculation
+
+| Module type   | Count | Points each | Total  |
+| ------------- | ----- | ----------- | ------ |
+| Major modules | 7     | 2           | 14     |
+| Minor modules | 10    | 1           | 10     |
+| **Total**     |       |             | **24** |
 
 ## Individual Contributions
 
 ### `chtan`
-- **Built:**
-- **Challenges:**
+- **Built:** Frontend/backend framework setup (React + NestJS); remote players module (cross-machine play with reconnect); multiplayer module (four-seat, server-enforced turn order); user activity analytics dashboard; Ngrok tunneling for exposing the local stack, including a new auth setup to secure the tunnel
+- **Challenges:** As team lead, the main challenge was team management — balancing everyone's workload and morale while making sure each member could still learn from the project rather than just clearing tickets
 
 ### `bleow`
-- **Built:**
-- **Challenges:**
+- **Built:** Real-time features (Socket.IO gateway with Redis adapter for cross-instance broadcast, live board updates, presence, reconnect); AI opponent (heuristic move selection, no external model); web-based game (server-authoritative Ludo — dice RNG, turn order, captures, safe squares, exact-count home entry); game statistics and match history (wins/losses, rating, leaderboard); gamification (achievements, badges, leaderboards)
+- **Challenges:** Debugging and smoothly integrating backend with frontend. Numerous small guards to include to patch problems. Timely and clear communication with team.
 
 ### `liyu-her`
-- **Built:**
-- **Challenges:**
+- **Built:** Multiple languages module (session-based language switching across English, Malay and French); frontend design and the revamp to frontend v2
+- **Challenges:** Extracting all user-facing text and data out of the frontend so it could be translated, without breaking the pages being redesigned at the same time
 
 ### `hang`
-- **Built:**
-- **Challenges:**
+- **Built:** Standard user management module (profiles, avatar upload, friend requests, live online status); notification system module (real-time notifications on create, update and delete actions); frontend implementation
+- **Challenges:** Balancing deadlines against wanting the frontend to be pixel-perfect
 
 ### `jow`
-- **Built:**
-- **Challenges:**
+- **Built:** ORM setup (Prisma — schema, relations and committed migration history); remote authentication module (OAuth 2.0 sign-in via Google, GitHub, and 42 Intra); two-factor authentication module (email code verification)
+- **Challenges:** Day-to-day database management and debugging OAuth provider integrations — tedious but constant work
 
 ## Resources
 
@@ -226,7 +235,14 @@ All project documentation lives under `docs/`, grouped by category. Each file is
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | System topology, services, request paths, data layer, secrets, make targets, file structure |
 | [docs/API-list.md](docs/API-list.md) | Complete HTTP + WebSocket API reference |
-| [docs/Ludo_Rules.md](docs/Ludo_Rules.md) | Classic Ludo rules |
+
+#### Deployment
+
+| Document | Responsibility |
+|---|---|
+| [docs/deploy/nginx.md](docs/deploy/nginx.md) | How nginx fronts every mode (local, LAN, tunnel) without the frontend or backend knowing which one is active |
+| [docs/deploy/lan.md](docs/deploy/lan.md) | Reaching the app from another device on the same WiFi |
+| [docs/deploy/tunnel.md](docs/deploy/tunnel.md) | Reaching the app from the internet via an ngrok tunnel |
 
 #### Backend (NestJS API)
 
@@ -278,7 +294,8 @@ All project documentation lives under `docs/`, grouped by category. Each file is
 
 ### Classic references
 
-- Ludo rules: [Wikipedia — Ludo](https://en.wikipedia.org/wiki/Ludo)
+- Ludo rules: [docs/Ludo_Rules.md](docs/Ludo_Rules.md) — the full ruleset the engine enforces (57-step piece journey, star squares, blockades, captures, exact-count home entry)
+- Ludo background: [Wikipedia — Ludo](https://en.wikipedia.org/wiki/Ludo)
 - React: [react.dev](https://react.dev)
 - NestJS: [docs.nestjs.com](https://docs.nestjs.com)
 - Socket.IO: [socket.io/docs](https://socket.io/docs)

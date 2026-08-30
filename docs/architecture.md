@@ -203,19 +203,16 @@ notification services all authenticate their Redis connections via
 
 ---
 
-## Secrets
+## Configuration (.env)
 
-See the [README](../README.md) **Secrets** section for the file layout, the
-`make secrets` pipeline, and the OAuth setup. This file keeps the implementation notes:
+See the [README](../README.md) **Configuration (.env)** section for the `.env` layout,
+the `make env` pipeline, and the OAuth setup. This file keeps the implementation notes:
 
-**Nothing sensitive passes through `.env` or the compose environment.** No
-`--env-file` is used anywhere. The remaining `${...}` in `compose.yaml` are non-secret
-topology values and all carry defaults, so the stack runs with no `.env` present.
-
-Resolution order in `backend/src/secrets.ts`: `SECRETS_DIR` → `/secrets` →
-`../secrets` → `./secrets`, so host-run `npm run start:dev` sees the same files as
-containers. `requireSecret()` throws at boot on a missing value; `secret()` returns
-`undefined` and falls back to `process.env`.
+All configuration lives in the root `.env` (one `KEY=VALUE` per line). Containers load
+it via compose's `env_file:`; host-side scripts load it through dotenv. `backend/src/secrets.ts`
+is a single lookup point over `process.env`: `secret(name)` returns `undefined` when unset,
+`requireSecret(name)` throws at boot on a missing value. The remaining `${...}` in
+`compose.yaml` are non-secret topology values and all carry defaults.
 
 ---
 

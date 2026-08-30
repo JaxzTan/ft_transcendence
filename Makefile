@@ -22,16 +22,25 @@ TUNNEL_VARS    = NGROK_AUTHTOKEN NGROK_DOMAIN NGROK_FRONTEND_URL \
                  NGROK_GOOGLE_CLIENT_ID NGROK_GOOGLE_CLIENT_SECRET NGROK_GOOGLE_CALLBACK_URL \
                  NGROK_GITHUB_CLIENT_ID NGROK_GITHUB_CLIENT_SECRET NGROK_GITHUB_CALLBACK_URL \
                  NGROK_FORTYTWO_CLIENT_ID NGROK_FORTYTWO_CLIENT_SECRET NGROK_FORTYTWO_CALLBACK_URL
+# Everything the stack hard-requires: core secrets/DB/URLs + OAuth apps. These
+# are validated (and never auto-generated — a real .env is copied from a
+# teammate). LAN_IP and SMTP_CREDENTIALS are deliberately not in the list.
+CORE_VARS      = JWT_SECRET POSTGRES_PASSWORD REDIS_PASSWORD ENGINE_API_KEY \
+                 POSTGRES_USER POSTGRES_DB DATABASE_URL CONTAINER_DATABASE_URL \
+                 FRONTEND_URL NGROK_PORT HTTPS_PORT
 
 all: build start
 	@ echo "Frontend: https://localhost:$(HTTPS_PORT)"
 
-# One-command config pipeline: generate any missing derived values, then
-# preflight (fail hard) on the manual-only ones (OAuth apps + ngrok tunnel
-# credentials — the backend's ngrok strategies fail-fast on boot without them).
-# Used by every build/start path exactly once. Values live in .env now, one
-# KEY=VALUE per line, read directly by compose's env_file: and by dotenv on
-# the host side.
+# Config validation + LAN_IP refresh: fails hard if .env is missing or any
+# required value is absent/empty (core secrets/DB/URLs, OAuth apps, ngrok
+# tunnel credentials — the backend's requireSecret() fails fast on boot
+# without them). Nothing is auto-generated: a real .env is copied from a
+# teammate. LAN_IP is best-effort — empty is allowed, but if the current
+# machine address can be detected it is written back so `make lan`'s URL
+# never goes stale. Used by every build/start path exactly once. Values live
+# in .env now, one KEY=VALUE per line, read directly by compose's env_file:
+# and by dotenv on the host side.
 env:
 	@if [ ! -f .env ]; then \
 	  echo "❌ Build aborted — .env not found. Ensure you have copied over the correct .env file with all relevant credentials"; \
@@ -46,33 +55,19 @@ env:
 	    printf '%s=%s\n' "$$1" "$$2" >> .env; \
 	  fi; \
 	}; \
-	gen()  { [ -n "$$(get $$1)" ] || set_kv "$$1" "$$(openssl rand -hex $$2)"; }; \
-	seed() { [ -n "$$(get $$1)" ] || set_kv "$$1" "$$2"; }; \
-	gen  JWT_SECRET        32; \
-	gen  POSTGRES_PASSWORD 16; \
-	gen  REDIS_PASSWORD    16; \
-	gen  ENGINE_API_KEY    32; \
-	seed POSTGRES_USER     'db_bossman'; \
-	seed POSTGRES_DB       'transcendence'; \
-	seed FRONTEND_URL      'https://localhost:8443'; \
-	seed NGROK_PORT        '8443'; \
-	seed HTTPS_PORT        '8443'; \
-	lan_ip=$$(ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'); \
-	[ -n "$$lan_ip" ] || lan_ip=$$(ipconfig getifaddr en0 2>/dev/null); \
-	[ -n "$$lan_ip" ] || lan_ip=$$(ipconfig getifaddr en1 2>/dev/null); \
-	if [ -n "$$lan_ip" ]; then set_kv LAN_IP "$$lan_ip"; fi; \
-	pwd_val=$$(get POSTGRES_PASSWORD); user_val=$$(get POSTGRES_USER); db_val=$$(get POSTGRES_DB); \
-	set_kv DATABASE_URL           "postgresql://$$user_val:$$pwd_val@localhost:5432/$$db_val"; \
-	set_kv CONTAINER_DATABASE_URL "postgresql://$$user_val:$$pwd_val@db:5432/$$db_val"; \
-	chmod 600 .env; \
 	missing=""; \
-	for v in $(OAUTH_VARS) $(TUNNEL_VARS); do [ -n "$$(get $$v)" ] || missing="$$missing $$v"; done; \
+	for v in $(CORE_VARS) $(OAUTH_VARS) $(TUNNEL_VARS); do [ -n "$$(get $$v)" ] || missing="$$missing $$v"; done; \
 	if [ -n "$$missing" ]; then \
-	  echo "❌ Preflight failed — required values missing in .env:"; \
+	  echo "❌ Preflight failed — required values missing or empty in .env:"; \
 	  for v in $$missing; do echo "      $$v"; done; \
 	  echo "   Fill them in (see .env.example), or ask a teammate for the values."; \
 	  exit 1; \
 	fi; \
+	lan_ip=$$(ip route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p'); \
+	[ -n "$$lan_ip" ] || lan_ip=$$(ipconfig getifaddr en0 2>/dev/null); \
+	[ -n "$$lan_ip" ] || lan_ip=$$(ipconfig getifaddr en1 2>/dev/null); \
+	if [ -n "$$lan_ip" ]; then set_kv LAN_IP "$$lan_ip"; fi; \
+	chmod 600 .env; \
 	echo "✅ .env ready — all required values present"
 
 build: env
