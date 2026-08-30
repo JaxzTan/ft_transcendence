@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
@@ -633,6 +633,27 @@ export function Game() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [activeMatch, user?.username])
+
+  // Shared with the ABORT button — pressing ESC runs the exact same path as
+  // clicking it (opens the abort / end-game confirmation card).
+  const openAbortConfirmation = useCallback(() => setIsAbortModalOpen(true), [])
+
+  // Wires the [ESC] shortcut shown on the ABORT button. (CyberButton only
+  // *renders* the shortcut label; the key handling lives here.) Guards mirror
+  // the button's visibility, and any modal already open keeps its own ESC.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
+      if (isAbortModalOpen || isSystemModalOpen || showResultsModal || isGameEnded) return
+      if (!activeMatch) return
+      e.preventDefault()
+      openAbortConfirmation()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [openAbortConfirmation, isAbortModalOpen, isSystemModalOpen, showResultsModal, isGameEnded, activeMatch])
 
   const rollDice = () => {
     if (!canRoll || isRolling || isRollingRef.current || isMovingPieceRef.current) return
@@ -1742,7 +1763,7 @@ export function Game() {
                     label={isBotOrHotseat ? t('game.abortSimulationBtn') : t('game.abortMatchBtn')}
                     shortcut="ESC"
                     variant="danger"
-                    onClick={() => setIsAbortModalOpen(true)}
+                    onClick={openAbortConfirmation}
                     style={{ width: '100%', justifyContent: 'center' }}
                   />
                 )

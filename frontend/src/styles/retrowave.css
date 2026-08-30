@@ -103,7 +103,9 @@
   --player-red: #9b0000;
   --player-green: #006800;
   --player-yellow: #9b8100;
-  --player-blue: #000068;
+  /* blue pieces/sections were too dark at #000068 (near-black on the board) —
+     a medium royal blue stays clearly visible on the grey yard and teal board */
+  --player-blue: #1a4fc0;
   --board-bg: #006868;
   --board-yard-bg: #9b9b9b;
   --board-badge-bg: #aba8a2;
@@ -3190,6 +3192,15 @@ canvas#snakeCanvas {
 [data-theme="terminal"] .cyber-btn {
   color: #33ff33 !important;
   --btn-accent: #33ff33;
+}
+
+/* Terminal: the base override above makes every cyber button green, which
+   erased the danger variant and made the confirm-abort label blend into the
+   button. Restore a distinct red danger treatment (theme's player-red) so
+   "CONFIRM ABORT" reads clearly against the green theme. */
+[data-theme="terminal"] .cyber-btn.cyber-btn-danger {
+  color: #ff4d4d !important;
+  --btn-accent: #ff4d4d;
 }
 
 /* ==========================================================================
