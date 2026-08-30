@@ -158,7 +158,23 @@ Two httpOnly cookies are used:
 | sameSite | `lax` | `lax` |
 | secure | `true` in production | `true` in production |
 | path | `/` | `/api/auth` |
-| maxAge | 15 minutes (matches JWT expiry) | 7 days (matches SessionService TTL) |
+| maxAge | 15 minutes (`ACCESS_MAX_AGE_MS`) | 7 days (`REFRESH_MAX_AGE_MS` / `REFRESH_TTL_S`) |
+
+### Tunable constants
+
+Edit these module-level constants to tweak auth behaviour (all defined in `backend/src/auth/`):
+
+| Constant | File | Default | What it controls |
+|----------|------|---------|------------------|
+| `SALT_ROUNDS` | `auth.service.ts` | 10 | bcrypt cost for password hashing |
+| `ACCESS_MAX_AGE_MS` | `auth.controller.ts` | 15 min | Access-cookie lifetime (keep in sync with `JwtModule expiresIn`) |
+| `REFRESH_MAX_AGE_MS` | `auth.controller.ts` | 7 days | Refresh-cookie lifetime |
+| `REFRESH_TTL_S` | `session.service.ts` | 7 days | Refresh-token Redis TTL |
+| `VERIFY_TOKEN_TTL_S` | `twofactor.service.ts` | 24 h | Email-verification link lifetime |
+| `RESET_TOKEN_TTL_S` | `twofactor.service.ts` | 1 h | Password-reset link lifetime |
+| `CODE_TTL_S` | `twofactor.service.ts` | 5 min | 2FA login-code lifetime |
+| `MAX_ATTEMPTS` | `twofactor.service.ts` | 5 | 2FA / reset attempt limit |
+| `PASSWORD_MIN` / `PASSWORD_MAX` | `auth/dto/password.rules.ts` | 12 / 72 | Password length bounds (mirrored in `frontend/src/validatePassword.ts`) |
 
 ---
 

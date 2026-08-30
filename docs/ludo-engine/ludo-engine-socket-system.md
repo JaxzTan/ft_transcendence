@@ -257,7 +257,7 @@ Automatically handled by Socket.IO on connection drop.
 | `game_ended` | `{ winner, resultDetail }` | Game finished |
 | `game_timeout` | none | Post-game lobby expired (60s) or rematch quorum broken |
 | `game_created` | `newGameId` (string) | Rematch quorum reached — broadcast to new game room |
-| `game_expired` | none | Lobby game expired (1 hour inactivity) |
+| `game_expired` | none | Idle lobby expired (5 min, < 2 seated) |
 | `player_exited` | `{ color }` | Player disconnected/resigned |
 | `player_aborted` | `{ color, username }` | A player aborted the game |
 | `player_disconnected` | `{ color }` | A player's connection dropped |
@@ -362,5 +362,21 @@ Automatically handled by Socket.IO on connection drop.
 | `REDIS_HOST` | `redis` | Redis pub/sub and game store |
 | `REDIS_PORT` | `6479` | Redis port |
 | `REDIS_PASSWORD` | (from secrets) | Redis authentication |
-| `BACKEND_URL` | `http://localhost:3000` | Engine callback URL |
+| `BACKEND_URL` | `http://backend:3000` | Engine callback URL |
 | `ENGINE_API_KEY` | (from secrets) | Validates engine→backend callbacks |
+
+### Tunable constants
+
+Module-level constants in the socket layer — edit the value at the top of the file to tweak behaviour:
+
+| Constant | File | Default | What it controls |
+|----------|------|---------|------------------|
+| `IDLE_LOBBY_TIMEOUT_MS` | `socket/server.ts` | 5 min | A WAITING room (< 2 seated) is aborted after this long idle |
+| `POST_GAME_TIMEOUT_MS` | `socket/server.ts` | 60 s | Post-game lobby auto-times-out if no rematch quorum |
+| `BOT_STEP_ANIM_MS` | `socket/server.ts` | 220 ms | Per-step piece-move animation pacing used to time bot turns |
+| `BOT_THINK_MS` | `socket/server.ts` | 500 ms | Flat "thinking" pause before a bot rolls |
+| (inline) lobby sweep | `socket/server.ts` | 60 s | How often the lobby-expiry sweep runs (`setInterval(..., 60_000)` in `start()`) |
+| (inline) dice-anim wait | `socket/server.ts` | 750 ms | Frontend dice-roll animation wait before a bot acts |
+| `SLOT_COLORS` | `socket/socket-handlers.ts` | blue, red, green, yellow | Seat order used when creating games / rematches |
+| `BOT_PREFIX` | `socket/auth.ts` | `bot-` | Prefix that marks a user id as a bot |
+| `BACKEND_URL` | `socket/auth.ts` | `http://backend:3000` | Base URL the engine POSTs results to (env `BACKEND_URL`) |

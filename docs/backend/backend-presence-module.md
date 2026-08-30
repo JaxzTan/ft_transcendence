@@ -22,6 +22,7 @@ The module provides:
 1. **Heartbeat** — a client sends `POST /api/presence/heartbeat` every ~20 seconds while the app is open.
 2. **Playing flag** — the same endpoint accepts an optional `playing` boolean to advertise "playing" instead of "online" while inside a match.
 3. **Clear** — a client calls `DELETE /api/presence/heartbeat` on logout to read as offline immediately instead of waiting out the TTL.
+4. **Online count** — `GET /api/presence/online-count` returns the site-wide number of online users for the homepage badge bar.
 
 ---
 
@@ -29,7 +30,7 @@ The module provides:
 
 | File | Role |
 |------|------|
-| `presence.controller.ts` | HTTP routes: heartbeat POST/DELETE |
+| `presence.controller.ts` | HTTP routes: heartbeat POST/DELETE, online-count GET |
 | `presence.service.ts` | Business logic: Redis presence state management, batched status lookup |
 | `presence.module.ts` | NestJS module — registers controller and service |
 | `dto/heartbeat.dto.ts` | Validation schema for the heartbeat request body |
@@ -64,6 +65,7 @@ A missing Redis presence key *is* the offline state. The heartbeat TTL (45s, cov
 |--------|------|------|-------------|
 | `POST` | `/api/presence/heartbeat` | JWT | Send presence heartbeat (with optional `playing` flag) |
 | `DELETE` | `/api/presence/heartbeat` | JWT | Clear presence (logout) |
+| `GET` | `/api/presence/online-count` | JWT | Site-wide online user count (homepage badge) |
 
 ---
 
@@ -121,6 +123,13 @@ DELETE /api/presence/heartbeat (JWT required)
   └── 200 { ok: true }
 ```
 
+### Online Count Path
+```
+GET /api/presence/online-count (JWT required)
+  ├── SCAN presence:* keys (the same idiom as MatchQueryService)
+  └── 200 { count: <number of live presence keys> }
+```
+
 ---
 
 ## Additional Service Methods
@@ -131,6 +140,7 @@ The `PresenceService` also provides read methods used by other parts of the appl
 |--------|-----------|---------|
 | `getStatus` | `getStatus(userId: string): Promise<PresenceStatus>` | Single-user lookup — e.g. profile pages |
 | `getStatuses` | `getStatuses(userIds: string[]): Promise<Record<string, PresenceStatus>>` | Batched lookup for friends lists |
+| `getOnlineCount` | `getOnlineCount(): Promise<number>` | Site-wide online count via SCAN |
 
 `PresenceStatus` is a type alias: `'online' | 'playing' | 'offline'`. A missing Redis key *is* the offline state — the TTL handles cleanup automatically.
 

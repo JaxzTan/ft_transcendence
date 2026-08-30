@@ -18,7 +18,16 @@
 The App Bootstrap module is the root of the NestJS application. It does three things:
 
 1. **Starts the server** via `main.ts` — turns on cookie reading, request validation, CORS rules, and a health check endpoint.
-2. **Loads every feature module** via `app.module.ts` — imports all 9 feature modules and makes `PrismaService` available to the whole app.
+2. **Loads every feature module** via `app.module.ts` — imports all 9 feature modules and makes `PrismaService` available to the whole app:
+   - `AuthModule` — registration, login, OAuth, 2FA, sessions
+   - `UserModule` — user profiles, avatars, game history
+   - `FriendsModule` — friends list, requests, presence integration
+   - `LeaderboardModule` — ratings and rankings
+   - `AchievementsModule` — achievement rules and evaluation
+   - `StatsModule` — player statistics
+   - `MatchModule` — matchmaking, rooms, ludo-engine callbacks
+   - `PresenceModule` — online/offline presence
+   - `NotificationModule` — notifications
 3. **Handles secrets** via `secrets.ts` — reads config values from small text files (one value per file) with an environment-variable fallback.
 
 ---

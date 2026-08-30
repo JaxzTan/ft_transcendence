@@ -60,6 +60,8 @@ The registry (`achievements.registry.ts`) defines two rule types:
 
 > **Lifetime rule sources** (`wins`, `botWins`, `humanWins`) come from `LifecycleCounts`, computed once per evaluation from the user's `COMPLETED` PVP/PVE participations (`rank === 1`). The streak inputs (`winStreak`, `pveGameStreak`) live on the **`User`** model, not on `Achievement` — the `Achievement` row stores only the 13 unlocked flags. In-app display copy for each name/description lives in `frontend/src/locales/en.ts` (`achXxx` / `achXxxDesc` keys).
 
+To add or tweak an achievement, edit `ACHIEVEMENT_KEYS` / `ACHIEVEMENT_RULES` in `achievements.registry.ts` — no new endpoints or logic are needed.
+
 ### Response Shapes
 
 ```typescript

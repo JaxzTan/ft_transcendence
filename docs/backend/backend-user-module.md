@@ -52,6 +52,7 @@ The User module manages public user profiles, game history, and avatar images.
   bestWinStreak: number;  // Longest winning streak ever
   botWins: number;  // Wins against bots
   humanWins: number;  // Wins against humans
+  hasAvatarPhoto: boolean;  // Whether a custom photo is set (from avatarPhotoContentType)
   createdAt: string;  // When the record was created
   status: 'online' | 'playing' | 'offline';  // From PresenceService (Redis)
 }
@@ -73,7 +74,9 @@ The User module manages public user profiles, game history, and avatar images.
   endedAt: string | null;  // When the game ended
   participants: Array<{  // Everyone who played
     username: string;  // Player's username
+    displayName: string;  // Player's display name
     avatarStyle: string;  // Avatar style name
+    hasAvatarPhoto: boolean;  // Whether the player has a custom avatar photo
     color: string;  // Seat color
     rank: number;  // Position in the ranking
     piecesInGoal: number;  // Pieces finished (0-4)

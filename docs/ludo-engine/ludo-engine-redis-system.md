@@ -29,7 +29,9 @@ The Redis Infrastructure module provides the persistence and messaging layer for
 
 | File | Role |
 |------|------|
-| `redis.ts` | `RedisGameStore` class — persistence layer using ioredis for game state, moves, and match metadata |
+| `redis.ts` | `RedisGameStore` class — persistence layer using ioredis for game state, moves, and match metadata; also `publish()` (PUBLISH to `game:{gameId}`) and the `subscriber` connection |
+| `socket/event-publisher.ts` | `EventPublisher` — serialises each `GameEvent` into a pub/sub payload and calls `store.publish()` |
+| `socket/redis-broadcaster.ts` | `RedisBroadcaster` — `PSUBSCRIBE game:*`, then forwards each message to the matching Socket.IO room |
 
 ---
 
@@ -409,3 +411,92 @@ publish(gameId, message)
 | Dependency | Purpose |
 |-----------|---------|
 | `ioredis` | Redis client for Node.js — supports pub/sub, pipelining, hashes, and lists |
+
+---
+
+## What Pub/Sub Is (plain English)
+
+Redis **pub/sub** is a fire-and-forget message bus. One Redis client *publishes*
+a message to a **channel** (a named topic, like `game:abc123`); any number of
+other clients that are *subscribed* to that channel receive a copy of the
+message. It is a broadcast — there is **no storage, no acknowledgement, no
+queue**. If a subscriber is not connected (or not subscribed yet) when a
+message is published, it never sees it. That is exactly why the engine keeps
+the durable `GameState` in Redis *and* uses pub/sub purely as a live signal to
+connected clients.
+
+This project uses **two independent pub/sub domains** — one in the ludo-engine
+(driving game broadcasts) and one in the backend (driving notifications). Each
+does the same *publish → subscribe → forward* dance, but on different channels
+for different audiences:
+
+| Domain | Publishing side | Subscribing side | Channel shape | What it forwards to |
+|---|---|---|---|---|
+| **Game events** | `EventPublisher` → `RedisGameStore.publish()` | `RedisBroadcaster` (pattern `game:*`) | `game:{gameId}` | Socket.IO room `{gameId}` |
+| **Notifications** | `NotificationService.notify()/broadcast()` (backend) | `NotificationService` subscriber | `notify:{userId}` and `notify:all` | Per-user SSE stream(s) |
+
+### The game-event pub/sub flow
+
+The engine keeps **two Redis connections** per store: one `client` for
+reads/writes and one `subscriber` (a `duplicate()`) purely for listening. When
+a turn changes the game, `LudoEngine` fires a `GameEvent`; `EventPublisher`
+serialises it and `RedisGameStore.publish()` calls
+`PUBLISH game:{gameId} <json>`.
+
+On the listening side, `RedisBroadcaster` opens a **pattern subscription**
+(`PSUBSCRIBE game:*`) so it catches every game's channel without knowing the
+ids ahead of time. Every published message arrives on the `pmessage` handler,
+which:
+
+1. checks the pattern is `game:*`,
+2. strips the `game:` prefix to recover the `gameId`,
+3. parses the JSON payload, and
+4. `io.to(gameId).emit(data.type, data)` — i.e. it re-emits the payload onto
+   the **Socket.IO room for that game**, which is what actually reaches the
+   browsers.
+
+```mermaid
+sequenceDiagram
+    participant Engine as LudoEngine (make a move)
+    participant EP as EventPublisher
+    participant Pub as Redis client (publish)
+    participant Sub as Redis subscriber (PSUBSCRIBE game:*)
+    participant Broad as RedisBroadcaster
+    participant IO as Socket.IO room {gameId}
+    participant Browser
+
+    Engine->>EP: emit GameEvent (e.g. dice_rolled)
+    EP->>Pub: PUBLISH game:{gameId} <json payload>
+    Pub-->>Sub: message on game:{gameId}
+    Sub->>Broad: pmessage(game:{gameId}, payload)
+    Broad->>IO: io.to(gameId).emit(type, payload)
+    IO-->>Browser: client receives dice_rolled
+```
+
+**Why Redis for this?** The pub/sub hop decouples "what happened" from "who
+should hear it". The engine just publishes an event; it does not know or care
+how many tabs/instances are connected. Because this stack currently runs a
+**single engine instance**, the same effect could be reached by emitting
+straight to Socket.IO — but routing through Redis means the design is ready for
+multiple engine instances/processes (each one subscribes to `game:*` and they
+all stay in sync), with no change to the publishing logic.
+
+> **Not to be confused with the durable store:** pub/sub channels
+> (`game:{gameId}`, `notify:*`) are *transient* — they carry live messages only.
+> The persistent keys live in the **Data Structures** table above. A game's
+> state survives a restart because it is saved with `HSET`; a pub/sub message,
+> like a toast or a live board update, is gone the moment it stops being
+> connected.
+
+### The notification pub/sub flow (backend, for context)
+
+The `NotificationService` mirrors the same pattern. `notify()` publishes to
+`notify:{userId}` (per-recipient) and `broadcast()` to `notify:all` (global).
+A single subscriber handler receives the message and pushes it into every open
+SSE `Subject` for that user (or, for `notify:all`, every broadcast subject),
+which NestJS flushes to the browser as an SSE `data:` frame. Nothing is
+persisted on the pub/sub path by itself — the `notify()` variant also writes a
+Postgres `Notification` row first so the message shows up in the bell on the
+next page load even if the SSE stream was closed.
+
+For full detail see `backend-notification-module.md`.

@@ -1,6 +1,6 @@
 # **API List**
 
-Complete reference of all HTTP and WebSocket APIs in the project. Updated 8 Aug 2026
+Complete reference of all HTTP and WebSocket APIs in the project. Updated 30 Aug 2026
 
 ---
 
@@ -601,6 +601,7 @@ Get a user's public profile.
   "bestWinStreak": 0,
   "botWins": 0,
   "humanWins": 0,
+  "hasAvatarPhoto": false,
   "status": "online | playing | offline"
 }
 
@@ -643,7 +644,9 @@ Get a user's game history.
       "participants": [
         {
           "username": "string",
+          "displayName": "string",
           "avatarStyle": "bottts",
+          "hasAvatarPhoto": false,
           "color": "RED",
           "rank": 1,
           "piecesInGoal": 4
@@ -678,7 +681,7 @@ Upload an avatar image (max 2 MB, PNG/JPEG/GIF/WebP).
 
 ```json
 {
-  "message": "Avatar updated"
+  "message": "Avatar uploaded"
 }
 
 ```
@@ -695,7 +698,7 @@ Retrieve a user's custom avatar image.
 
 **Headers:** None  
 **Path:** `:username` = username string  
-**Response:** Binary image data with `Content-Type` set to the stored MIME type.
+**Response:** Binary image data with `Content-Type` set to the stored MIME type, served with `Cache-Control: public, max-age=86400`.
 
 **Errors:** 404 if no custom avatar set.
 
@@ -750,14 +753,7 @@ const socket = io(window.location.origin, { // same-origin → nginx → ludo-en
 Find or create a random PvP match.
 
 **Headers:** 🔒 (requires `token` cookie)  
-**Body:**
-
-```json
-{
-  "color": "red"
-}
-
-```
+**Body:** None (all fields optional)
 
 **Response:**
 
@@ -768,7 +764,7 @@ Find or create a random PvP match.
   "engineUrl": "ws://localhost:8443",
   "color": "blue",
   "mode": "pvp",
-  "playerCount": 2
+  "playerCount": 4
 }
 
 ```
@@ -786,14 +782,7 @@ Find or create a random PvP match.
 Create a PvP invite game with a shareable code.
 
 **Headers:** 🔒 (requires `token` cookie)  
-**Body:**
-
-```json
-{
-  "color": "red"
-}
-
-```
+**Body:** None (all fields optional)
 
 **Response:**
 
@@ -805,7 +794,7 @@ Create a PvP invite game with a shareable code.
   "engineUrl": "ws://localhost:8443",
   "color": "blue",
   "mode": "pvp",
-  "playerCount": 2
+  "playerCount": 4
 }
 
 ```
@@ -824,14 +813,7 @@ Join a PvP game by invite code.
 
 **Headers:** 🔒 (requires `token` cookie)  
 **Path:** `:code` = 6-char invite code  
-**Body:**
-
-```json
-{
-  "color": "red"
-}
-
-```
+**Body:** None
 
 **Response:**
 
@@ -842,7 +824,7 @@ Join a PvP game by invite code.
   "engineUrl": "ws://localhost:8443",
   "color": "red",
   "mode": "pvp",
-  "playerCount": 2
+  "playerCount": 4
 }
 
 ```
@@ -862,8 +844,7 @@ Start a PvE (vs bot) game.
 
 ```json
 {
-  "playerCount": 2,
-  "color": "red"
+  "playerCount": 2
 }
 
 ```
@@ -885,6 +866,7 @@ Start a PvE (vs bot) game.
 **Notes:**
 - Game is `ACTIVE` immediately.
 - Bots fill remaining slots automatically.
+- `playerCount` must be 2 or 4.
 
 ---
 
@@ -902,7 +884,8 @@ Unified match creation — supports PvP, PvE, and hotseat modes.
   "mode": "pvp",
   "playerCount": 2,
   "botCount": 0,
-  "color": "red"
+  "botColors": ["red", "green"],
+  "seatColors": ["yellow", "blue"]
 }
 
 ```
@@ -921,6 +904,11 @@ Unified match creation — supports PvP, PvE, and hotseat modes.
 }
 
 ```
+
+**Notes:**
+- `mode` is **required** and must be `pvp`, `pve`, or `hotseat` (no silent fallback).
+- `playerCount` accepts 1-4; `botCount` must be 0 to `playerCount-1`. Bots are only allowed in PvE games.
+- `botColors` / `seatColors` (optional string arrays) can override the default slot colors. Seat `color` is otherwise assigned by the server.
 
 ---
 
@@ -1268,6 +1256,7 @@ Get paginated leaderboard rankings.
 Get the current user's achievement report (unlocked state + progress + target per achievement).
 
 **Headers:** 🔒 (requires `token` cookie)  
+**Query Params:** optional `?username=<username>` returns another user's achievement report.  
 **Response:**
 
 ```json
@@ -1321,12 +1310,12 @@ Force re-evaluate achievements for the current user.
 
 ```json
 {
-  "unlocked": ["First Blood"]
+  "unlocked": ["achFirstBlood"]
 }
 
 ```
 
-The `unlocked` array contains the display names of any achievements newly unlocked by this evaluation.
+The `unlocked` array contains the **keys** of any achievements newly unlocked by this evaluation (e.g. `achFirstBlood`). This backfill runs silently (`announce=false` — no notification burst fires).
 
 ---
 
@@ -1649,6 +1638,24 @@ Clear presence (e.g. on logout).
 
 ---
 
+#### `GET /api/presence/online-count`
+
+**Source:** `backend/src/presence/presence.controller.ts` — PresenceModule
+
+Get the site-wide count of currently online users (for the homepage badge bar).
+
+**Headers:** 🔒 (requires `token` cookie)  
+**Response:**
+
+```json
+{
+  "count": 12
+}
+
+```
+
+---
+
 ---
 
 ### 18. Notifications
@@ -1673,7 +1680,7 @@ SSE stream — pushes new notifications to the browser in real time.
 
 ```
 
-Types: `friend_request` | `friend_accepted` | `game_invite` | `achievement`
+Types: `friend_request` | `friend_accepted` | `friend_removed` | `friend_declined` | `game_invite` | `achievement` | `match_finished` | `match_cancelled` | `profile_updated` | `display_name_changed` | `friend_online` | `friend_offline` | `avatar_changed`
 
 ---
 
@@ -1977,7 +1984,7 @@ Automatically handled when the WebSocket connection drops. Marks player as disco
 | `game_ended` | `{ winner, resultDetail }` | Game finished |
 | `game_timeout` | none | Post-game lobby expired (60s) or rematch quorum broken |
 | `game_created` | `newGameId` (string) | Rematch quorum reached — broadcast to new game room |
-| `game_expired` | none | Lobby game expired (1 hour inactivity) |
+| `game_expired` | none | Idle lobby expired (5 min, < 2 seated) |
 | `player_exited` | `{ color }` | Player disconnected/resigned |
 | `player_aborted` | `{ color, username }` | A player aborted the game |
 | `player_disconnected` | `{ color }` | A player's connection dropped |
