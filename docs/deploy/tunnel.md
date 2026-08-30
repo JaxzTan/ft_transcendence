@@ -70,19 +70,20 @@ check to decide which `FRONTEND_URL` to redirect back to after login
 |---|---|---|
 | `NGROK_AUTHTOKEN` | yes | Required by `make ngrok-auth`, which `tunnel` depends on |
 | `NGROK_DOMAIN` | no | Reserved ngrok domain, for a stable URL across restarts |
-| `NGROK_PORT` | yes | See [Known gotchas](#known-gotchas) below — this one has a real bug |
+| `NGROK_PORT` | no | Default `8443` — the local port ngrok tunnels (nginx's published port); `make env` seeds it |
 | `NGROK_FRONTEND_URL` | yes | Post-login redirect target for tunnelled requests |
 | `GOOGLE_/GITHUB_/FORTYTWO_CLIENT_ID` + `_SECRET` + `_CALLBACK_URL` | yes | Local OAuth apps |
 | `NGROK_GOOGLE_/GITHUB_/FORTYTWO_CLIENT_ID` + `_SECRET` + `_CALLBACK_URL` | yes | Tunnel OAuth apps — separate credentials, separate callback URLs registered with each provider |
 
 `make env` (a prerequisite of `make build`, so it runs on every path) reads
-`.env`, auto-generates `JWT_SECRET`/`POSTGRES_PASSWORD`/`REDIS_PASSWORD`/
-`ENGINE_API_KEY` if blank, seeds a handful of defaults, and then fails hard
-if any OAuth or tunnel variable above is still empty.
+`.env`, validates that every required value (core secrets/DB URLs, OAuth apps,
+tunnel credentials) is present and non-empty — failing hard with the missing
+list otherwise — and refreshes `LAN_IP` to the machine's current address.
+Nothing is auto-generated: copy a real `.env` from a teammate.
 
 ## Known gotchas
 
-Two places where a comment/default in the code describes different behavior
+One place where a comment/default in the code describes different behavior
 than what actually runs — found by tracing the config directly rather than
 trusting the comments:
 
@@ -94,20 +95,6 @@ trusting the comments:
    the backend container, which may still be useful for picking up fresh
    `.env` values, but the env var it sets does nothing on its own.
 
-2. **`NGROK_PORT` can end up pointing at the wrong port after the first run.**
-   `make tunnel` runs `ngrok http https://localhost:$(NGROK_PORT)`, and the
-   Makefile's own comment says this tunnels "nginx's TLS listener
-   (127.0.0.1:8443)" — but `make env`'s seeding step
-   (`seed NGROK_PORT '8080'`, and `.env.example` ships the same `8080`)
-   persists `NGROK_PORT=8080` into `.env` the first time it runs. On a
-   *second* invocation, `make`'s `NGROK_PORT := $(or $(call env_get,NGROK_PORT),8443)`
-   reads that persisted `8080` back out of `.env` instead of falling back to
-   the correct `8443` — so `make tunnel` ends up running
-   `ngrok http https://localhost:8080`, which nothing listens on (nginx
-   only publishes `8443:443`). If `make tunnel` stops finding anything to
-   tunnel, check `NGROK_PORT` in `.env` first — it should read `8443` to
-   match nginx's actual published port, not `8080`.
-
-Neither is fixed here — flagging them rather than silently patching the
+This one is not fixed here — flagging it rather than silently patching the
 Makefile, since fixing wasn't asked for and other people may be relying on
 this behavior as-is.

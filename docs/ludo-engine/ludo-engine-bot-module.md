@@ -72,7 +72,7 @@ sequenceDiagram
         Bot-->>Game: Pass the turn
     else Moves available
         Bot->>Bot: Pick the best move (capture > free from jail on 6 > most points)
-        Bot->>Bot: Wait ~1 second (so the dice animation shows)
+        Bot->>Bot: Wait ~1.2 seconds (so the dice animation shows)
         Bot->>Engine: Make the move
         Engine-->>Bot: result
         alt The game is over

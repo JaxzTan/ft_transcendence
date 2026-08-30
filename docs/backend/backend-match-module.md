@@ -31,7 +31,7 @@ The module uses Redis for short-lived match data (queues, active games, rematch 
 | File | Role |
 |------|------|
 | `match.controller.ts` | HTTP routes: matchmaking, game actions, browse games, engine callbacks, cleanup |
-| `match.service.ts` | Facade — composes the four split services and re-exports `ENGINE_WS_URL` |
+| `match.service.ts` | Facade — composes the four split services (`MatchCreatorService`, `MatchPlayerService`, `MatchQueryService`, `MatchPostgameService`) and re-exports `ENGINE_WS_URL` |
 | `match.creator.service.ts` | Match creation: PvP/PvE/hotseat, invite codes, random match, bot seeding |
 | `match.player.service.ts` | In-game actions: join, rejoin, invite friend, ready, exit, cancel, resign |
 | `match.query.service.ts` | Browse queries: active games, open rooms, my rooms |
@@ -52,10 +52,11 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
 
 ```typescript
 {
-  mode?: 'pvp' | 'pve' | 'hotseat';  // Game mode
-  playerCount?: number;      // 2 or 4
-  botCount?: number;         // 0-3 (PvE only)
-  color?: 'red';  // Seat color
+  mode: 'pvp' | 'pve' | 'hotseat';  // REQUIRED — no silent fallback
+  playerCount?: number;      // 1-4 (2 or 4 for PvE)
+  botCount?: number;         // 0 - (playerCount-1), PvE only
+  botColors?: string[];      // Optional per-bot slot colors
+  seatColors?: string[];     // Optional human seat colors
 }
 ```
 
@@ -66,7 +67,7 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
   gameId: string;            // UUID of the match
   token: string;             // JWT for Socket.IO handshake
   engineUrl: string;         // "ws://localhost:8443" (derived from FRONTEND_URL)
-  color: string;             // Assigned seat color
+  color: string;             // Assigned seat color (server-chosen)
   mode: 'pvp' | 'pve' | 'hotseat';  // Game mode (persisted for refresh/rejoin)
   playerCount: number;       // How many players/seats
   inviteCode?: string;       // 6-char code (invite games only)
@@ -286,3 +287,12 @@ GET /api/games/active
 | `REDIS_PASSWORD` | (from secrets) | Redis authentication |
 | `ENGINE_API_KEY` | (from secrets) | Validates `POST /api/game/end` and `/api/game/:id/started` from engine |
 | `FRONTEND_URL` | `https://localhost:8443` | Derives `ENGINE_WS_URL` (same origin, `ws://`) returned to clients |
+
+### Tunable constants
+
+| Constant | File | Default | What it controls |
+|----------|------|---------|------------------|
+| `SLOT_COLORS` | `match.creator.service.ts`, `match.player.service.ts` | blue, red, green, yellow | Seat order used when creating/joining rooms |
+| `ENGINE_WS_URL` | `match.creator.service.ts` | derived from `FRONTEND_URL` | WebSocket URL handed to clients for the ludo-engine |
+| `POINTS_PER_PIECE` | `common/scoring.ts` | 2 | Rating points per piece brought home (halved for PvE) |
+| `WIN_BONUS_PIECE` | `common/scoring.ts` | 1 | Extra "piece" counted for the winner when scoring |

@@ -19,7 +19,7 @@ achievement system, and the whole interface is available in multiple languages.
 - **Authentication** — local accounts, OAuth 2.0 sign-in (Google, GitHub, 42), email verification, and two-factor authentication (email code)
 - **Progression** — match history, statistics, leaderboard, and achievements
 - **Multilingual UI** — English, Malay, and French
-- **Notifications, file upload, game customization, and extended browser support**
+- **Notifications, game customization, and extended browser support**
 
 ## Instructions
 
@@ -27,7 +27,7 @@ achievement system, and the whole interface is available in multiple languages.
 
 - **Docker** and **Docker Compose** (the only runtime requirement).
 - **make** (to use the provided build commands).
-- A restored `secrets/` directory (see [Secrets](#secrets) below). The stack refuses to start if a required secret file is missing.
+- A `.env` file at the repo root (see [Configuration (.env)](#configuration-env) below). The stack refuses to start if required values are missing.
 - OAuth client IDs and secrets for Google, GitHub, and 42 — **optional**. Local sign-up and login work without them.
 - At least one free port: `8443` (HTTPS). Ports `3000`, `3001`, `5432`, `5555`, `6479` are used inside/for debugging.
 
@@ -39,7 +39,7 @@ cd ft_transcendence
 make
 ```
 
-`make` builds the images and starts the stack (required secrets are prepared automatically). Then open https://localhost:8443 in your browser — accept the self-signed certificate warning on first visit.
+`make` builds the images and starts the stack (the `make env` step it runs first validates the `.env` values and refreshes `LAN_IP`). Then open https://localhost:8443 in your browser — accept the self-signed certificate warning on first visit.
 
 ### Development mode (hot reload)
 
@@ -51,15 +51,21 @@ make dev
 
 ### Commands
 
-| Command                    | Effect                                    |
-| -------------------------- | ----------------------------------------- |
-| `make secrets`             | Prepare required secrets                  |
-| `make` or `make all`       | Build images and start the stack          |
-| `make dev`                 | Start the Vite dev server with hot reload |
-| `make stop` / `make down`  | Stop services / remove containers         |
-| `make logs`                | Tail service logs                         |
-| `make clean` / `make re`   | Clean everything / full rebuild           |
-| `make lan` / `make tunnel` | LAN mode / public ngrok tunnel            |
+| Command                                        | Effect                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------- |
+| `make env`                                     | Validate required `.env` values, refresh `LAN_IP`             |
+| `make` or `make all`                           | Build images and start the stack                              |
+| `make build`                                   | Build images only (runs `make env` first)                     |
+| `make start`                                   | Start the stack (detached)                                    |
+| `make dev`                                     | Vite HMR dev + prod SPA (`compose watch`)                     |
+| `make stop` / `make down`                      | Stop services / remove containers                             |
+| `make logs`                                    | Tail service logs                                             |
+| `make clean` / `make prune`                    | Remove all Docker data / `docker system prune`                |
+| `make fclean` / `make re`                      | `prune` + `clean` / full rebuild from scratch                 |
+| `make lan`                                     | Print the LAN URL for other devices on the same WiFi          |
+| `make tunnel` / `make tunnel-url`              | Start the ngrok tunnel / print its public URL                 |
+| `make stop-tunnel`                             | Kill ngrok and stop the dev containers                        |
+| `make tunnel_up`                               | One-shot: build + start + open the tunnel                     |
 
 ### Access
 
@@ -71,12 +77,9 @@ make dev
 | `http://localhost:5555`   | Prisma Studio (database browser)                                | default |
 | `wss://<host>/socket.io/` | Game engine connection (same-origin through nginx / Vite proxy) | default |
 
-### Secrets
+### Configuration (.env)
 
-The project stores configuration in plain-text files under `secrets/`, one value per file, named after the variable in lowercase (for example `JWT_SECRET` → `secrets/jwt_secret.txt`). The directory is mounted read-only into the containers. **Never commit this folder to git** (it is already ignored).
-
-- `make secrets` generates and seeds everything that can be derived.
-- OAuth credentials must be obtained from the provider consoles (Google Cloud, GitHub, 42 intra) and placed manually.
+All config lives in the root `.env` (`KEY=VALUE` per line), loaded into containers via compose's `env_file:`. It is gitignored and shared between the team only (via Discord) — copy `.env.example` to start, then fill in the real values from a teammate. `make` validates it and **fails early** if `.env` is missing or any required field is empty, and refreshes `LAN_IP`. OAuth credentials are added manually from the provider consoles (Google, GitHub, 42).
 
 ## Team Information
 
@@ -190,6 +193,14 @@ consistently on any machine.
 | 8   | Notification system               | `hang`     | Notifications on create, update and delete actions                     |
 | 9   | Custom minor module               | `chtan`    | Ngrok tunneling for exposing the local stack for remote testing        |
 
+### Points calculation
+
+| Module type   | Count | Points each | Total  |
+| ------------- | ----- | ----------- | ------ |
+| Major modules | 7     | 2           | 14     |
+| Minor modules | 9     | 1           | 9      |
+| **Total**     |       |             | **23** |
+
 ## Individual Contributions
 
 ### `chtan`
@@ -229,7 +240,6 @@ All project documentation lives under `docs/`, grouped by category. Each file is
 | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | [docs/architecture.md](docs/architecture.md) | System topology, services, request paths, data layer, secrets, make targets, file structure |
 | [docs/API-list.md](docs/API-list.md)         | Complete HTTP + WebSocket API reference                                                     |
-| [docs/Ludo_Rules.md](docs/Ludo_Rules.md)     | Classic Ludo rules                                                                          |
 
 #### Deployment
 
@@ -289,7 +299,8 @@ All project documentation lives under `docs/`, grouped by category. Each file is
 
 ### Classic references
 
-- Ludo rules: [Wikipedia — Ludo](https://en.wikipedia.org/wiki/Ludo)
+- Ludo rules: [docs/Ludo_Rules.md](docs/Ludo_Rules.md) — the full ruleset the engine enforces (57-step piece journey, star squares, blockades, captures, exact-count home entry)
+- Ludo background: [Wikipedia — Ludo](https://en.wikipedia.org/wiki/Ludo)
 - React: [react.dev](https://react.dev)
 - NestJS: [docs.nestjs.com](https://docs.nestjs.com)
 - Socket.IO: [socket.io/docs](https://socket.io/docs)

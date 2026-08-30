@@ -244,6 +244,18 @@ move_piece(pieceId)
 | `player-handler` | Disconnect/reconnect/exit/ready + `advanceTurnInState` |
 | `LobbyManager` | Color selection and ready check |
 
+### Tunable constants
+
+Module-level constants in the engine's support files — edit at the top of each file to tweak:
+
+| Constant | File | Default | What it controls |
+|----------|------|---------|------------------|
+| `DISCONNECT_GRACE_MS` | `player-handler.ts` | 45 s | PvP reconnect window before a disconnected player is pruned |
+| `BOT_DISCONNECT_GRACE_MS` | `player-handler.ts` | 1 h | Bot-mode reconnect window before the game auto-aborts |
+
+> `player-handler.ts` adds a hardcoded `+1000` ms buffer to the PvP grace
+> period so the prune timer fires just after the reconnect deadline.
+
 ---
 
 ## Configuration
@@ -253,5 +265,5 @@ move_piece(pieceId)
 | `REDIS_HOST` | `redis` | RedisGameStore |
 | `REDIS_PORT` | `6479` | RedisGameStore |
 | `REDIS_PASSWORD` | (from secrets) | RedisGameStore |
-| `BACKEND_URL` | `http://localhost:3000` | ResultSubmitter |
+| `BACKEND_URL` | `http://backend:3000` | ResultSubmitter |
 | `ENGINE_API_KEY` | (from secrets) | ResultSubmitter |

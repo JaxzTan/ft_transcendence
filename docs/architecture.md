@@ -1,7 +1,7 @@
 # Architecture
 
 **Project:** ft_transcendence — RetroLudo '42
-**Updated:** 2026-08-25
+**Updated:** 2026-08-30
 
 An eight-service Docker Compose stack: a React 19 SPA built by a one-shot job and
 served over TLS by nginx, a NestJS REST API, a standalone real-time game engine
@@ -43,8 +43,9 @@ graph TB
 
 ## Services
 
-The full services table (host port, container port, profile, role) lives in the
-[README](../README.md) **Access** section. This file keeps the deeper service notes:
+External access URLs live in the [README](../README.md) **Access** section; the full
+container / port / role breakdown is in the [Containers, images & volumes](#containers--images--volumes)
+section below. This file keeps the deeper service notes:
 
 Images are built from `Dockerfile`s in each service directory. `db` and `redis` wrap
 their official images with an init script that reads secrets before `exec`ing the
@@ -53,6 +54,45 @@ real process (`backend/app/postgres_16_db/`, `backend/app/redis/`).
 > **Note:** There is no separate `ludo-bot` container. The bot AI lives inside the
 > `ludo-engine` process (`backend/app/ludo-engine/src/bot.ts`). The engine accepts
 > a `bot` role in the JWT and can auto-fill slots with bot players.
+
+---
+
+## Containers, images & volumes
+
+Everything is defined in the root `compose.yaml`. Image names are `<project>-<service>`
+(e.g. `testing-bing-28thaug-backend`); every container attaches to the `transcendence_network`
+bridge and reaches the others by service name.
+
+### Containers
+
+| Container | Image (base) | What runs inside | Host port → container port | Depends on |
+|---|---|---|---|---|
+| `db` | `…-db` (postgres:16-alpine) | `postgres_16_db-init.sh` validates `POSTGRES_PASSWORD`, then `exec`s the official postgres entrypoint → **PostgreSQL 16** | `127.0.0.1:5432 → 5432` | — |
+| `redis` | `…-redis` (redis:7-alpine) | `redis-init.sh` writes `/tmp/redis.conf` (port 6479, AOF persistence, 256 MB LRU) then `exec redis-server … --requirepass` → **Redis 7** | `127.0.0.1:6479 → 6479` | — |
+| `backend` | `…-backend` (node:22-alpine) | `docker-entrypoint.sh` validates env → `prisma db push --accept-data-loss` → `node dist/main.js` (**NestJS API** on 3000) | `127.0.0.1:3000 → 3000` | db (healthy), redis (healthy) |
+| `studio` | `…-studio` (reuses the backend image) | `npx prisma studio --port 5555 --browser none` — **Prisma DB browser** over the `db` service (skips the backend entrypoint to avoid a `prisma db push` race) | `127.0.0.1:5555 → 5555` | db (healthy) |
+| `ludo-engine` | `…-ludo-engine` (node:22-alpine) | `node dist/index.js` — **Socket.IO game engine + inline bot AI** on 3001 (clients reach it same-origin via nginx; the host port exists for local `npm run dev`) | `127.0.0.1:3001 → 3001` | redis (healthy) |
+| `frontend` | `…-frontend` (node:22-alpine) | `publish.sh` — builds the **React SPA**, publishes it into the `spa_dist` volume, then watches `src/` and republishes on change (long-running build job) | — | — |
+| `frontend-dev` *(profile: dev)* | `…-frontend-dev` (node:22-alpine, `Dockerfile.dev`) | `npm run dev` — **Vite dev server with HMR**, serves source from the bind mount | `8080 → 8080` | backend, ludo-engine |
+| `nginx` | `…-nginx` (debian + nginx-extras) | `nginx.sh` waits for the backend health check, then `exec nginx -g "daemon off;"` — **TLS reverse proxy**: serves the SPA and proxies `/api/*` + `/socket.io/*` | `8443 → 443` | frontend (healthy), backend, ludo-engine |
+
+### Volumes
+
+| Volume | Mounted into | Purpose |
+|---|---|---|
+| `db_data` | `db → /var/lib/postgresql/data` | PostgreSQL data directory — survives container recreates |
+| `redis_data` | `redis → /data` | Redis persistence (AOF + RDB snapshots) |
+| `spa_dist` | `frontend → /export` (write), `nginx → /usr/share/nginx/html:ro` (read) | The SPA build handoff: `frontend` builds into it, `nginx` serves it read-only |
+
+The compose file also uses **bind mounts** (host paths, not volumes): `./frontend → /app`
+on `frontend` / `frontend-dev` so Vite watches live source, and
+`./nginx/conf/nginx.conf` + `app.inc → /etc/nginx/*` so nginx config can be edited
+without a rebuild.
+
+### Network
+
+`transcendence_network` (bridge) — all containers attach to it; `db`, `redis`,
+`backend`, `ludo-engine`, and `nginx` resolve each other by service name.
 
 ---
 
@@ -163,19 +203,16 @@ notification services all authenticate their Redis connections via
 
 ---
 
-## Secrets
+## Configuration (.env)
 
-See the [README](../README.md) **Secrets** section for the file layout, the
-`make secrets` pipeline, and the OAuth setup. This file keeps the implementation notes:
+See the [README](../README.md) **Configuration (.env)** section for the `.env` layout,
+the `make env` pipeline, and the OAuth setup. This file keeps the implementation notes:
 
-**Nothing sensitive passes through `.env` or the compose environment.** No
-`--env-file` is used anywhere. The remaining `${...}` in `compose.yaml` are non-secret
-topology values and all carry defaults, so the stack runs with no `.env` present.
-
-Resolution order in `backend/src/secrets.ts`: `SECRETS_DIR` → `/secrets` →
-`../secrets` → `./secrets`, so host-run `npm run start:dev` sees the same files as
-containers. `requireSecret()` throws at boot on a missing value; `secret()` returns
-`undefined` and falls back to `process.env`.
+All configuration lives in the root `.env` (one `KEY=VALUE` per line). Containers load
+it via compose's `env_file:`; host-side scripts load it through dotenv. `backend/src/secrets.ts`
+is a single lookup point over `process.env`: `secret(name)` returns `undefined` when unset,
+`requireSecret(name)` throws at boot on a missing value. The remaining `${...}` in
+`compose.yaml` are non-secret topology values and all carry defaults.
 
 ---
 
