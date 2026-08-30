@@ -315,8 +315,8 @@ export function Friends() {
               <span
                 className={RETRO_BADGE}
                 style={{
-                  border: '1px solid #00ff88',
-                  color: '#00ff88',
+                  border: '1px solid var(--success)',
+                  color: 'var(--success)',
                   background: 'rgba(0, 255, 136, 0.12)',
                   boxShadow: '0 0 10px rgba(0, 255, 136, 0.25)',
                   fontSize: '0.74rem',
@@ -364,7 +364,7 @@ export function Friends() {
                   className={RETRO_BADGE}
                   style={{
                     border: '1px solid rgba(255, 0, 85, 0.4)',
-                    color: '#ff0055',
+                    color: 'var(--error)',
                     background: 'rgba(255, 0, 85, 0.1)',
                     fontSize: '0.74rem',
                     padding: '4px 12px',
@@ -489,7 +489,7 @@ export function Friends() {
                         borderRadius: 4,
                         color: activeTab === 'blocked' ? '#ffffff' : 'var(--text-muted)',
                         background: activeTab === 'blocked' ? 'rgba(255, 0, 85, 0.22)' : 'transparent',
-                        borderColor: activeTab === 'blocked' ? '#ff0055' : 'rgba(255, 255, 255, 0.15)',
+                        borderColor: activeTab === 'blocked' ? 'var(--error)' : 'rgba(255, 255, 255, 0.15)',
                         boxShadow: activeTab === 'blocked' ? '0 0 10px rgba(255, 0, 85, 0.35)' : 'none',
                       }}
                     >
@@ -671,7 +671,7 @@ export function Friends() {
                                   fontWeight: 900,
                                   background: 'linear-gradient(90deg, #ff007f, #9d00ff)',
                                   color: '#ffffff',
-                                  borderColor: '#ff007f',
+                                  borderColor: 'var(--accent-pink)',
                                   boxShadow: '0 0 10px rgba(255, 0, 127, 0.4)',
                                   opacity: invitingId === f.id ? 0.6 : 1,
                                   borderRadius: 4,
@@ -757,7 +757,7 @@ export function Friends() {
                                 height: 38,
                                 borderRadius: 4,
                                 background: 'rgba(10, 2, 28, 0.95)',
-                                color: '#ff0055',
+                                color: 'var(--error)',
                                 display: 'grid',
                                 placeItems: 'center',
                                 fontWeight: 900,
@@ -767,7 +767,7 @@ export function Friends() {
                               <div style={{ fontWeight: 900, fontSize: '0.9rem', color: '#ffffff', fontFamily: 'var(--font-display)' }}>
                                 {b.displayName || b.username}
                               </div>
-                              <div style={{ color: '#ff0055', fontSize: '0.68rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
+                              <div style={{ color: 'var(--error)', fontSize: '0.68rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
                                 {t('friends.restrictedSince', { date: new Date(b.blockedSince).toLocaleDateString() })}
                               </div>
                             </div>
@@ -867,7 +867,7 @@ export function Friends() {
                         padding: '8px 12px',
                         borderRadius: 4,
                         background: msg.type === 'error' ? 'rgba(255, 0, 85, 0.16)' : 'rgba(0, 255, 136, 0.16)',
-                        border: `1px solid ${msg.type === 'error' ? '#ff0055' : '#00ff88'}`,
+                        border: `1px solid ${msg.type === 'error' ? 'var(--error)' : 'var(--success)'}`,
                         color: msg.type === 'error' ? '#ff0055' : '#00ff88',
                         fontSize: '0.74rem',
                         fontFamily: 'var(--font-display)',
@@ -1042,7 +1042,7 @@ export function Friends() {
                                 fontWeight: 900,
                                 background: '#00ff88',
                                 color: '#0d0221',
-                                borderColor: '#00ff88',
+                                borderColor: 'var(--success)',
                                 borderRadius: 3,
                               }}
                               title="Accept Friend Request"

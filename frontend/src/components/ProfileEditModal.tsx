@@ -245,7 +245,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {notice && <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', margin: '4px 0 8px' }}>{notice}</div>}
-        {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
+        {error && <div style={{ fontSize: '0.7rem', color: 'var(--error)', margin: '4px 0 8px' }}>{error}</div>}
 
         <button
           className={RETRO_BTN}

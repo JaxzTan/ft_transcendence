@@ -257,8 +257,8 @@ export function LudoLobby() {
               <span
                 className={RETRO_BADGE}
                 style={{
-                  border: '1px solid #00ff88',
-                  color: '#00ff88',
+                  border: '1px solid var(--success)',
+                  color: 'var(--success)',
                 }}
               >
                 {t('ludoLobbyExtra.pilotLabel', { name: (user?.displayName ?? user?.username)?.toUpperCase() ?? t('ludoLobbyExtra.guestFallback') })}
@@ -314,12 +314,12 @@ export function LudoLobby() {
                     style={{
                       padding: '12px 20px',
                       background: 'rgba(255, 0, 127, 0.28)',
-                      border: '1.5px solid #ff007f',
+                      border: '1.5px solid var(--accent-pink)',
                       borderRadius: 8,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
                       fontSize: '0.98rem',
-                      color: '#ff007f',
+                      color: 'var(--accent-pink)',
                       whiteSpace: 'nowrap',
                       letterSpacing: '1.2px',
                       boxShadow: '0 0 12px rgba(255, 0, 127, 0.3)',
@@ -454,12 +454,12 @@ export function LudoLobby() {
                     style={{
                       padding: '12px 20px',
                       background: 'rgba(0, 255, 136, 0.24)',
-                      border: '1.5px solid #00ff88',
+                      border: '1.5px solid var(--success)',
                       borderRadius: 8,
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 900,
                       fontSize: '0.98rem',
-                      color: '#00ff88',
+                      color: 'var(--success)',
                       whiteSpace: 'nowrap',
                       letterSpacing: '1.2px',
                       boxShadow: '0 0 12px rgba(0, 255, 136, 0.3)',
@@ -491,8 +491,8 @@ export function LudoLobby() {
                   className={`${TICKET_ACTION_PILL} ticket-action-pill`}
                   style={{
                     background: 'rgba(0, 255, 136, 0.22)',
-                    border: '1.5px solid #00ff88',
-                    color: '#00ff88',
+                    border: '1.5px solid var(--success)',
+                    color: 'var(--success)',
                     boxShadow: '0 0 16px rgba(0, 255, 136, 0.4)',
                   }}
                 >
@@ -626,8 +626,8 @@ export function LudoLobby() {
                   padding: '10px 14px',
                   borderRadius: 4,
                   background: 'rgba(255, 0, 85, 0.15)',
-                  border: '1px solid #ff0055',
-                  color: '#ff0055',
+                  border: '1px solid var(--error)',
+                  color: 'var(--error)',
                   fontSize: '0.75rem',
                   textAlign: 'center',
                   fontFamily: 'var(--font-mono)',

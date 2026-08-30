@@ -21,11 +21,14 @@ const CLASH_TARGET = 42 // must mirror engine CLASH_TARGET
 // bar hits exactly full (168px) at 42 presses. Keep width a multiple of target.
 const CLASH_BAR_WIDTH_PX = 168
 
+// Player identity colors for the clash plates/bars. Theme-aware CSS vars
+// (defined per-theme in retrowave.css) so the clash matches the active theme;
+// the hex fallbacks are the synthwave defaults.
 const COLORS: Record<PlayerColor, string> = {
-  red: '#e05050',
-  green: '#5fd08a',
-  yellow: '#f0d18a',
-  blue: '#4a92e0',
+  red: 'var(--clash-red, #e05050)',
+  green: 'var(--clash-green, #5fd08a)',
+  yellow: 'var(--clash-yellow, #f0d18a)',
+  blue: 'var(--clash-blue, #4a92e0)',
 }
 
 type Props = {
@@ -73,7 +76,7 @@ function Bar({ color, presses, target }: { color: PlayerColor; presses: number; 
           height: '100%', borderRadius: 8,
           width: `${widthPx}px`,
           background: COLORS[color],
-          boxShadow: `0 0 12px ${COLORS[color]}66`,
+          boxShadow: `0 0 12px color-mix(in srgb, ${COLORS[color]} 40%, transparent)`,
           transition: 'width 90ms linear',
         }}
       />
@@ -87,7 +90,7 @@ function Plate({ role, color, isMe }: { role: 'Defender' | 'Attacker'; color: Pl
     <div className="text-center">
       <div
         className="mx-auto mb-2 grid h-[76px] w-[120px] place-items-center rounded-[18px] px-3 text-[28px] font-black tracking-[0.12em] text-[#12100a]"
-        style={{ background: COLORS[color], boxShadow: `0 0 18px ${COLORS[color]}55` }}
+        style={{ background: COLORS[color], boxShadow: `0 0 18px color-mix(in srgb, ${COLORS[color]} 33%, transparent)` }}
       >
         {(color ?? '').slice(0, 2).toUpperCase() || '?'}
       </div>

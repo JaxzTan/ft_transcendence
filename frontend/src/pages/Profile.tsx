@@ -369,7 +369,7 @@ export function Profile() {
               {t('profile.initTelemetry')}
             </div>
           ) : !profile ? (
-            <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: '#ff0055', fontSize: '1rem', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
+            <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--error)', fontSize: '1rem', fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
               {t('profile.playerNotFoundArchives', { username })}
             </div>
           ) : (
@@ -604,7 +604,7 @@ export function Profile() {
                               style={{
                                 padding: '3px 8px',
                                 fontSize: '0.68rem',
-                                color: '#ff0055',
+                                color: 'var(--error)',
                                 borderColor: 'rgba(255, 0, 85, 0.45)',
                                 fontFamily: 'var(--font-display)',
                                 borderRadius: 4,
@@ -627,7 +627,7 @@ export function Profile() {
                               {t('profileExtra.editProfileBtn')}
                             </button>
                             {uploadError && (
-                              <span style={{ color: '#ff0055', fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>
+                              <span style={{ color: 'var(--error)', fontSize: '0.66rem', fontFamily: 'var(--font-mono)' }}>
                                 {uploadError}
                               </span>
                             )}
@@ -757,7 +757,7 @@ export function Profile() {
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
                       {t('profile.victoriesStat')}
                     </div>
-                    <div style={{ color: '#00ff88', fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-display)', marginTop: 2, lineHeight: 1 }}>
+                    <div style={{ color: 'var(--success)', fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-display)', marginTop: 2, lineHeight: 1 }}>
                       {profile.wins}
                     </div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
@@ -779,7 +779,7 @@ export function Profile() {
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-display)', fontWeight: 900 }}>
                       {t('profile.defeatsStat')}
                     </div>
-                    <div style={{ color: '#ff007f', fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-display)', marginTop: 2, lineHeight: 1 }}>
+                    <div style={{ color: 'var(--accent-pink)', fontSize: '1.6rem', fontWeight: 900, fontFamily: 'var(--font-display)', marginTop: 2, lineHeight: 1 }}>
                       {profile.losses}
                     </div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', fontFamily: 'var(--font-display)', marginTop: 2 }}>
@@ -966,7 +966,7 @@ export function Profile() {
                                         borderRadius: 5,
                                         background: isWin ? 'rgba(0, 255, 136, 0.22)' : 'rgba(255, 0, 127, 0.22)',
                                         color: isWin ? '#00ff88' : '#ff007f',
-                                        border: `1px solid ${isWin ? '#00ff88' : '#ff007f'}`,
+                                        border: `1px solid ${isWin ? 'var(--success)' : 'var(--accent-pink)'}`,
                                         textShadow: isWin ? '0 0 10px #00ff88' : '0 0 10px #ff007f',
                                         minWidth: 105,
                                         textAlign: 'center',
@@ -1012,7 +1012,7 @@ export function Profile() {
                                         background: isWin ? 'rgba(0, 255, 136, 0.22)' : 'rgba(255, 0, 127, 0.22)',
                                         color: isWin ? '#00ff88' : '#ff007f',
                                         fontWeight: 900,
-                                        border: `1px solid ${isWin ? '#00ff88' : '#ff007f'}`,
+                                        border: `1px solid ${isWin ? 'var(--success)' : 'var(--accent-pink)'}`,
                                         letterSpacing: '0.5px',
                                       }}
                                     >

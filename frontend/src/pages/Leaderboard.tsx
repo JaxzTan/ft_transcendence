@@ -356,7 +356,7 @@ export function Leaderboard() {
                           }}
                         >
                           <span>{t('leaderboard.matchesLabel')} <strong style={{ color: '#ffffff', fontSize: '0.88rem' }}>{top1.gamesPlayed}</strong></span>
-                          <span>{t('leaderboard.winRateLabel')} <strong style={{ color: '#00ff88', fontSize: '0.88rem' }}>{top1.winRate}%</strong></span>
+                          <span>{t('leaderboard.winRateLabel')} <strong style={{ color: 'var(--success)', fontSize: '0.88rem' }}>{top1.winRate}%</strong></span>
                         </div>
                       </div>
                     )

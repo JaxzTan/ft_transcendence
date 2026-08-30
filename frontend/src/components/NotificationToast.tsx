@@ -289,7 +289,7 @@ function Toast({
     zIndex: 99999,
     width: 430,
     background: 'rgba(10, 4, 24, 0.97)',
-    border: '2px solid var(--accent-pink, #ff007f)',
+    border: '2px solid var(--accent-pink)',
     boxShadow: '0 0 24px rgba(255, 0, 127, 0.4), 0 20px 48px rgba(0, 0, 0, 0.95)',
     borderRadius: 4,
     display: 'flex',

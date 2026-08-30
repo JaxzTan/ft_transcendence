@@ -16,21 +16,21 @@ function getNotificationTypeBadge(type: string): { tagKey: string; defaultTag: s
     case 'game_invite':
       return { tagKey: 'notifications.matchChallengeTag', defaultTag: '[MATCH_INVITE]', color: '#00f0ff' }
     case 'friend_request':
-      return { tagKey: 'notifications.linkReqTag', defaultTag: '[FRIEND_REQ]', color: '#ff007f' }
+      return { tagKey: 'notifications.linkReqTag', defaultTag: '[FRIEND_REQ]', color: 'var(--accent-pink)' }
     case 'friend_accepted':
       return { tagKey: 'notifications.linkEstablishedTag', defaultTag: '[FRIEND_ACK]', color: '#ffe600' }
     case 'achievement':
-      return { tagKey: 'notifications.achievementTag', defaultTag: '[ACHIEVEMENT]', color: '#00ff88' }
+      return { tagKey: 'notifications.achievementTag', defaultTag: '[ACHIEVEMENT]', color: 'var(--success)' }
     case 'match_finished':
-      return { tagKey: 'notifications.matchEndTag', defaultTag: '[MATCH_COMPLETE]', color: '#00ff88' }
+      return { tagKey: 'notifications.matchEndTag', defaultTag: '[MATCH_COMPLETE]', color: 'var(--success)' }
     case 'match_cancelled':
       return { tagKey: 'notifications.matchCancelledTag', defaultTag: '[MATCH_ABORTED]', color: '#ffe600' }
     case 'friend_removed':
-      return { tagKey: 'notifications.friendRemovedTag', defaultTag: '[LINK_SEVERED]', color: '#ff007f' }
+      return { tagKey: 'notifications.friendRemovedTag', defaultTag: '[LINK_SEVERED]', color: 'var(--accent-pink)' }
     case 'friend_declined':
       return { tagKey: 'notifications.friendDeclinedTag', defaultTag: '[LINK_REJECTED]', color: '#ffe600' }
     case 'friend_online':
-      return { tagKey: 'notifications.friendOnlineTag', defaultTag: '[PILOT_ONLINE]', color: '#00ff88' }
+      return { tagKey: 'notifications.friendOnlineTag', defaultTag: '[PILOT_ONLINE]', color: 'var(--success)' }
     case 'friend_offline':
       return { tagKey: 'notifications.friendOfflineTag', defaultTag: '[PILOT_OFFLINE]', color: '#ffe600' }
     case 'profile_updated':

@@ -185,7 +185,7 @@ export function RetroNavbar({
               padding: '0 12px',
               borderRadius: 12,
               background: isAccountPopoverOpen ? 'rgba(255, 0, 127, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-              border: isAccountPopoverOpen ? '1.5px solid #ff007f' : '1px solid rgba(0, 240, 255, 0.3)',
+              border: isAccountPopoverOpen ? '1.5px solid var(--accent-pink)' : '1px solid rgba(0, 240, 255, 0.3)',
               boxShadow: isAccountPopoverOpen ? '0 0 16px rgba(255, 0, 127, 0.4)' : 'none',
               display: 'flex',
               alignItems: 'center',
@@ -365,7 +365,7 @@ export function RetroNavbar({
                 padding: '10px 12px',
                 borderRadius: 8,
                 background: twoFactor ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
+                border: twoFactor ? '1px solid var(--success)' : '1px solid rgba(255, 255, 255, 0.1)',
                 boxShadow: twoFactor ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
                 cursor: 'pointer',
                 transition: 'all 0.18s ease',
@@ -391,7 +391,7 @@ export function RetroNavbar({
                   borderRadius: 4,
                   background: twoFactor ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
                   color: twoFactor ? '#0b021a' : 'var(--text-muted)',
-                  border: twoFactor ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
+                  border: twoFactor ? '1px solid var(--success)' : '1px solid rgba(255, 255, 255, 0.18)',
                 }}
               >
                 {twoFactor ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
@@ -408,7 +408,7 @@ export function RetroNavbar({
                 padding: '10px 12px',
                 borderRadius: 8,
                 background: !soundMuted ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                border: !soundMuted ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.1)',
+                border: !soundMuted ? '1px solid var(--success)' : '1px solid rgba(255, 255, 255, 0.1)',
                 boxShadow: !soundMuted ? '0 0 10px rgba(0, 255, 136, 0.2)' : 'none',
                 cursor: 'pointer',
                 transition: 'all 0.18s ease',
@@ -431,7 +431,7 @@ export function RetroNavbar({
                   borderRadius: 4,
                   background: !soundMuted ? '#00ff88' : 'rgba(255, 255, 255, 0.12)',
                   color: !soundMuted ? '#0b021a' : 'var(--text-muted)',
-                  border: !soundMuted ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.18)',
+                  border: !soundMuted ? '1px solid var(--success)' : '1px solid rgba(255, 255, 255, 0.18)',
                 }}
               >
                 {!soundMuted ? t('navbar.enabledBadge') : t('navbar.disabledBadge')}
@@ -454,7 +454,7 @@ export function RetroNavbar({
                 fontFamily: 'var(--font-display)',
                 fontWeight: 900,
                 background: 'linear-gradient(90deg, rgba(255, 0, 85, 0.25), rgba(255, 0, 127, 0.35))',
-                border: '1.5px solid #ff0055',
+                border: '1.5px solid var(--error)',
                 color: '#ffffff',
                 boxShadow: '0 0 12px rgba(255, 0, 85, 0.3)',
                 borderRadius: 8,

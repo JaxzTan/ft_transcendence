@@ -363,10 +363,10 @@ export function GameModsDiagram() {
             <div
               style={{
                 width: 18, height: 18, borderRadius: 4,
-                border: `2px solid ${tg.on ? '#00ff88' : 'rgba(255, 255, 255, 0.4)'}`,
+                border: `2px solid ${tg.on ? 'var(--success)' : 'rgba(255, 255, 255, 0.4)'}`,
                 background: tg.on ? 'rgba(0, 255, 136, 0.15)' : 'transparent',
                 display: 'grid', placeItems: 'center',
-                color: '#00ff88', fontWeight: 900, fontSize: '0.75rem',
+                color: 'var(--success)', fontWeight: 900, fontSize: '0.75rem',
               }}
             >
               {tg.on ? '✓' : ''}

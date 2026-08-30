@@ -1091,7 +1091,7 @@ export function Game() {
                               style={{
                                 padding: '2px 6px',
                                 fontSize: '0.62rem',
-                                border: isReady ? '1px solid #00ff88' : '1px solid #ff0055',
+                                border: isReady ? '1px solid var(--success)' : '1px solid var(--error)',
                                 color: isReady ? '#00ff88' : '#ff0055',
                               }}
                             >
@@ -1287,7 +1287,7 @@ export function Game() {
                       cursor: 'pointer',
                       padding: '8px 10px',
                       background: soundMuted ? 'rgba(255, 0, 85, 0.12)' : 'rgba(0, 255, 136, 0.12)',
-                      border: soundMuted ? '1.5px solid #ff0055' : '1.5px solid #00ff88',
+                      border: soundMuted ? '1.5px solid var(--error)' : '1.5px solid var(--success)',
                       color: soundMuted ? '#ff0055' : '#00ff88',
                       fontFamily: 'var(--font-mono)',
                       fontSize: '0.72rem',
@@ -1402,7 +1402,7 @@ export function Game() {
                             padding: '12px 0',
                             fontSize: '0.8rem',
                             background: alreadyReady ? 'rgba(0, 255, 136, 0.2)' : 'var(--btn-bg)',
-                            borderColor: alreadyReady ? '#00ff88' : 'var(--accent-pink)',
+                            borderColor: alreadyReady ? 'var(--success)' : 'var(--accent-pink)',
                             color: alreadyReady ? '#00ff88' : '#ffffff',
                             opacity: disabled ? 0.6 : 1,
                             cursor: disabled ? 'default' : 'pointer',
@@ -1877,8 +1877,8 @@ export function Game() {
                     <span>{t('game.rules.newPiecePre')} <strong style={{ color: 'var(--accent-yellow)', fontSize: '1.2rem' }}>6</strong> {t('game.rules.newPiecePost')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.1rem' }}>
-                    <span style={{ color: '#ff0055', fontSize: '1.3rem' }}>⛔</span>
-                    <span>{t('game.rules.three6Pre')} <strong style={{ color: '#ff0055', fontSize: '1.2rem' }}>{t('game.rules.three6Bold')}</strong> {t('game.rules.three6Post')}</span>
+                    <span style={{ color: 'var(--error)', fontSize: '1.3rem' }}>⛔</span>
+                    <span>{t('game.rules.three6Pre')} <strong style={{ color: 'var(--error)', fontSize: '1.2rem' }}>{t('game.rules.three6Bold')}</strong> {t('game.rules.three6Post')}</span>
                   </div>
                 </div>
               </div>
@@ -1899,8 +1899,8 @@ export function Game() {
                     <span>{t('game.rules.kickedHomePre')} <strong style={{ color: 'var(--accent-pink)', fontSize: '1.2rem' }}>{t('game.rules.kickedHomeBold')}</strong> {t('game.rules.kickedHomePost')}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '1.1rem' }}>
-                    <span style={{ color: '#00ff88', fontSize: '1.3rem' }}>✦</span>
-                    <span>{t('game.rules.combatBonusPre')} <strong style={{ color: '#00ff88', fontSize: '1.2rem' }}>{t('game.rules.combatBonusBold')}</strong></span>
+                    <span style={{ color: 'var(--success)', fontSize: '1.3rem' }}>✦</span>
+                    <span>{t('game.rules.combatBonusPre')} <strong style={{ color: 'var(--success)', fontSize: '1.2rem' }}>{t('game.rules.combatBonusBold')}</strong></span>
                   </div>
                 </div>
               </div>
@@ -1926,15 +1926,15 @@ export function Game() {
             {/* PAGE 4: Two Pieces Together (Blockade) */}
             {rulesPage === 4 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#00ff88', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
+                <div style={{ color: 'var(--success)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.blockTitle')}
                 </div>
-                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #00ff88', border: '1px solid rgba(0, 255, 136, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ color: '#00ff88', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--success)', border: '1px solid rgba(0, 255, 136, 0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '1.1rem' }}>
                     {t('game.rules.blockShield')}
                   </div>
                   <p style={{ margin: 0, color: '#f0f0f0', fontSize: '1.1rem' }}>
-                    {t('game.rules.blockBodyPre')} <strong style={{ color: '#00ff88' }}>{t('game.rules.blockBodyBold')}</strong> {t('game.rules.blockBodyPost')}
+                    {t('game.rules.blockBodyPre')} <strong style={{ color: 'var(--success)' }}>{t('game.rules.blockBodyBold')}</strong> {t('game.rules.blockBodyPost')}
                   </p>
                 </div>
               </div>
@@ -1948,7 +1948,7 @@ export function Game() {
                 </div>
                 <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #9d00ff', border: '1px solid rgba(157, 0, 255, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <p style={{ margin: 0, color: '#f0f0f0', fontSize: '1.1rem' }}>
-                    {t('game.rules.homeSafePre')} <strong style={{ color: '#00ff88' }}>{t('game.rules.homeSafeBold')}</strong> {t('game.rules.homeSafePost')}
+                    {t('game.rules.homeSafePre')} <strong style={{ color: 'var(--success)' }}>{t('game.rules.homeSafeBold')}</strong> {t('game.rules.homeSafePost')}
                   </p>
                   <p style={{ margin: 0, color: '#ffe600', fontWeight: 'bold', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                     {t('game.rules.homeCenter')}
@@ -1960,10 +1960,10 @@ export function Game() {
             {/* PAGE 6: Game Mods */}
             {rulesPage === 6 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, fontSize: '1.1rem', lineHeight: 1.6 }}>
-                <div style={{ color: '#ff007f', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
+                <div style={{ color: 'var(--accent-pink)', fontWeight: 'bold', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                   {t('game.rules.gameModsTitle')}
                 </div>
-                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid #ff007f', border: '1px solid rgba(255, 0, 127, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ background: 'rgba(5, 2, 18, 0.65)', padding: 16, borderRadius: 6, borderLeft: '4px solid var(--accent-pink)', border: '1px solid rgba(255, 0, 127, 0.2)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <GameModsDiagram />
                   <p style={{ margin: 0, color: '#c9c9c9', fontSize: '0.78rem', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
                     {t('game.rules.gameModsNote')}

@@ -77,7 +77,7 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
   return (
     <div style={overlay} onClick={onClose}>
       <div style={panel} onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontSize: '0.9rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: '#ff0055', marginBottom: 10 }}>
+        <div style={{ fontSize: '0.9rem', fontWeight: 900, fontFamily: 'var(--font-display)', color: 'var(--error)', marginBottom: 10 }}>
           {t('profileEdit.deleteAccountTitle')}
         </div>
 
@@ -99,7 +99,7 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
                 {t('profileEdit.deleteAccountSetPasswordDesc')}
               </div>
             </form>
-            {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
+            {error && <div style={{ fontSize: '0.7rem', color: 'var(--error)', margin: '4px 0 8px' }}>{error}</div>}
             <button className="retro-btn" disabled={busy} onClick={handleSetPassword}
               style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, marginTop: 6 }}>
               {busy ? t('profileEdit.saving') : t('profileEdit.deleteAccountSetPasswordBtn')}
@@ -121,7 +121,7 @@ export function DeleteAccountModal({ onClose, hasPassword }: { onClose: () => vo
                 {t('profileEdit.deleteAccountAcknowledge')}
               </label>
             </form>
-            {error && <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>}
+            {error && <div style={{ fontSize: '0.7rem', color: 'var(--error)', margin: '4px 0 8px' }}>{error}</div>}
             <button className="retro-btn" disabled={busy || !acknowledge || !currentPassword} onClick={handleDelete}
               style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900, color: 'var(--accent-cyan)', marginTop: 6 }}>
               {busy ? t('profileEdit.saving') : t('profileEdit.deleteAccountDeleteBtn')}

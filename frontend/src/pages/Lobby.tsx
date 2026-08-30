@@ -336,7 +336,7 @@ export function Lobby() {
                                   </div>
                                 </div>
                               </div>
-                              <div style={{ fontSize: '0.74rem', color: '#00ff88', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--success)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
                                 {t('lobby.stateReadyHost')}
                               </div>
                             </div>
@@ -381,8 +381,8 @@ export function Lobby() {
                                   style={{
                                     cursor: 'pointer',
                                     background: 'rgba(255, 0, 85, 0.15)',
-                                    border: '1px solid #ff0055',
-                                    color: '#ff0055',
+                                    border: '1px solid var(--error)',
+                                    color: 'var(--error)',
                                     borderRadius: 4,
                                     width: 26,
                                     height: 26,
@@ -475,8 +475,8 @@ export function Lobby() {
                                   style={{
                                     cursor: 'pointer',
                                     background: 'rgba(255, 0, 85, 0.15)',
-                                    border: '1px solid #ff0055',
-                                    color: '#ff0055',
+                                    border: '1px solid var(--error)',
+                                    color: 'var(--error)',
                                     borderRadius: 4,
                                     width: 26,
                                     height: 26,
@@ -489,7 +489,7 @@ export function Lobby() {
                                   ✕
                                 </button>
                               </div>
-                              <div style={{ fontSize: '0.74rem', color: '#00ff88', fontFamily: 'var(--font-mono)' }}>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--success)', fontFamily: 'var(--font-mono)' }}>
                                 {t('lobby.stateStandby')}
                               </div>
                             </div>
@@ -591,7 +591,7 @@ export function Lobby() {
                     {!isSolo && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
                         <span style={{ color: 'var(--text-muted)' }}>{t('lobby.botUnitsLabel')}</span>
-                        <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
+                        <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>
                           {t('lobby.unitsCount', { count: botCount, plural: botCount === 1 ? '' : 'S' })}
                         </span>
                       </div>
@@ -613,14 +613,14 @@ export function Lobby() {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
                       <span style={{ color: 'var(--text-muted)' }}>{t('lobby.combatClashLabel')}</span>
-                      <span style={{ color: '#ff007f', fontWeight: 'bold' }}>
+                      <span style={{ color: 'var(--accent-pink)', fontWeight: 'bold' }}>
                         {t('lobby.contestedTileClash')}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
                       <span style={{ color: 'var(--text-muted)' }}>{t('lobby.winConditionLabel')}</span>
-                      <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
+                      <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>
                         {t('lobby.fourPiecesInGoal')}
                       </span>
                     </div>
@@ -662,7 +662,7 @@ export function Lobby() {
                         fontFamily: 'var(--font-heading)',
                         letterSpacing: '1.2px',
                         background: canStart ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                        border: canStart ? '1px solid #00ff88' : '1px solid rgba(255, 255, 255, 0.2)',
+                        border: canStart ? '1px solid var(--success)' : '1px solid rgba(255, 255, 255, 0.2)',
                         color: canStart ? '#00ff88' : 'var(--text-muted)',
                         cursor: canStart ? 'pointer' : 'not-allowed',
                         boxShadow: canStart ? '0 0 15px rgba(0, 255, 136, 0.4)' : 'none',
@@ -677,7 +677,7 @@ export function Lobby() {
                     </button>
 
                     {startError && (
-                      <div style={{ textAlign: 'center', color: '#ff0055', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', marginTop: 8 }}>
+                      <div style={{ textAlign: 'center', color: 'var(--error)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', marginTop: 8 }}>
                         {startError}
                       </div>
                     )}

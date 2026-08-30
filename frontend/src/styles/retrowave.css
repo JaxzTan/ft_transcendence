@@ -40,6 +40,16 @@
   --player-green: #00ff88;
   --player-yellow: #ffe600;
   --player-blue: #00f0ff;
+
+  /* clash overlay — player identity colors (synthwave) */
+  --clash-red: #e05050;
+  --clash-green: #5fd08a;
+  --clash-yellow: #f0d18a;
+  --clash-blue: #4a92e0;
+
+  /* error / success (neon on dark synthwave backgrounds) */
+  --error: #ff0055;
+  --success: #00ff88;
   --board-bg: rgba(15, 6, 38, 0.95);
   --board-yard-bg: rgba(10, 2, 28, 0.95);
   --board-badge-bg: rgba(5, 5, 20, 0.9);
@@ -56,47 +66,63 @@
 
 /* Theme: Windows 95 Desktop */
 [data-theme="win95"] {
-  --bg-primary: #008080;
-  --bg-secondary: #c0c0c0;
-  --bg-card: #c0c0c0;
-  --accent-cyan: #000080;
-  --accent-pink: #800080;
-  --accent-yellow: #ffff00;
-  --accent-purple: #000080;
+  /* Tuned down ~20% from the original palette (each channel × 0.85 then × 0.95)
+     so the desktop reads as a calmer retro OS. Text stays high-contrast on the
+     grey #9b9b9b card surfaces: black = 8.8:1, muted #333333 = 4.6:1, navy
+     #000068 = 7:1, error #630a0a = 5:1, success #003d00 = 4.7:1, white header
+     on the navy gradient = 17:1 (dark end) / 5.3:1. */
+  --bg-primary: #006868;
+  --bg-secondary: #9b9b9b;
+  --bg-card: #9b9b9b;
+  --accent-cyan: #000068;
+  --accent-pink: #5c005c;
+  --accent-yellow: #453300;
+  --accent-purple: #000068;
   --text-main: #000000;
-  --text-muted: #404040;
-  --border-color: #ffffff;
-  --box-shadow: 2px 2px 0px #000000, inset -1px -1px 0px #000000, inset 1px 1px 0px #dfdfdf;
+  --text-muted: #333333;
+  --border-color: #cecece;
+  --box-shadow: 2px 2px 0px #000000, inset -1px -1px 0px #000000, inset 1px 1px 0px #b5b5b5;
   --font-heading: 'Press Start 2P', cursive;
   --font-display: 'Orbitron', sans-serif;
   --font-mono: 'Share Tech Mono', monospace;
   --grid-line-color: transparent;
   --grid-bg-glow: transparent;
-  --btn-bg: #c0c0c0;
-  --btn-hover-shadow: inset 1px 1px 0px #ffffff, inset -1px -1px 0px #000000;
+  --btn-bg: #9b9b9b;
+  --btn-hover-shadow: inset 1px 1px 0px #cecece, inset -1px -1px 0px #000000;
   --crt-scanline-opacity: 0.05;
   --crt-flicker-opacity: 0.01;
-  --window-header-bg: linear-gradient(90deg, #000080, #1084d0);
+  --window-header-bg: linear-gradient(90deg, #000068, #0d6aa8);
   --window-header-text: #ffffff;
-  --card-border-style: 2px solid #ffffff;
+  --card-border-style: 2px solid #cecece;
+
+  /* error / success — dark tones that stay readable (≥4.5:1) on the grey cards */
+  --error: #630a0a;
+  --success: #003d00;
 
   /* game board — classic Windows 95 palette (flat, beveled, no glow) */
-  --player-red: #c00000;
-  --player-green: #008000;
-  --player-yellow: #c0a000;
-  --player-blue: #000080;
-  --board-bg: #008080;
-  --board-yard-bg: #c0c0c0;
-  --board-badge-bg: #d4d0c8;
-  --board-cell-bg: #d4d0c8;
-  --board-line: #808080;
+  --player-red: #9b0000;
+  --player-green: #006800;
+  --player-yellow: #9b8100;
+  --player-blue: #000068;
+  --board-bg: #006868;
+  --board-yard-bg: #9b9b9b;
+  --board-badge-bg: #aba8a2;
+  --board-cell-bg: #aba8a2;
+  --board-line: #686868;
   --board-border: #000000;
   --board-glow: none;
-  --board-glow-soft: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #808080;
-  --board-goal: #008000;
-  --board-safe-star: #c0a000;
-  --board-dot: #404040;
-  --board-legal-glow: #000080;
+  --board-glow-soft: inset 1px 1px 0 #cecece, inset -1px -1px 0 #686868;
+  --board-goal: #004000;
+  --board-safe-star: #9b8100;
+  --board-dot: #333333;
+  --board-legal-glow: #000068;
+
+  /* clash overlay — medium tones (dark plate text #12100a stays ≥4:1 on each,
+     and the plates stand out against the #9b9b9b card) */
+  --clash-red: #b64c4c;
+  --clash-green: #5ba072;
+  --clash-yellow: #c6a74c;
+  --clash-blue: #5b7aaf;
 }
 
 /* Theme: CRT Terminal (Green Phosphor) */
@@ -132,6 +158,17 @@
   --player-green: #00ff88;
   --player-yellow: #ffd500;
   --player-blue: #4d9fff;
+
+  /* clash overlay — reuse the distinct high-contrast board player tones so the
+     character plates stand out against the dark-green CRT background */
+  --clash-red: #ff4d4d;
+  --clash-green: #00ff88;
+  --clash-yellow: #ffd500;
+  --clash-blue: #4d9fff;
+
+  /* error / success (bright neon on dark-green CRT backgrounds) */
+  --error: #ff0055;
+  --success: #00ff88;
   --board-bg: #000000;
   --board-yard-bg: #050a05;
   --board-badge-bg: #000000;
@@ -863,10 +900,10 @@ body:has(.game-page) .crt-screen {
 }
 
 [data-theme="win95"] .arcade-start-overlay {
-  background: rgba(192, 192, 192, 0.85);
+  background: rgba(155, 155, 155, 0.85);
   border: 2px solid;
-  border-color: #ffffff #808080 #808080 #ffffff;
-  box-shadow: inset 1px 1px 0px #ffffff, inset -1px -1px 0px #000000, 2px 2px 6px rgba(0, 0, 0, 0.3);
+  border-color: #cecece #686868 #686868 #cecece;
+  box-shadow: inset 1px 1px 0px #cecece, inset -1px -1px 0px #000000, 2px 2px 6px rgba(0, 0, 0, 0.3);
   border-radius: 0;
   animation: none;
   transform: translateX(-50%);
@@ -969,11 +1006,11 @@ canvas#snakeCanvas {
 }
 
 [data-theme="win95"] {
-  --fs-border: #808080;
+  --fs-border: #686868;
   --fs-text: #000000;
-  --fs-accent: #000080;
-  --fs-cyan: #000080;
-  --fs-bg: #c0c0c0;
+  --fs-accent: #000068;
+  --fs-cyan: #000068;
+  --fs-bg: #9b9b9b;
   --fs-glow: transparent;
 }
 
@@ -1027,21 +1064,21 @@ canvas#snakeCanvas {
 
 /* Win95 Floating Dock (Navbar) */
 [data-theme="win95"] .retro-floating-dock {
-  background: #c0c0c0 !important;
-  border-top: 2px solid #ffffff !important;
-  border-left: 2px solid #ffffff !important;
+  background: #9b9b9b !important;
+  border-top: 2px solid #cecece !important;
+  border-left: 2px solid #cecece !important;
   border-right: 2px solid #000000 !important;
   border-bottom: 2px solid #000000 !important;
   border-radius: 0px !important;
-  box-shadow: 3px 3px 0px #000000, inset 1px 1px 0px #dfdfdf !important;
+  box-shadow: 3px 3px 0px #000000, inset 1px 1px 0px #b5b5b5 !important;
   backdrop-filter: none !important;
   color: #000000 !important;
 }
 
 [data-theme="win95"] .retro-floating-dock .theme-trigger-btn {
-  background: #c0c0c0 !important;
-  border-top: 2px solid #ffffff !important;
-  border-left: 2px solid #ffffff !important;
+  background: #9b9b9b !important;
+  border-top: 2px solid #cecece !important;
+  border-left: 2px solid #cecece !important;
   border-right: 2px solid #000000 !important;
   border-bottom: 2px solid #000000 !important;
   border-radius: 0px !important;
@@ -1050,12 +1087,12 @@ canvas#snakeCanvas {
 }
 
 [data-theme="win95"] .retro-floating-dock .theme-trigger-btn.active {
-  background: #000080 !important;
+  background: #000068 !important;
   color: #ffffff !important;
   border-top: 2px solid #000000 !important;
   border-left: 2px solid #000000 !important;
-  border-right: 2px solid #ffffff !important;
-  border-bottom: 2px solid #ffffff !important;
+  border-right: 2px solid #cecece !important;
+  border-bottom: 2px solid #cecece !important;
   box-shadow: inset 1px 1px 0px #000000 !important;
 }
 
