@@ -12,13 +12,13 @@ export const CLASH_RESULT_MS = 2000; // result card (client-displayed)
 export const CLASH_RESULT_FREEZE_MS = 4000;
 export const CLASH_SWEEP_GRACE_MS = 15000; // outer cleanup bound from clash start
 export const CLASH_TARGET = 42;
-export const CLASH_PRESS_CAP_MS = 70; // min ms between accepted presses per side
+export const CLASH_PRESS_CAP_MS = 110; // min ms between accepted presses per side (~9 Hz ceiling — at elite-human max, so rapid-fire keyboards can't out-press a human)
 
 // ─── Bot clash presser tuning ────────────────────────────────────────────────
 // The engine pre-rolls the winner: the winning bot presses faster than the
 // loser, so it reaches CLASH_TARGET first while both presses look human.
-export const CLASH_BOT_WIN_MS_BASE = 125;        // winner's press interval base (ms)
-export const CLASH_BOT_LOSE_MS_BASE = 170;       // loser's press interval base (ms)
+export const CLASH_BOT_WIN_MS_BASE = 120;        // winner's press interval base (ms)
+export const CLASH_BOT_LOSE_MS_BASE = 150;       // loser's press interval base (ms)
 export const CLASH_BOT_JITTER_MS = 30;           // random ± spread added to each interval (ms)
 export const CLASH_BOT_VS_BOT_WIN_CHANCE = 0.5;  // bot-vs-bot clash: coin flip
 export const CLASH_BOT_VS_HUMAN_WIN_CHANCE = 0.25; // bot vs human: bot win chance per clash

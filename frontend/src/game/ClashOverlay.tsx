@@ -17,8 +17,9 @@ const CLASH_FIGHT_FLASH_MS = 700  // "FIGHT!" flash at press start
 const CLASH_UI_TICK_MS = 250      // overlay re-render cadence
 
 const CLASH_TARGET = 42 // must mirror engine CLASH_TARGET
-// Bar-full calibration: full bar = CLASH_TARGET * CLASH_BAR_MULTIPLIER presses.
-const CLASH_BAR_MULTIPLIER = 1.0 // 1.0 → full at exactly 42 (CLASH_TARGET)
+// Bar renders in whole pixels: 168px track / 42 presses = 4px per press, so the
+// bar hits exactly full (168px) at 42 presses. Keep width a multiple of target.
+const CLASH_BAR_WIDTH_PX = 168
 
 const COLORS: Record<PlayerColor, string> = {
   red: '#e05050',
@@ -56,19 +57,21 @@ function phaseAt(clash: NonNullable<GameViewState['clash']>, now: number): Clash
   return 'pressing' // press window is [countdownDeadline, pressDeadline); after that result prop shows
 }
 
-/** Chunky bar — black track that fills with the side's color per press. */
+/** Chunky bar — black track that fills with the side's color, whole pixels per press. */
 function Bar({ color, presses, target }: { color: PlayerColor; presses: number; target: number }) {
-  const fullAt = Math.max(1, Math.round(target * CLASH_BAR_MULTIPLIER))
+  const fullAt = Math.max(1, target)
   const safe = Number.isFinite(presses) ? presses : 0
-  const pct = Math.min(100, (safe / fullAt) * 100)
+  // px-per-press = CLASH_BAR_WIDTH_PX / target (168/42 = 4px per press); capped at the track.
+  const widthPx = Math.min(CLASH_BAR_WIDTH_PX, (safe / fullAt) * CLASH_BAR_WIDTH_PX)
   return (
     <div
-      className="relative mx-auto mt-3 h-[50px] w-[180px] overflow-hidden rounded-[10px] border border-(--border-color) bg-(--bg-secondary)"
+      className="relative mx-auto h-[50px] w-[168px] overflow-hidden rounded-[10px] border border-(--border-color) bg-(--bg-secondary)"
+      style={{ marginTop: '3mm' }}
     >
       <div
         style={{
           height: '100%', borderRadius: 8,
-          width: `${pct}%`,
+          width: `${widthPx}px`,
           background: COLORS[color],
           boxShadow: `0 0 12px ${COLORS[color]}66`,
           transition: 'width 90ms linear',
@@ -96,12 +99,24 @@ function Plate({ role, color, isMe }: { role: 'Defender' | 'Attacker'; color: Pl
   )
 }
 
-/** Large bold key chip — highlighted for the owning player, dimmed otherwise. */
+// Static clash key box — identical for every key so the border doesn't hug the
+// glyph. Sized from Atkinson Hyperlegible Bold metrics at 54px so the WIDEST
+// character used (W, advance 47.7px) and the TALLEST (Q, 39.7px incl. descender)
+// always keep ≥2mm clearance (2mm ≈ 7.56px) from the 2px border on all sides:
+//   width  = widestAdvance + 4mm + 2×2px border = 47.7 + 15.1 + 4 = 67px
+//   height = line-box baseline model (half-leading) + 2×2px border = 61px
+const KEY_BADGE_W = 67
+const KEY_BADGE_H = 61
+
+/** Large bold key chip — fixed static border, highlighted for the owning player, dimmed otherwise. */
 function KeyBadge({ label, emphasized }: { label: string; emphasized: boolean }) {
   return (
     <div
-      className="mb-2 mt-3 inline-block rounded-[10px] px-[18px] py-2 text-[54px] font-black uppercase [font-family:var(--font-display)]"
+      className="mt-3 inline-grid place-items-center rounded-[10px] text-[54px] font-bold uppercase leading-none"
       style={{
+        width: KEY_BADGE_W,
+        height: KEY_BADGE_H,
+        fontFamily: "'Atkinson Hyperlegible', sans-serif",
         border: `2px solid ${emphasized ? 'var(--accent-yellow)' : 'var(--text-muted)'}`,
         color: emphasized ? 'var(--text-main)' : 'var(--text-muted)',
         boxShadow: emphasized ? '0 0 14px var(--accent-yellow)' : 'none',
@@ -196,12 +211,12 @@ export function ClashOverlay({ clash, result, myColor, onKeyPress, onComplete, a
             <div className="flex items-center justify-center gap-7">
               <div style={{ textAlign: 'center' }}>
                 <div className="text-[13px] font-bold text-(--text-main)">Defender</div>
-                <Bar color={clash.defender} presses={result.winner === clash.defender ? result.winnerPresses : result.loserPresses} target={CLASH_TARGET} />
+                <Bar color={clash.defender} presses={result.winner === clash.defender ? result.winnerPresses : result.loserPresses} target={clash.target ?? CLASH_TARGET} />
               </div>
               <div className="text-2xl font-black text-(--text-muted)">VS</div>
               <div style={{ textAlign: 'center' }}>
                 <div className="text-[13px] font-bold text-(--text-main)">Attacker</div>
-                <Bar color={clash.attacker} presses={result.winner === clash.attacker ? result.winnerPresses : result.loserPresses} target={CLASH_TARGET} />
+                <Bar color={clash.attacker} presses={result.winner === clash.attacker ? result.winnerPresses : result.loserPresses} target={clash.target ?? CLASH_TARGET} />
               </div>
             </div>
           </>
@@ -244,12 +259,12 @@ export function ClashOverlay({ clash, result, myColor, onKeyPress, onComplete, a
                   <div className="mt-2.5 flex items-start justify-center gap-7">
                     <div className="text-center">
                       <KeyBadge label={clash.defenderKey} emphasized={defenderIsMe} />
-                      <Bar color={clash.defender} presses={clash.defenderPresses} target={CLASH_TARGET} />
+                      <Bar color={clash.defender} presses={clash.defenderPresses} target={clash.target ?? CLASH_TARGET} />
                     </div>
                     <div className="mt-2 self-center text-[26px] font-black text-(--text-muted)">VS</div>
                     <div className="text-center">
                       <KeyBadge label={clash.attackerKey} emphasized={attackerIsMe} />
-                      <Bar color={clash.attacker} presses={clash.attackerPresses} target={CLASH_TARGET} />
+                      <Bar color={clash.attacker} presses={clash.attackerPresses} target={clash.target ?? CLASH_TARGET} />
                     </div>
                   </div>
                   {!iAmInClash && <div className="mt-2.5 text-[13px] text-(--text-muted)">Watching…</div>}

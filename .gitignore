@@ -31,16 +31,8 @@ dist-ssr
 *.sw?
 
 # planning
-roadmap.md
-roadmap2.md
 
 # generated documentation
-TYPESCRIPT.md
-API-list.md
-Ludo_Rules.md
-fixdice.md
-context.md
-tailwind-migration.md
 browser-patches.md
 
 # dependencies

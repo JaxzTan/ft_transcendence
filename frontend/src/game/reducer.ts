@@ -140,7 +140,18 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
       const c = event as unknown as ClashState
       // Server may send clash_start without press counts (older payloads);
       // default to 0 so the bars render black/empty until real clash_press events.
-      return { ...state, clash: { ...c, attackerPresses: c.attackerPresses ?? 0, defenderPresses: c.defenderPresses ?? 0 }, clashResult: null }
+      // target defaults to CLASH_TARGET (42) so the bar still calibrates if the
+      // payload omits it — the overlay otherwise falls back to its own constant.
+      return {
+        ...state,
+        clash: {
+          ...c,
+          target: c.target ?? 42,
+          attackerPresses: c.attackerPresses ?? 0,
+          defenderPresses: c.defenderPresses ?? 0,
+        },
+        clashResult: null,
+      }
     }
     case 'clash_phase': {
       const e = event as unknown as { phase: ClashState['phase']; countdownDeadline: number; pressDeadline: number }

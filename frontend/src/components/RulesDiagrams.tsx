@@ -20,7 +20,10 @@ const C_YELLOW = '#f0d18a' // player yellow (defender character)
 
 // ─── Shared bits ─────────────────────────────────────────────────────────────
 
-/** Small key-cap chip, mirrored after the live ClashOverlay KeyBadge. */
+/** Small key-cap chip, mirrored after the live ClashOverlay KeyBadge (same
+ *  Atkinson Hyperlegible face). Static 30px box — at 15.2px glyphs the widest
+ *  key (W) keeps ~1.7mm clearance from the border on all sides, comfortably
+ *  above the 0.8mm floor chosen for this diagram scale. */
 function Keycap({ label, lit }: { label: string; lit?: boolean }) {
   return (
     <span
@@ -30,8 +33,8 @@ function Keycap({ label, lit }: { label: string; lit?: boolean }) {
         width: 30,
         height: 30,
         borderRadius: 6,
-        fontFamily: 'var(--font-mono)',
-        fontWeight: 900,
+        fontFamily: "'Atkinson Hyperlegible', sans-serif",
+        fontWeight: 700,
         fontSize: '0.95rem',
         border: lit ? `2px solid ${C_GOLD}` : '1px solid rgba(255, 255, 255, 0.3)',
         color: lit ? '#ffffff' : C_DIM,

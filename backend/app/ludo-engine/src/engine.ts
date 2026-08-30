@@ -68,6 +68,29 @@ export class LudoEngine {
     return await this.store.loadGameState(gameId);
   }
 
+  /**
+   * Seeded random number generator (mulberry32).
+   *
+   * Math.random() cannot be seeded directly. The dice roll uses it anyway:
+   * each roll creates a new generator, seeded with a Math.random() value
+   * stretched to a very large number. Every roll therefore gets its own
+   * random stream, so the dice are not affected by other Math.random()
+   * calls that other parts of the program make.
+   *
+   * For the full math breakdown, see
+   * docs/ludo-engine/ludo-engine-core-system.md →
+   * "How the roll's randomness works (seeded PRNG math)".
+   */
+  private static seededRand(seed: number): () => number {
+    let s = seed >>> 0;
+    return () => {
+      s = (s + 0x6d2b79f5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
   /** Roll for the current player; stores pending moves/dice and auto-advances when there are no legal moves. */
   async rollDice(gameId: string): Promise<{ value: number; legalMoves: LegalMove[]; bonusRoll: boolean }> {
     return this.withGameLock(gameId, async () => {
@@ -92,7 +115,14 @@ export class LudoEngine {
       throw new Error('Current player has exited');
     }
 
-    const diceValue = Math.floor(Math.random() * 6) + 1;
+    // Seed a per-roll PRNG stream with a fresh Math.random() scaled to a huge
+    // integer range (Math.random() itself cannot be seeded directly). Entropy is
+    // capped by Math.random()'s 53-bit output, but the dice stream is now
+    // isolated from other Math.random() users in the process.
+    const rand = LudoEngine.seededRand(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
+    // Single draw from the seeded stream → every face 1..6 is exactly 1/6 (fair
+    // die, max entropy ~2.585 bits). No averaging, no middle-face bias.
+    const diceValue = Math.floor(rand() * 6) + 1;
 
     currentPlayer.hasRolled = true;
     // Per-player 6-streak: a third consecutive 6 forfeits the turn; it lives on

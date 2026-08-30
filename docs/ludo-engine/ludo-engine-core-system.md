@@ -190,6 +190,64 @@ sequenceDiagram
     end
 ```
 
+#### How the roll's randomness works (seeded PRNG math)
+
+The roll uses a seeded PRNG (`LudoEngine.seededRand`, mulberry32) because
+`Math.random()` cannot be seeded directly. Each roll creates a fresh generator,
+seeded with a `Math.random()` value stretched to a very large number, so every
+roll gets its own random stream that other `Math.random()` calls in the process
+cannot influence.
+
+The generator keeps a single piece of internal state: the 32-bit integer `s`,
+initialised from the seed (`>>> 0` normalises the seed to an unsigned 32-bit
+value).
+
+**1. Advance the state**
+
+```js
+s = (s + 0x6D2B79F5) | 0
+```
+
+A fixed constant is added with 32-bit wraparound (`| 0` forces the result back
+into a 32-bit integer). The constant is odd, which makes the step reversible:
+the state can never get stuck, and the generator walks through all 2³² possible
+states before repeating. `0x6D2B79F5` is a tuned constant from the original
+mulberry32 design.
+
+**2. Scramble the state into an output value `t`**
+
+```js
+t = Math.imul(s ^ (s >>> 15), 1 | s)
+```
+
+- `s >>> 15` slides the high bits down, and `s ^ ...` mixes the high and low
+  halves together — an "xorshift" that diffuses the bits.
+- `Math.imul` is true 32-bit multiplication (plain `*` would lose precision on
+  numbers this large). The multiplier `1 | s` is forced to be odd, which makes
+  the multiplication invertible mod 2³² — so the scramble can never collapse
+  two different states into one output, and the full 2³² period is preserved.
+- The whole line is repeated with different constants (shift 7, multiplier 61)
+  and XORed in, spreading the bits even further.
+
+**3. Map to [0, 1)**
+
+```js
+return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+```
+
+One last xorshift mixes the bits, `>>> 0` reinterprets `t` as an unsigned
+32-bit integer (0 .. 2³² − 1), and dividing by 2³² squeezes that into a
+decimal in [0, 1).
+
+The odd multipliers keep the generator a bijection (every output maps back to a
+unique state), while the xorshift + multiply steps make consecutive outputs
+look statistically random. The period is 2³² — far more rolls than a single
+game will ever need.
+
+**From the generator to a die face** — `rollDice` takes a single value `u ∈ [0, 1)`
+from the stream and computes `Math.floor(u * 6) + 1`, which gives every face
+1–6 an equal 1/6 chance (a fair die, maximum entropy ≈ 2.585 bits).
+
 ### 2. Move Piece
 
 ```mermaid
@@ -288,6 +346,6 @@ Module-level constants in the engine's support files — edit at the top of each
 | `CLASH_RESULT_MS` | `clash.ts` | 2000 ms | Result card shown client-side |
 | `CLASH_RESULT_FREEZE_MS` | `clash.ts` | 4000 ms | Server-side input freeze after a clash resolves (must exceed the client card) |
 | `CLASH_TARGET` | `clash.ts` | 42 | Presses needed to win a clash |
-| `CLASH_PRESS_CAP_MS` | `clash.ts` | 70 ms | Min gap between accepted presses per side |
+| `CLASH_PRESS_CAP_MS` | `clash.ts` | 110 ms | Min gap between accepted presses per side (~9 Hz ceiling — at elite-human max, so macros can't out-press a human) |
 | `CLASH_SWEEP_GRACE_MS` | `clash.ts` | 15 s | Recovery sweep force-resolves orphaned clashes older than this |
 | `CLASH_SWEEP_INTERVAL_MS` | `clash-engine.ts` | 5 s | Cadence of the clash recovery sweep |

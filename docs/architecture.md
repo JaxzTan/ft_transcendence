@@ -1,7 +1,7 @@
 # Architecture
 
 **Project:** ft_transcendence — RetroLudo '42
-**Updated:** 2026-08-25
+**Updated:** 2026-08-30
 
 An eight-service Docker Compose stack: a React 19 SPA built by a one-shot job and
 served over TLS by nginx, a NestJS REST API, a standalone real-time game engine
@@ -143,6 +143,8 @@ engine process.
 ### PostgreSQL
 
 Prisma-managed, schema at `backend/prisma/schema.prisma`.
+
+![Database schema](../frontend/public/schema.png)
 
 **Models:** `User` (account + per-user stats, avatar, counters), `Account` (OAuth provider links), `Achievement` (15 achievement flags), `Game`, `GameParticipant`, `Friendship`, `LeaderboardSnapshot`, `Notification`
 **Enums:** `FriendshipStatus`, `PlayerColor`, `GameStatus`, `GameType`
