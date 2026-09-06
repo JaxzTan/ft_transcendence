@@ -43,7 +43,6 @@ export class MatchPlayerService {
 		const occupiedIds = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].filter(Boolean);
 		if (occupiedIds.length >= maxSeats) throw new ForbiddenException('Room is full');
 
-		const clashEnabled = data.clashEnabled === 'true';
 		const slotIndex = !data.player2_id ? 1 : !data.player3_id ? 2 : 3;
 		const slotKey = `player${slotIndex + 1}`;
 		const assignedColor = SLOT_COLORS[slotIndex];
@@ -53,7 +52,7 @@ export class MatchPlayerService {
 		const username = await this.resolveUsername(userId);
 		const displayName = await this.resolveDisplayName(userId);
 		const token = this.jwt.sign(
-			{ gameId, playerId: userId, username: username || undefined, displayName, role: 'player', clashEnabled, color: assignedColor },
+			{ gameId, playerId: userId, username: username || undefined, displayName, role: 'player', color: assignedColor },
 			{ expiresIn: '24h' },
 		);
 
@@ -69,7 +68,6 @@ export class MatchPlayerService {
 		if (slotIndex === -1) throw new ForbiddenException('You are not a player in this game');
 
 		const color = (data[`player${slotIndex + 1}_color`] as string) || SLOT_COLORS[slotIndex];
-		const clashEnabled = data.clashEnabled === 'true';
 		const username = await this.resolveUsername(userId);
 		const displayName = await this.resolveDisplayName(userId);
 		const token = this.jwt.sign(
@@ -79,7 +77,6 @@ export class MatchPlayerService {
 				username: username || undefined,
 				displayName,
 				role: slotIndex === 0 ? 'player1' : 'player',
-				clashEnabled,
 				color,
 			},
 			{ expiresIn: '24h' },
@@ -143,20 +140,6 @@ export class MatchPlayerService {
 		});
 
 		return { message: 'Invite sent', gameId: friendSeat.gameId };
-	}
-
-	// Generate a spectator token for an ACTIVE match.
-	async spectate(gameId: string) {
-		const data = await this.redis.hgetall(`match:${gameId}`);
-		if (!data || !data.id) throw new NotFoundException('Game not found');
-		if (data.status !== 'ACTIVE') throw new ForbiddenException('Game is not active');
-
-		const token = this.jwt.sign(
-			{ gameId, playerId: null, role: 'spectator' },
-			{ expiresIn: '24h' },
-		);
-
-		return { gameId, token, engineUrl: 'ws://localhost:3001' };
 	}
 
 	// Toggle the ready flag for a player in a WAITING match.

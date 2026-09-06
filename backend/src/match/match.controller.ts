@@ -1,21 +1,19 @@
 import { Controller, Post, UseGuards, Request, Body, Param, Get, Headers, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { MatchService, ENGINE_WS_URL } from './match.service';
+import { MatchService } from './match.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { JwtService } from '@nestjs/jwt';
 import { requireSecret } from '../secrets';
 
 @Controller()
 export class MatchController {
-	constructor(private readonly match: MatchService, private readonly jwt: JwtService) { }
+	constructor(private readonly match: MatchService) { }
 
 	// ─── PvP: Create invite game (share code via chat) ────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/match/pvp/invite')
 	pvpInvite(
 		@Request() req: { user: { id: string } },
-		@Body('clashEnabled') clashEnabled?: boolean,
 	) {
-		return this.match.createInvite(req.user.id, clashEnabled);
+		return this.match.createInvite(req.user.id);
 	}
 
 	// ─── PvP: Join by invite code ────────────────────────────────────────────
@@ -33,9 +31,8 @@ export class MatchController {
 	@Post('api/match/pvp/random')
 	quickMatch(
 		@Request() req: { user: { id: string } },
-		@Body('clashEnabled') clashEnabled?: boolean,
 	) {
-		return this.match.findRandomMatch(req.user.id, clashEnabled);
+		return this.match.findRandomMatch(req.user.id);
 	}
 
 	// ─── PvE: Human vs Bot (1 - 3 bots) ────────────────────────────────────────
@@ -44,9 +41,8 @@ export class MatchController {
 	pve(
 		@Request() req: { user: { id: string } },
 		@Body('playerCount') playerCount: number,
-		@Body('clashEnabled') clashEnabled?: boolean,
 	) {
-		return this.match.playBot(req.user.id, playerCount || 2, clashEnabled);
+		return this.match.playBot(req.user.id, playerCount || 2);
 	}
 
 	// ─── Unified Match Creation ────────────────────────────────────────────────
@@ -57,7 +53,6 @@ export class MatchController {
 		@Body('mode') mode: 'pvp' | 'pve' | 'hotseat',
 		@Body('playerCount') playerCount: number,
 		@Body('botCount') botCount: number,
-		@Body('clashEnabled') clashEnabled?: boolean,
 		@Body('botColors') botColors?: string[],
 		@Body('seatColors') seatColors?: string[],
 	) {
@@ -77,7 +72,6 @@ export class MatchController {
 			mode,
 			playerCount || 2,
 			botCount || 0,
-			clashEnabled,
 			botColors,
 			seatColors,
 		);
@@ -138,16 +132,6 @@ export class MatchController {
 	@Post('api/game/:id/rejoin')
 	rejoin(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
 		return this.match.rejoin(gameId, req.user.id);
-	}
-
-	@UseGuards(JwtAuthGuard)
-	@Post('api/games/:id/spectate')
-	spectate(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
-		const token = this.jwt.sign(
-			{ gameId, playerId: null, role: 'spectator' },
-			{ expiresIn: '24h' },
-		);
-		return { gameId, token, engineUrl: ENGINE_WS_URL };
 	}
 
 	// ─── Game End (called by ludo-engine) ──────────────────────────────────

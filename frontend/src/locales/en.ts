@@ -438,8 +438,6 @@ export const en = {
     pveArena: 'PVE ARENA',
     sectorMatrixLabel: '// SECTOR MATRIX:',
     combatCross: '15x15 COMBAT CROSS',
-    combatClashLabel: '// COMBAT CLASH:',
-    contestedTileClash: 'CONTESTED TILE CLASH',
     winConditionLabel: '// WIN CONDITION:',
     fourPiecesInGoal: '4 PIECES IN GOAL',
     allSystemsPassed: '>>> ALL SYSTEM CHECKS PASSED. ARENA READY FOR LAUNCH <<<',

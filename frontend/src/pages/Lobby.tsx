@@ -109,7 +109,6 @@ export function Lobby() {
         botCount,
         botColors: botColors.length > 0 ? botColors : undefined,
         seatColors: (gameMode === 'hotseat' || gameMode === 'pve') && seatColors.length > 0 ? seatColors : undefined,
-        clashEnabled: true,
       })
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
@@ -566,13 +565,6 @@ export function Lobby() {
                       <span style={{ color: 'var(--text-muted)' }}>{t('lobby.sectorMatrixLabel')}</span>
                       <span style={{ color: 'var(--accent-cyan)', fontWeight: 'bold' }}>
                         {t('lobby.combatCross')}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>{t('lobby.combatClashLabel')}</span>
-                      <span style={{ color: '#ff007f', fontWeight: 'bold' }}>
-                        {t('lobby.contestedTileClash')}
                       </span>
                     </div>
 

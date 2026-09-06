@@ -437,8 +437,6 @@ export const fr = {
     pveArena: 'ARÈNE CONTRE ROBOTS',
     sectorMatrixLabel: '// MATRICE DE SECTEUR :',
     combatCross: 'CROIX DE COMBAT 15x15',
-    combatClashLabel: '// CHOC DE COMBAT :',
-    contestedTileClash: 'CHOC SUR CASE CONTESTÉE',
     winConditionLabel: '// CONDITION DE VICTOIRE :',
     fourPiecesInGoal: '4 PIÈCES À L\'ARRIVÉE',
     allSystemsPassed: '>>> TOUS LES CONTRÔLES SYSTÈME SONT VALIDÉS. L\'ARÈNE EST PRÊTE POUR LE LANCEMENT <<<',

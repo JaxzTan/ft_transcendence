@@ -1,7 +1,7 @@
 import { GameState, PlayerColor, LegalMove, MoveResult, MovePieceOutput, PieceId, GameEvent } from './types';
 import { RedisGameStore } from './redis';
 import { MoveValidator } from './move-validator';
-import { ClashManager } from './clash';
+import { applyMoveOutcome } from './turn';
 import { advanceTurnInState } from './player-handler';
 import {
   handlePlayerDisconnect,
@@ -15,16 +15,14 @@ import { LobbyManager } from './lobby';
 export class LudoEngine {
   private store: RedisGameStore;
   private eventHandler?: (event: GameEvent) => void;
-  private clashManager: ClashManager;
   private lobbyManager?: LobbyManager;
   // Serializes one game's operations so roll/move/etc. never run on top of
   // each other (a bot acting at the same time as a human would otherwise
   // both load the same state and one move gets lost).
   private gameLocks = new Map<string, Promise<unknown>>();
 
-  constructor(store: RedisGameStore, clashManager: ClashManager) {
+  constructor(store: RedisGameStore) {
     this.store = store;
-    this.clashManager = clashManager;
   }
 
   setLobbyManager(lobbyManager: LobbyManager): void {
@@ -166,8 +164,7 @@ export class LudoEngine {
     // The legal-move list is a snapshot taken at roll time; a player who was
     // disconnected (turn advanced, pending moves cleared) or forfeited between
     // roll and move is rejected here. We intentionally do NOT re-derive the
-    // capture at execution time — the snapshot is the contract, and any
-    // post-move capture gating (clash QTE) is a future layer on top of this.
+    // capture at execution time — the snapshot is the contract.
     const pendingMove = state.pendingLegalMoves.find(m => m.pieceId === pieceId);
     if (!pendingMove) {
       throw new Error('Invalid move: piece not in legal moves');
@@ -211,47 +208,10 @@ export class LudoEngine {
       timestamp: Date.now()
     });
 
-    // Increment move counter
-    state.moveCounter++;
-
-    // Check win
-    const winner = MoveValidator.checkWinner(state);
-    
-    if (winner) {
-      const piecesInGoal = MoveValidator.countPiecesInGoal(state, winner);
-      const winnerPlayer = state.players.find(p => p.color === winner);
-      if (winnerPlayer) {
-        winnerPlayer.stats.piecesInGoal = piecesInGoal;
-        winnerPlayer.piecesInGoal = piecesInGoal;
-        winnerPlayer.isFinished = true;
-        winnerPlayer.finishedAt = new Date().toISOString();
-      }
-      state.status = 'finished';
-      state.winner = winner;
-      state.resultDetail = 'four_pieces';
-    } else {
-      // Sync piecesInGoal for the moving player
-      const mover = state.players.find(p => p.color === result.color);
-      const sixBonus = diceValue === 6;
-      if (mover) {
-        mover.piecesInGoal = MoveValidator.countPiecesInGoal(state, result.color);
-        mover.hasRolled = false;
-        mover.bonusRoll = sixBonus || result.captured;
-      }
-      // Bonus roll on a first-roll 6 or an actual capture: same player rolls again
-      // Otherwise, advance turn to next player
-      if (sixBonus || result.captured) {
-        state.turnPhase = 'WAITING_FOR_ROLL';
-      } else {
-        state.turnPhase = 'WAITING_FOR_ROLL';
-        advanceTurnInState(state);
-      }
-    }
-
-    // Clear pending moves and dice value after move is processed
-    state.pendingLegalMoves = [];
-    state.pendingDiceValue = undefined;
-    state.pendingIsFirstRoll = undefined;
+    // Apply the move outcome: sync piece mirrors, bump the counter, run the
+    // win check, update stats/bonus, and hand off the turn (or re-roll on a
+    // 6/capture). Returns the winner if the game just finished.
+    const winner = applyMoveOutcome(state, result, diceValue);
 
     await this.store.saveGameState(gameId, state);
 
@@ -268,7 +228,7 @@ export class LudoEngine {
   // ─── Player lifecycle handlers (delegated to player-handler.ts) ─────────────
 
   async handlePlayerDisconnect(gameId: string, color: PlayerColor, notifyAbort?: (gameId: string) => void): Promise<void> {
-    return this.withGameLock(gameId, () => handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, this.clashManager, notifyAbort));
+    return this.withGameLock(gameId, () => handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, notifyAbort));
   }
 
   async handlePlayerReconnect(gameId: string, color: PlayerColor): Promise<void> {

@@ -64,37 +64,6 @@ export class EventPublisher {
         }));
         break;
 
-      case 'clash_start':
-        this.store.publish(gameId, JSON.stringify({
-          type: 'clash_start',
-          attackerKey: event.attackerKey,
-          defenderKey: event.defenderKey,
-          target: event.target,
-          duration: event.duration,
-          attacker: event.attacker,
-          defender: event.defender,
-        }));
-        break;
-
-      case 'clash_frozen':
-        this.store.publish(gameId, JSON.stringify({
-          type: 'clash_frozen',
-          reason: event.reason,
-          disconnectedPlayer: event.disconnectedPlayer,
-          reconnectDeadline: event.reconnectDeadline,
-        }));
-        break;
-
-      case 'clash_result':
-        this.store.publish(gameId, JSON.stringify({
-          type: 'clash_result',
-          winner: event.winner,
-          loser: event.loser,
-          winnerPresses: event.winnerPresses,
-          loserPresses: event.loserPresses,
-        }));
-        break;
-
       case 'color_selected':
         this.store.publish(gameId, JSON.stringify({
           type: 'color_selected',

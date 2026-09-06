@@ -2,7 +2,6 @@ import { useEffect, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Board } from '../components/Board'
 import { Die } from '../components/Die'
-import { ClashOverlay } from '../game/ClashOverlay'
 import { localizedBotName } from '../utils/botName'
 import { applyEvent, initialView } from '../game/reducer'
 import type { PlayerColor } from '../game/types'
@@ -293,7 +292,6 @@ export function Game() {
         }
       }
       socket.emit('join_game', current.gameId, current.color, user?.id, user?.displayName)
-      if (viewRef.current.clash) socket.emit('reconnect_clash')
     })
 
     socket.on('connect_error', (err: Error) => {
@@ -471,9 +469,6 @@ export function Game() {
     socket.on('player_exited', handleEngineEvent)
     socket.on('player_disconnected', handleEngineEvent)
     socket.on('player_reconnected', handleEngineEvent)
-    socket.on('clash_start', handleEngineEvent)
-    socket.on('clash_result', handleEngineEvent)
-    socket.on('clash_frozen', handleEngineEvent)
     socket.on('lobby_update', handleEngineEvent)
 
     socket.on('player_aborted', (e: { color: PlayerColor; username: string; displayName?: string }) => {
@@ -581,7 +576,6 @@ export function Game() {
         : (v.currentTurn === v.myColor || (user?.username ? curTurnPlayer?.username === user?.username : false))
       if (!myTurnNow) return
       if (v.turnPhase === 'WAITING_FOR_MOVE' || v.legalMoves.length > 0) return
-      if (v.clash) return
       if (isRollingRef.current || isMovingPieceRef.current) return
       e.preventDefault()
       isRollingRef.current = true
@@ -633,9 +627,6 @@ export function Game() {
     retroAudio.playUiBeep(720, 0.05)
     socketRef.current?.emit('select_color', color)
   }
-
-  const clashInput = (key: string) => socketRef.current?.emit('clash_input', key)
-  const clearClash = () => dispatch({ type: 'clash_clear' })
 
   const inviteFriend = async (friendId: string) => {
     if (!activeMatch || inviteStates[friendId] === 'busy') return
@@ -746,7 +737,7 @@ export function Game() {
   // move can leave canRoll's other inputs looking rollable for one render
   // before the game_ended status update lands, letting a click slip through
   // as a "Roll failed: Game not active" rejection from the engine.
-  const canRoll = view.status === 'active' && isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !view.clash && !animatingPiece && !isMovingPiece && !captureFx
+  const canRoll = view.status === 'active' && isMyTurn && view.turnPhase !== 'WAITING_FOR_MOVE' && view.legalMoves.length === 0 && !animatingPiece && !isMovingPiece && !captureFx
   const turnLabel = view.status === 'waiting'
     ? t('game.waitingRoomTitle').toUpperCase()
     : isMyTurn ? t('game.yourTurnShort').toUpperCase() : `${effectiveTurn.toUpperCase()}'S TURN`
@@ -1858,17 +1849,6 @@ export function Game() {
           </div>
         }
       />
-
-      {/* QTE Clash overlay */}
-      {view.clash && (
-        <ClashOverlay
-          clash={view.clash}
-          result={view.clashResult}
-          myColor={view.myColor}
-          onKeyPress={clashInput}
-          onComplete={clearClash}
-        />
-      )}
 
       {/* Game Results Modal Popup */}
       {showResultsModal && lastResult && (

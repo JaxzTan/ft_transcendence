@@ -129,7 +129,7 @@ export function LudoLobby() {
     setError(null)
     retroAudio.playUiBeep(920, 0.08)
     try {
-      const res = await postApi<MatchResult>('/api/match/pvp/invite', { clashEnabled: true })
+      const res = await postApi<MatchResult>('/api/match/pvp/invite')
       setActiveMatch(res)
       navigate(`/game?gameId=${res.gameId}`)
     } catch (err) {

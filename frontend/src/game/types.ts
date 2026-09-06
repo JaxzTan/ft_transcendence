@@ -51,21 +51,6 @@ export interface MoveResult {
   bonusRoll: boolean
 }
 
-export interface ClashState {
-  attacker: PlayerColor
-  defender: PlayerColor
-  attackerKey: string
-  defenderKey: string
-  target: number
-  duration: number
-  startedAt: number
-  attackerPresses: number
-  defenderPresses: number
-  disconnectTimestamp?: number
-  reconnectDeadline?: number
-  waitingForReconnect?: PlayerColor
-}
-
 export interface DisconnectState {
   color: PlayerColor
   disconnectedAt: number
@@ -88,7 +73,5 @@ export interface GameState {
   resultDetail?: string
   resultSubmitted?: boolean
   botBusy?: boolean
-  clash?: ClashState
-  clashMode: boolean
   readyPlayers: PlayerColor[]
 }

@@ -2,14 +2,7 @@
 // The reducer is a renderer — it never decides outcomes.
 // The engine is authoritative; the reducer just keeps the UI in sync.
 
-import type { ClashState, GameState, LegalMove, MoveResult, PlayerColor } from './types'
-
-export type ClashResult = {
-  winner: PlayerColor
-  loser: PlayerColor
-  winnerPresses: number
-  loserPresses: number
-}
+import type { GameState, LegalMove, MoveResult, PlayerColor } from './types'
 
 export type GameViewState = {
   pieces: GameState['pieces']
@@ -20,8 +13,6 @@ export type GameViewState = {
   legalMoves: LegalMove[]
   winner: PlayerColor | null
   status: GameState['status']
-  clash: ClashState | null
-  clashResult: ClashResult | null
   myColor: PlayerColor
   readyPlayers: PlayerColor[]
   /** Last dice value rolled by each color (populated from dice_rolled events). */
@@ -38,8 +29,6 @@ export function initialView(myColor: PlayerColor): GameViewState {
     legalMoves: [],
     winner: null,
     status: 'waiting',
-    clash: null,
-    clashResult: null,
     myColor,
     readyPlayers: [],
     lastRolls: {},
@@ -78,7 +67,6 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
         status: s.status ?? state.status,
         legalMoves: s.pendingLegalMoves ?? state.legalMoves,
         diceValue: s.pendingDiceValue ?? state.diceValue,
-        clash: s.clash ?? state.clash,
         readyPlayers: s.readyPlayers ?? state.readyPlayers,
       }
     }
@@ -122,12 +110,6 @@ export function applyEvent(state: GameViewState, event: { type: string } & Recor
       return applyMove(state, event as unknown as MoveResult)
     case 'game_ended':
       return { ...state, status: 'finished', winner: event.winner as PlayerColor }
-    case 'clash_start':
-      return { ...state, clash: event as unknown as ClashState, clashResult: null }
-    case 'clash_result':
-      return { ...state, clashResult: event as unknown as ClashResult, clash: null }
-    case 'clash_clear':
-      return { ...state, clash: null, clashResult: null }
     case 'player_exited':
       return {
         ...state,

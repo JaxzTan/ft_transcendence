@@ -42,7 +42,6 @@ export class MatchCreatorService {
 		mode: 'pvp' | 'pve' | 'hotseat',
 		playerCount: number,
 		botCount: number,
-		clashEnabled: boolean = true,
 		botColors?: string[],
 		seatColors?: string[],
 	) {
@@ -71,7 +70,7 @@ export class MatchCreatorService {
 		}
 
 		return this.withUserCreateLock(userId, () =>
-			this.createMatchLocked(userId, mode, playerCount, botCount, clashEnabled, botColors, seatColors),
+			this.createMatchLocked(userId, mode, playerCount, botCount, botColors, seatColors),
 		);
 	}
 
@@ -102,7 +101,6 @@ export class MatchCreatorService {
 		mode: 'pvp' | 'pve' | 'hotseat',
 		playerCount: number,
 		botCount: number,
-		clashEnabled: boolean,
 		botColors?: string[],
 		seatColors?: string[],
 	) {
@@ -140,7 +138,6 @@ export class MatchCreatorService {
 			playerCount: playerCount.toString(),
 			player1_id: userId,
 			player1_color: player1Color,
-			clashEnabled: clashEnabled.toString(),
 			createdAt: Date.now().toString(),
 		};
 
@@ -200,7 +197,6 @@ export class MatchCreatorService {
 				displayName,
 				role: 'player1',
 				mode,
-				clashEnabled,
 				color: player1Color,
 			},
 			{ expiresIn: '24h' },
@@ -219,7 +215,7 @@ export class MatchCreatorService {
 
 	// Find an open PvP room to join, or create a new one if none available.
 	// If the caller already has a WAITING/ACTIVE room, rejoin it instead.
-	async findRandomMatch(userId: string, clashEnabled: boolean = true, joiner: any, lister: any) {
+	async findRandomMatch(userId: string, joiner: any, lister: any) {
 		// Prevent duplicate rooms: if caller already has a WAITING or ACTIVE room, reuse it
 		const myRooms = await lister(userId);
 		const existing = myRooms.find((r: any) => r.status === 'WAITING' || r.status === 'ACTIVE');
@@ -244,22 +240,22 @@ export class MatchCreatorService {
 				}
 			}
 		} while (cursor !== '0');
-		return this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
+		return this.createMatch(userId, 'pvp', 4, 0);
 	}
 
 	// Create a PvP room and return its invite code (alias for createMatch).
-	async createInvite(userId: string, clashEnabled: boolean = true) {
-		const result = await this.createMatch(userId, 'pvp', 4, 0, clashEnabled);
+	async createInvite(userId: string) {
+		const result = await this.createMatch(userId, 'pvp', 4, 0);
 		return result;
 	}
 
 	// Create a PvE match with the specified number of bot opponents.
-	async playBot(userId: string, playerCount: number = 2, clashEnabled: boolean = true) {
+	async playBot(userId: string, playerCount: number = 2) {
 		if (playerCount !== 2 && playerCount !== 4) {
 			throw new BadRequestException('Player count must be 2 or 4');
 		}
 		const botCount = playerCount - 1;
-		return this.createMatch(userId, 'pve', playerCount, botCount, clashEnabled);
+		return this.createMatch(userId, 'pve', playerCount, botCount);
 	}
 
 	// Join a PvP room by its 6-character invite code.

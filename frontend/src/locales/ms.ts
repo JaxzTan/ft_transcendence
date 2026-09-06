@@ -437,8 +437,6 @@ export const ms = {
     pveArena: 'ARENA PVE',
     sectorMatrixLabel: '// MATRIKS SEKTOR:',
     combatCross: 'SILANG PERTEMPURAN 15x15',
-    combatClashLabel: '// PERLANGGARAN PERTEMPURAN:',
-    contestedTileClash: 'PERLANGGARAN PETAK DIPEREBUTKAN',
     winConditionLabel: '// SYARAT KEMENANGAN:',
     fourPiecesInGoal: '4 BUAH DI MATLAMAT',
     allSystemsPassed: '>>> SEMUA SEMAKAN SISTEM BERJAYA. ARENA SEDIA DILANCARKAN <<<',

@@ -32,21 +32,6 @@ export interface PlayerMeta {
 	};
 }
 
-export interface ClashState {
-	attacker: PlayerColor;
-	defender: PlayerColor;
-	attackerKey: string;
-	defenderKey: string;
-	target: number;
-	duration: number;
-	startedAt: number;
-	attackerPresses: number;
-	defenderPresses: number;
-	disconnectTimestamp?: number;
-	reconnectDeadline?: number;
-	waitingForReconnect?: PlayerColor;
-}
-
 export interface DisconnectState {
 	color: PlayerColor;
 	disconnectedAt: number;
@@ -71,8 +56,6 @@ export interface GameState {
 	resultDetail?: string;
 	resultSubmitted?: boolean; // Prevents duplicate backend submissions
 	botBusy?: boolean; // Prevents overlapping bot turns
-	clash?: ClashState;
-	clashMode: boolean; // Whether clash minigame is enabled (false = standard capture)
 	readyPlayers: PlayerColor[]; // Players who have clicked "ready"
 	paused?: boolean;
 	pauseTurnOwner?: PlayerColor;
@@ -118,8 +101,5 @@ export type GameEvent =
 	| { type: 'player_aborted'; gameId: string; color: PlayerColor; username: string }
 	| { type: 'player_disconnected'; gameId: string; color: PlayerColor }
 	| { type: 'player_reconnected'; gameId: string; color: PlayerColor }
-	| { type: 'clash_start'; gameId: string; attackerKey: string; defenderKey: string; target: number; duration: number; attacker: PlayerColor; defender: PlayerColor }
-	| { type: 'clash_frozen'; gameId: string; reason: string; disconnectedPlayer: PlayerColor; reconnectDeadline: number }
-	| { type: 'clash_result'; gameId: string; winner: PlayerColor; loser: PlayerColor; winnerPresses: number; loserPresses: number }
 	| { type: 'color_selected'; gameId: string; userId: string; color: PlayerColor }
 	| { type: 'lobby_update'; gameId: string; players: { userId: string; username: string; avatarStyle: string; color: PlayerColor; ready: boolean }[] };

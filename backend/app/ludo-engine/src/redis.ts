@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import type { GameState, PlayerColor, PieceId, Piece, PlayerMeta, ClashState } from './types';
+import type { GameState, PlayerColor, PieceId, Piece, PlayerMeta } from './types';
 
 const COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
@@ -37,7 +37,7 @@ export class RedisGameStore {
    * seats actually in play for this match size — colors outside that set get
    * no PlayerMeta entry at all, so unused seats never appear anywhere
    * downstream (sidebar, color picker, turn order). */
-  async createGame(gameId: string, clashMode: boolean = true, activeColors: PlayerColor[] = COLORS): Promise<void> {
+  async createGame(gameId: string, activeColors: PlayerColor[] = COLORS): Promise<void> {
     const pieces: Piece[] = [];
     for (const color of COLORS) {
       for (let i = 0; i < 4; i++) {
@@ -71,7 +71,6 @@ export class RedisGameStore {
       pendingLegalMoves: [],
       disconnectedPlayers: [],
       status: 'waiting',
-      clashMode,
       readyPlayers: [],
     };
     
@@ -95,42 +94,6 @@ export class RedisGameStore {
   async recordMove(gameId: string, move: { ply: number; color: PlayerColor; diceValue: number; pieceId: PieceId; from: number; to: number; captured: boolean; enteredHome: boolean; timestamp: number }): Promise<void> {
     await this.client.lpush(this.movesKey(gameId), JSON.stringify(move));
     await this.client.ltrim(this.movesKey(gameId), 0, 199);
-  }
-
-  /** Clash state management */
-  async loadClashState(gameId: string): Promise<ClashState | null> {
-    const state = await this.loadGameState(gameId);
-    return state?.clash ?? null;
-  }
-
-  async saveClashState(gameId: string, clash: ClashState): Promise<void> {
-    const state = await this.loadGameState(gameId);
-    if (!state) return;
-    
-    state.clash = clash;
-    await this.saveGameState(gameId, state);
-  }
-
-  async clearClashState(gameId: string): Promise<void> {
-    const state = await this.loadGameState(gameId);
-    if (!state) return;
-    
-    delete state.clash;
-    await this.saveGameState(gameId, state);
-  }
-
-  async recordClashPress(gameId: string, color: PlayerColor): Promise<number> {
-    const state = await this.loadGameState(gameId);
-    if (!state?.clash) return 0;
-    
-    const isAttacker = state.clash.attacker === color;
-    if (isAttacker) {
-      state.clash.attackerPresses++;
-    } else {
-      state.clash.defenderPresses++;
-    }
-    await this.saveGameState(gameId, state);
-    return isAttacker ? state.clash.attackerPresses : state.clash.defenderPresses;
   }
 
   /** Publish state change to all subscribers */
