@@ -1,9 +1,8 @@
 # nginx
 
 How nginx sits in front of everything, and why it's the one piece that lets
-local, LAN, and ngrok tunnel mode all work without the frontend or backend
-knowing which one is in play. Companion docs: [`lan.md`](./lan.md),
-[`tunnel.md`](./tunnel.md).
+local and ngrok tunnel mode both work without the frontend or backend
+knowing which one is in play. Companion doc: [`tunnel.md`](./tunnel.md).
 
 Verified directly against the current repo (`nginx/conf/nginx.conf`,
 `nginx/conf/app.inc`, `compose.yaml`) rather than copied from older docs —
@@ -12,19 +11,19 @@ in the code no longer matches what actually runs.
 
 ## The one idea that makes this simple
 
-nginx is the **only** thing any client ever talks to. Browsers — local, LAN,
-or tunnelled — hit `nginx` on port `443` (published on the host as `8443`)
+nginx is the **only** thing any client ever talks to. Browsers — local or
+tunnelled — hit `nginx` on port `443` (published on the host as `8443`)
 and nothing else. `nginx` then proxies to `backend:3000` and
 `ludo-engine:3001` over the internal Docker network. The frontend SPA only
 ever calls relative paths (`/api/...`, `/socket.io/...`), so it never needs
-to know or care which of the three modes it's running under — same-origin
+to know or care which mode it's running under — same-origin
 `fetch`/WebSocket calls resolve against whatever host the browser actually
 typed in the address bar.
 
 ```
                          ┌─────────────────────────────────────────┐
  browser  ── https ──►   │  nginx :443 (published as host :8443)   │
- (local / LAN / ngrok)   │  - TLS termination (self-signed cert)   │
+ (local / ngrok)        │  - TLS termination (self-signed cert)   │
                          │  - serves the built SPA from spa_dist   │
                          │  - proxies /api/       → backend:3000   │
                          │  - proxies /socket.io/ → ludo-engine:3001│
@@ -36,15 +35,14 @@ Only `nginx`'s port is published on all interfaces (`"8443:443"` in
 `ludo-engine` — publishes `127.0.0.1:<port>:<port>`, loopback-only, for
 host-side debugging (`psql`, Prisma Studio, `npm run dev`'s Vite proxy).
 Nothing but nginx is ever reachable from another device — that's what makes
-[LAN mode](./lan.md) and [tunnel mode](./tunnel.md) need zero extra routing
-config of their own.
+[tunnel mode](./tunnel.md) need zero extra routing config of its own.
 
 ## TLS
 
 `nginx/Dockerfile` generates a self-signed cert at build time (`openssl req
 -x509 ... -days 365`, CN `transcendence-ludo`) and bakes it into the image
-at `/etc/nginx/ssl/`. This is why every mode — local, LAN, and even the
-ngrok tunnel — shows a browser certificate warning once: nginx only ever
+at `/etc/nginx/ssl/`. This is why every mode — local and the ngrok tunnel —
+shows a browser certificate warning once: nginx only ever
 terminates TLS with this one self-signed cert, in every mode. `nginx.conf`
 restricts it to `TLSv1.2`/`TLSv1.3` and sets the standard hardening headers
 (`X-Frame-Options`, `HSTS`, a `Content-Security-Policy`, etc.) directly in
@@ -88,7 +86,7 @@ retrying a dead IP until nginx itself restarted.
 
 **`nginx/conf/app.inc` is dead config.** It's copied into the nginx image
 and bind-mounted by `compose.yaml`, and `nginx.conf`'s own comment claims
-*"See conf/app.inc for the actual routing (shared so the local/LAN and
+*"See conf/app.inc for the actual routing (shared so the local and
 ngrok-tunnelled paths ... can't drift)"* — but `nginx.conf` never actually
 `include`s it anywhere. The real, active routing is the inline `server {}`
 block described above. `app.inc` looks like a leftover from an earlier

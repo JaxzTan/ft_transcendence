@@ -1,7 +1,7 @@
 # Tunnel mode (ngrok)
 
-Reaching the app from anywhere on the internet, via ngrok. Companion docs:
-[`nginx.md`](./nginx.md), [`lan.md`](./lan.md).
+Reaching the app from anywhere on the internet, via ngrok. Companion doc:
+[`nginx.md`](./nginx.md).
 
 Verified directly against the current repo (`Makefile`, `backend/src/secrets.ts`,
 `backend/src/auth/oauth.guards.ts`, `backend/src/auth/auth.controller.ts`)
@@ -25,8 +25,8 @@ make stop-tunnel  # kills ngrok and stops the compose stack
 `ngrok http https://localhost:$(NGROK_PORT)` (the `https://` scheme, not
 `http://`, is deliberate: it tells ngrok to speak TLS to the local upstream
 instead of forwarding plain HTTP at a TLS-only port). There is no separate
-plain-HTTP hop for tunnel mode — the public ngrok URL, the LAN URL, and the
-local URL all terminate at the exact same nginx TLS listener described in
+plain-HTTP hop for tunnel mode — the public ngrok URL and the
+local URL both terminate at the exact same nginx TLS listener described in
 [`nginx.md`](./nginx.md). ngrok doesn't verify the self-signed cert by
 default, so that's not an issue.
 
@@ -58,7 +58,7 @@ export function isTunnelRequest(host: string | undefined): boolean {
 
 ngrok forwards the browser's original `Host` header unmodified, so a request
 that came in through the tunnel carries the public `*.ngrok-free.dev` host;
-a local or LAN request carries `localhost`/the LAN IP. `oauth.guards.ts`
+a local request carries `localhost`. `oauth.guards.ts`
 checks this on every OAuth kickoff to pick the matching Passport strategy
 (`google` vs `google-tunnel`, etc.), and `auth.controller.ts` uses the same
 check to decide which `FRONTEND_URL` to redirect back to after login
@@ -78,7 +78,7 @@ check to decide which `FRONTEND_URL` to redirect back to after login
 `make env` (a prerequisite of `make build`, so it runs on every path) reads
 `.env`, validates that every required value (core secrets/DB URLs, OAuth apps,
 tunnel credentials) is present and non-empty — failing hard with the missing
-list otherwise — and refreshes `LAN_IP` to the machine's current address.
+list otherwise.
 Nothing is auto-generated: copy a real `.env` from a teammate.
 
 ## Known gotchas
