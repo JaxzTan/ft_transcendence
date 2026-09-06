@@ -65,8 +65,7 @@ export class SocketServer {
 		);
 		this.postGame = new PostGameManager(
 			() => this.io,
-			this.store, this.engine, this.publisher, this.userIdMap,
-			['blue', 'red', 'green', 'yellow'], POST_GAME_TIMEOUT_MS,
+			this.store, this.engine, this.publisher, POST_GAME_TIMEOUT_MS,
 			(gameId) => this.cleanupGame(gameId),
 		);
 		this.handlers = new SocketHandlers(
@@ -143,7 +142,6 @@ export class SocketServer {
 	}
 	private cleanupGame(gameId: string): void {
 		this.userIdMap.delete(gameId);
-		this.postGame.clear(gameId);
 		this.botScheduler.clear(gameId);
 	}
 
@@ -231,12 +229,6 @@ export class SocketServer {
 
 			socket.on('disconnect', () =>
 				this.handlers.handleDisconnect(socket));
-
-			socket.on('rematch', () =>
-				this.postGame.handleRematch(socket));
-
-			socket.on('exit_post_game', () =>
-				this.postGame.handleExitPostGame(socket));
 		});
 	}
 }

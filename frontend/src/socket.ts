@@ -14,7 +14,6 @@ export type ServerEvents = {
   lobby_update: (e: { players: Array<{ username: string; color: PlayerColor; ready: boolean }> }) => void
   game_timeout: () => void
   game_expired: () => void
-  game_created: (newGameId: string) => void
   state_update: (payload: GameState) => void
   error: (msg: string) => void
 }
@@ -28,8 +27,6 @@ export type ClientEvents = {
   leave_game: () => void
   resign: () => void
   end_game: () => void
-  rematch: () => void
-  exit_post_game: () => void
 }
 
 // Always connects to the page's own origin — nginx (or, in dev, the Vite

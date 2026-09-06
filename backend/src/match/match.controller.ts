@@ -77,12 +77,6 @@ export class MatchController {
 		);
 	}
 
-	@UseGuards(JwtAuthGuard)
-	@Post('api/match/rematch/:gameId')
-	rematch(@Request() req: { user: { id: string } }, @Param('gameId') gameId: string) {
-		return this.match.rematch(gameId, req.user.id);
-	}
-
 	// ─── Game Actions ───────────────────────────────────────────────────────
 	@UseGuards(JwtAuthGuard)
 	@Post('api/game/:id/ready')

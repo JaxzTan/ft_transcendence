@@ -5,8 +5,8 @@ import { firstActiveColor } from '../player-handler';
 import { GameSocket, isBotUserId, BOT_PREFIX } from './auth';
 import type { PlayerColor } from '../types';
 
-// Shared seat order — its original home. server.ts imports it for rematch
-// room creation (the seat order must match the original match).
+// Shared seat order — used by the join flow to map slots to colors and to
+// auto-fill bot seats (the seat order must match the original match).
 export const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
 /**
