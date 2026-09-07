@@ -1,4 +1,4 @@
-_This project has been created as part of the 42 curriculum by chtan, bleow, liyu-her, hang, jow._
+_This project has been created as part of the 42 curriculum by bleow, liyu-her, hang, jow._
 
 # ft_transcendence
 
@@ -84,7 +84,7 @@ All config lives in the root `.env` (`KEY=VALUE` per line), loaded into containe
 
 | Login      | Role(s)                    | Responsibilities                                                                                                                |
 | ---------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `chtan`    | Product Owner, Developer   | Product vision, backlog and feature priorities, validating completed work, stakeholder communication — plus feature development |
+|   | Product Owner, Developer   | Product vision, backlog and feature priorities, validating completed work, stakeholder communication — plus feature development |
 | `bleow`    | Tech Lead, Developer       | Technical architecture, stack decisions, code quality and review of critical changes — plus feature development                 |
 | `liyu-her` | Project Manager, Developer | Planning sessions, progress and deadline tracking, risk and blocker management — plus feature development                       |
 | `hang`     | Developer                  | Feature implementation, code review, testing, documentation                                                                     |

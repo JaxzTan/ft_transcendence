@@ -62,6 +62,19 @@ export class LudoEngine {
     return await this.store.loadGameState(gameId);
   }
 
+  // Seeded PRNG (mulberry32). Math.random() can't be seeded directly, so every
+  // roll re-seeds a fresh generator from a large Math.random() value — giving
+  // each die roll its own isolated, uniform 1..6 stream.
+  private static seededRand(seed: number): () => number {
+    let s = seed >>> 0;
+    return () => {
+      s = (s + 0x6d2b79f5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
   // Roll dice for the current player.
   // Sets turnPhase to WAITING_FOR_MOVE and stores pendingLegalMoves and pendingDiceValue.
   // Handles zero legal moves by advancing turn automatically (with bonus roll on 6).
@@ -82,7 +95,14 @@ export class LudoEngine {
       throw new Error('Current player has exited');
     }
 
-    const diceValue = Math.floor(Math.random() * 6) + 1;
+    // Seed a per-roll PRNG stream with a fresh Math.random() scaled to a huge
+    // integer range (Math.random() itself cannot be seeded directly). Entropy is
+    // capped by Math.random()'s 53-bit output, but the dice stream is now
+    // isolated from other Math.random() users in the process.
+    const rand = LudoEngine.seededRand(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
+    // Single draw from the seeded stream → every face 1..6 is exactly 1/6 (fair
+    // die, max entropy ~2.585 bits). No averaging, no middle-face bias.
+    const diceValue = Math.floor(rand() * 6) + 1;
 
     currentPlayer.hasRolled = true;
     // Per-player 6-streak (classic rule): every 6 grants a bonus roll; the
