@@ -1137,7 +1137,6 @@ Called by ludo-engine when a game finishes. 🤖 Does not require JWT — authen
 - Updates the player's `User` row: `rating`, `winStreak`, `bestWinStreak`, `wins`, `losses`, `botWins`, `humanWins`, etc. (scoring via `ratingDeltaFor()`)
 - Evaluates achievements for all participants (fires unlock notifications)
 - Updates Redis `leaderboard:global` sorted set
-- Refreshes `LeaderboardSnapshot` rows
 
 ---
 
@@ -1199,7 +1198,7 @@ Get paginated leaderboard rankings.
   "total": 100,
   "page": 1,
   "limit": 20,
-  "source": "postgres"
+  "source": "redis"
 }
 
 ```
