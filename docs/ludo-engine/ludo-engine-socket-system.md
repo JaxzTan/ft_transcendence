@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Overview](#overview) — Socket.IO server, connection, and event protocol
+- [Quick Reference](#quick-reference) — What triggers each event, and the input/output of every socket event
 - [Files](#files) — Source file inventory
 - [Connection](#connection) — Handshake auth and JWT
 - [Client → Server Events](#client--server-events) — Events emitted by the client
@@ -17,6 +18,49 @@
 The ludo-engine exposes a Socket.IO server on port 3001. All game communication happens through events. The engine requires JWT authentication in the handshake `auth` object.
 
 The server is started by `index.ts` which calls `SocketServer.start(3001)`. The `SocketServer` class in `socket/server.ts` registers all event handlers and manages the `engine` (game state machine) and `redisGameStore` (persistence).
+
+---
+
+## Quick Reference
+
+Every socket event at a glance — direction, what triggers it, and its
+input/output. Each event is documented in full below; see
+[Event Reference](#event-reference) for the complete payload schemas.
+
+### Client → Server
+
+| Event | Triggered by | Payload (client → server) | Server action | Resulting broadcasts |
+|---|---|---|---|---|
+| `join_game` | Entering a room — PvP join/rejoin, PvE/hotseat seat-in (hotseat sends one call per local seat) | `(gameId: string, playerColor?, userId?, displayName?)` | Bind the socket to the room/seat (reconnect or fresh join), create the game if missing, auto-start PvE/hotseat | `game_joined` to the sender |
+| `roll_dice` | Current player, phase `WAITING_FOR_ROLL` | `()` | Roll the die and compute the legal moves (a 3rd six auto-forfeits the turn) | `dice_rolled` |
+| `move_piece` | Current player, phase `WAITING_FOR_MOVE` | `(pieceId: string)` | Validate and apply the move | `piece_moved` |
+| `player_ready` | Seated player in the waiting lobby | `()` | Mark ready; when every active player is ready the game starts | `game_started` |
+| `select_color` | Seated player during color selection | `(color: 'red'/'green'/'yellow'/'blue')` | Move the player to the requested seat color | `color_selected` + `lobby_update` |
+| `leave_game` | Player leaving a room (e.g. after a match) | `()` | Mark the seat exited, clear its pieces, advance the turn | `player_exited` |
+| `resign` | Player forfeiting an active match | `()` | Record the resignation as a loss and finish the player | `player_resigned` (+ `game_ended` if no active players remain) |
+| `end_game` | Host presses "End Game" | `()` | PvE/hotseat: abort the whole game. PvP: prune this player, abort the room if fewer than 2 humans remain | `game_expired` or `player_aborted` |
+| `disconnect` | Socket drops (automatic) | — | Start the reconnect grace period | `player_disconnected`, then `player_reconnected` or `player_exited` |
+
+### Server → Client
+
+| Event | Triggered by | Payload (server → client) | Notes |
+|---|---|---|---|
+| `game_joined` | A successful `join_game` | `GameState` | Sent to the joining socket only |
+| `dice_rolled` | A die roll | `{ value, legalMoves, bonusRoll, currentTurn, forfeited? }` | Room-wide |
+| `piece_moved` | A legal move applied | `MoveResult` | Room-wide |
+| `game_started` | All players ready / PvE or hotseat auto-start | `{ gameId }` | Room-wide |
+| `game_ended` | A match finishes (all pieces home / forfeit / resignation) | `{ winner, resultDetail }` | Room-wide |
+| `game_timeout` | 60 s after `game_ended` — the finished room is torn down | — | Room-wide |
+| `game_expired` | Idle lobby expired (5 min, < 2 seated) or a bot-mode abort | — | Room-wide |
+| `player_exited` | Permanent exit — leaving the room or disconnect grace expired (not a resignation) | `{ color }` | Room-wide |
+| `player_resigned` | A player resigned / conceded the match | `{ color }` | Room-wide |
+| `player_aborted` | Host ended a PvP game / room aborted | `{ color, username }` | Room-wide |
+| `player_disconnected` | A socket dropped (temporary) | `{ color }` | Room-wide |
+| `player_reconnected` | Reconnect inside the grace window | `{ color }` | Room-wide |
+| `lobby_update` | Lobby seats / ready state changed | `{ players: [{ userId, username, avatarStyle, color, ready }] }` | Room-wide |
+| `color_selected` | A seat color change | `{ gameId, userId, color }` | Room-wide |
+| `state_update` | Any Redis pub/sub frame | `any` (parsed JSON) | Catch-all the SPA falls back to |
+| `error` | Invalid action / failed authentication | `string` | Sent to the offending socket |
 
 ---
 
@@ -206,7 +250,7 @@ Forfeit the game voluntarily.
 socket.emit('resign');
 ```
 
-**Response:** `player_exited` event (broadcast to all)
+**Response:** `player_resigned` event (broadcast to all). If the resignation ends the match (no other active players remain), `game_ended` follows.
 
 ---
 
@@ -218,7 +262,7 @@ Automatically handled by Socket.IO on connection drop.
 // No manual emit needed — Socket.IO handles this
 ```
 
-**Response:** `player_exited` event (broadcast)
+**Response:** `player_disconnected` is broadcast immediately; `player_reconnected` fires if the player returns inside the grace window; `player_exited` (and possible room teardown) only if the grace window expires without a reconnect.
 
 ---
 
@@ -233,7 +277,8 @@ Automatically handled by Socket.IO on connection drop.
 | `game_ended` | `{ winner, resultDetail }` | Game finished |
 | `game_timeout` | none | Post-game lobby expired (60s) — finished room torn down |
 | `game_expired` | none | Idle lobby expired (5 min, < 2 seated) |
-| `player_exited` | `{ color }` | Player disconnected/resigned |
+| `player_exited` | `{ color }` | Permanent exit — left the room or the disconnect grace window expired |
+| `player_resigned` | `{ color }` | A player resigned / conceded the match |
 | `player_aborted` | `{ color, username }` | A player aborted the game |
 | `player_disconnected` | `{ color }` | A player's connection dropped |
 | `player_reconnected` | `{ color }` | A player reconnected |
