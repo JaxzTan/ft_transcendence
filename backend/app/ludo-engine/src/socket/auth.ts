@@ -8,20 +8,14 @@ export function isBotUserId(userId: string | undefined): boolean {
   return !!userId && userId.startsWith(BOT_PREFIX);
 }
 
-/**
- * JWT verification for engine tokens minted by the backend
- * (match.creator.service.ts signs them with the shared JWT_SECRET).
- *
- * This used to only base64-decode the payload and trust it — meaning anyone
- * could hand-craft a token with any gameId/playerId/role/color and the engine
- * would accept it. The signature is now actually checked, so a token that was
- * not signed with JWT_SECRET is rejected.
- */
+// JWT verification for engine tokens minted by the backend. Checks the
+// HS256 signature against JWT_SECRET (constant-time), and honours expiry :
+// forged or unsigned tokens are rejected.
 function requireJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     // Failing loudly beats silently accepting forged tokens.
-    throw new Error('JWT_SECRET is not set — engine cannot verify tokens');
+    throw new Error('JWT_SECRET is not set : engine cannot verify tokens');
   }
   return secret;
 }
@@ -32,7 +26,7 @@ export function verifyToken(token: string): { gameId: string; userId: string; us
     if (parts.length !== 3) return null;
     const [encHeader, encPayload, encSignature] = parts;
 
-    // 1. Only accept HS256 — an attacker must not be able to pick "none".
+    // 1. Only accept HS256 : an attacker must not be able to pick "none".
     const header = JSON.parse(Buffer.from(encHeader, 'base64url').toString('utf-8'));
     if (header.alg !== 'HS256') return null;
 
@@ -47,7 +41,7 @@ export function verifyToken(token: string): { gameId: string; userId: string; us
 
     const payload = JSON.parse(Buffer.from(encPayload, 'base64url').toString('utf-8'));
 
-    // 3. Honour expiry — the backend signs these with expiresIn '24h'.
+    // 3. Honour expiry : the backend signs these with expiresIn '24h'.
     if (typeof payload.exp === 'number' && Date.now() >= payload.exp * 1000) return null;
 
     return {
@@ -69,11 +63,11 @@ export function verifyToken(token: string): { gameId: string; userId: string; us
   }
 }
 
-/** Data stored on each connected socket */
+// Data stored on each connected socket
 export interface SocketData {
   gameId?: string;
   playerColor?: PlayerColor;
-  /** Seat colour as issued by the backend in the JWT — authoritative. */
+  // Seat colour as issued by the backend in the JWT : authoritative.
   tokenColor?: PlayerColor;
   userId?: string;
   username?: string;
@@ -82,7 +76,7 @@ export interface SocketData {
   mode?: 'pvp' | 'pve' | 'hotseat';
 }
 
-/** Custom socket wrapper to provide typed data */
+// Custom socket wrapper to provide typed data
 export type GameSocket = Socket & { data: SocketData };
 
 export const BACKEND_URL = process.env.BACKEND_URL || 'http://backend:3000';

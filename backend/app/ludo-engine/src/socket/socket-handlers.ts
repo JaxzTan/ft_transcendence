@@ -5,12 +5,10 @@ import { GameSocket } from './auth';
 import { JoinManager } from './join-manager';
 import type { PlayerColor, PieceId } from '../types';
 
-/**
- * SocketHandlers maps socket events to engine actions. It is the main
- * orchestration point for client-driven gameplay; the join_game flow (the
- * single biggest handler) is delegated to JoinManager.
- */
+// SocketHandlers maps socket events to engine actions; the join_game flow
+// is delegated to JoinManager.
 export class SocketHandlers {
+  // Owns the join_game flow (seat binding, game creation, reconnects).
   private joinManager: JoinManager;
 
   constructor(
@@ -34,6 +32,8 @@ export class SocketHandlers {
     this.joinManager.handleJoinGame(socket, gameId, playerColor, userId, displayName);
   }
 
+  // 'roll_dice' event: validate the caller's turn and roll via the engine.
+  // Errors go back to the requesting socket only.
   handleRollDice(socket: GameSocket): void {
     const gameId = socket.data.gameId;
     if (!gameId) {
@@ -57,6 +57,8 @@ export class SocketHandlers {
     })();
   }
 
+  // 'move_piece' event: validate turn/ownership, then apply the move via the
+  // engine. Errors go back to the requesting socket only.
   handleMovePiece(socket: GameSocket, pieceId: PieceId): void {
     const gameId = socket.data.gameId;
     const color = socket.data.playerColor;
@@ -165,6 +167,8 @@ export class SocketHandlers {
     })();
   }
 
+  // Socket disconnect: start (or ignore, if already running) the reconnect
+  // grace period for the player's seat.
   handleDisconnect(socket: GameSocket): void {
     const gameId = socket.data.gameId;
     const color = socket.data.playerColor;

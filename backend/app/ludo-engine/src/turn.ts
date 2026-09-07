@@ -2,15 +2,9 @@ import { GameState, MoveResult, PlayerColor } from './types';
 import { MoveValidator } from './move-validator';
 import { advanceTurnInState } from './player-handler';
 
-/**
- * Apply a completed move's outcome to the game state: sync the
- * frontend-compatible piece mirrors, bump the move counter, run the win check,
- * update stats/bonus, advance the turn (or re-roll on 6/capture), and clear
- * the pending move snapshot.
- *
- * Pure mutation — recordMove / saveGameState / emit stay with the caller.
- * Returns the winner if the game just finished, else null.
- */
+// Apply a move's outcome: sync piece mirrors, bump the counter, run the win
+// check, update stats/bonus, and advance the turn (or re-roll on 6/capture).
+// Pure mutation : persistence/emission stay with the caller.
 export function applyMoveOutcome(
   state: GameState,
   result: MoveResult,
@@ -25,7 +19,7 @@ export function applyMoveOutcome(
     movedPiece.isInBase = result.to <= 0;   // prison: back in the starting area
   }
   if (result.captured && result.capturedPieceIds) {
-    // Captured pieces were sent home (step 0) by executeMove — mirror that on
+    // Captured pieces were sent home (step 0) by executeMove : mirror that on
     // the frontend fields too.
     for (const id of result.capturedPieceIds) {
       const capturedPiece = state.pieces.find(p => p.id === id);
@@ -40,7 +34,7 @@ export function applyMoveOutcome(
   // appears in the recorded move history and in the move result (`result.ply`).
   state.moveCounter++;
 
-  // Win check — the first player with all 4 pieces at step 57 wins.
+  // Win check : the first player with all 4 pieces at step 57 wins.
   const winner = MoveValidator.checkWinner(state);
   if (winner) {
     // Seal the final state: mark the game finished, stamp the winner's

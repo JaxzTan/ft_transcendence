@@ -1,18 +1,13 @@
 import { RedisGameStore } from '../redis';
 import { GameEvent } from '../types';
 
-/**
- * EventPublisher handles the single source of truth for game lifecycle events.
- * Each engine event is published to Redis pub/sub so all connected clients
- * receive state updates.
- */
+// EventPublisher: single source of truth for game lifecycle events. Each
+// engine event is published to Redis pub/sub so all clients receive it.
 export class EventPublisher {
   constructor(private store: RedisGameStore) {}
 
-  /**
-   * Publish an engine event to Redis pub/sub for broadcast to all clients
-   * in the game room (via the Redis subscriber in server.ts).
-   */
+  // Publish an engine event to Redis pub/sub, broadcast to the game room
+  // via the Redis subscriber in server.ts.
   publish(event: GameEvent): void {
     const { gameId } = event;
 

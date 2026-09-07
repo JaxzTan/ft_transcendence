@@ -18,25 +18,15 @@ import type { PlayerColor } from '../types';
 const IDLE_LOBBY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const POST_GAME_TIMEOUT_MS = 60 * 1000; // 60 seconds
 
-// Mirrors the frontend's STEP_ANIM_MS (Game.tsx) — how long the box-by-box
-// piece-move animation takes per step. Bot turns are paced against this so a
-// bot's move finishes animating on screen before the bot's next action (roll,
-// bonus move, capture chain) fires and cuts it off.
+// Mirrors the frontend's STEP_ANIM_MS : bot turns are paced so their moves
+// finish animating on screen before the next bot action fires.
 const BOT_STEP_ANIM_MS = 220;
 // Flat "thinking" pause before a bot rolls, so bot turns don't feel instant.
 const BOT_THINK_MS = 500;
 
-/**
- * SocketServer is the orchestration root for the ludo engine: it wires the
- * engine, Redis pub/sub, bot scheduling, post-game lifecycle, and socket
- * connections, then routes engine events and socket events to the modules
- * that own each concern.
- *
- * - Business logic for each socket event lives in SocketHandlers.
- * - The join_game flow lives in JoinManager (used by SocketHandlers).
- * - Bot turn timing lives in BotTurnScheduler.
- * - The end-of-game lifecycle lives in PostGameManager.
- */
+// SocketServer is the orchestration root for the ludo engine: it wires the
+// engine, Redis pub/sub, bots, post-game lifecycle, and sockets, routing
+// each event to the module that owns it (handlers, joins, bots, end-game).
 export class SocketServer {
 	private io!: Server;
 	private httpServer!: http.Server;
@@ -79,7 +69,7 @@ export class SocketServer {
 				this.cleanupGame(gameId);
 			},
 		);
-		// Wire up engine events — single source of truth for game lifecycle
+		// Wire up engine events : single source of truth for game lifecycle
 		this.engine.onEvent((event) => {
 			this.publisher.publish(event);
 
@@ -145,6 +135,8 @@ export class SocketServer {
 		this.botScheduler.clear(gameId);
 	}
 
+	// Periodic sweep (1-minute interval) that aborts WAITING PvP rooms with
+	// fewer than 2 seated players after the 5-minute idle timeout.
 	private async checkExpiredLobbies(): Promise<void> {
 		const now = Date.now();
 		const matchKeys = await this.store.scanMatchKeys();
@@ -156,13 +148,13 @@ export class SocketServer {
 				.filter(Boolean).length;
 
 			if (seatedCount >= 2) {
-				// Two or more seated players — the idle timer is inactive.
+				// Two or more seated players : the idle timer is inactive.
 				await this.store.clearIdleSince(match.id);
 				continue;
 			}
 
 			// Idle room (< 2 seated). Stamp the idle start on first encounter
-			// (hsetnx — a pre-existing stamp is kept), then abort once the
+			// (hsetnx : a pre-existing stamp is kept), then abort once the
 			// room has been idle for the full timeout.
 			await this.store.setIdleSince(match.id, now);
 			const idleSinceMs = match.idleSince ? parseInt(match.idleSince, 10) : now;
@@ -174,17 +166,13 @@ export class SocketServer {
 			}
 		}
 	}
-	// ─── Socket wiring (orchestration only) ────────────────────────────────────
-
+	// Socket wiring (orchestration only)
 	private setupSocketHandlers(): void {
 		this.io.use((socket: GameSocket, next) => {
 			const token = socket.handshake.auth?.token;
-			// A token is mandatory. This used to fall through to next() for
-			// "bots, dev" — but bots are driven server-side (BotTurnScheduler),
-			// never over a socket, and the SPA always supplies a token
-			// (frontend/src/socket.ts). Allowing tokenless connections would
-			// make signature verification pointless: an attacker could simply
-			// omit the token and then assert gameId/colour via join_game.
+			// A token is mandatory: bots are driven server-side and the SPA always
+			// supplies one. Allowing tokenless connections would make signature
+			// verification pointless (attacker just omits the token).
 			if (!token) return next(new Error('Authentication required'));
 
 			const payload = verifyToken(token);

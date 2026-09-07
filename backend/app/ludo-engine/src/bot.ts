@@ -6,6 +6,8 @@ import type { PlayerColor, PieceId, GameState, LegalMove } from './types';
 
 const botMap = new Map<string, Map<PlayerColor, LudoBot>>();
 
+// Get (or lazily create) the bot instance for one seat in one game.
+// Used by socket/server.ts whenever a bot's turn must be triggered.
 export function getOrCreateBot(
   gameId: string,
   color: PlayerColor,
@@ -28,13 +30,10 @@ export function isBotPlayer(
   return isBotUserId(userIdMap.get(gameId)?.get(color));
 }
 
-/**
- * Server-side Ludo Bot with heuristic-based move selection.
- * Each bot (per color) analyzes the game state to decide moves.
- * Bot turns are scheduled by the SocketServer, not by the bot itself,
- * to prevent overlapping timers.
- */
+// Server-side Ludo Bot with heuristic move selection. One instance per
+// (game, color); turn scheduling is owned by SocketServer, not the bot.
 export class LudoBot {
+  // The engine this bot plays through (roll/move calls).
   private engine: LudoEngine;
   private store: RedisGameStore;
   private gameId: string;
@@ -47,17 +46,8 @@ export class LudoBot {
     this.store = store;
   }
 
-  /**
-   * Select the best move using heuristics.
-   * Priority order:
-   * 1. Capture opponent pieces
-   * 2. On roll 6, prefer freeing pieces from jail
-   * 3. Enter home stretch (52+)
-   * 4. Move to safe zones
-   * 5. Maximum progress
-   * 
-   * Returns the LegalMove object for the best move.
-   */
+  // Select the best move by heuristic priority: capture > free from jail
+  // (on 6) > home entry > safe zone > max progress.
   selectBestMove(legalMoves: LegalMove[], state: GameState, diceValue: number): LegalMove | null {
     if (legalMoves.length === 0) return null;
     if (legalMoves.length === 1) return legalMoves[0];
@@ -86,10 +76,8 @@ export class LudoBot {
     return scored[0].move;
   }
 
-  /**
-   * Score a move based on heuristics.
-   * Higher score = better move.
-   */
+  // Score a move based on heuristics.
+  // Higher score = better move.
   private scoreMove(move: LegalMove): number {
     let score = 0;
 
@@ -114,36 +102,29 @@ export class LudoBot {
     return score;
   }
 
-  /**
-   * Execute bot turn: roll dice and make the best move.
-   * Does NOT schedule follow-up turns — the SocketServer handles that
-   * via processBotTurn() to prevent overlapping timers.
-   * Returns true if the game is still active after this turn.
-   */
+  // Execute bot turn: roll dice, make the best move. Does NOT schedule
+  // follow-up turns (SocketServer owns that). Returns true if still active.
   async takeTurn(): Promise<boolean> {
     try {
       return await this.takeTurnUnsafe();
     } catch (err) {
-      // rollDice/movePiece throw when the game state moved on from under us
-      // (resigned, timed out, or ended by the other player) during the gaps
-      // between our own state checks above — most commonly the 1.2s delay
-      // before movePiece. That's a normal race, not a bug: the caller
-      // (triggerBotTurn in socket/server.ts) doesn't await/catch this
-      // promise, so letting it throw here would be an unhandled rejection
-      // that kills the whole engine process, not just this one game.
+      // Engine calls throw when the game moved on from under us (resigned,
+      // timed out, ended) during the gaps between our state checks : a normal
+      // race, not a bug. Swallow it: the caller doesn't await this promise,
+      // so a rejection here would kill the whole engine process.
       console.error(`[bot] takeTurn aborted for game ${this.gameId} (${this.color}):`, err instanceof Error ? err.message : err);
       return false;
     }
   }
 
   private async takeTurnUnsafe(): Promise<boolean> {
-    // Strict turn validation — mirrors socket-handlers.ts early validation for humans
+    // Strict turn validation : mirrors socket-handlers.ts early validation for humans
     const state = await this.store.loadGameState(this.gameId);
     if (!state || state.status !== 'active') return false;
     if (state.currentTurn !== this.color) return false; // Not our turn
     if (state.turnPhase !== 'WAITING_FOR_ROLL') return false; // Wrong phase
 
-    // Roll dice — engine validates currentTurn again
+    // Roll dice : engine validates currentTurn again
     const { value: diceValue, legalMoves } = await this.engine.rollDice(this.gameId);
 
     if (legalMoves.length > 0) {
@@ -163,7 +144,7 @@ export class LudoBot {
       const beforeMove = await this.store.loadGameState(this.gameId);
       if (!beforeMove || beforeMove.status !== 'active' || beforeMove.currentTurn !== this.color) return false;
 
-      // Execute move — engine emits piece_moved and game_ended events via handleEngineEvent
+      // Execute move : engine emits piece_moved and game_ended events via handleEngineEvent
       const { state: finalState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);
 
       // Check for win after bot move

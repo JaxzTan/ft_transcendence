@@ -3,11 +3,15 @@ import Redis from 'ioredis';
 import { secret } from '../secrets';
 
 @Injectable()
+// Redis sorted-set storage for leaderboards (one set per mode). Used by
+// leaderboard.service.ts and match.postgame.service.ts (rating updates).
 export class LeaderboardRedisService implements OnModuleDestroy {
+  // Redis client; keys are leaderboard:<mode> sorted sets (member = userId,
+  // score = rating).
   private redis: Redis;
 
   constructor() {
-    // Host/port stay plain env — they're topology, not secrets.
+    // Host/port stay plain env : they're topology, not secrets.
     const host = process.env.REDIS_HOST || 'redis';
     const port = parseInt(process.env.REDIS_PORT || '6479', 10);
     const password = secret('REDIS_PASSWORD');
@@ -20,24 +24,13 @@ export class LeaderboardRedisService implements OnModuleDestroy {
     this.redis.quit();
   }
 
-  /**
-   * Update leaderboard entry for a user
-   * @param userId - User ID
-   * @param rating - User's current rating
-   * @param mode - Game mode (global, ranked, casual, bot)
-   */
+  // Set a user's rating in a mode's sorted set (key leaderboard:<mode>).
   async updateLeaderboardEntry(userId: string, rating: number, mode: 'global' | 'ranked' | 'casual' | 'bot'): Promise<void> {
     const key = `leaderboard:${mode}`;
     await this.redis.zadd(key, rating, userId);
   }
 
-  /**
-   * Get leaderboard from Redis with pagination
-   * @param mode - Game mode
-   * @param page - Page number (1-based)
-   * @param limit - Results per page
-   * @returns Array of {userId, rating} sorted by rating descending
-   */
+  // One page of {userId, rating} entries, highest rating first.
   async getLeaderboardFromRedis(
     mode: string,
     page: number = 1,
@@ -62,18 +55,13 @@ export class LeaderboardRedisService implements OnModuleDestroy {
     return entries;
   }
 
-  /**
-   * Get total count of entries in leaderboard
-   */
+  // Get total count of entries in leaderboard
   async getLeaderboardCount(mode: string): Promise<number> {
     const key = `leaderboard:${mode}`;
     return await this.redis.zcard(key);
   }
 
-  /**
-   * Get user's rank in leaderboard
-   * @returns 1-based rank, or null if not found
-   */
+  // 1-based rank in the board, or null if not ranked.
   async getUserRank(userId: string, mode: string): Promise<number | null> {
     const key = `leaderboard:${mode}`;
     // ZREVRANK returns 0-based index, add 1 for 1-based rank
@@ -81,11 +69,8 @@ export class LeaderboardRedisService implements OnModuleDestroy {
     return rank !== null ? rank + 1 : null;
   }
 
-  /**
-   * Rebuild leaderboard from PostgreSQL data.
-   * Use for fresh deployments or catastrophic recovery when the Redis
-   * leaderboard sorted set was wiped or lost.
-   */
+  // Rebuild a mode's board from a Postgres user list. For fresh deploys or
+  // recovery after the Redis sorted set was wiped/lost.
   async rebuildLeaderboard(
     users: { userId: string; rating: number }[],
     mode: string,

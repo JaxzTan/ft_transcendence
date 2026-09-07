@@ -4,9 +4,16 @@ import type { PlayerColor } from './types';
 
 const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
+// Lobby/color-selection manager for waiting rooms: roster reads, color
+// picking with swap, and the ready-check gate. Used by LudoEngine and
+// socket/server.ts.
 export class LobbyManager {
+  // Redis persistence for game/match state, and the publisher used to push
+  // lobby update events to connected clients.
   constructor(private store: RedisGameStore, private publisher: EventPublisher) {}
 
+  // Read the waiting-room roster from the match hash (seat, color, ready).
+  // Used by socket handlers to serve the lobby screen.
   async getLobbyState(gameId: string): Promise<{ players: { userId: string; color: PlayerColor; ready: boolean }[] } | null> {
     const data = await this.store.getMatchData(gameId);
     if (!data) return null;
@@ -22,6 +29,9 @@ export class LobbyManager {
     return { players };
   }
 
+  // Assign (or swap) a seat color for a player in a waiting room, keeping the
+  // match hash and the live engine GameState in sync. Used by
+  // LudoEngine.handlePlayerSelectColor.
   async handleSelectColor(gameId: string, userId: string, color: PlayerColor): Promise<void> {
     const data = await this.store.getMatchData(gameId);
     if (!data || data.status !== 'WAITING') {
@@ -35,7 +45,7 @@ export class LobbyManager {
     }
 
     // Colors beyond this match's seat count have no PlayerMeta in the engine
-    // state (see redis.ts createGame's activeColors) — reject before touching
+    // state (see redis.ts createGame's activeColors) : reject before touching
     // the match hash so it can't drift out of sync with the engine.
     const maxSeats = parseInt(data.playerCount || '4', 10);
     if (SLOT_COLORS.indexOf(color) >= maxSeats) {
@@ -67,8 +77,8 @@ export class LobbyManager {
 
     // Mirror the swap into the live engine GameState so display and gameplay
     // (turn/move ownership is color-keyed) stay in sync. This is pre-game only
-    // (status === 'WAITING' guard above), so board pieces are untouched — all
-    // still sitting in base — only seat *identity* moves between the two slots.
+    // (status === 'WAITING' guard above), so board pieces are untouched : all
+    // still sitting in base : only seat *identity* moves between the two slots.
     const state = await this.store.loadGameState(gameId);
     if (state) {
       const a = state.players.find(p => p.color === currentColor);
@@ -83,6 +93,8 @@ export class LobbyManager {
     }
   }
 
+  // True when the room can start: ≥2 seated players, everyone has a color,
+  // and everyone is ready. Used by the socket ready-check flow.
   async handleReadyCheck(gameId: string): Promise<boolean> {
     const data = await this.store.getMatchData(gameId);
     if (!data || data.status !== 'WAITING') return false;

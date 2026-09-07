@@ -3,11 +3,8 @@ import type { GameState, PlayerColor, PieceId, Piece, PlayerMeta } from './types
 
 const COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 
-/**
- * RedisGameStore is a PERSISTENCE LAYER.
- * All game state is stored as a single serialized GameState object.
- * Game logic operates on in-memory GameState first, then persists.
- */
+// RedisGameStore is a PERSISTENCE LAYER: one serialized GameState per game
+// in Redis. Logic mutates in memory first, then persists here.
 export class RedisGameStore {
   private client: Redis;
   public subscriber: Redis;
@@ -33,10 +30,8 @@ export class RedisGameStore {
     await this.subscriber.quit();
   }
 
-  /** Create a new game with all 16 pieces in prison. `activeColors` are the
-   * seats actually in play for this match size — colors outside that set get
-   * no PlayerMeta entry at all, so unused seats never appear anywhere
-   * downstream (sidebar, color picker, turn order). */
+  // Create a new game, all 16 pieces in prison. Only `activeColors` seats
+  // get PlayerMeta entries, so unused seats never appear downstream.
   async createGame(gameId: string, activeColors: PlayerColor[] = COLORS): Promise<void> {
     const pieces: Piece[] = [];
     for (const color of COLORS) {
@@ -77,42 +72,42 @@ export class RedisGameStore {
     await this.saveGameState(gameId, state);
   }
 
-  /** Load the entire GameState from Redis (single operation) */
+  // Load the entire GameState from Redis (single operation)
   async loadGameState(gameId: string): Promise<GameState | null> {
     const data = await this.client.hget(this.gameKey(gameId), 'state');
     if (!data) return null;
     return JSON.parse(data) as GameState;
   }
 
-  /** Save the entire GameState to Redis (single operation) */
+  // Save the entire GameState to Redis (single operation)
   async saveGameState(gameId: string, state: GameState): Promise<void> {
     await this.client.hset(this.gameKey(gameId), 'state', JSON.stringify(state));
     await this.client.expire(this.gameKey(gameId), 86400);
   }
 
-  /** Move history (separate, not part of main state) */
+  // Move history (separate, not part of main state)
   async recordMove(gameId: string, move: { ply: number; color: PlayerColor; diceValue: number; pieceId: PieceId; from: number; to: number; captured: boolean; enteredHome: boolean; timestamp: number }): Promise<void> {
     await this.client.lpush(this.movesKey(gameId), JSON.stringify(move));
     await this.client.ltrim(this.movesKey(gameId), 0, 199);
   }
 
-  /** Publish state change to all subscribers */
+  // Publish state change to all subscribers
   async publish(gameId: string, message: string): Promise<void> {
     await this.client.publish(`game:${gameId}`, message);
   }
 
-   /** Get the match metadata hash (for lobby/color selection) */
+   // Get the match metadata hash (for lobby/color selection)
    async getMatchData(gameId: string): Promise<Record<string, string> | null> {
      const data = await this.client.hgetall(this.matchKey(gameId));
      return Object.keys(data).length > 0 ? data : null;
    }
 
-   /** Update specific fields in the match metadata hash */
+   // Update specific fields in the match metadata hash
    async updateMatchData(gameId: string, fields: Record<string, string>): Promise<void> {
      await this.client.hmset(this.matchKey(gameId), fields);
    }
 
-   /** SCAN all match metadata hashes. */
+   // SCAN all match metadata hashes.
    async scanMatchKeys(): Promise<string[]> {
      const keys: string[] = [];
      let cursor = '0';
@@ -124,22 +119,18 @@ export class RedisGameStore {
      return keys;
    }
 
-   /** Stamp the moment a room became idle (< 2 seated), without overwriting an existing stamp. */
+   // Stamp the moment a room became idle (< 2 seated), without overwriting an existing stamp.
    async setIdleSince(gameId: string, now: number): Promise<void> {
      await this.client.hsetnx(this.matchKey(gameId), 'idleSince', now.toString());
    }
 
-   /** Clear the idle stamp (room has ≥ 2 seated players again). */
+   // Clear the idle stamp (room has ≥ 2 seated players again).
    async clearIdleSince(gameId: string): Promise<void> {
      await this.client.hdel(this.matchKey(gameId), 'idleSince');
    }
 
-   /**
-    * Remove a non-host player's seat from a waiting room's match hash.
-    * The host (player1) seat is never cleared — the room stays rejoinable.
-    * After clearing, the idle stamp is (re)written so the 5-minute idle
-    * countdown restarts from the moment the room dropped back below 2 seats.
-    */
+   // Remove a non-host player's seat from a waiting room's match hash
+   // (the host seat is never cleared) and restart the idle countdown.
    async clearMatchSeat(gameId: string, color: PlayerColor): Promise<void> {
      const data = await this.getMatchData(gameId);
      if (!data) return;
@@ -155,13 +146,13 @@ export class RedisGameStore {
      await this.setIdleSince(gameId, Date.now());
    }
 
-   /** Mark a match ABORTED with a short TTL so it drops out of open-room listings. */
+   // Mark a match ABORTED with a short TTL so it drops out of open-room listings.
    async abortMatch(gameId: string): Promise<void> {
      await this.client.hset(this.matchKey(gameId), 'status', 'ABORTED');
      await this.client.expire(this.matchKey(gameId), 3600);
    }
 
-   /** Delete the engine-side game state/moves for a match. */
+   // Delete the engine-side game state/moves for a match.
    async deleteGame(gameId: string): Promise<void> {
      await this.client.del(this.gameKey(gameId), this.movesKey(gameId));
    }

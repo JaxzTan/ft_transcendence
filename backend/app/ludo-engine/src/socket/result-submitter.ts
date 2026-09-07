@@ -7,10 +7,8 @@ function getEngineApiKey(): string {
   return process.env.ENGINE_API_KEY || 'dev-engine-key';
 }
 
-/**
- * ResultSubmitter handles game end: submitting results to the backend
- * and cleaning up in-memory state.
- */
+// ResultSubmitter: posts finished-game results to the backend and cleans up
+// in-memory state.
 export class ResultSubmitter {
   constructor(
     private engine: LudoEngine,
@@ -19,19 +17,20 @@ export class ResultSubmitter {
     private cleanup: (gameId: string) => void,
   ) {}
 
+  // POST the finished game's results to the backend /api/game/end exactly
+  // once per game (idempotent via resultSubmitted). Skips hotseat entirely.
+  // Called by PostGameManager when a game_ended event arrives.
   async submitGameResult(gameId: string): Promise<void> {
     try {
       const state = await this.engine.getGameState(gameId);
       if (!state) return;
 
-      // Hotseat is demo-and-forget (achievement-revamp.md §2): the game plays
-      // to completion and the frontend shows the end card client-side, but the
-      // result is NEVER submitted to the backend — no /api/game/end POST, no
-      // Game/participant rows, no lifetime counters, no leaderboard impact.
-      // Counters are only derived from PVP/PVE games.
+      // Hotseat is demo-and-forget: the result is NEVER submitted to the
+      // backend : no game/participant rows, no counters, no leaderboard.
+      // (achievement-revamp.md §2)
       const matchData = await this.store.getMatchData(gameId);
       if (matchData?.gameType === 'HOTSEAT') {
-        console.log(`Game ${gameId} is HOTSEAT — skipping backend submission (demo-and-forget)`);
+        console.log(`Game ${gameId} is HOTSEAT : skipping backend submission (demo-and-forget)`);
         state.resultSubmitted = true;
         await this.store.saveGameState(gameId, state);
         return;
@@ -47,7 +46,7 @@ export class ResultSubmitter {
       const participants = [];
       for (const player of state.players) {
         // Players who aborted/left via End Game (status 'exited') are pruned
-        // from the board and must NOT receive a definitive result or rating —
+        // from the board and must NOT receive a definitive result or rating :
         // they didn't finish the match, so no outcome is recorded for them.
         if (player.status === 'exited') continue;
         const stats = { ...player.stats };
@@ -76,11 +75,8 @@ export class ResultSubmitter {
     }
   }
 
-  /**
-   * Tell the backend a game just left the lobby (ready-check passed / auto-start
-   * fired) so it flips the Redis match record from WAITING to ACTIVE — otherwise
-   * it keeps showing up in the public "open rooms" list mid-game.
-   */
+  // Tell the backend a game left the lobby so it flips the Redis match from
+  // WAITING to ACTIVE : otherwise it keeps appearing in "open rooms" mid-game.
   async notifyGameStarted(gameId: string): Promise<void> {
     try {
       const engineApiKey = getEngineApiKey();

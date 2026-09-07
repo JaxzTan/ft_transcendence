@@ -9,7 +9,11 @@ import { isBotUserId } from '../common/bot';
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 
 @Injectable()
+// Per-player match actions: joining, rejoining, inviting friends, ready
+// checks, exiting, resigning, and marking matches started/ended. Edits the
+// match:* hashes in Redis. Used by MatchService.
 export class MatchPlayerService {
+	// Redis client for match:* game hashes and ready:<gameId> sets.
 	private redis: Redis;
 
 	constructor(
@@ -35,7 +39,7 @@ export class MatchPlayerService {
 		if (seatedSlot !== -1) return this.rejoin(gameId, userId);
 
 		if (data.status !== 'WAITING') throw new ForbiddenException('Game already started');
-		// Humans can only join human rooms — PvE/hotseat rooms are auto-started
+		// Humans can only join human rooms : PvE/hotseat rooms are auto-started
 		// and never accept a second human via this endpoint.
 		if (data.gameType !== 'PVP') throw new ForbiddenException('Only PvP rooms can be joined');
 
@@ -85,12 +89,8 @@ export class MatchPlayerService {
 		return { gameId, token, engineUrl: 'ws://localhost:3001', color, inviteCode: data.inviteCode || undefined, mode: data.gameType ? data.gameType.toLowerCase() : 'pvp', playerCount: parseInt(data.playerCount || '2', 10) };
 	}
 
-	/**
-	 * Seat a friend into an existing WAITING PvP room and stage an invite record
-	 * (`invite:{friendId}`) so their client's poll (Shell /api/friends/invites/
-	 * pending) picks it up. Same transport as FriendsService.inviteToGame, but
-	 * works on a room that already exists instead of creating a fresh one.
-	 */
+	// Seat a friend into an existing WAITING PvP room and stage an
+	// `invite:{friendId}` record for their client's next poll.
 	async inviteFriendToGame(gameId: string, hostId: string, friendId: string) {
 		const data = await this.redis.hgetall(`match:${gameId}`);
 		if (!data || !data.id) throw new NotFoundException('Game not found');
@@ -218,12 +218,12 @@ export class MatchPlayerService {
 		return { message: 'Game cancelled', gameId };
 	}
 
-	// Alias for cancelGame — player resigns from the match.
+	// Alias for cancelGame : player resigns from the match.
 	async resign(gameId: string, userId: string) {
 		return this.cancelGame(gameId, userId, 'resign');
 	}
 
-	/** Notify the other human players when a match is aborted or a player resigns. */
+	// Notify the other human players when a match is aborted or a player resigns.
 	private async notifyMatchAbort(
 		gameId: string,
 		data: Record<string, string>,
@@ -248,7 +248,7 @@ export class MatchPlayerService {
 		}
 	}
 
-	// listOpenRooms only ever shows WAITING rooms — without this, a match stays
+	// listOpenRooms only ever shows WAITING rooms : without this, a match stays
 	// WAITING in Redis forever after the ready-check flips it active in the
 	// engine, so it keeps showing up as "open" even mid-game.
 	async markStarted(gameId: string) {

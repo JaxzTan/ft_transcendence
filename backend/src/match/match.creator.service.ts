@@ -20,7 +20,11 @@ function generateInviteCode(): string {
 }
 
 @Injectable()
+// Match creation: PvP rooms, PvE bot games, hotseat rooms, invite codes and
+// random-match matching. Writes match:* hashes to Redis. Used by
+// MatchService (called from match.controller.ts and friends.service.ts).
 export class MatchCreatorService {
+	// Redis client for match:* game hashes and per-user create locks.
 	private redis: Redis;
 
 	constructor(
@@ -45,7 +49,7 @@ export class MatchCreatorService {
 		botColors?: string[],
 		seatColors?: string[],
 	) {
-		// playerCount === 1 is the solo "Test Your Luck" run — hotseat with
+		// playerCount === 1 is the solo "Test Your Luck" run : hotseat with
 		// nobody else seated, just the host racing their own dice.
 		if (playerCount < 1 || playerCount > 4) {
 			throw new BadRequestException('Player count must be between 1 and 4');
@@ -92,7 +96,7 @@ export class MatchCreatorService {
 			await new Promise((r) => setTimeout(r, 50));
 		}
 		// Lock never came free (holder wedged). Proceed unserialised rather than
-		// failing the request outright — worst case is the old behaviour.
+		// failing the request outright : worst case is the old behaviour.
 		return fn();
 	}
 
@@ -104,7 +108,7 @@ export class MatchCreatorService {
 		botColors?: string[],
 		seatColors?: string[],
 	) {
-		// SCAN guard: idempotent room creation — reuse existing WAITING/ACTIVE match if user already seated
+		// SCAN guard: idempotent room creation : reuse existing WAITING/ACTIVE match if user already seated
 		let cursor = '0';
 		let foundExisting = false;
 		let existingGameId = '';
@@ -141,10 +145,9 @@ export class MatchCreatorService {
 			createdAt: Date.now().toString(),
 		};
 
-		// The slot→seat color mapping is fixed by index (0=blue,1=red,2=green,
-		// 3=yellow). Persist the exact seat order so the engine creates game
-		// state with the same colors — especially hotseat, where players can
-		// skip seats (e.g. blue + green + yellow but no red).
+		// Slot→color mapping is fixed by index (0=blue,1=red,2=green,3=yellow).
+		// Persist the exact seat order so the engine creates matching colors :
+		// hotseat can skip seats (e.g. blue + green + yellow, no red).
 		const colorSlot = new Map<string, number>(SLOT_COLORS.map((c, i) => [c, i + 1]));
 		const resolvedSeatColors =
 			Array.isArray(seatColors) && seatColors.length > 0
@@ -202,10 +205,9 @@ export class MatchCreatorService {
 			{ expiresIn: '24h' },
 		);
 
-		// mode + playerCount must be returned: the frontend persists activeMatch
-		// to sessionStorage for refresh/reconnect and branches on activeMatch.mode
-		// (hotseat eager multi-join, rejoin auth). Without them, a browser refresh
-		// silently loses the mode and hotseat/PvE rejoin as a generic PvP seat.
+		// mode + playerCount are required: the frontend persists activeMatch for
+		// refresh/reconnect and branches on mode. Without them a refresh makes
+		// hotseat/PvE rejoin as a generic PvP seat.
 		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color, mode, playerCount };
 		if (isPvP) {
 			result.inviteCode = updates.inviteCode;

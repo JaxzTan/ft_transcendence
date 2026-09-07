@@ -3,36 +3,43 @@ import { PrismaService } from '../prisma.service';
 import { LeaderboardRedisService } from './leaderboard-redis.service';
 import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
+// One row on the leaderboard, fully denormalized for display.
 export interface LeaderboardEntry {
-  rank: number;
-  username: string;
-  displayName: string;
-  rating: number;
-  gamesPlayed: number;
+  rank: number;          // 1-based position on this page
+  username: string;      // immutable account name
+  displayName: string;   // shown name
+  rating: number;        // current Elo-style score
+  gamesPlayed: number;   // wins + losses
   wins: number;
   losses: number;
   draws: number;
-  winRate: number;
-  avatarStyle: string | null;
-  hasAvatarPhoto: boolean;
+  winRate: number;       // wins / gamesPlayed, as a whole-number percent
+  avatarStyle: string | null;   // dicebear fallback style
+  hasAvatarPhoto: boolean;      // true when a photo avatar was uploaded
 }
 
+// Envelope the frontend receives from GET /api/leaderboard.
 export interface LeaderboardResponse {
-  entries: LeaderboardEntry[];
-  total: number;
-  page: number;
-  limit: number;
-  myRank?: { rank: number; username: string; displayName: string; rating: number } | null;
-  source: 'redis';
+  entries: LeaderboardEntry[]; // one page of ranked players
+  total: number;               // total entries on the board
+  page: number;                // current page (1-based)
+  limit: number;               // page size
+  myRank?: { rank: number; username: string; displayName: string; rating: number } | null; // caller's own position, when logged in
+  source: 'redis';             // where the data was read from
 }
 
 @Injectable()
+// Leaderboard reads: merges Redis-ranked user ids with Postgres user
+// details, rebuilding the Redis board from User.rating when empty.
+// Used by leaderboard.controller.ts (GET /api/leaderboard).
 export class LeaderboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redisService: LeaderboardRedisService,
   ) {}
 
+  // One page of the board for a mode (global/ranked/casual/bot), plus the
+  // caller's own rank when userId is given. Used by GET /api/leaderboard.
   async getLeaderboard(options: {
     mode?: 'global' | 'ranked' | 'casual' | 'bot';
     page: number;
@@ -48,10 +55,8 @@ export class LeaderboardService {
 
       // If Redis has no entries or is missing users, auto-populate from PostgreSQL
       if (redisEntries.length === 0 || total < 5) {
-        // Bots are persisted as real User rows (GameParticipant.user_id has an
-        // FK to User.id), so an unfiltered scan sweeps "bot-red" & co. straight
-        // onto the board. match.postgame.service.ts already skips bots when it
-        // zadds a rating; this fallback has to be just as careful.
+        // Bots are real User rows (FK), so exclude them here just like
+        // match.postgame.service.ts does when it zadds ratings.
         const allDbUsers = await this.prisma.db.user.findMany({
           where: { NOT: { id: { startsWith: BOT_PREFIX } } },
           select: { id: true, rating: true },
@@ -140,12 +145,12 @@ export class LeaderboardService {
     } catch (err) {
       // Redis is the leaderboard's only store now (it is rebuilt from
       // User.rating whenever it comes up empty), so there is no PostgreSQL
-      // snapshot to fall back on — surface the failure instead of hiding it.
+      // snapshot to fall back on : surface the failure instead of hiding it.
       console.warn('Redis leaderboard read failed:', err);
       throw err;
     }
 
-    // Nothing to serve from Redis (fresh database with no users yet) — return
+    // Nothing to serve from Redis (fresh database with no users yet) : return
     // an empty board rather than the removed LeaderboardSnapshot fallback.
     return {
       entries: [],

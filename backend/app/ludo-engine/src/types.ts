@@ -4,6 +4,7 @@ export type TurnPhase = 'WAITING_FOR_ROLL' | 'WAITING_FOR_MOVE';
 
 export type PieceId = string; // Format: "{color}-{index}" e.g., "red-0", "blue-3"
 
+// One board piece: position is encoded in `step`.
 export interface Piece {
 	id: PieceId;
 	color: PlayerColor;
@@ -12,20 +13,21 @@ export interface Piece {
 	isInBase?: boolean; // frontend-compatible: true when step <= 0
 }
 
+// Per-seat metadata for one player (human or bot) in a game.
 export interface PlayerMeta {
-	color: PlayerColor;
-	status: PlayerStatus;
-	username: string;
-	displayName?: string;
-	isBot: boolean;
-	isConnected: boolean;
-	piecesInGoal: number;
-	hasRolled: boolean;
-	consecutiveSixes: number;
-	bonusRoll: boolean;
-	isFinished: boolean;
-	finishedAt?: string;
-	stats: {
+	color: PlayerColor;          // seat color
+	status: PlayerStatus;        // active/exited/resigned/inactive/disconnected
+	username: string;            // immutable account name (bots: bot-<color>)
+	displayName?: string;        // shown name
+	isBot: boolean;              // AI seat flag
+	isConnected: boolean;        // socket currently attached
+	piecesInGoal: number;        // pieces that reached the goal
+	hasRolled: boolean;          // rolled in the current turn phase
+	consecutiveSixes: number;    // 6-streak for the forfeit rule
+	bonusRoll: boolean;          // extra roll granted (6/capture)
+	isFinished: boolean;         // all four pieces home
+	finishedAt?: string;         // ISO time of finishing
+	stats: {                     // per-game tallies for postgame scoring
 		turns: number;
 		captures: number;
 		piecesInGoal: number;
@@ -38,49 +40,52 @@ export interface DisconnectState {
 	reconnectDeadline: number;
 }
 
+// The complete server-side state of one Ludo game, persisted to Redis.
 export interface GameState {
-	id: string;
-	pieces: Piece[]; // 16 pieces: 4 per player × 4 players
-	players: PlayerMeta[];
-	currentTurn: PlayerColor;
-	consecutiveSixes: number;
-	moveCounter: number; // Total moves made in the game
-	turnPhase: TurnPhase;
-	firstRollOfTurn: boolean; // True until the six-bonus has been used once during the current player's turn-holding streak
+	id: string;                  // game id (matches match:<id> in backend Redis)
+	pieces: Piece[];             // 16 pieces: 4 per player × 4 players
+	players: PlayerMeta[];       // seat metadata for all four colors
+	currentTurn: PlayerColor;    // whose turn it is
+	consecutiveSixes: number;    // sixes rolled in the current player's streak
+	moveCounter: number;         // Total moves made in the game
+	turnPhase: TurnPhase;        // roll or move expected next
+	firstRollOfTurn: boolean;    // True until the six-bonus has been used once during the current player's turn-holding streak
 	pendingLegalMoves: LegalMove[]; // Server-authoritative legal moves after roll
-	pendingDiceValue?: number; // The dice value from the most recent roll (server-authoritative)
+	pendingDiceValue?: number;   // The dice value from the most recent roll (server-authoritative)
 	pendingIsFirstRoll?: boolean; // Whether pendingDiceValue came from the first roll of the turn (server-authoritative)
 	disconnectedPlayers: DisconnectState[]; // Players temporarily disconnected (grace period)
 	status: 'waiting' | 'active' | 'finished';
 	winner?: PlayerColor;
-	resultDetail?: string;
-	resultSubmitted?: boolean; // Prevents duplicate backend submissions
-	botBusy?: boolean; // Prevents overlapping bot turns
+	resultDetail?: string;       // why the game ended (e.g. four_pieces, resign)
+	resultSubmitted?: boolean;   // Prevents duplicate backend submissions
+	botBusy?: boolean;           // Prevents overlapping bot turns
 	readyPlayers: PlayerColor[]; // Players who have clicked "ready"
-	paused?: boolean;
-	pauseTurnOwner?: PlayerColor;
+	paused?: boolean;            // game paused (e.g. disconnect grace period)
+	pauseTurnOwner?: PlayerColor; // whose turn it was when paused
 }
 
+// The outcome of one applied move, recorded in history and broadcast to clients.
 export interface MoveResult {
-	ply: number;
-	color: PlayerColor;
-	diceValue: number;
-	pieceId: PieceId;
-	from: number;
-	path: number[]; // Every intermediate step from `from`+1 through `to`, for step-by-step movement on the frontend
-	to: number;
-	captured: boolean;
+	ply: number;                 // 1-based move number within the game
+	color: PlayerColor;          // mover
+	diceValue: number;           // roll used for this move
+	pieceId: PieceId;            // which piece moved
+	from: number;                // starting step
+	path: number[];              // Every intermediate step from `from`+1 through `to`, for step-by-step movement on the frontend
+	to: number;                  // final step
+	captured: boolean;           // landed on an opponent piece
 	capturedPieceIds?: PieceId[]; // Every opponent piece sent home from the landing square (a stacked block sends all of them back)
-	enteredHome: boolean;
-	bonusRoll: boolean;
+	enteredHome: boolean;        // moved into the home stretch
+	bonusRoll: boolean;          // mover rolls again
 }
 
+// A move the current player is allowed to make after a roll.
 export interface LegalMove {
-	pieceId: PieceId;
-	from: number;
-	to: number;
-	isCapture: boolean;
-	isHomeEntry: boolean;
+	pieceId: PieceId;   // piece to move
+	from: number;       // current step
+	to: number;         // destination step
+	isCapture: boolean; // destination holds an opponent piece
+	isHomeEntry: boolean; // move enters the home stretch (52)
 }
 
 export interface MovePieceOutput {
@@ -88,9 +93,7 @@ export interface MovePieceOutput {
 	state: GameState;
 }
 
-/**
- * Events emitted by the engine — one source of truth for game lifecycle.
- */
+// Events emitted by the engine : one source of truth for game lifecycle.
 export type GameEvent =
 	| { type: 'dice_rolled'; gameId: string; value: number; legalMoves: LegalMove[]; bonusRoll: boolean; currentTurn: PlayerColor; forfeited?: boolean }
 	| { type: 'piece_moved'; gameId: string; result: MoveResult }

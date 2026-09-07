@@ -3,14 +3,13 @@ import { AchievementsService } from './achievements.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('api/achievements')
+// HTTP routes for achievements: the progress report for the dashboard and a
+// silent re-check endpoint. Delegates to AchievementsService.
 export class AchievementsController {
   constructor(private readonly achievements: AchievementsService) {}
 
-  /**
-   * GET /api/achievements — registry-driven report.
-   * Optional query ?username=... returns the target user's achievements.
-   * Returns { [achKey]: { unlocked, progress, target } } for all 13 keys.
-   */
+  // GET /api/achievements : progress report for all 13 achievements.
+  // Optional ?username=... targets another user.
   @UseGuards(JwtAuthGuard)
   @Get()
   async getAchievements(
@@ -21,11 +20,8 @@ export class AchievementsController {
     return achievements || {};
   }
 
-  /**
-   * POST /api/achievements/check — force re-evaluate achievements for current user.
-   * Silent backfill: announce=false so no notification burst fires.
-   * Returns { unlocked: string[] } (keys).
-   */
+  // POST /api/achievements/check : silent re-evaluation for the current
+  // user. Returns { unlocked: string[] }.
   @UseGuards(JwtAuthGuard)
   @Post('check')
   async checkAchievements(@Request() req: { user: { id: string } }) {

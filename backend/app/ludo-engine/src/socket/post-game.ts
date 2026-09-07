@@ -4,12 +4,8 @@ import { RedisGameStore } from '../redis';
 import { EventPublisher } from './event-publisher';
 import { GameSocket } from './auth';
 
-/**
- * PostGameManager owns the end-of-game lifecycle: the post-game timeout that
- * expires a finished game's room, and the "End Game" button. SocketServer
- * injects the shared collaborators plus a cleanup callback so this class can
- * tear a game down entirely.
- */
+// PostGameManager owns the end-of-game lifecycle: the post-game timeout that
+// expires a finished room, and the "End Game" button.
 export class PostGameManager {
   constructor(
     private getIo: () => Server,
@@ -20,7 +16,7 @@ export class PostGameManager {
     private cleanup: (gameId: string) => void,
   ) {}
 
-  /** A game finished: emit game_timeout and tear the room down after the timeout. */
+  // A game finished: emit game_timeout and tear the room down after the timeout.
   onGameEnded(gameId: string): void {
     // Auto-timeout after postGameTimeoutMs, then expire the finished room.
     setTimeout(() => {
@@ -29,15 +25,9 @@ export class PostGameManager {
     }, this.postGameTimeoutMs);
   }
 
-  /**
-   * Definitive game termination via the frontend's "End Game" button.
-   *  - PvP: prune just this player (pieces cleaned, seat exited) and emit
-   *    player_aborted for the log line; the game continues if >= 2 humans
-   *    remain, otherwise the whole instance is aborted + cleaned up.
-   *  - PvE/Hotseat: the whole instance is aborted and its engine state
-   *    deleted -> "Resume last game" becomes unreachable. No result POSTed
-   *    (aborted games have no definitive result).
-   */
+  // Definitive termination via the "End Game" button. PvE/hotseat: abort the
+  // whole instance. PvP: prune just this player; if fewer than 2 humans
+  // remain, the room is aborted and cleaned up. No result is posted.
   async handleEndGame(socket: GameSocket): Promise<void> {
     const gameId = socket.data.gameId;
     const color = socket.data.playerColor;

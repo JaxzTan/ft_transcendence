@@ -12,7 +12,11 @@ import {
 } from './player-handler';
 import { LobbyManager } from './lobby';
 
+// The game engine core: roll/move handling, per-game operation locking,
+// player lifecycle (disconnect/ready/exit/resign), and event emission to the
+// socket layer. Instantiated by socket/server.ts.
 export class LudoEngine {
+  // Redis-backed persistence for game states and move history.
   private store: RedisGameStore;
   private eventHandler?: (event: GameEvent) => void;
   private lobbyManager?: LobbyManager;
@@ -29,11 +33,9 @@ export class LudoEngine {
     this.lobbyManager = lobbyManager;
   }
 
-  /**
-   * Register a callback for game lifecycle events.
-   * This is the single source of truth — the socket layer should NOT
-   * independently detect game end, publish events, etc.
-   */
+  // Register a callback for game lifecycle events.
+  // This is the single source of truth : the socket layer should NOT
+  // independently detect game end, publish events, etc.
   onEvent(handler: (event: GameEvent) => void): void {
     this.eventHandler = handler;
   }
@@ -42,16 +44,13 @@ export class LudoEngine {
     this.eventHandler?.(event);
   }
 
-  /** Public wrapper for emitting engine events (used by socket handlers). */
+  // Public wrapper for emitting engine events (used by socket handlers).
   emitEvent(event: GameEvent): void {
     this.emit(event);
   }
 
-  /**
-   * Serialize a mutating operation per game. Follows the same promise-chain
-   * pattern as SocketHandlers.joinLocks; the next operation for a game only
-   * starts after the previous one resolved (or rejected) against Redis.
-   */
+  // Serialize a mutating operation per game: the next operation for a game
+  // only starts after the previous one resolved (or rejected) against Redis.
   private withGameLock<T>(gameId: string, fn: () => Promise<T>): Promise<T> {
     const prev = this.gameLocks.get(gameId) ?? Promise.resolve();
     const run = prev.then(fn, fn);
@@ -63,11 +62,9 @@ export class LudoEngine {
     return await this.store.loadGameState(gameId);
   }
 
-  /**
-   * Roll dice for the current player.
-   * Sets turnPhase to WAITING_FOR_MOVE and stores pendingLegalMoves and pendingDiceValue.
-   * Handles zero legal moves by advancing turn automatically (with bonus roll on 6).
-   */
+  // Roll dice for the current player.
+  // Sets turnPhase to WAITING_FOR_MOVE and stores pendingLegalMoves and pendingDiceValue.
+  // Handles zero legal moves by advancing turn automatically (with bonus roll on 6).
   async rollDice(gameId: string): Promise<{ value: number; legalMoves: LegalMove[]; bonusRoll: boolean }> {
     return this.withGameLock(gameId, async () => {
     const state = await this.store.loadGameState(gameId);
@@ -89,9 +86,8 @@ export class LudoEngine {
 
     currentPlayer.hasRolled = true;
     // Per-player 6-streak (classic rule): every 6 grants a bonus roll; the
-    // third consecutive 6 within one turn-holding streak forfeits the turn.
-    // The streak lives on PlayerMeta so it resets on turn advance and can
-    // never leak across players.
+    // third consecutive 6 forfeits the turn. Lives on PlayerMeta so it
+    // resets on turn advance.
     currentPlayer.consecutiveSixes = diceValue === 6 ? currentPlayer.consecutiveSixes + 1 : 0;
 
     if (diceValue === 6) {
@@ -142,12 +138,8 @@ export class LudoEngine {
     });
   }
 
-  /**
-   * Move a piece. Validates against pendingLegalMoves for server-authoritativeness.
-   * Uses pendingDiceValue from state instead of requiring it as a parameter.
-   * Returns both the MoveResult and the updated GameState to avoid extra Redis loads.
-   * Emits game lifecycle events as the single source of truth.
-   */
+  // Move a piece: validate against pendingLegalMoves (server-authoritative),
+  // apply using the stored pendingDiceValue, and return result + state.
   async movePiece(gameId: string, pieceId: PieceId): Promise<MovePieceOutput> {
     return this.withGameLock(gameId, async () => {
     const state = await this.store.loadGameState(gameId);
@@ -160,11 +152,10 @@ export class LudoEngine {
       throw new Error('Invalid turn phase: expected WAITING_FOR_MOVE');
     }
 
-    // Validate: pieceId must be in pendingLegalMoves (server-authoritative).
-    // The legal-move list is a snapshot taken at roll time; a player who was
-    // disconnected (turn advanced, pending moves cleared) or forfeited between
-    // roll and move is rejected here. We intentionally do NOT re-derive the
-    // capture at execution time — the snapshot is the contract.
+    // Validate: pieceId must be in pendingLegalMoves. The list is a snapshot
+    // from roll time : a disconnect/forfeit between roll and move is rejected
+    // here. We intentionally do NOT re-derive the capture; the snapshot is
+    // the contract.
     const pendingMove = state.pendingLegalMoves.find(m => m.pieceId === pieceId);
     if (!pendingMove) {
       throw new Error('Invalid move: piece not in legal moves');
@@ -173,7 +164,7 @@ export class LudoEngine {
     // Use the server-authoritative dice value
     const diceValue = state.pendingDiceValue;
     if (diceValue === undefined) {
-      throw new Error('No pending dice value — roll first');
+      throw new Error('No pending dice value : roll first');
     }
 
     // Execute move via MoveValidator (pure game logic)
@@ -225,8 +216,7 @@ export class LudoEngine {
   }
 
 
-  // ─── Player lifecycle handlers (delegated to player-handler.ts) ─────────────
-
+  // Player lifecycle handlers (delegated to player-handler.ts)
   async handlePlayerDisconnect(gameId: string, color: PlayerColor, notifyAbort?: (gameId: string) => void): Promise<void> {
     return this.withGameLock(gameId, () => handlePlayerDisconnect(this.store, (e) => this.emit(e), gameId, color, notifyAbort));
   }
@@ -256,12 +246,9 @@ export class LudoEngine {
     await this.emitLobbyUpdate(gameId);
   }
 
-  /**
-   * Broadcast the current waiting-room roster (seat, username, ready flag) so every
-   * connected client's lobby screen stays in sync after a ready-toggle, color swap,
-   * or a new player joining. Public: socket-handlers.ts calls this after join_game
-   * so already-connected clients learn about the new seat (see handleJoinGame).
-   */
+  // Broadcast the waiting-room roster so every client's lobby stays in sync
+  // after ready-toggles, color swaps, or joins. socket-handlers.ts calls
+  // this after join_game.
   async emitLobbyUpdate(gameId: string): Promise<void> {
     const state = await this.store.loadGameState(gameId);
     if (!state) return;

@@ -41,7 +41,12 @@ type LoginResult =
     };
 
 @Injectable()
+// All account logic: register/login with email verification + 2FA, session
+// tokens, OAuth linking, profile/password changes, account deletion. Called
+// by auth.controller.ts and the OAuth strategies.
 export class AuthService implements OnModuleDestroy {
+  // Redis client used only for account-deletion cleanup (matches, presence,
+  // invites, leaderboard entries).
   private readonly redis: Redis;
 
   constructor(
@@ -65,6 +70,9 @@ export class AuthService implements OnModuleDestroy {
     this.redis.quit();
   }
 
+  // Create a local (password) account: check username/email are free, hash
+  // the password, create the User + Achievement rows, and email a signup
+  // verification link. Called by auth.controller.ts POST /register.
   async register(dto: RegisterDto, baseUrl: string = BASE_URL) {
     const existing = await this.prisma.db.user.findUnique({ where: { username: dto.username } });
     if (existing) {
@@ -97,10 +105,10 @@ export class AuthService implements OnModuleDestroy {
       user.email!,
       `${baseUrl}/api/auth/verify-email?token=${token}`,
     );
-    return { message: 'Account created — check your email to verify your address.' };
+    return { message: 'Account created : check your email to verify your address.' };
   }
 
-  /* Redeems a signup verification link. Returns false for unknown/expired tokens. */
+  // Redeems a signup verification link. Returns false for unknown/expired tokens.
   async verifyEmail(token: string): Promise<boolean> {
     const userId = await this.twoFactor.consumeVerifyToken(token);
     if (!userId) return false;
@@ -112,6 +120,9 @@ export class AuthService implements OnModuleDestroy {
     return true;
   }
 
+  // Factor one of password login: match identifier (username or email) and
+  // password. With 2FA off, issues the session; with 2FA on, emails a code
+  // and returns a pending token. Called by auth.controller.ts POST /login.
   async login(dto: LoginDto): Promise<LoginResult> {
     // Accept either a username or an email in the same field.
     const user = await this.prisma.db.user.findFirst({
@@ -140,12 +151,8 @@ export class AuthService implements OnModuleDestroy {
     return { twoFactorRequired: true as const, pendingToken };
   }
 
-  /*
-   * Step one of reset: email a one-time link if the address belongs to a local
-   * (password) account. The return value is intentionally the same in every
-   * case — unknown email, OAuth-only account, or success — so a caller can't
-   * use this endpoint to discover which emails are registered.
-   */
+  // Step one of reset: email a one-time link for password accounts only.
+  // Same reply for every case, so callers can't probe which emails exist.
   async forgotPassword(rawEmail: string, baseUrl: string = BASE_URL) {
     const email = normalizeEmail(rawEmail);
     const user = await this.prisma.db.user.findUnique({ where: { email } });
@@ -158,7 +165,7 @@ export class AuthService implements OnModuleDestroy {
     return { message: 'If that email is registered, a reset link is on its way.' };
   }
 
-  /* Step two: redeem the link's token and set the new password. */
+  // Step two: redeem the link's token and set the new password.
   async resetPassword(token: string, newPassword: string) {
     const userId = await this.twoFactor.consumeResetToken(token);
     if (!userId) {
@@ -169,8 +176,8 @@ export class AuthService implements OnModuleDestroy {
       where: { id: userId },
       data: {
         password_hash: passwordHash,
-        // Redeeming an emailed link proves inbox control — the same guarantee
-        // signup verification gives — so confirm the address if it wasn't yet.
+        // Redeeming an emailed link proves inbox control : the same guarantee
+        // signup verification gives : so confirm the address if it wasn't yet.
         // Without this, an unverified user could reset yet still be login-blocked.
         emailVerified: new Date(),
       },
@@ -178,22 +185,25 @@ export class AuthService implements OnModuleDestroy {
     // drop every existing session after a password reset
     await this.session.revokeAll(userId);
 
-    // Announce the password reset to the user (persisted — lands in the bell
+    // Announce the password reset to the user (persisted : lands in the bell
     // on their next sign-in, since this flow revokes all open sessions).
     await this.notifications
       .notify(userId, 'profile_updated', { items: ['password'] })
       .catch(() => {});
 
-    return { message: 'Password updated — you can log in with it now.' };
+    return { message: 'Password updated : you can log in with it now.' };
   }
 
-  /* Factor two: email a one-time code, hand back the challenge reference. */
+  // Factor two: email a one-time code, hand back the challenge reference.
   async startTwoFactor(userId: string, email: string) {
     const { pendingToken, code } = await this.twoFactor.startChallenge(userId);
     await this.mail.send2faCode(email, code);
     return { pending: true as const, pendingToken };
   }
 
+  // Factor two of 2FA login: check the emailed code against the pending
+  // token and issue the full session. Called by auth.controller.ts
+  // POST /twofactor.
   async completeTwoFactor(pendingToken: string, code: string) {
     const userId = await this.twoFactor.verifyChallenge(pendingToken, code);
     if (!userId) {
@@ -206,17 +216,14 @@ export class AuthService implements OnModuleDestroy {
     return this.issueSession(user.id, user.username);
   }
 
-  /** Sign a short-lived access-token JWT (15m, per JwtModule config). */
+  // Sign a short-lived access-token JWT (15m, per JwtModule config).
   signAccess(userId: string, username: string): string {
     const payload: JwtPayload = { sub: userId, username };
     return this.jwt.sign(payload);
   }
 
-  /**
-   * Issue a fresh session: a short-lived access token plus a long-lived,
-   * revocable refresh token. Called once both login factors pass (password
-   * login and OAuth both funnel through completeTwoFactor).
-   */
+  // Issue a fresh session: a short-lived access token plus a long-lived,
+  // revocable refresh token. Called once both login factors pass.
   async issueSession(userId: string, username: string) {
     const accessToken = this.signAccess(userId, username);
     const refreshToken = await this.session.issue(userId);
@@ -231,17 +238,14 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  /**
-   * Trade a valid refresh token for a new access token, rotating the refresh
-   * token in the same step. Throws 401 when it's missing/expired/revoked — the
-   * frontend reads that as "session over, log in again".
-   */
+  // Trade a refresh token for a new access token, rotating the refresh token
+  // in the same step. Throws 401 when it's missing/expired/revoked.
   async refresh(refreshToken?: string) {
     if (!refreshToken) throw new UnauthorizedException('Not authenticated');
     const rotated = await this.session.rotate(refreshToken);
-    if (!rotated) throw new UnauthorizedException('Session expired — please log in again');
+    if (!rotated) throw new UnauthorizedException('Session expired : please log in again');
     const user = await this.prisma.db.user.findUnique({ where: { id: rotated.userId } });
-    if (!user) throw new UnauthorizedException('Session expired — please log in again');
+    if (!user) throw new UnauthorizedException('Session expired : please log in again');
     return {
       accessToken: this.signAccess(user.id, user.username),
       refreshToken: rotated.newToken,
@@ -249,12 +253,12 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  /** Revoke the given refresh token — logout on this device. */
+  // Revoke the given refresh token : logout on this device.
   async logout(refreshToken?: string) {
     if (refreshToken) await this.session.revoke(refreshToken);
   }
 
-  /** Full profile for the Edit-Profile card (incl. linked OAuth providers). */
+  // Full profile for the Edit-Profile card (incl. linked OAuth providers).
   async getProfile(userId: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
@@ -276,9 +280,9 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  /** Validates a short-lived access-token JWT (the `token` cookie). Returns the
-   *  user id when valid, else null. Used to confirm an OAuth callback is a
-   *  genuine "add method" round-trip from an already-authenticated browser. */
+  // Validates a short-lived access-token JWT (the `token` cookie). Returns the
+  // user id when valid, else null. Used to confirm an OAuth callback is a
+  // genuine "add method" round-trip from an already-authenticated browser.
   verifyAccessToken(token: string | undefined): string | null {
     if (!token) return null;
     try {
@@ -289,7 +293,7 @@ export class AuthService implements OnModuleDestroy {
     }
   }
 
-  /** Read the user's current 2FA preference. */
+  // Read the user's current 2FA preference.
   async getTwoFactorSetting(userId: string) {
     const user = await this.prisma.db.user.findUnique({
       where: { id: userId },
@@ -299,7 +303,7 @@ export class AuthService implements OnModuleDestroy {
     return { twoFactorEnabled: user.twoFactorEnabled };
   }
 
-  /** Turn email-code 2FA on or off for the user. */
+  // Turn email-code 2FA on or off for the user.
   async setTwoFactorSetting(userId: string, enabled: boolean) {
     await this.prisma.db.user.update({
       where: { id: userId },
@@ -308,18 +312,9 @@ export class AuthService implements OnModuleDestroy {
     return { twoFactorEnabled: enabled };
   }
 
-  /**
-   * Complete profile update — edit display name, email, and/or the email-code
-   * 2FA method in one call. Only provided fields change.
-   *
-   * The username is auto-generated and cannot be changed; only the display
-   * name is editable.
-   *
-   * Email changes REUSE the signup verification path: the new address is
-   * saved, `emailVerified` is cleared (the login gate requires a verified
-   * address), and a fresh verification link is emailed via the same
-   * createVerifyToken → sendVerification flow as register().
-   */
+  // Complete profile update : edit display name, email, and/or the email-code
+  // 2FA method in one call; only provided fields change. Email changes reuse
+  // the signup verification flow. Username is immutable.
   async updateProfile(
     userId: string,
     dto: {
@@ -336,7 +331,7 @@ export class AuthService implements OnModuleDestroy {
     const data: Record<string, unknown> = {};
     let emailChanged = false;
     let newEmail: string | undefined;
-    // Items actually changed in this request — feeds the profile_updated toast.
+    // Items actually changed in this request : feeds the profile_updated toast.
     const changedItems: string[] = [];
 
     if (dto.displayName !== undefined && dto.displayName !== user.displayName) {
@@ -372,7 +367,7 @@ export class AuthService implements OnModuleDestroy {
       changedItems.push('oauthRemove');
     }
 
-    // OAuth: adding a method needs the browser round-trip — mint a 10m
+    // OAuth: adding a method needs the browser round-trip : mint a 10m
     // oauth-link token and hand back the provider authorize URL with it in
     // `state`; the callback then links the provider to this user.
     let oauthRedirectUrl: string | undefined;
@@ -394,7 +389,7 @@ export class AuthService implements OnModuleDestroy {
       await this.mail.sendVerification(newEmail, `${BASE_URL}/api/auth/verify-email?token=${token}`);
     }
 
-    // ── Profile-change notifications ─────────────────────────────────────────
+    // Profile-change notifications
     // 1) Self-confirmation (persisted): "You have updated your profile: …"
     if (data.displayName !== undefined) changedItems.push('displayName');
     if (emailChanged) changedItems.push('email');
@@ -439,12 +434,9 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  /**
-   * Logged-in password change: verify the current password, then set the new
-   * one and keep the CURRENT device signed in while revoking every other session.
-   * OAuth-only accounts have no password_hash — they set their FIRST password
-   * here, so `currentPassword` is only checked when one already exists.
-   */
+  // Logged-in password change: verify the current password (if one exists),
+  // set the new one, and revoke every other session. OAuth-only accounts
+  // set their FIRST password here.
   async changePassword(userId: string, currentPassword: string | undefined, newPassword: string, currentRefreshToken?: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
@@ -460,29 +452,19 @@ export class AuthService implements OnModuleDestroy {
       data: { password_hash: passwordHash },
     });
 
-    // Log the user out everywhere — other devices must re-auth with the new password.
+    // Log the user out everywhere : other devices must re-auth with the new password.
     await this.session.revokeAllExcept(userId, currentRefreshToken);
 
     await this.notifications
       .notify(userId, 'profile_updated', { items: ['password'] })
       .catch(() => {});
 
-    return { message: 'Password updated — other devices were signed out.' };
+    return { message: 'Password updated : other devices were signed out.' };
   }
 
-  /**
-   * Permanently delete the authenticated user's account.
-   *
-   * Guard rails:
-   *  - `confirm` must be true.
-   *  - A password is ALWAYS required at deletion time. Accounts without one
-   *    (OAuth-only) must set a first password via changePassword first — that
-   *    gives the deletion a real credential to verify against.
-   *
-   * Order matters — DB delete is LAST: everything before it is best-effort
-   * cleanup, so if any step fails the account is untouched. The DB delete is
-   * the single point of no return.
-   */
+  // Permanently delete the user's account. Requires `confirm: true` and a
+  // verified password. Redis/other cleanup runs first; the DB delete (last)
+  // is the single point of no return.
   async deleteAccount(userId: string, dto: DeleteAccountDto) {
     if (!dto.confirm) throw new BadRequestException('You must confirm account deletion');
 
@@ -502,7 +484,7 @@ export class AuthService implements OnModuleDestroy {
     // 2. Drop ephemeral Redis state (presence, invites, leaderboard entries).
     await this.clearUserRedisState(userId);
 
-    // 3. Revoke every refresh session — all devices are logged out.
+    // 3. Revoke every refresh session : all devices are logged out.
     await this.session.revokeAll(userId);
 
     // 4. DB: user.delete() cascades Account/Achievement/GameParticipant/Friendship/
@@ -513,7 +495,7 @@ export class AuthService implements OnModuleDestroy {
     return { message: 'Account permanently deleted' };
   }
 
-  /** Mark every WAITING/ACTIVE match the user is seated in as ABORTED (1h TTL). */
+  // Mark every WAITING/ACTIVE match the user is seated in as ABORTED (1h TTL).
   private async abortUserMatches(userId: string): Promise<void> {
     try {
       let cursor = '0';
@@ -534,7 +516,7 @@ export class AuthService implements OnModuleDestroy {
     }
   }
 
-  /** Remove the user's ephemeral Redis state (presence, invites, leaderboard). */
+  // Remove the user's ephemeral Redis state (presence, invites, leaderboard).
   private async clearUserRedisState(userId: string): Promise<void> {
     try {
       await this.redis.del(`presence:${userId}`, `invite:${userId}`);
@@ -546,10 +528,8 @@ export class AuthService implements OnModuleDestroy {
     }
   }
 
-  /**
-   * Called after a provider (Google/GitHub) has verified the user.
-   * Finds the matching user, or links/creates one, then returns it.
-   */
+  // Called after a provider (Google/GitHub) has verified the user.
+  // Finds the matching user, or links/creates one, then returns it.
   async validateOAuthLogin(
     input: {
       provider: string;
@@ -559,12 +539,9 @@ export class AuthService implements OnModuleDestroy {
     },
     linkUserId?: string,
   ) {
-    // EMAIL OWNERSHIP RULE: a provider's email may only set the account's
-    // `email` + `emailVerified` during the FIRST sign-in (new account, or an
-    // OAuth login matched by email). The "add sign-in method" flow below
-    // (linkUserId) deliberately ignores the provider's email entirely — e.g.
-    // an account created with Google (123@gmail.com) that links 42
-    // (4321@42.com) keeps 123@gmail.com and its verification state.
+    // EMAIL OWNERSHIP RULE: a provider's email only sets email/emailVerified
+    // on FIRST sign-in. The "add sign-in method" flow (linkUserId) ignores it
+    // : linking 42 to a Google account keeps the Google email and its state.
 
     // If provider account exist just log them in
     const existingAccount = await this.prisma.db.account.findUnique({
@@ -605,31 +582,27 @@ export class AuthService implements OnModuleDestroy {
 
         return linked;
       }
-      // The "add method" user no longer exists — e.g. this browser's session
-      // survived a DB reset/wipe (db push --accept-data-loss). Don't try to
-      // link a provider to a ghost userId (that would throw an FK violation);
-      // fall through and treat this OAuth callback as a normal first-time login.
+      // The "add method" user no longer exists (e.g. session outlived a DB
+      // wipe). Don't link to a ghost userId (FK violation) : fall through to
+      // a normal first-time login.
     }
 
-    //  If first time with this provider, and the email matches an existing
-    //  user, REJECT the OAuth login — the email already belongs to another
-    //  account. (The "add sign-in method" flow above is exempt: it never
-    //  claims the provider's email for the account.)
+    //  First time with this provider and the email already belongs to an
+    //  existing user → REJECT. (The "add method" flow above is exempt.)
     const email = input.email ? normalizeEmail(input.email) : undefined;
     if (email) {
       const emailOwner = await this.prisma.db.user.findUnique({ where: { email } });
       if (emailOwner) {
-        // Don't leak the exact owner — same generic message as register().
+        // Don't leak the exact owner : same generic message as register().
         throw new ConflictException(
           'This email is already being used. Use a different email or log in using the same method you used to create this account.',
         );
       }
     }
 
-    // Create new — the provider-verified email populates the email field; if
-    // the provider returned no email (GitHub/42 with no verified address), the
-    // account is still created with an empty email and the user can add one
-    // later via Edit Profile.
+    // Create new. Provider-verified email fills the email field; without one
+    // (GitHub/42), the account starts with an empty email, addable later via
+    // Edit Profile.
     const username = await this.generateUniqueUsername(input.usernameSeed);
     const displayName = await this.generateUniqueDisplayName(username);
     const user = await this.prisma.db.user.create({
@@ -655,20 +628,14 @@ export class AuthService implements OnModuleDestroy {
     return user;
   }
 
-  /**
-   * Issue a short-lived signed token carried in the OAuth `state` field when a
-   * logged-in user wants to ADD a provider sign-in method. 10m bounds how long
-   * an abandoned connect flow stays valid.
-   */
+  // Signed 10-minute token carried in the OAuth `state` when a logged-in
+  // user wants to ADD a provider sign-in method.
   createOAuthLinkToken(userId: string, provider: string): string {
     return this.jwt.sign({ sub: userId, p: provider, purpose: 'oauth-link' }, { expiresIn: '10m' });
   }
 
-  /**
-   * Verify a `state` token returned by the provider callback. Returns the
-   * userId when the token is ours and matches `provider`, else undefined (a
-   * missing/foreign state is treated as a normal login, never a link).
-   */
+  // Verify a `state` token from the provider callback. Returns the userId
+  // when it's ours and matches `provider`; anything else means normal login.
   resolveOAuthLinkForRequest(req: any, provider: string): string | undefined {
     const linkUserId = this.resolveOAuthLink(req?.query?.state, provider);
     if (!linkUserId) return undefined;
@@ -678,11 +645,8 @@ export class AuthService implements OnModuleDestroy {
     return sessionUser === linkUserId ? linkUserId : undefined;
   }
 
-  /**
-   * Signature check only — says nothing about WHO is presenting the state.
-   * Private on purpose: callers must go through resolveOAuthLinkForRequest,
-   * which also proves the presenter is the user named in it.
-   */
+  // Signature check only : callers must use resolveOAuthLinkForRequest, which
+  // also proves the presenter is the user named in the token.
   private resolveOAuthLink(state: string | string[] | undefined, provider: string): string | undefined {
     if (typeof state !== 'string' || !state) return undefined;
     try {
@@ -694,10 +658,8 @@ export class AuthService implements OnModuleDestroy {
     }
   }
 
-  /**
-   * Unlink a provider sign-in method. Lockout guard: the user must keep at
-   * least one other way to sign in — a password OR another linked provider.
-   */
+  // Unlink a provider sign-in method. The user must keep at least one other
+  // way to sign in : a password OR another linked provider.
   async removeOAuthMethod(userId: string, provider: string) {
     const account = await this.prisma.db.account.findFirst({ where: { userId, provider } });
     if (!account) throw new NotFoundException('That provider is not linked to this account');

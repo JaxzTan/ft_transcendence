@@ -5,6 +5,8 @@ import { ratingDeltaFor } from '../common/scoring';
 import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
+// User profile and avatar logic: public profiles, avatar upload/delete/get,
+// and per-user game history. Called by user.controller.ts.
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
@@ -12,6 +14,8 @@ export class UserService {
     private readonly notifications: NotificationService,
   ) {}
 
+  // Full public profile of a user (stats, rating, avatar info, online
+  // status) with no private data. Used by GET /api/user/:username.
   async getPublicProfile(username: string) {
     const user = await this.prisma.db.user.findUnique({
       where: { username },
@@ -42,6 +46,9 @@ export class UserService {
     return { ...rest, hasAvatarPhoto: avatarPhotoContentType !== null, status };
   }
 
+  // Store an uploaded avatar image (bytes + content type) on the user row
+  // and broadcast avatar_changed so clients refresh. Used by
+  // POST /api/user/avatar.
   async uploadAvatar(userId: string, data: Buffer, contentType: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -58,7 +65,7 @@ export class UserService {
 
     // Live push: broadcast a TRANSIENT event so every connected client busts
     // its cached /api/user/<username>/avatar URL for this user (their own other
-    // tabs included). No persistence — the bell stays clean, the photo refreshes.
+    // tabs included). No persistence : the bell stays clean, the photo refreshes.
     await this.notifications
       .broadcast('avatar_changed', {
         userId: user.id,
@@ -70,6 +77,9 @@ export class UserService {
     return { message: 'Avatar uploaded', contentType };
   }
 
+  // Fetch a user's stored avatar photo. Returns null when none is set
+  // (caller falls back to the generated avatar). Used by
+  // GET /api/user/:username/avatar.
   async getAvatar(username: string): Promise<{ data: Buffer; contentType: string } | null> {
     const user = await this.prisma.db.user.findUnique({
       where: { username },
@@ -79,6 +89,8 @@ export class UserService {
     return { data: Buffer.from(user.avatarPhoto), contentType: user.avatarPhotoContentType };
   }
 
+  // Clear the user's avatar photo and broadcast avatar_changed so clients
+  // fall back to the generated avatar. Used by DELETE /api/user/avatar.
   async deleteAvatar(userId: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -92,7 +104,7 @@ export class UserService {
       .notify(userId, 'profile_updated', { items: ['avatar'] })
       .catch(() => {});
 
-    // Same live push as uploadAvatar — clients showing this user's photo must
+    // Same live push as uploadAvatar : clients showing this user's photo must
     // re-fetch (and correctly fall back to the generated pixel avatar).
     await this.notifications
       .broadcast('avatar_changed', {
@@ -105,6 +117,8 @@ export class UserService {
     return { message: 'Avatar deleted' };
   }
 
+  // One page of a user's finished games with per-game participants and
+  // rating deltas. Used by GET /api/user/:username/games.
   async getUserGames(username: string, page: number = 1, limit: number = 20) {
     const user = await this.prisma.db.user.findUnique({ where: { username } });
     if (!user) throw new NotFoundException(`User "${username}" not found`);

@@ -5,9 +5,7 @@ import { PrismaService } from '../prisma.service';
 
 import { randomUUID } from 'crypto';
 import { secret } from '../secrets';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
+// Types
 // notification types.
 export type NotificationType =
   | 'friend_request'
@@ -32,14 +30,16 @@ export interface NotificationPayload {
   read: boolean;
   createdAt: string; // ISO string
 }
-
-// ─── Service ─────────────────────────────────────────────────────────────────
-
+// Service
 @Injectable()
+// Notification hub: persists notifications to Postgres and pushes them live
+// to connected clients over SSE via Redis Pub/Sub. Used by most services
+// (friends, match, achievements, presence, auth, user) and
+// notification.controller.ts.
 export class NotificationService implements OnModuleDestroy {
-  // Redis publisher — sends notifications to the Pub/Sub channel.
+  // Redis publisher : sends notifications to the Pub/Sub channel.
   private pub: Redis;
-  // Redis subscriber — listens for notifications on per-user channels.
+  // Redis subscriber : listens for notifications on per-user channels.
   private sub: Redis;
 
   // In-memory map of active SSE connections per user.
@@ -72,7 +72,7 @@ export class NotificationService implements OnModuleDestroy {
       try {
         const data: NotificationPayload = JSON.parse(message);
         if (channel === 'notify:all') {
-          // Global broadcast — every connected SSE client gets it.
+          // Global broadcast : every connected SSE client gets it.
           for (const subject of this.broadcastClients) {
             subject.next(data);
           }
@@ -90,7 +90,7 @@ export class NotificationService implements OnModuleDestroy {
       }
     });
 
-    // Subscribe the global broadcast channel once — every SSE connection also
+    // Subscribe the global broadcast channel once : every SSE connection also
     // receives events published to `notify:all`.
     this.sub.subscribe('notify:all').catch((err) => {
       console.error('Failed to subscribe to notify:all:', err);
@@ -101,24 +101,19 @@ export class NotificationService implements OnModuleDestroy {
     this.pub.quit();
     this.sub.quit();
   }
-
-  // ─── SSE connection management ───────────────────────────────────────────
-
-  /**
-   * Called when a client opens the SSE stream.
-   * Returns an Observable the controller pipes into the SSE response.
-   * On first connection for a userId, subscribes to the Redis channel.
-   */
+// SSE connection management
+  // Client opens the SSE stream. Returns an Observable the controller pipes
+  // into the response; subscribes to the Redis channel on first connection.
   subscribe(userId: string): Observable<NotificationPayload> {
     const subject = new Subject<NotificationPayload>();
     this.broadcastClients.add(subject);
 
     const existing = this.clients.get(userId);
     if (existing) {
-      // Another tab already open — just add this Subject.
+      // Another tab already open : just add this Subject.
       existing.push(subject);
     } else {
-      // First tab — subscribe to the Redis channel.
+      // First tab : subscribe to the Redis channel.
       this.clients.set(userId, [subject]);
       this.sub.subscribe(`notify:${userId}`).catch((err) => {
         console.error(`Failed to subscribe to notify:${userId}:`, err);
@@ -132,18 +127,15 @@ export class NotificationService implements OnModuleDestroy {
       error: () => this.removeClient(userId, subject),
     });
 
-    // Return the Subject wrapped so the cleanup path actually runs: when the
-    // HTTP connection closes, NestJS UNSUBSCRIBES from the returned Observable
-    // (it does not complete it), so the `complete` handler above would never
-    // fire on its own. finalize() runs on unsubscribe, and completing the
-    // Subject there triggers the cleanup handler → removeClient() removes the
-    // Subject from the maps and unsubscribes from Redis when the last tab goes.
+    // Wrapped so cleanup actually runs: on HTTP close NestJS unsubscribes
+    // (not completes), so finalize() completes the Subject → removeClient()
+    // removes it and unsubscribes from Redis when the last tab closes.
     return subject.asObservable().pipe(
       finalize(() => subject.complete()),
     );
   }
 
-  /** Remove a single SSE client. Unsubscribes from Redis when the last tab closes. */
+  // Remove a single SSE client. Unsubscribes from Redis when the last tab closes.
   private removeClient(userId: string, subject: Subject<NotificationPayload>) {
     this.broadcastClients.delete(subject);
     const subjects = this.clients.get(userId);
@@ -157,27 +149,17 @@ export class NotificationService implements OnModuleDestroy {
       this.sub.unsubscribe(`notify:${userId}`).catch(() => {});
     }
   }
-
-  // ─── Emit a notification ─────────────────────────────────────────────────
-
-  /**
-   * Any backend service calls this to send a notification to a user.
-   * It persists the notification in Postgres and publishes to Redis Pub/Sub
-   * so any connected SSE client receives it instantly.
-   */
+// Emit a notification
+  // Persist a notification for a user in Postgres and push it live over
+  // Redis Pub/Sub to their connected SSE clients.
   async notify(
     userId: string,
     type: NotificationType,
     payload: Record<string, unknown>,
   ): Promise<void> {
-    // ── Failure contract ─────────────────────────────────────────────────────
-    // Notifications are a NON-CRITICAL side effect of whatever action the
-    // caller is performing (friend request, game invite, game end, …). This
-    // method therefore NEVER throws: the persisted row is the source of truth
-    // for the bell (it still shows up on the recipient's next page load even
-    // when the live push fails), and a notification failure must never make a
-    // successful action look failed to the caller. Failures are logged so the
-    // degradation stays visible to operators.
+    // Failure contract: this method NEVER throws. Notifications are a
+    // non-critical side effect; the persisted row is the source of truth for
+    // the bell, and failures are only logged.
     let row: { id: string; createdAt: Date };
 
     // 1. Persist to DB so it shows up in the bell dropdown on next page load.
@@ -199,7 +181,7 @@ export class NotificationService implements OnModuleDestroy {
       createdAt: row.createdAt.toISOString(),
     };
 
-    // 3. Publish to Redis — the subscriber handler (in constructor) pushes
+    // 3. Publish to Redis : the subscriber handler (in constructor) pushes
     //    it to every SSE Subject for this user. Best-effort: a failure here
     //    only delays the toast; the persisted row lands in the bell next load.
     try {
@@ -209,11 +191,8 @@ export class NotificationService implements OnModuleDestroy {
     }
   }
 
-  /**
-   * Send a TRANSIENT global broadcast to every online user (SSE toast only).
-   * Unlike notify(), nothing is persisted to Postgres — offline users simply
-   * don't see it, and the bell/unread badge is never flooded.
-   */
+  // TRANSIENT global broadcast (SSE toast only, never persisted) : offline
+  // users don't see it and the bell badge is never flooded.
   async broadcast(type: NotificationType, payload: Record<string, unknown>): Promise<void> {
     const event: NotificationPayload = {
       id: randomUUID(),
@@ -222,7 +201,7 @@ export class NotificationService implements OnModuleDestroy {
       read: false,
       createdAt: new Date().toISOString(),
     };
-    // Best-effort (transient toast only — nothing persisted). Never throws, so
+    // Best-effort (transient toast only : nothing persisted). Never throws, so
     // callers (avatar upload/delete, display-name change) can't fail because a
     // live broadcast hiccuped.
     try {
@@ -232,12 +211,8 @@ export class NotificationService implements OnModuleDestroy {
     }
   }
 
-  /**
-   * Send a TRANSIENT per-user notification (SSE toast only, never persisted).
-   * Same delivery path as notify() — publishes to `notify:<userId>` so exactly
-   * that user's open tabs receive it — but skips the Postgres write, so
-   * ephemeral events (e.g. friend online/offline) can't flood the bell.
-   */
+  // TRANSIENT per-user notification (same path as notify(), no Postgres
+  // write) so ephemeral events can't flood the bell.
   async notifyTransient(userId: string, type: NotificationType, payload: Record<string, unknown>): Promise<void> {
     const event: NotificationPayload = {
       id: randomUUID(),
@@ -246,7 +221,7 @@ export class NotificationService implements OnModuleDestroy {
       read: false,
       createdAt: new Date().toISOString(),
     };
-    // Best-effort (transient toast only — nothing persisted). Never throws, so
+    // Best-effort (transient toast only : nothing persisted). Never throws, so
     // presence heartbeats/logout can't be disturbed by a delivery failure.
     try {
       await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
@@ -254,10 +229,8 @@ export class NotificationService implements OnModuleDestroy {
       console.warn(`[notifications] transient push failed for ${type} -> user ${userId}:`, err);
     }
   }
-
-  // ─── REST helpers (for the controller) ───────────────────────────────────
-
-  /** Fetch unread notifications for the bell dropdown on page load. */
+// REST helpers (for the controller)
+  // Fetch unread notifications for the bell dropdown on page load.
   async getUnread(userId: string): Promise<NotificationPayload[]> {
     const rows = await this.prisma.db.notification.findMany({
       where: { userId, read: false },
@@ -274,7 +247,7 @@ export class NotificationService implements OnModuleDestroy {
     }));
   }
 
-  /** Mark a single notification as read. */
+  // Mark a single notification as read.
   async markRead(notificationId: string, userId: string): Promise<void> {
     await this.prisma.db.notification.updateMany({
       where: { id: notificationId, userId },
@@ -282,7 +255,7 @@ export class NotificationService implements OnModuleDestroy {
     });
   }
 
-  /** Mark all notifications as read for a user. */
+  // Mark all notifications as read for a user.
   async markAllRead(userId: string): Promise<void> {
     await this.prisma.db.notification.updateMany({
       where: { userId, read: false },

@@ -29,10 +29,8 @@ const HOUR_MS = 60 * MINUTE_MS;
 const LOCAL_FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 const NGROK_FRONTEND_URL = secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev';
 
-// Picked per request from the Host header the browser actually connected
-// with — a tunnel and a local client can both be live against the same
-// backend at once (see oauth.guards.ts, which picks the matching OAuth
-// strategy the same way).
+// Picked per request from the Host header : a tunnel and a local client can
+// both be live against the same backend (same signal oauth.guards.ts uses).
 function frontendUrlFor(req: Request): string {
   return isTunnelRequest(req.get('host')) ? NGROK_FRONTEND_URL : LOCAL_FRONTEND_URL;
 }
@@ -44,20 +42,21 @@ function originFromRequest(req: Request): string {
 }
 
 @Controller('api/auth')
+// HTTP routes for everything auth-related: register/login/2FA, session
+// refresh/logout, profile updates, and the OAuth login/callback routes.
+// Delegates the actual work to AuthService.
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // No cookie here anymore: the account must be email-verified before its
-  // first login, and every login must pass the 2FA code step.
-  // Tight: each call sends a real email (SMTP is live), so an open register
-  // route is both an account-spam vector and a way to use us as a mail bomb.
+  // Each register call sends a real email, so the route is tightly throttled
+  // against account spam / mail bombing.
   @Throttle({ default: { limit: 3, ttl: HOUR_MS } })
   @Post('register')
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
     return this.authService.register(dto, originFromRequest(req));
   }
 
-  // Target of the emailed verification link — lands in a browser tab, so it
+  // Target of the emailed verification link : lands in a browser tab, so it
   // answers with a redirect to the SPA rather than JSON.
   @Get('verify-email')
   async verifyEmail(@Query('token') token: string, @Req() req: Request, @Res() res: Response) {
@@ -67,10 +66,8 @@ export class AuthController {
     );
   }
 
-  // Factor one. With 2FA on, answers { twoFactorRequired: true, pendingToken }
-  // and no session. With 2FA off, the password is enough: sets the session
-  // cookies and answers { twoFactorRequired: false, user }.
-  // The password brute-force surface. 5/min still allows a fat-fingered human.
+  // Factor one. 2FA off → session cookies; 2FA on → { pendingToken }, no
+  // session. Brute-force surface, so tightly throttled.
   @Throttle({ default: { limit: 5, ttl: MINUTE_MS } })
   @Post('login')
   @HttpCode(200)
@@ -80,7 +77,7 @@ export class AuthController {
       return { twoFactorRequired: true, pendingToken: result.pendingToken };
     }
     // strictNullChecks is off in this project, so the implicit-else branch of a
-    // discriminated union doesn't auto-narrow — pin it to the session variant.
+    // discriminated union doesn't auto-narrow : pin it to the session variant.
     const session = result as {
       accessToken: string;
       refreshToken: string;
@@ -90,10 +87,8 @@ export class AuthController {
     return { twoFactorRequired: false, user: session.user };
   }
 
-  // Factor two: emailed code + pendingToken buy the actual session cookies.
-  // twofactor.service.ts caps guesses at 5 *per challenge*, which an attacker
-  // sidesteps by starting a new challenge each time. This caps the rate at
-  // which they can do that — a 6-digit code needs far more than 5 tries/min.
+  // Factor two. Throttled because challenge-level attempt caps can be
+  // sidestepped by starting new challenges; this bounds how fast.
   @Throttle({ default: { limit: 5, ttl: MINUTE_MS } })
   @Post('2fa/verify')
   @HttpCode(200)
@@ -106,10 +101,8 @@ export class AuthController {
     return { user };
   }
 
-  // Silent re-auth: the browser sends only the refresh cookie and gets a fresh
-  // access token (plus a rotated refresh token). No password or 2FA involved.
-  // Looser on purpose: apiFetch calls this automatically on any 401, so a user
-  // with several tabs open can legitimately burst. Still bounded.
+  // Silent re-auth via refresh cookie only. Looser throttle on purpose :
+  // apiFetch calls this automatically on any 401 (multi-tab users burst).
   @Throttle({ default: { limit: 30, ttl: MINUTE_MS } })
   @Post('refresh')
   @HttpCode(200)
@@ -121,10 +114,8 @@ export class AuthController {
     return { user };
   }
 
-  // Password reset, step one: always answers with the same generic message,
-  // whether or not the email is registered (no account enumeration).
-  // Also sends a real email, and here the victim is whoever owns the address —
-  // without a cap this is a free inbox-flooding tool aimed at someone else.
+  // Password reset step one. Always answers with the same generic message
+  // (no account enumeration) : but sends a real email, so it's throttled.
   @Throttle({ default: { limit: 3, ttl: HOUR_MS } })
   @Post('forgot-password')
   @HttpCode(200)
@@ -134,7 +125,7 @@ export class AuthController {
 
   // Password reset, step two: the emailed token + a new password.
   // The reset token is a 32-byte random value, so guessing it is hopeless
-  // anyway — this just removes the option of trying at speed.
+  // anyway : this just removes the option of trying at speed.
   @Throttle({ default: { limit: 5, ttl: 15 * MINUTE_MS } })
   @Post('reset-password')
   @HttpCode(200)
@@ -274,11 +265,9 @@ export class AuthController {
       return;
     }
 
-    // "Add a sign-in method" flow: the OAuth `state` carried a signed oauth-link
-    // token (signed by the guard from the user's access-token cookie). The
-    // strategy already linked the provider to that user — just send them back to
-    // /profile. No new session is issued, no login/2FA redirect happens, so the
-    // user is neither signed out nor logged into a different account.
+    // "Add a sign-in method" flow: the strategy already linked the provider
+    // via the oauth-link `state`. Send the user back to /profile : no new
+    // session, nothing logged in or out.
     const linkUserId = this.authService.resolveOAuthLinkForRequest(
       req,
       this.providerForRoute(req.path),
@@ -288,10 +277,8 @@ export class AuthController {
       return;
     }
 
-    // No-email OAuth (GitHub/42 without a verified address): the account is
-    // still created with an empty email. Without a 2FA code destination the
-    // user can't get past factor two, so block only that edge case and let
-    // everyone else through. They can add an email later via Edit Profile.
+    // No-email OAuth (GitHub/42): 2FA needs a code destination, so block only
+    // that case : users can add an email later via Edit Profile.
     if (user.twoFactorEnabled && !user.email) {
       res.redirect(`${frontendUrl}/login?error=add-email-2fa`);
       return;
@@ -315,6 +302,8 @@ export class AuthController {
     return '42';
   }
 
+  // Write the access-token (15 min, path /) and refresh-token (7 days,
+  // path /api/auth) httpOnly cookies after a successful login.
   private setSessionCookies(res: Response, accessToken: string, refreshToken: string) {
     const base = {
       httpOnly: true as const,

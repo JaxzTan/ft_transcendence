@@ -1,15 +1,6 @@
-/**
- * Achievement registry — single source of truth for all 13 achievements.
- * Adding a future achievement = one registry row; no new endpoints, no
- * duplicated unlock/notify logic.
- *
- * LifecycleCounts is computed once per evaluation (PVP/PVE only — hotseat is
- * demo-and-forget and never reaches the backend).
- *
- * NOTE: The generated Prisma client is built at container start, so we use
- * minimal structural types here rather than importing from the generated
- * client (which may not exist at type-check time in some environments).
- */
+// Achievement registry : single source of truth for all 13 achievements.
+// Adding one = a new row here. Uses structural types because the generated
+// Prisma client may not exist at type-check time.
 
 export type AchKey =
   | 'achFirstBlood'
@@ -26,14 +17,14 @@ export type AchKey =
   | 'achSpeedDemon'
   | 'achUnstoppable';
 
-/** Minimal structural shape of a GameParticipant row (fields we read). */
+// Minimal structural shape of a GameParticipant row (fields we read).
 export interface GameParticipantLike {
   rank: number;
   piecesCaptured: number;
   piecesInGoal: number;
 }
 
-/** Minimal structural shape of a Game row (fields we read). */
+// Minimal structural shape of a Game row (fields we read).
 export interface GameLike {
   startedAt: Date | string | null;
   endedAt: Date | string | null;

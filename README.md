@@ -162,7 +162,7 @@ consistently on any machine.
 
 ## Database Schema
 
-![Database schema](frontend/public/schema.png)
+![Database schema](frontend/public/Schema_Team-Submit.png)
 
 ## Modules
 

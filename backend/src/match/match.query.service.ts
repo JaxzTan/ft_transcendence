@@ -5,7 +5,10 @@ import { secret } from '../secrets';
 import Redis from 'ioredis';
 
 @Injectable()
+// Read-only match queries over Redis match:* hashes, enriched with host
+// details from Postgres. Used by match.controller.ts via MatchService.
 export class MatchQueryService {
+	// Redis client for scanning match:* game hashes.
 	private redis: Redis;
 
 	constructor(private readonly prisma: PrismaService) {
@@ -50,7 +53,7 @@ export class MatchQueryService {
 				if (data.status === 'WAITING' && data.gameType === 'PVP' && data.player1_id) {
 					const seats = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].filter(Boolean).length;
 					const maxSeats = parseInt(data.playerCount || '4', 10);
-					// Full rooms aren't "open" — hide them instead of listing an
+					// Full rooms aren't "open" : hide them instead of listing an
 					// unjoinable row (join would just 403 with "Room is full").
 					if (seats >= maxSeats) continue;
 					rooms.push({

@@ -7,15 +7,15 @@ import { NotificationService } from '../notification/notification.service';
 import { isBotUserId } from '../common/bot';
 import { ratingDeltaFor } from '../common/scoring'
 
-/**
- * POST-GAME POINTS (piece-based)
- * Each piece home = 2 pts (PvP) or 1 pt (PvE vs bots = half).
- * Winner gets +1 bonus piece, so a perfect PvP win = (4+1)*2 = 10.
- * Losers still earn points for pieces brought home. Bots are skipped.
- */
+// POST-GAME POINTS (piece-based): each piece home = 2 pts (PvP) or 1 pt (PvE),
+// winner gets +1 bonus piece. Losers still earn points; bots are skipped.
 
 @Injectable()
+// Post-game processing: persists finished games and participants to Postgres,
+// awards piece-based rating, refreshes the Redis leaderboard, triggers
+// achievement evaluation, and notifies players. Used by POST /api/game/end.
 export class MatchPostgameService {
+	// Redis client for reading match metadata and updating the leaderboard.
 	private redis: Redis;
 
 	constructor(
@@ -30,11 +30,9 @@ export class MatchPostgameService {
 		this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
 	}
 
-	// Write final game results to Postgres and update player ratings.
-	// Called by the game engine when a match ends. Creates game + participant rows,
-	// then awards rating based on piecesInGoal (2 pts per piece in PvP, 1 pt per
-	// piece in PvE, +1 bonus piece for the winner) and refreshes the Redis
-	// leaderboard for every human player.
+	// Write final results to Postgres (game + participant rows), award piece-
+	// based rating, refresh the Redis leaderboard, and notify players. Called
+	// by the engine when a match ends.
 	async processGameEnd(data: { gameId: string; participants: Array<{ userId: string; color: string; rank: number; piecesCaptured?: number; piecesInGoal?: number }> }) {
 		const { gameId, participants } = data;
 		if (!gameId) throw new BadRequestException('gameId is required');
@@ -42,10 +40,8 @@ export class MatchPostgameService {
 			throw new BadRequestException('participants array is required (min 2)');
 		}
 
-		// Idempotency guard: if this game was already processed, do nothing.
-		// Example: the engine retries the callback after a network blip -> the
-		// second call hits `existing` and returns early, so points are NOT
-		// double-awarded to the players.
+		// Idempotency guard: an engine retry after a network blip hits `existing`
+		// and returns early : points are never double-awarded.
 		const existing = await this.prisma.db.game.findUnique({ where: { id: gameId } });
 		if (existing) return { message: 'Game already processed', gameId };
 
@@ -68,18 +64,16 @@ export class MatchPostgameService {
 			});
 
 			for (const p of participants) {
-				// Bots must exist as real User rows — GameParticipant.user_id has
-				// an FK to User.id. Guarantee the row exists (id "bot-<color>")
-				// so every PvE game-end transaction satisfies the constraint
-				// regardless of seed state. Without this, the FK would roll back
-				// the whole transaction and void the human's PvE results too.
+				// Bots must exist as real User rows (GameParticipant.user_id FK).
+				// Upsert guarantees the row so the transaction can't roll back
+				// and void the human's PvE results.
 				if (isBotUserId(p.userId)) {
 					await tx.user.upsert({
 						where: { id: p.userId },
 						update: {},
 						create: {
 							id: p.userId,
-							username: p.userId, // "bot-green" etc. — unique, clearly a bot
+							username: p.userId, // "bot-green" etc. : unique, clearly a bot
 							// displayName is required + unique on User (feature-update-profile
 							// branch); bot rows reuse the same id so it stays unique.
 							displayName: p.userId,
@@ -100,11 +94,8 @@ export class MatchPostgameService {
 					},
 				});
 
-				// ------------------------------------------------------------------
-				// POINTS CALCULATION (per participant, human players only)
-				// ------------------------------------------------------------------
-				// Bots never earn or lose points — a bot participant is still
-				// recorded for history/FK purposes, but its rating is NOT touched.
+				// POINTS CALCULATION (per participant; bots are recorded for
+				// history/FK but their rating is never touched)
 				if (isBotUserId(p.userId)) continue;
 
 				const isWinner = p.rank === 1;
@@ -141,18 +132,19 @@ export class MatchPostgameService {
 					// Example: zadd('leaderboard:global', 110, 'alice-id')
 					try {
 						await this.redis.zadd('leaderboard:global', newRating, p.userId);
-					} catch { /* ignore */ }
+					} catch { // ignore
+					}
 				}
 			}
 		});
 
-		// Post-game achievements hook — MUST never fail the game-end request.
+		// Post-game achievements hook : MUST never fail the game-end request.
 		// A failure only logs (see achievement-revamp.md Phase 3 failure contract).
 		await this.achievements.evaluateAfterGame(gameId).catch((err) => {
 			console.warn(`Achievements evaluation failed for game ${gameId}:`, err);
 		});
 
-		// Match-finished notifications — tell every human player the match
+		// Match-finished notifications : tell every human player the match
 		// concluded and their personal rank. MUST never fail the game-end request.
 		await this.notifyMatchFinished(gameId, gameType, participants).catch((err) => {
 			console.warn(`Match-finished notifications failed for game ${gameId}:`, err);
@@ -162,7 +154,7 @@ export class MatchPostgameService {
 		return { message: 'Game processed', gameId };
 	}
 
-	/** Notify each human participant that the match concluded, with their own rank. */
+	// Notify each human participant that the match concluded, with their own rank.
 	private async notifyMatchFinished(
 		gameId: string,
 		gameType: string,
