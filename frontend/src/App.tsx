@@ -63,12 +63,7 @@ function Screen() {
   // *specific account action*, not the logged-in session, so a logged-in user
   // must still see them instead of being bounced to /home — e.g. verifying (or
   // resetting) account B while account A happens to be logged in in this browser.
-  const hasNotice = !!(
-    query.get('verified') ||
-    query.get('reset') ||
-    query.get('error') ||
-    query.get('token')
-  );
+  const hasNotice = ['verified', 'reset', 'error', 'token'].some((k) => !!query.get(k));
 
   useEffect(() => {
     // Wait for the /me session check. Else, a refresh while logged in

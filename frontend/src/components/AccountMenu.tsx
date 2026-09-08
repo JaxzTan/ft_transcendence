@@ -76,7 +76,7 @@ export function AccountMenu() {
         }}
       >
         <UserAvatar
-          username={user?.username || ''}
+          username={user?.username ?? ''}
           avatarStyle={user?.avatarStyle}
           hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
           size={40}
@@ -209,7 +209,9 @@ export function AccountMenu() {
           <div style={{ borderTop: '1px solid #2a2015', marginTop: 6, paddingTop: 6 }}>
             <div
               role="menuitem"
-              onClick={onSignOut}
+              onClick={() => {
+                void onSignOut();
+              }}
               style={{
                 padding: '9px 10px',
                 borderRadius: 9,

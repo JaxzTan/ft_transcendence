@@ -43,18 +43,18 @@ let refreshing: Promise<RefreshResult> | null = null;
 // the browser console by the network stack itself, outside app control.
 // Shares the same single-flight promise as the reactive path in apiFetch.
 export function refreshOnce(): Promise<RefreshResult> {
-  if (!refreshing) {
-    refreshing = fetch('/api/auth/refresh', withNgrokHeader({ method: 'POST' }))
-      .then((r): RefreshResult => {
-        if (r.ok) return { outcome: 'ok' };
-        if (r.status === 401 || r.status === 403) return { outcome: 'expired' };
-        return { outcome: 'blocked', status: r.status, retryAfter: r.headers.get('Retry-After') };
-      })
-      .catch((): RefreshResult => ({ outcome: 'blocked', status: 503, retryAfter: null }))
-      .finally(() => {
-        refreshing = null;
-      });
-  }
+  const pending = refreshing;
+  if (pending !== null) return pending;
+  refreshing = fetch('/api/auth/refresh', withNgrokHeader({ method: 'POST' }))
+    .then((r): RefreshResult => {
+      if (r.ok) return { outcome: 'ok' };
+      if (r.status === 401 || r.status === 403) return { outcome: 'expired' };
+      return { outcome: 'blocked', status: r.status, retryAfter: r.headers.get('Retry-After') };
+    })
+    .catch((): RefreshResult => ({ outcome: 'blocked', status: 503, retryAfter: null }))
+    .finally(() => {
+      refreshing = null;
+    });
   return refreshing;
 }
 
