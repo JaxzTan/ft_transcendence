@@ -313,7 +313,7 @@ export function LudoLobby() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    if (!hostBusy) createRoom()
+                    if (!hostBusy) void createRoom()
                   }
                 }}
               >
@@ -515,7 +515,7 @@ export function LudoLobby() {
                 className={`${RETRO_TICKET_PASS} ${TICKET_CYAN}`}
                 onClick={() => {
                   if (roomCodeInput.trim().length > 0 && !joiningByCode) {
-                    joinByCode(roomCodeInput)
+                    void joinByCode(roomCodeInput)
                   }
                 }}
                 role="button"
@@ -523,7 +523,7 @@ export function LudoLobby() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && roomCodeInput.trim().length > 0 && !joiningByCode) {
                     e.preventDefault()
-                    joinByCode(roomCodeInput)
+                    void joinByCode(roomCodeInput)
                   }
                 }}
               >
@@ -574,7 +574,7 @@ export function LudoLobby() {
                     onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && roomCodeInput.trim().length > 0 && !joiningByCode) {
-                        joinByCode(roomCodeInput)
+                        void joinByCode(roomCodeInput)
                       }
                     }}
                     placeholder={t('ludoLobbyPasses.enterCodePlaceholder')}
@@ -601,7 +601,7 @@ export function LudoLobby() {
                     className={RETRO_BTN}
                     onClick={(e) => {
                       e.stopPropagation()
-                      joinByCode(roomCodeInput)
+                      void joinByCode(roomCodeInput)
                     }}
                     disabled={!roomCodeInput.trim() || joiningByCode}
                     style={{

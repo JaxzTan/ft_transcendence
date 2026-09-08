@@ -65,7 +65,7 @@ type Friend = {
 	id: string
 	username: string
 	displayName?: string
-	avatarStyle?: any
+	avatarStyle?: string | null
 	hasAvatarPhoto?: boolean
 	rating?: number
 	friendsSince?: string
@@ -178,7 +178,9 @@ export function Home() {
 		fetchFriendsData()
 		setIsFriendsLoading(false)
 		const iv = setInterval(fetchFriendsData, 12000)
-		return () => clearInterval(iv)
+		return () => {
+			clearInterval(iv)
+		}
 	}, [])
 
 	const [isPlayingAudio, setIsPlayingAudio] = useState(retroAudio.isPlaying)
@@ -228,7 +230,9 @@ export function Home() {
 				prev.map(() => Math.floor(Math.random() * 20) + 4)
 			)
 		}, 120)
-		return () => clearInterval(iv)
+		return () => {
+			clearInterval(iv)
+		}
 	}, [isPlayingAudio])
 
 	// ------------------------------------------------------------------------
@@ -240,12 +244,18 @@ export function Home() {
 	useEffect(() => {
 		const fetchBadgeCounts = () => {
 			getApi<{ count: number }>('/api/presence/online-count')
-				.then((body) => setOnlineCount(body.count))
-				.catch((e) => console.error(e))
+				.then((body) => {
+					setOnlineCount(body.count)
+				})
+				.catch((e) => {
+					console.error(e)
+				})
 		}
 		fetchBadgeCounts()
 		const iv = setInterval(fetchBadgeCounts, 15000)
-		return () => clearInterval(iv)
+		return () => {
+			clearInterval(iv)
+		}
 	}, [])
 
 	// ------------------------------------------------------------------------
@@ -259,8 +269,12 @@ export function Home() {
 		setIsWarpingToLobby(true)
 		// Arcade coin drop and power-up chime
 		retroAudio.playUiBeep(987, 0.08)
-		setTimeout(() => retroAudio.playUiBeep(1318, 0.12), 90)
-		setTimeout(() => retroAudio.playUiBeep(1760, 0.2), 200)
+		setTimeout(() => {
+			retroAudio.playUiBeep(1318, 0.12)
+		}, 90)
+		setTimeout(() => {
+			retroAudio.playUiBeep(1760, 0.2)
+		}, 200)
 
 		setTimeout(() => {
 			navigate('/gamelobby')
@@ -278,7 +292,9 @@ export function Home() {
 			}
 		}
 		window.addEventListener('keydown', handleGlobalKeyDown)
-		return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+		return () => {
+			window.removeEventListener('keydown', handleGlobalKeyDown)
+		}
 	}, [isWarpingToLobby])
 
 	useEffect(() => {
@@ -510,17 +526,17 @@ export function Home() {
 			const cosZ = Math.cos(rotZ), sinZ = Math.sin(rotZ)
 
 			const transformedVertices = rawVertices.map(([x, y, z]) => {
-				let x1 = x * cosY + z * sinY
-				let y1 = y
-				let z1 = -x * sinY + z * cosY
+				const x1 = x * cosY + z * sinY
+				const y1 = y
+				const z1 = -x * sinY + z * cosY
 
-				let x2 = x1
-				let y2 = y1 * cosX - z1 * sinX
-				let z2 = y1 * sinX + z1 * cosX
+				const x2 = x1
+				const y2 = y1 * cosX - z1 * sinX
+				const z2 = y1 * sinX + z1 * cosX
 
-				let x3 = x2 * cosZ - y2 * sinZ
-				let y3 = x2 * sinZ + y2 * cosZ
-				let z3 = z2
+				const x3 = x2 * cosZ - y2 * sinZ
+				const y3 = x2 * sinZ + y2 * cosZ
+				const z3 = z2
 
 				const scale = cameraDist / (cameraDist + z3)
 				return {
@@ -549,7 +565,7 @@ export function Home() {
 			}
 
 			// Sort faces by average Z depth (Painter's algorithm)
-			const faceList = faces.map((face: any) => {
+			const faceList = faces.map((face) => {
 				const pts = face.v.map((idx: number) => transformedVertices[idx])
 				const avgZ = (pts[0].z + pts[1].z + pts[2].z + pts[3].z) / 4
 				const v0 = pts[0], v1 = pts[1], v2 = pts[2]
@@ -557,9 +573,9 @@ export function Home() {
 				return { ...face, pts, avgZ, normalZ }
 			})
 
-			faceList.sort((a: any, b: any) => a.avgZ - b.avgZ)
+			faceList.sort((a, b) => a.avgZ - b.avgZ)
 
-			faceList.forEach((face: any) => {
+			faceList.forEach((face) => {
 				const isBackface = face.normalZ <= 0
 				const alpha = isBackface ? 0.35 : 1.0
 
@@ -574,7 +590,7 @@ export function Home() {
 				}
 				ctx.closePath()
 
-				ctx.fillStyle = (face as any).bg || currentCfg.diceBg
+				ctx.fillStyle = face.bg || currentCfg.diceBg
 				ctx.fill()
 
 				// Draw face edges
@@ -589,7 +605,7 @@ export function Home() {
 				const pips = pipPositions[face.pips] || []
 				const p0 = face.pts[0], p1 = face.pts[1], p2 = face.pts[2], p3 = face.pts[3]
 
-				pips.forEach(([u, v]: any) => {
+				pips.forEach(([u, v]) => {
 					const su = u + 0.5
 					const sv = v + 0.5
 					const topX = p0.px + (p1.px - p0.px) * su
@@ -613,7 +629,7 @@ export function Home() {
 			// 6. 4-Player Army Hologram Nodes
 			const pawns = currentCfg.pawns
 
-			pawns.forEach((p: any, idx: number) => {
+			pawns.forEach((p, idx) => {
 				const pulse = Math.sin(time * 3 + idx * 1.5) * 2.4
 				ctx.save()
 				ctx.fillStyle = p.color
@@ -1312,7 +1328,9 @@ export function Home() {
 											<button
 												type="button"
 												className={CYBER_VOL_STEP_BTN}
-												onClick={() => handleStepVolume(-10)}
+												onClick={() => {
+													handleStepVolume(-10)
+												}}
 												title={t('homeExtended.chiptuneDecreaseVolume')}
 											>
 												-
@@ -1330,7 +1348,9 @@ export function Home() {
 														<div
 															key={idx}
 															className={`${CYBER_VOL_LED_SEGMENT} ${isLit ? colorClass : ''}`}
-															onClick={() => handleLedSegmentClick(idx)}
+															onClick={() => {
+													handleLedSegmentClick(idx)
+												}}
 														/>
 													)
 												})}
@@ -1339,7 +1359,9 @@ export function Home() {
 											<button
 												type="button"
 												className={CYBER_VOL_STEP_BTN}
-												onClick={() => handleStepVolume(10)}
+												onClick={() => {
+													handleStepVolume(10)
+												}}
 												title={t('homeExtended.chiptuneIncreaseVolume')}
 											>
 												+
@@ -1384,7 +1406,9 @@ export function Home() {
 			<LegalModal
 				isOpen={legalModalDoc !== null}
 				initialDoc={legalModalDoc ?? 'privacy'}
-				onClose={() => setLegalModalDoc(null)}
+				onClose={() => {
+					setLegalModalDoc(null)
+				}}
 			/>
 		</>
 	)

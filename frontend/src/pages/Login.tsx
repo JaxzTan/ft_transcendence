@@ -102,7 +102,7 @@ export function Login() {
             fontSize: '13px',
           }}
         >
-          <a onClick={() => navigate('/forgot-password')} className={RETRO_AUTH_LINK} style={{ fontSize: '12.5px' }}>
+          <a onClick={() => { navigate('/forgot-password'); }} className={RETRO_AUTH_LINK} style={{ fontSize: '12.5px' }}>
             {t('auth.forgotPasswordLink')}
           </a>
         </div>
@@ -138,7 +138,7 @@ export function Login() {
 
         <div className={RETRO_AUTH_MUTED} style={{ textAlign: 'center' }}>
           {t('auth.newToTable')}{' '}
-          <a onClick={() => navigate('/signup')} className={RETRO_AUTH_LINK}>
+          <a onClick={() => { navigate('/signup'); }} className={RETRO_AUTH_LINK}>
             {t('auth.createAccountLink')}
           </a>
         </div>

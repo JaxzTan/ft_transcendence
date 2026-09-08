@@ -223,10 +223,14 @@ export function Game() {
   const copyRoomCode = () => {
     if (!activeMatch?.inviteCode) return
     retroAudio.playUiBeep(720, 0.06)
-    navigator.clipboard.writeText(activeMatch.inviteCode).then(() => {
-      setCodeCopied(true)
-      setTimeout(() => setCodeCopied(false), 1500)
-    })
+    navigator.clipboard.writeText(activeMatch.inviteCode)
+      .then(() => {
+        setCodeCopied(true)
+        setTimeout(() => setCodeCopied(false), 1500)
+      })
+      .catch((err) => {
+        console.error('Failed to copy room code:', err)
+      })
   }
 
   // Set presence status
@@ -273,7 +277,7 @@ export function Game() {
           if (!current) return
           const room = rooms?.find((x) => x.id === current.gameId)
           if (room?.gameType) {
-            const mode = (room.gameType === 'PVP' ? 'pvp' : room.gameType === 'PVE' ? 'pve' : 'hotseat') as 'pvp' | 'pve' | 'hotseat'
+            const mode = room.gameType === 'PVP' ? 'pvp' : room.gameType === 'PVE' ? 'pve' : 'hotseat'
             setActiveMatch({ ...current, mode, playerCount: current.playerCount ?? 4 })
           }
         })
@@ -311,7 +315,7 @@ export function Game() {
       const type = (state as { type?: string }).type
 
       if (type === 'dice_rolled') {
-        const e = state as unknown as { value: number; bonusRoll: boolean; forfeited?: boolean }
+        const e = state as { value: number; bonusRoll: boolean; forfeited?: boolean }
         const rollerColor = viewRef.current.currentTurn
         const roller = viewRef.current.players.find((p) => p.color === rollerColor)
         const rollerName = localizedBotName(t, roller?.displayName) || localizedBotName(t, roller?.username) || rollerColor
@@ -343,7 +347,7 @@ export function Game() {
         pendingMoveRef.current = false
         isMovingPieceRef.current = true
         setIsMovingPiece(true)
-        const e = state as unknown as {
+        const e = state as {
           pieceId: string
           color: PlayerColor
           captured: boolean
@@ -420,7 +424,7 @@ export function Game() {
           runStepAnimation()
         }
       } else if (type === 'lobby_update') {
-        const e = state as unknown as { players: Array<{ username: string; color: PlayerColor }> }
+        const e = state as { players: Array<{ username: string; color: PlayerColor }> }
         const mine = e.players.find((p) => p.username === user?.username)
         if (mine && mine.color !== viewRef.current.myColor && activeMatchRef.current) {
           dispatch({ type: 'my_color_changed', color: mine.color })
@@ -428,7 +432,7 @@ export function Game() {
           setActiveMatch({ ...activeMatchRef.current, color: mine.color })
         }
       } else if (type === 'game_ended') {
-        const e = state as unknown as { winner: PlayerColor; resultDetail: string }
+        const e = state as { winner: PlayerColor; resultDetail: string }
         retroAudio.playUiBeep(1100, 0.3, 'sawtooth')
         let endedPlayers = viewRef.current.players
           .filter((p) => p.status !== 'inactive')

@@ -34,7 +34,7 @@ type Friend = {
   id: string
   username: string
   displayName?: string
-  avatarStyle: any
+  avatarStyle: string | null
   hasAvatarPhoto?: boolean
   rating: number
   friendsSince: string
@@ -46,7 +46,7 @@ type FriendRequest = {
   userId: string
   username: string
   displayName?: string
-  avatarStyle: any
+  avatarStyle: string | null
   hasAvatarPhoto?: boolean
   createdAt: string
 }
@@ -55,7 +55,7 @@ type BlockedUser = {
   id: string
   username: string
   displayName?: string
-  avatarStyle: any
+  avatarStyle: string | null
   hasAvatarPhoto?: boolean
   rating: number
   blockedSince: string
@@ -147,7 +147,7 @@ export function Friends() {
   }
 
   useEffect(() => {
-    fetchData()
+    void fetchData()
     const id = setInterval(fetchData, 15_000)
     return () => clearInterval(id)
   }, [])
@@ -174,10 +174,9 @@ export function Friends() {
       })
       if (!reqRes.ok) {
         let errorMsg = t('friends.couldNotSendRequest')
-        try {
-          const errorData = await reqRes.json()
-          errorMsg = errorData.message || errorMsg
-        } catch (err) { }
+        // Best-effort: surface the backend's message when the error body is JSON.
+        const errorData: { message?: string } | null = await reqRes.json().catch(() => null)
+        errorMsg = errorData?.message || errorMsg
         retroAudio.playUiBeep(320, 0.08)
         setMsg({ text: `${errorMsg}`, type: 'error' })
         return
@@ -186,8 +185,8 @@ export function Friends() {
       retroAudio.playUiBeep(880, 0.06)
       setMsg({ text: t('friends.requestSent'), type: 'success' })
       setSearchUsername('')
-      fetchData()
-    } catch (e) {
+      await fetchData()
+    } catch {
       retroAudio.playUiBeep(320, 0.08)
       setMsg({ text: t('friends.genericError'), type: 'error' })
     }
@@ -201,7 +200,7 @@ export function Friends() {
       body: JSON.stringify({}),
       credentials: 'include',
     })
-    fetchData()
+    await fetchData()
   }
 
   const handleDecline = async (requestId: string) => {
@@ -212,7 +211,7 @@ export function Friends() {
       body: JSON.stringify({}),
       credentials: 'include',
     })
-    fetchData()
+    await fetchData()
   }
 
   const handleInvite = async (friendId: string) => {
@@ -245,7 +244,7 @@ export function Friends() {
       body: JSON.stringify({}),
       credentials: 'include',
     })
-    fetchData()
+    await fetchData()
   }
 
   const handleBlock = async (friendId: string) => {
@@ -256,7 +255,7 @@ export function Friends() {
       body: JSON.stringify({}),
       credentials: 'include',
     })
-    fetchData()
+    await fetchData()
   }
 
   const handleUnblock = async (targetUserId: string) => {
@@ -267,7 +266,7 @@ export function Friends() {
       body: JSON.stringify({}),
       credentials: 'include',
     })
-    fetchData()
+    await fetchData()
   }
 
   const onlineFriendsCount = friends.filter((f) => f.status === 'online' || f.status === 'playing').length
@@ -658,7 +657,7 @@ export function Friends() {
                                 className={RETRO_BTN}
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleInvite(f.id)
+                                  void handleInvite(f.id)
                                 }}
                                 disabled={invitingId === f.id}
                                 style={{
@@ -682,7 +681,7 @@ export function Friends() {
                                 className={RETRO_BTN}
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleRemove(f.id)
+                                  void handleRemove(f.id)
                                 }}
                                 style={{
                                   padding: '5px 10px',
@@ -703,7 +702,7 @@ export function Friends() {
                                 className={RETRO_BTN}
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleBlock(f.id)
+                                  void handleBlock(f.id)
                                 }}
                                 style={{
                                   padding: '5px 10px',
@@ -825,7 +824,7 @@ export function Friends() {
                       onChange={(e) => setSearchUsername(e.target.value)}
                       placeholder={t('friends.enterUsernamePrompt')}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleAddFriend()
+                        if (e.key === 'Enter') void handleAddFriend()
                       }}
                       style={{
                         background: 'rgba(5, 2, 18, 0.95)',

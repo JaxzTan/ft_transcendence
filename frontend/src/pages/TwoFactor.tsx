@@ -79,7 +79,7 @@ export function TwoFactor() {
         </button>
         <div className={RETRO_AUTH_MUTED} style={{ textAlign: 'center' }}>
           {t('auth.codeExpired')}{' '}
-          <a onClick={() => navigate('/login')} className={RETRO_AUTH_LINK}>
+          <a onClick={() => { navigate('/login'); }} className={RETRO_AUTH_LINK}>
             {t('auth.logInAgainLink')}
           </a>{' '}
           {t('auth.toGetNewOne')}

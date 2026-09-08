@@ -55,7 +55,7 @@ export function Signup() {
           </div>
           <div className={RETRO_AUTH_MUTED} style={{ fontSize: '13px' }}>
             {t('auth.doneVerifying')}{' '}
-            <a onClick={() => navigate('/login')} className={RETRO_AUTH_LINK}>
+            <a onClick={() => { navigate('/login'); }} className={RETRO_AUTH_LINK}>
               {t('auth.signInLink')}
             </a>
           </div>
@@ -172,7 +172,7 @@ export function Signup() {
 
         <div className={RETRO_AUTH_MUTED} style={{ textAlign: 'center' }}>
           {t('auth.alreadyHaveSeat')}{' '}
-          <a onClick={() => navigate('/login')} className={RETRO_AUTH_LINK}>
+          <a onClick={() => { navigate('/login'); }} className={RETRO_AUTH_LINK}>
             {t('auth.signInLink')}
           </a>
         </div>

@@ -34,7 +34,7 @@ type LeaderboardEntry = {
   wins: number
   losses: number
   winRate: number
-  avatarStyle?: any
+  avatarStyle?: string | null
   hasAvatarPhoto?: boolean
 }
 

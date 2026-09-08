@@ -35,7 +35,7 @@ export function ResetPassword() {
             {t('auth.invalidLinkDesc')}
           </div>
           <div className={RETRO_AUTH_MUTED} style={{ fontSize: '13px' }}>
-            <a onClick={() => navigate('/forgot-password')} className={RETRO_AUTH_LINK}>
+            <a onClick={() => { navigate('/forgot-password'); }} className={RETRO_AUTH_LINK}>
               {t('auth.requestNewLinkBtn')}
             </a>
           </div>

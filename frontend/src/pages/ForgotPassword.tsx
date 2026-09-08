@@ -44,7 +44,7 @@ export function ForgotPassword() {
           </div>
           <div className={RETRO_AUTH_MUTED} style={{ fontSize: '13px' }}>
             {t('auth.rememberedIt')}{' '}
-            <a onClick={() => navigate('/login')} className={RETRO_AUTH_LINK}>
+            <a onClick={() => { navigate('/login'); }} className={RETRO_AUTH_LINK}>
               {t('auth.backToSignIn')}
             </a>
           </div>
@@ -88,7 +88,7 @@ export function ForgotPassword() {
         </button>
         <div className={RETRO_AUTH_MUTED} style={{ textAlign: 'center' }}>
           {t('auth.rememberedIt')}{' '}
-          <a onClick={() => navigate('/login')} className={RETRO_AUTH_LINK}>
+          <a onClick={() => { navigate('/login'); }} className={RETRO_AUTH_LINK}>
             {t('auth.backToSignIn')}
           </a>
         </div>

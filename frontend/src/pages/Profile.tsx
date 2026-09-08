@@ -45,7 +45,7 @@ interface UserProfile {
 
 type Participant = {
   username: string
-  avatarStyle: any
+  avatarStyle: string | null
   hasAvatarPhoto?: boolean
   color: number
   rank: number | null
@@ -77,7 +77,7 @@ type Friend = {
   id: string
   username: string
   displayName?: string
-  avatarStyle: any
+  avatarStyle: string | null
   hasAvatarPhoto?: boolean
   rating: number
   friendsSince: string
@@ -207,7 +207,7 @@ export function Profile() {
         retroAudio.playUiBeep(880, 0.06)
         setAvatarBuster(Date.now())
       }
-    } catch (e) {
+    } catch {
       setUploadError(t('profile.uploadErrorGeneric'))
     } finally {
       setUploading(false)
@@ -308,7 +308,7 @@ export function Profile() {
   }, [username, avatarBuster, isOwnProfile, profileRefresh])
 
   const totalGames = profile ? profile.wins + profile.losses : 0
-  const winRate = totalGames > 0 ? Math.round((profile!.wins / totalGames) * 100) : 0
+  const winRate = profile && totalGames > 0 ? Math.round((profile.wins / totalGames) * 100) : 0
   const statusStyle = profile ? STATUS_STYLE[profile.status] || STATUS_STYLE.offline : STATUS_STYLE.offline
   const rankTier = profile ? getRankTier(profile.rating, leaderboardRank) : getRankTier(1200)
   const peakRating = profile ? profile.highestRating || profile.rating : 1200
