@@ -35,8 +35,8 @@ export class RetroAudioEngine {
   initContext() {
     if (!this.ctx && typeof window !== 'undefined') {
       const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        (window.AudioContext as typeof AudioContext | undefined) ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
       }

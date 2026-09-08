@@ -453,7 +453,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addBot = useCallback((i: number) => {
     setSeats((prev) => {
       const used = prev.filter((s) => s.type === 'bot').map((s) => s.name);
-      const name = BOT_POOL.find((n) => !used.includes(n)) || 'Bot';
+      const name = BOT_POOL.find((n) => !used.includes(n)) ?? 'Bot';
       const next = prev.slice();
       next[i] = { type: 'bot', name };
       return next;
@@ -507,7 +507,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSeats((prev) =>
       prev.map((s, i): Seat => {
         if (i < playerCount && s.type === 'empty')
-          return { type: 'bot', name: pool.shift() || 'Bot' };
+          return { type: 'bot', name: pool.shift() ?? 'Bot' };
         return s;
       }),
     );

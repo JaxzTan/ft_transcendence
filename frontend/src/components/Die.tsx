@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /** Pip indexes (3×3 grid, row-major) lit per face value. */
-const PIP_MAP: Record<number, number[]> = {
+const PIP_MAP: Partial<Record<number, number[]>> = {
   1: [4],
   2: [0, 8],
   3: [0, 4, 8],
@@ -27,7 +27,7 @@ export function Die({ value, rolling }: { value: number; rolling: boolean }) {
     return () => clearInterval(interval);
   }, [rolling, value]);
 
-  const on = PIP_MAP[rolling ? displayValue : value || displayValue] || [];
+  const on = PIP_MAP[rolling ? displayValue : value || displayValue] ?? [];
 
   return (
     <div

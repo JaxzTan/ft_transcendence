@@ -42,7 +42,7 @@ export function applyEvent(
   switch (event.type) {
     case 'game_joined':
     case 'state_update': {
-      const s = event as unknown as GameState & { type: string };
+      const s = event as unknown as Partial<GameState> & { type: string };
       let players = s.players ?? state.players;
       if (s.status === 'waiting' || (!s.status && state.status === 'waiting')) {
         // In waiting room, each user can only occupy ONE active seat.
@@ -75,7 +75,7 @@ export function applyEvent(
     }
     case 'lobby_update': {
       const payload =
-        (event.players as Array<{ username: string; color: PlayerColor; ready: boolean }>) ?? [];
+        (event.players as Array<{ username: string; color: PlayerColor; ready: boolean }> | undefined) ?? [];
       // The engine only includes active seats in this payload.
       // Any seat omitted from the payload is empty and must be reset to inactive.
       const players = state.players.map((p) => {
@@ -95,7 +95,7 @@ export function applyEvent(
     case 'game_started':
       return { ...state, status: 'active', lastRolls: {} };
     case 'dice_rolled': {
-      const legalMoves = (event.legalMoves as LegalMove[]) ?? [];
+      const legalMoves = (event.legalMoves as LegalMove[] | undefined) ?? [];
       // Key the roll to the PRE-event turn (state.currentTurn): the engine
       // advances currentTurn before emitting on no-move/3×6 forfeit paths, so
       // the event's own currentTurn may already be the NEXT player while the
@@ -106,7 +106,7 @@ export function applyEvent(
         diceValue: event.value as number,
         legalMoves,
         turnPhase: legalMoves.length > 0 ? 'WAITING_FOR_MOVE' : 'WAITING_FOR_ROLL',
-        currentTurn: (event.currentTurn as PlayerColor) ?? state.currentTurn,
+        currentTurn: (event.currentTurn as PlayerColor | undefined) ?? state.currentTurn,
         lastRolls: { ...state.lastRolls, [roller]: event.value as number },
       };
     }
