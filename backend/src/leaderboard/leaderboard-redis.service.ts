@@ -17,11 +17,13 @@ export class LeaderboardRedisService implements OnModuleDestroy {
     const password = secret('REDIS_PASSWORD');
 
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-    this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+    this.redis.on('error', (error) => {
+      console.error('Redis error:', error.message);
+    });
   }
 
-  onModuleDestroy() {
-    this.redis.quit();
+  async onModuleDestroy() {
+    await this.redis.quit();
   }
 
   // Set a user's rating in a mode's sorted set (key leaderboard:<mode>).
@@ -67,27 +69,5 @@ export class LeaderboardRedisService implements OnModuleDestroy {
     // ZREVRANK returns 0-based index, add 1 for 1-based rank
     const rank = await this.redis.zrevrank(key, userId);
     return rank !== null ? rank + 1 : null;
-  }
-
-  // Rebuild a mode's board from a Postgres user list. For fresh deploys or
-  // recovery after the Redis sorted set was wiped/lost.
-  async rebuildLeaderboard(
-    users: { userId: string; rating: number }[],
-    mode: string,
-    timestamp: string,
-    gameCount: string,
-  ): Promise<void> {
-    const pipeline = this.redis.pipeline();
-
-    // Clear existing sorted set
-    pipeline.del(`leaderboard:${mode}`);
-
-    // Add all users
-    users.forEach((user) => {
-      pipeline.zadd(`leaderboard:${mode}`, user.rating, user.userId);
-    });
-
-    await pipeline.exec();
-    console.log(`[Redis] Rebuilt leaderboard:${mode} with ${users.length} users`);
   }
 }

@@ -46,7 +46,9 @@ export class LeaderboardService {
     limit: number;
     userId?: string;
   }): Promise<LeaderboardResponse> {
-    const { mode, page, limit, userId } = options;
+    // Default to a mode so passing `mode` to Redis methods (which require a
+    // string) never sends undefined. The public API treats 'global' as default.
+    const { mode = 'global', page, limit, userId } = options;
 
     // Try Redis first (fast path)
     try {
@@ -63,7 +65,7 @@ export class LeaderboardService {
         });
         if (allDbUsers.length > 0) {
           for (const u of allDbUsers) {
-            await this.redisService.updateLeaderboardEntry(u.id, u.rating, (mode as any) || 'global');
+            await this.redisService.updateLeaderboardEntry(u.id, u.rating, mode);
           }
           redisEntries = await this.redisService.getLeaderboardFromRedis(mode, page, limit);
           total = await this.redisService.getLeaderboardCount(mode);
@@ -87,32 +89,33 @@ export class LeaderboardService {
         });
 
         const userMap = new Map(users.map(u => [u.id, u]));
-        const entries: LeaderboardEntry[] = redisEntries
-          // Belt and braces: the query above keeps bots out of the sorted set
-          // from here on, but entries written before this fix (or by any future
-          // path) are already in Redis. Never render one regardless of how it got in.
-          .filter(e => userMap.has(e.userId) && !isBotUserId(e.userId))
-          .map((entry, i) => {
-            const user = userMap.get(entry.userId)!;
-            const gamesPlayed = user.wins + user.losses;
-            const wins = user.wins;
-            const losses = user.losses;
-            const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+        const entries: LeaderboardEntry[] = [];
+        // Belt and braces: the query above keeps bots out of the sorted set
+        // from here on, but entries written before this fix (or by any future
+        // path) are already in Redis. Never render one regardless of how it got in.
+        for (const entry of redisEntries) {
+          const user = userMap.get(entry.userId);
+          if (!user || isBotUserId(entry.userId)) continue;
 
-            return {
-              rank: (page - 1) * limit + i + 1,
-              username: user.username,
-              displayName: user.displayName,
-              rating: entry.rating,
-              gamesPlayed,
-              wins,
-              losses,
-              draws: 0,
-              winRate,
-              avatarStyle: user.avatarStyle,
-              hasAvatarPhoto: user.avatarPhotoContentType !== null,
-            };
+          const gamesPlayed = user.wins + user.losses;
+          const wins = user.wins;
+          const losses = user.losses;
+          const winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+
+          entries.push({
+            rank: (page - 1) * limit + entries.length + 1,
+            username: user.username,
+            displayName: user.displayName,
+            rating: entry.rating,
+            gamesPlayed,
+            wins,
+            losses,
+            draws: 0,
+            winRate,
+            avatarStyle: user.avatarStyle,
+            hasAvatarPhoto: user.avatarPhotoContentType !== null,
           });
+        }
 
         const response: LeaderboardResponse = {
           entries,

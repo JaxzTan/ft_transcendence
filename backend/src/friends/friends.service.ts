@@ -24,7 +24,9 @@ export class FriendsService {
     const password = secret('REDIS_PASSWORD');
 
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-    this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+    this.redis.on('error', (error) => {
+      console.error('Redis error:', error.message);
+    });
   }
 
   // Game Invitations
@@ -118,7 +120,7 @@ export class FriendsService {
       }
     }
 
-    const friendship = await (this.prisma.db.friendship.create as any)({
+    const friendship = await this.prisma.db.friendship.create({
       data: {
         id: `${userId}-${targetUserId}`,
         user: { connect: { id: userId } },
@@ -359,7 +361,7 @@ export class FriendsService {
       });
       return updated;
     } else {
-      const blocked = await (this.prisma.db.friendship.create as any)({
+      const blocked = await this.prisma.db.friendship.create({
         data: {
           id: `${userId}-${targetUserId}-blocked`,
           userId,
