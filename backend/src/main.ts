@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express';
+import type { HttpServer } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { PrismaService } from './prisma.service';
@@ -28,17 +29,30 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Health endpoint
+  // Health endpoint. Route it via the generic HttpServer interface so the
+  // handler can be typed structurally (the concrete ExpressAdapter's
+  // RequestHandler type is too narrow for a custom handler). Same runtime
+  // object as app.getHttpAdapter(); type-level only.
   const prisma = app.get(PrismaService);
-  app.getHttpAdapter().get('/health', async (_req: any, res: any) => {
-    try {
-      await prisma.db.$queryRaw`SELECT 1`;
-      res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-    } catch (e) {
-      res.status(500).json({ status: 'error', timestamp: new Date().toISOString() });
-    }
-  });
+  const httpServer: HttpServer = app.getHttpAdapter();
+  httpServer.get(
+    '/health',
+    async (
+      _req: unknown,
+      res: { status: (code: number) => { json: (body: unknown) => unknown } },
+    ) => {
+      try {
+        await prisma.db.$queryRaw`SELECT 1`;
+        res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+      } catch {
+        res.status(500).json({ status: 'error', timestamp: new Date().toISOString() });
+      }
+    },
+  );
 
   await app.listen(3000);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to start the backend:', err);
+  process.exit(1);
+});

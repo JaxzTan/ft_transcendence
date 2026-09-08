@@ -4,6 +4,14 @@ import { Response } from 'express';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+// Multer attaches an upload descriptor to the request (an Express.Multer.File
+// at runtime). Keep a minimal structural shape here so this controller doesn't
+// depend on @types/multer being installed.
+interface UploadedAvatarFile {
+  mimetype: string;
+  buffer: Buffer;
+}
+
 @Controller('api/user')
 // HTTP routes for user profiles: public profile, game history, and the
 // authenticated avatar upload/get/delete endpoints. Delegates to UserService.
@@ -33,7 +41,7 @@ export class UserController {
   @UseInterceptors(FileInterceptor('avatar', { limits: { fileSize: 2 * 1024 * 1024 } }))
   async uploadAvatar(
     @Request() req: { user: { id: string } },
-    @UploadedFile() file: any,
+    @UploadedFile() file: UploadedAvatarFile | undefined,
   ) {
     if (!file) {
       throw new BadRequestException('Avatar file is required');

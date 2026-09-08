@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
 import { ratingDeltaFor } from '../common/scoring';
@@ -56,7 +56,9 @@ export class UserService {
     // Prisma 7 uses Bytes type for avatarPhoto
     await this.prisma.db.user.update({
       where: { id: userId },
-      data: { avatarPhoto: data as any, avatarPhotoContentType: contentType },
+      // Prisma 7 types Bytes as Uint8Array<ArrayBuffer>; Buffer is
+      // Uint8Array<ArrayBufferLike>, so copy into a fresh Uint8Array.
+      data: { avatarPhoto: Uint8Array.from(data), avatarPhotoContentType: contentType },
     });
 
     await this.notifications
