@@ -83,7 +83,9 @@ export function Signup() {
   return (
     <RetroAuthLayout tag={t('auth.signupTag')}>
       <form
-        onSubmit={onSubmit}
+        onSubmit={(e) => {
+          void onSubmit(e);
+        }}
         style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}
       >
         <div>

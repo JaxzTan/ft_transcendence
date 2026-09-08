@@ -44,7 +44,9 @@ export function TwoFactor() {
   return (
     <RetroAuthLayout tag={t('auth.oneMoreStep')}>
       <form
-        onSubmit={onSubmit}
+        onSubmit={(e) => {
+          void onSubmit(e);
+        }}
         style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}
       >
         <div>
