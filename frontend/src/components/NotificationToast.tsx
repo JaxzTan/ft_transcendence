@@ -11,6 +11,19 @@ import { RETRO_BTN } from '../styles/tw';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Notification.payload is typed as an object, but the backend historically sent
+// a JSON string for some rows. Keep the defensive parse for old/streamed rows.
+function parseNotificationPayload(raw: Record<string, unknown>): Record<string, unknown> {
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return raw;
+}
+
 function getToastInfo(
   n: Notification,
   t: (key: string, options?: Record<string, unknown>) => string,
@@ -22,15 +35,10 @@ function getToastInfo(
   fromUser: string | null;
   actionMessage: string;
 } {
-  let payload: Record<string, unknown>;
-  try {
-    payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : n?.payload || {};
-  } catch {
-    payload = {};
-  }
-  const from = payload?.fromUsername ? String(payload.fromUsername) : null;
+  const payload = parseNotificationPayload(n.payload);
+  const from = payload.fromUsername ? String(payload.fromUsername) : null;
 
-  switch (n?.type) {
+  switch (n.type) {
     case 'friend_request':
       return {
         tag: t('notifications.linkReqTag'),
@@ -52,14 +60,14 @@ function getToastInfo(
     case 'game_invite':
       return {
         tag: t('notifications.matchChallengeTag'),
-        badgeLabel: payload?.playerCount === 4 ? '4P' : '1v1',
+        badgeLabel: payload.playerCount === 4 ? '4P' : '1v1',
         badgeColor: 'var(--accent-cyan, #00f0ff)',
         badgeBg: 'rgba(0, 240, 255, 0.18)',
         fromUser: from,
         actionMessage: t('notifications.actionMatchChallenge'),
       };
     case 'achievement': {
-      const nameKey = payload?.nameKey as string | undefined;
+      const nameKey = payload.nameKey as string | undefined;
       const name = nameKey ? t(nameKey) : '';
       return {
         tag: t('notifications.achievementTag'),
@@ -71,8 +79,8 @@ function getToastInfo(
       };
     }
     case 'match_finished': {
-      const rank = payload?.rank;
-      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival';
+      const rank = payload.rank;
+      const winner = payload.winnerUsername ? String(payload.winnerUsername) : 'A rival';
       return {
         tag: t('notifications.matchEndTag'),
         badgeLabel: 'END',
@@ -86,7 +94,7 @@ function getToastInfo(
       };
     }
     case 'match_cancelled':
-      return payload?.reason === 'resign'
+      return payload.reason === 'resign'
         ? {
             tag: t('notifications.matchCancelledTag'),
             badgeLabel: 'ABRT',
@@ -127,9 +135,9 @@ function getToastInfo(
         badgeLabel: 'ON',
         badgeColor: '#00ff88',
         badgeBg: 'rgba(0, 255, 136, 0.18)',
-        fromUser: String(payload?.displayName || from),
+        fromUser: String(payload.displayName ?? from),
         actionMessage: t('notifications.actionFriendOnline', {
-          displayName: payload?.displayName || from,
+          displayName: payload.displayName ?? from,
         }),
       };
     case 'friend_offline':
@@ -138,13 +146,13 @@ function getToastInfo(
         badgeLabel: 'OFF',
         badgeColor: 'var(--accent-yellow, #ffe600)',
         badgeBg: 'rgba(255, 230, 0, 0.18)',
-        fromUser: String(payload?.displayName || from),
+        fromUser: String(payload.displayName ?? from),
         actionMessage: t('notifications.actionFriendOffline', {
-          displayName: payload?.displayName || from,
+          displayName: payload.displayName ?? from,
         }),
       };
     case 'profile_updated': {
-      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : [];
+      const items = Array.isArray(payload.items) ? (payload.items as string[]) : [];
       const labels = items
         .map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`))
         .join(', ');
@@ -158,8 +166,8 @@ function getToastInfo(
       };
     }
     case 'display_name_changed': {
-      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from;
-      const newName = payload?.displayName
+      const oldName = payload.oldDisplayName ? String(payload.oldDisplayName) : from;
+      const newName = payload.displayName
         ? String(payload.displayName)
         : t('notifications.unknown');
       return {
@@ -242,15 +250,7 @@ function Toast({
     } catch {
       // Ignore: a sound failure should never break the UI.
     }
-    let p: Record<string, unknown>;
-    try {
-      p =
-        typeof notification?.payload === 'string'
-          ? JSON.parse(notification.payload)
-          : notification?.payload || {};
-    } catch {
-      p = {};
-    }
+    const p = parseNotificationPayload(notification.payload);
     setActiveMatch({
       gameId: p.gameId as string,
       token: p.token as string,
@@ -272,15 +272,7 @@ function Toast({
     } catch {
       // Ignore: a sound failure should never break the UI.
     }
-    let p: Record<string, unknown>;
-    try {
-      p =
-        typeof notification?.payload === 'string'
-          ? JSON.parse(notification.payload)
-          : notification?.payload || {};
-    } catch {
-      p = {};
-    }
+    const p = parseNotificationPayload(notification.payload);
     if (p.requestId) {
       try {
         await apiFetch(`/api/friends/accept/${p.requestId}`, { method: 'POST' });
@@ -298,15 +290,7 @@ function Toast({
     } catch {
       // Ignore: a sound failure should never break the UI.
     }
-    let p: Record<string, unknown>;
-    try {
-      p =
-        typeof notification?.payload === 'string'
-          ? JSON.parse(notification.payload)
-          : notification?.payload || {};
-    } catch {
-      p = {};
-    }
+    const p = parseNotificationPayload(notification.payload);
     if (p.requestId) {
       try {
         await apiFetch(`/api/friends/decline/${p.requestId}`, { method: 'POST' });
@@ -534,7 +518,9 @@ function Toast({
         {notification.type === 'friend_request' && (
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button
-              onClick={acceptFriend}
+              onClick={() => {
+                void acceptFriend();
+              }}
               className={RETRO_BTN}
               style={{
                 flex: 1,
@@ -555,7 +541,9 @@ function Toast({
               {t('nav.acceptInvite').toUpperCase()}
             </button>
             <button
-              onClick={declineFriend}
+              onClick={() => {
+                void declineFriend();
+              }}
               className={RETRO_BTN}
               style={{
                 flex: 1,

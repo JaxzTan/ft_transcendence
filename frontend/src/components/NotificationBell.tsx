@@ -98,19 +98,28 @@ function getNotificationTypeBadge(type: string): {
   }
 }
 
+// Notification.payload is typed as an object, but the backend historically sent
+// a JSON string for some rows. Keep the defensive parse for old/streamed rows.
+function parseNotificationPayload(raw: Record<string, unknown>): Record<string, unknown> {
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return raw;
+}
+
+
 function renderNotificationBody(
   n: Notification,
   t: (key: string, options?: Record<string, unknown>) => string,
 ) {
-  let payload: Record<string, unknown>;
-  try {
-    payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : n?.payload || {};
-  } catch {
-    payload = {};
-  }
-  const from = payload?.fromUsername ? String(payload.fromUsername) : 'UNKNOWN';
+  const payload = parseNotificationPayload(n.payload);
+  const from = payload.fromUsername ? String(payload.fromUsername) : 'UNKNOWN';
 
-  switch (n?.type) {
+  switch (n.type) {
     case 'friend_request':
       return <span>{t('notifications.friendRequestText', { username: from })}</span>;
     case 'friend_accepted':
@@ -118,7 +127,7 @@ function renderNotificationBody(
     case 'game_invite':
       return <span>{t('notifications.matchChallengeText', { username: from })}</span>;
     case 'achievement': {
-      const nameKey = payload?.nameKey as string | undefined;
+      const nameKey = payload.nameKey as string | undefined;
       const name = nameKey ? t(nameKey) : '';
       return name ? <span>{name}!</span> : <span>{t('notifications.achievementUnlocked')}</span>;
     }
@@ -129,24 +138,24 @@ function renderNotificationBody(
     case 'friend_online':
       return (
         <span>
-          {t('notifications.friendOnlineText', { displayName: payload?.displayName || from })}
+          {t('notifications.friendOnlineText', { displayName: payload.displayName ?? from })}
         </span>
       );
     case 'friend_offline':
       return (
         <span>
-          {t('notifications.friendOfflineText', { displayName: payload?.displayName || from })}
+          {t('notifications.friendOfflineText', { displayName: payload.displayName ?? from })}
         </span>
       );
     case 'match_cancelled':
-      return payload?.reason === 'resign' ? (
+      return payload.reason === 'resign' ? (
         <span>{t('notifications.matchResignedText', { username: from })}</span>
       ) : (
         <span>{t('notifications.matchCancelledText', { username: from })}</span>
       );
     case 'match_finished': {
-      const rank = payload?.rank;
-      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival';
+      const rank = payload.rank;
+      const winner = payload.winnerUsername ? String(payload.winnerUsername) : 'A rival';
       return rank === 1 ? (
         <span>{t('notifications.matchEndWonText')}</span>
       ) : (
@@ -154,15 +163,15 @@ function renderNotificationBody(
       );
     }
     case 'profile_updated': {
-      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : [];
+      const items = Array.isArray(payload.items) ? (payload.items as string[]) : [];
       const labels = items
         .map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`))
         .join(', ');
       return <span>{t('notifications.profileUpdatedText', { item: labels || '—' })}</span>;
     }
     case 'display_name_changed': {
-      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from;
-      const newName = payload?.displayName ? String(payload.displayName) : 'UNKNOWN';
+      const oldName = payload.oldDisplayName ? String(payload.oldDisplayName) : from;
+      const newName = payload.displayName ? String(payload.displayName) : 'UNKNOWN';
       return (
         <span>
           {t('notifications.displayNameChangedText', {
@@ -221,7 +230,7 @@ export function NotificationBell({
   const { setActiveMatch } = useApp();
 
   const list = Array.isArray(notifications) ? notifications : [];
-  const count = typeof unreadCount === 'number' ? unreadCount : list.filter((n) => !n?.read).length;
+  const count = typeof unreadCount === 'number' ? unreadCount : list.filter((n) => !n.read).length;
 
   // Close dropdown when clicking outside (either the trigger or the
   // portaled dropdown itself, which no longer lives inside `ref`).
@@ -282,7 +291,7 @@ export function NotificationBell({
   };
 
   const handleItemClick = (n: Notification) => {
-    if (onMarkRead && n?.id) {
+    if (n.id) {
       onMarkRead(n.id);
     }
     try {
@@ -291,14 +300,9 @@ export function NotificationBell({
       // Audio can be blocked before a user gesture — never fail the UI for it.
     }
 
-    let p: Record<string, unknown>;
-    try {
-      p = typeof n?.payload === 'string' ? JSON.parse(n.payload) : n?.payload || {};
-    } catch {
-      p = {};
-    }
+    const p = parseNotificationPayload(n.payload);
 
-    if (n?.type === 'game_invite') {
+    if (n.type === 'game_invite') {
       setActiveMatch({
         gameId: p.gameId as string,
         token: p.token as string,
@@ -311,7 +315,7 @@ export function NotificationBell({
         navigate(`/game?gameId=${p.gameId}`);
       }
       setOpen(false);
-    } else if (n?.type === 'friend_request' || n?.type === 'friend_accepted') {
+    } else if (n.type === 'friend_request' || n.type === 'friend_accepted') {
       navigate('/friends');
       setOpen(false);
     }
@@ -320,9 +324,7 @@ export function NotificationBell({
   const handleClearAll = (e: React.MouseEvent) => {
     e.stopPropagation();
     retroAudio.playUiBeep(380, 0.06);
-    if (onMarkAllRead) {
-      onMarkAllRead();
-    }
+    onMarkAllRead();
   };
 
   const isRight = placement === 'right';
