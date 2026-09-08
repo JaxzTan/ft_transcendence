@@ -125,13 +125,13 @@ export function Friends() {
           },
         );
         setFriends(sorted);
-        setRequests(requestsData.received || []);
+        setRequests(requestsData.received ?? []);
       }
-      if (bRes?.ok) {
+      if (bRes.ok) {
         const blockedData = await bRes.json();
-        setBlocked(blockedData || []);
+        setBlocked(blockedData ?? []);
       }
-      if (lRes?.ok) {
+      if (lRes.ok) {
         const lData = await lRes.json();
         if (lData?.entries) {
           const map: Record<string, number> = {};
@@ -178,7 +178,7 @@ export function Friends() {
         let errorMsg = t('friends.couldNotSendRequest');
         // Best-effort: surface the backend's message when the error body is JSON.
         const errorData: { message?: string } | null = await reqRes.json().catch(() => null);
-        errorMsg = errorData?.message || errorMsg;
+        errorMsg = errorData?.message ?? errorMsg;
         retroAudio.playUiBeep(320, 0.08);
         setMsg({ text: errorMsg, type: 'error' });
         return;
@@ -604,7 +604,7 @@ export function Friends() {
                         filteredFriends.map((f) => {
                           const fRank = leaderboardMap[f.username];
                           const fTier = getRankTier(f.rating, fRank);
-                          const fStatus = STATUS_STYLE[f.status] || STATUS_STYLE.offline;
+                          const fStatus = STATUS_STYLE[f.status];
                           return (
                             <div
                               key={f.id}
@@ -714,7 +714,7 @@ export function Friends() {
                                       letterSpacing: '0.02em',
                                     }}
                                   >
-                                    {f.displayName || f.username}
+                                    {f.displayName ?? f.username}
                                   </div>
                                   <div
                                     style={{
@@ -726,7 +726,7 @@ export function Friends() {
                                     }}
                                   >
                                     ●{' '}
-                                    {t(STATUS_KEYS[f.status] ?? STATUS_KEYS.offline).toUpperCase()}
+                                    {t(STATUS_KEYS[f.status]).toUpperCase()}
                                   </div>
                                 </div>
                               </div>
@@ -882,7 +882,7 @@ export function Friends() {
                                   fontFamily: 'var(--font-display)',
                                 }}
                               >
-                                {b.displayName || b.username}
+                                {b.displayName ?? b.username}
                               </div>
                               <div
                                 style={{
@@ -901,7 +901,9 @@ export function Friends() {
 
                           <button
                             className={RETRO_BTN}
-                            onClick={() => handleUnblock(b.id)}
+                            onClick={() => {
+                              void handleUnblock(b.id);
+                            }}
                             style={{
                               padding: '5px 14px',
                               fontSize: '0.72rem',
@@ -977,7 +979,9 @@ export function Friends() {
                       />
                       <button
                         className={RETRO_BTN}
-                        onClick={handleAddFriend}
+                        onClick={() => {
+                          void handleAddFriend();
+                        }}
                         style={{
                           padding: '9px 16px',
                           fontSize: '0.78rem',
@@ -1180,7 +1184,7 @@ export function Friends() {
                                     textOverflow: 'ellipsis',
                                   }}
                                 >
-                                  {r.displayName || r.username}
+                                  {r.displayName ?? r.username}
                                 </div>
                                 <div
                                   style={{
@@ -1198,7 +1202,9 @@ export function Friends() {
                             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                               <button
                                 className={RETRO_BTN}
-                                onClick={() => handleAccept(r.id)}
+                                onClick={() => {
+                                  void handleAccept(r.id);
+                                }}
                                 style={{
                                   padding: '4px 10px',
                                   fontSize: '0.7rem',
@@ -1215,7 +1221,9 @@ export function Friends() {
                               </button>
                               <button
                                 className={RETRO_BTN}
-                                onClick={() => handleDecline(r.id)}
+                                onClick={() => {
+                                  void handleDecline(r.id);
+                                }}
                                 style={{
                                   padding: '4px 8px',
                                   fontSize: '0.7rem',
