@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Board } from '../components/Board';
 import { Die } from '../components/Die';
@@ -133,11 +133,14 @@ export function Game() {
   // Custom names typed into the Lobby seat-setup for local (hotseat) seats —
   // seat 0 is always the logged-in host (uses their real username instead),
   // so only look at seats[1..].
-  const localNames: Partial<Record<PlayerColor, string>> = {};
-  seats.forEach((seat, i) => {
-    if (i === 0) return;
-    if (seat.type === 'player') localNames[SLOT_COLORS[i]] = seat.name;
-  });
+  const localNames = useMemo<Partial<Record<PlayerColor, string>>>(() => {
+    const names: Partial<Record<PlayerColor, string>> = {};
+    seats.forEach((seat, i) => {
+      if (i === 0) return;
+      if (seat.type === 'player') names[SLOT_COLORS[i]] = seat.name;
+    });
+    return names;
+  }, [seats]);
   const socketRef = useRef<ReturnType<typeof connectSocket> | null>(null);
   const [view, dispatch] = useReducer(applyEvent, null, () =>
     initialView(activeMatch?.color ?? 'red'),
@@ -610,6 +613,11 @@ export function Game() {
     // given match) — NOT the whole activeMatch object, so patching
     // mode/color/playerCount later (see activeMatchRef above) doesn't tear
     // down and reopen the socket mid-handshake.
+    // Long-lived socket handlers intentionally read live values through
+    // viewRef/activeMatchRef (see comment above), so re-keying this effect on
+    // activeMatch/user/seats/localNames/t would tear down and reopen the socket
+    // mid-handshake every time those patch (e.g. a lobby seat/color change).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMatch?.gameId, activeMatch?.token, setLastResult]);
 
   useEffect(() => {
@@ -625,7 +633,7 @@ export function Game() {
       user?.id,
       localNames[view.currentTurn] ?? user?.displayName,
     );
-  }, [view.currentTurn, view.status, activeMatch]);
+  }, [view.currentTurn, view.status, activeMatch, localNames, user]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -662,7 +670,7 @@ export function Game() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeMatch, user?.username]);
+  }, [activeMatch, user]);
 
   const rollDice = () => {
     if (!canRoll || isRolling || isRollingRef.current || isMovingPieceRef.current) return;

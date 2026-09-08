@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { navigate, useRoute } from '../router';
@@ -118,7 +118,7 @@ export function RetroNavbar({
     retroAudio.playUiBeep(880, 0.05);
   };
 
-  const fetchActiveGame = () => {
+  const fetchActiveGame = useCallback(() => {
     if (!user) {
       setActiveGame(null);
       return;
@@ -134,13 +134,13 @@ export function RetroNavbar({
         }
       })
       .catch(() => setActiveGame(null));
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchActiveGame();
     const iv = setInterval(fetchActiveGame, 2500);
     return () => clearInterval(iv);
-  }, [user, currentPath]);
+  }, [user, currentPath, fetchActiveGame]);
 
   const handleRejoinActive = async () => {
     if (!activeGame || isRejoining) return;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getApi } from '../api';
 import { UserAvatar } from '../components/UserAvatar';
@@ -279,7 +279,7 @@ export function Home() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isWarpingToLobby, setIsWarpingToLobby] = useState(false);
 
-  const launchToLobby = () => {
+  const launchToLobby = useCallback(() => {
     if (isWarpingToLobby) return;
     setIsWarpingToLobby(true);
     // Arcade coin drop and power-up chime
@@ -294,7 +294,7 @@ export function Home() {
     setTimeout(() => {
       navigate('/gamelobby');
     }, 350);
-  };
+  }, [isWarpingToLobby]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -310,7 +310,7 @@ export function Home() {
     return () => {
       window.removeEventListener('keydown', handleGlobalKeyDown);
     };
-  }, [isWarpingToLobby]);
+  }, [launchToLobby]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
