@@ -5,11 +5,27 @@ import {
   ACHIEVEMENT_RULES,
   ACHIEVEMENT_KEYS,
   AchKey,
+  AchievementRule,
   LifecycleCounts,
   GameParticipantLike,
   GameLike,
 } from './achievements.registry';
 import { isBotUserId } from '../common/bot';
+
+// Structural shapes (kept local / decoupled from generated Prisma payloads).
+// An Achievement row exposes one boolean flag per AchKey.
+type AchievementFlags = Partial<Record<AchKey, boolean>>;
+
+// A Game row (with optional participants) that the per-game rules evaluate.
+interface GameWithParticipants extends GameLike {
+  participants?: Array<GameParticipantLike & { user_id: string }>;
+}
+
+// The User fields the lifetime counters read.
+interface UserStreaks {
+  winStreak?: number | null;
+  pveGameStreak?: number | null;
+}
 
 @Injectable()
 // Achievement unlock engine: evaluates the registry rules for a user or a
@@ -48,7 +64,7 @@ export class AchievementsService {
   // announce=false = silent backfill (POST /check).
   async evaluateForUser(
     userId: string,
-    game?: any,
+    game?: GameWithParticipants | null,
     announce = true,
   ): Promise<{ unlocked: string[] }> {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId }, include: { achievement: true } });
@@ -71,7 +87,7 @@ export class AchievementsService {
     const perGameRules = ACHIEVEMENT_RULES.filter((r) => r.type === 'per-game');
     if (game) {
       for (const rule of perGameRules) {
-        await this.evaluateRule(userId, user, rule, counts, game, announce, unlocked);
+        await this.evaluateRule(userId, user.achievement, rule, counts, game, announce, unlocked);
       }
     } else {
       const games = await this.prisma.db.game.findMany({
@@ -94,14 +110,14 @@ export class AchievementsService {
   // Evaluate a single rule and unlock+notify if the gate newly flips true.
   private async evaluateRule(
     userId: string,
-    user: any,
-    rule: { key: AchKey; nameKey: string; type: 'lifetime' | 'per-game'; target?: number; source?: (ctx: LifecycleCounts) => number; perGameSource?: (part: GameParticipantLike, game: GameLike) => number; perGameTarget?: number },
+    flags: AchievementFlags | null,
+    rule: AchievementRule,
     counts: LifecycleCounts,
-    game: any,
+    game: GameWithParticipants | null,
     announce: boolean,
     unlocked: string[],
   ): Promise<void> {
-    const alreadyUnlocked = Boolean((user as any)[rule.key]);
+    const alreadyUnlocked = Boolean(flags?.[rule.key]);
     if (alreadyUnlocked) return;
 
     let progress = 0;
@@ -111,11 +127,9 @@ export class AchievementsService {
       progress = rule.source(counts);
       target = rule.target ?? 0;
     } else if (rule.type === 'per-game' && rule.perGameSource && game) {
-      const myParticipation = game.participants?.find(
-        (p: any) => p.user_id === userId,
-      ) as GameParticipantLike | undefined;
+      const myParticipation = game.participants?.find((p) => p.user_id === userId);
       if (myParticipation) {
-        progress = rule.perGameSource(myParticipation, game as GameLike);
+        progress = rule.perGameSource(myParticipation, game);
         target = rule.perGameTarget ?? 0;
       }
     }
@@ -157,14 +171,15 @@ export class AchievementsService {
       include: { participants: true },
     });
     const myParticipation = latestGame?.participants?.find(
-      (p: any) => p.user_id === effectiveUserId,
-    ) as GameParticipantLike | undefined;
+      (p) => p.user_id === effectiveUserId,
+    );
 
     const result: Record<string, { unlocked: boolean; progress: number; target: number }> = {};
 
     for (const key of ACHIEVEMENT_KEYS) {
-      const rule = ACHIEVEMENT_RULES.find((r) => r.key === key)!;
-      const unlocked = Boolean((user.achievement as any)?.[key]);
+      const rule = ACHIEVEMENT_RULES.find((r) => r.key === key);
+      if (!rule) continue;
+      const unlocked = Boolean(user.achievement?.[key]);
 
       let progress = 0;
       let target = rule.target ?? 0;
@@ -175,7 +190,7 @@ export class AchievementsService {
       } else if (rule.type === 'per-game' && rule.perGameSource) {
         // Per-game progress = current game value (0 when no game in progress).
         if (myParticipation && latestGame) {
-          progress = rule.perGameSource(myParticipation, latestGame as GameLike);
+          progress = rule.perGameSource(myParticipation, latestGame);
         }
         target = rule.perGameTarget ?? 0;
       }
@@ -187,7 +202,7 @@ export class AchievementsService {
   }
 
   // Compute lifetime counters once per evaluation (PVP/PVE games only).
-  private async computeLifecycleCounts(userId: string, user: any): Promise<LifecycleCounts> {
+  private async computeLifecycleCounts(userId: string, user: UserStreaks): Promise<LifecycleCounts> {
     const participations = await this.prisma.db.gameParticipant.findMany({
       where: { user_id: userId },
       include: { game: { select: { gameType: true, status: true } } },
@@ -196,17 +211,17 @@ export class AchievementsService {
     // Only COMPLETED PVP/PVE participations count : ABANDONED games have no
     // definitive result, and hotseat is demo-and-forget (never reaches the DB).
     const pvpPve = participations.filter(
-      (p: any) =>
+      (p) =>
         p.game?.status === 'COMPLETED' &&
         (p.game?.gameType === 'PVP' || p.game?.gameType === 'PVE'),
     );
 
-    const wins = pvpPve.filter((p: any) => p.rank === 1).length;
+    const wins = pvpPve.filter((p) => p.rank === 1).length;
     const botWins = pvpPve.filter(
-      (p: any) => p.rank === 1 && p.game?.gameType === 'PVE',
+      (p) => p.rank === 1 && p.game?.gameType === 'PVE',
     ).length;
     const humanWins = pvpPve.filter(
-      (p: any) => p.rank === 1 && p.game?.gameType === 'PVP',
+      (p) => p.rank === 1 && p.game?.gameType === 'PVP',
     ).length;
 
     return {
@@ -224,7 +239,7 @@ export class AchievementsService {
     try {
       const user = await this.prisma.db.user.findUnique({ where: { id: userId }, include: { achievement: true } });
       if (!user) return false;
-      if ((user.achievement as any)[field]) return false; // already unlocked : no re-notify
+      if (user.achievement?.[field]) return false; // already unlocked : no re-notify
 
       await this.prisma.db.achievement.update({
         where: { userId },
