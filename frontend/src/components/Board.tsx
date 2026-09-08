@@ -380,7 +380,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
     // in-transit step regardless so the box-by-box travel stays visible.
     if (!isAnimating && (piece.isInBase || piece.isInGoal || piece.step <= 0)) continue
     const ck = piece.color as ColorKey
-    const cell = stepToCell(ck, isAnimating ? animating!.step : piece.step)
+    const cell = stepToCell(ck, isAnimating && animating ? animating.step : piece.step)
     if (!cell) continue
     const key = `${cell.r},${cell.c}`
     const list = byCell.get(key) ?? []

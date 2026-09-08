@@ -11,7 +11,7 @@ import { RETRO_BTN } from '../styles/tw'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getToastInfo(n: Notification, t: (key: string, options?: any) => string): {
+function getToastInfo(n: Notification, t: (key: string, options?: Record<string, unknown>) => string): {
   tag: string
   badgeLabel: string
   badgeColor: string
@@ -19,7 +19,7 @@ function getToastInfo(n: Notification, t: (key: string, options?: any) => string
   fromUser: string | null
   actionMessage: string
 } {
-  let payload: Record<string, any> = {}
+  let payload: Record<string, unknown>
   try {
     payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : (n?.payload || {})
   } catch {
@@ -211,7 +211,9 @@ function Toast({
   const dismiss = () => {
     try {
       retroAudio.playUiBeep(400, 0.04)
-    } catch {}
+    } catch {
+      // Ignore: a sound failure should never break the UI.
+    }
     setVisible(false)
     setTimeout(() => onDismiss(notification.id), 350)
   }
@@ -220,8 +222,10 @@ function Toast({
   const acceptInvite = () => {
     try {
       retroAudio.playUiBeep(880, 0.08)
-    } catch {}
-    let p: Record<string, any> = {}
+    } catch {
+      // Ignore: a sound failure should never break the UI.
+    }
+    let p: Record<string, unknown>
     try {
       p = typeof notification?.payload === 'string' ? JSON.parse(notification.payload) : (notification?.payload || {})
     } catch {
@@ -245,8 +249,10 @@ function Toast({
   const acceptFriend = async () => {
     try {
       retroAudio.playUiBeep(880, 0.08)
-    } catch {}
-    let p: Record<string, any> = {}
+    } catch {
+      // Ignore: a sound failure should never break the UI.
+    }
+    let p: Record<string, unknown>
     try {
       p = typeof notification?.payload === 'string' ? JSON.parse(notification.payload) : (notification?.payload || {})
     } catch {
@@ -255,7 +261,9 @@ function Toast({
     if (p.requestId) {
       try {
         await apiFetch(`/api/friends/accept/${p.requestId}`, { method: 'POST' })
-      } catch {}
+      } catch {
+        // Ignore: non-critical action; the toast still dismisses.
+      }
     }
     dismiss()
   }
@@ -264,8 +272,10 @@ function Toast({
   const declineFriend = async () => {
     try {
       retroAudio.playUiBeep(400, 0.05)
-    } catch {}
-    let p: Record<string, any> = {}
+    } catch {
+      // Ignore: a sound failure should never break the UI.
+    }
+    let p: Record<string, unknown>
     try {
       p = typeof notification?.payload === 'string' ? JSON.parse(notification.payload) : (notification?.payload || {})
     } catch {
@@ -274,7 +284,9 @@ function Toast({
     if (p.requestId) {
       try {
         await apiFetch(`/api/friends/decline/${p.requestId}`, { method: 'POST' })
-      } catch {}
+      } catch {
+        // Ignore: non-critical action; the toast still dismisses.
+      }
     }
     dismiss()
   }

@@ -95,7 +95,7 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
   const modeLabel = modeLabels[result.mode] || t('results.modeDefault')
 
   // Calculate outcome display title
-  let outcomeTitle = t('results.outcomeCompleted')
+  let outcomeTitle: string
   if (result.abandoned || !hasRealWinner) {
     outcomeTitle = t('results.outcomeAbandoned')
   } else if (result.mode === 'hotseat') {

@@ -79,11 +79,15 @@ export function MarkdownViewer({ content }: MarkdownViewerProps) {
       const codeMatch = remaining.match(/`(.*?)`/)
 
       const firstMatch = [
-        boldMatch ? { type: 'bold', index: boldMatch.index!, match: boldMatch } : null,
-        codeMatch ? { type: 'code', index: codeMatch.index!, match: codeMatch } : null,
+        boldMatch && boldMatch.index !== undefined
+          ? { type: 'bold' as const, index: boldMatch.index, match: boldMatch }
+          : null,
+        codeMatch && codeMatch.index !== undefined
+          ? { type: 'code' as const, index: codeMatch.index, match: codeMatch }
+          : null,
       ]
-        .filter(Boolean)
-        .sort((a, b) => a!.index - b!.index)[0]
+        .filter((m): m is NonNullable<typeof m> => m !== null)
+        .sort((a, b) => a.index - b.index)[0]
 
       if (!firstMatch) {
         parts.push(remaining)

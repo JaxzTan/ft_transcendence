@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
+import type { CSSProperties } from 'react'
 import { dicebearAvatar } from '../dicebear'
 import { useAvatarVersion } from '../avatarCache'
 
 type UserAvatarProps = {
   username: string
   size: number
-  fallbackStyle?: any
-  avatarStyle?: any
-  style?: any
+  fallbackStyle?: CSSProperties
+  avatarStyle?: string | null
+  style?: CSSProperties
   cacheBuster?: number
   hasAvatarPhoto?: boolean
 }
@@ -37,7 +38,7 @@ export function UserAvatar({ username, size, fallbackStyle, avatarStyle, style, 
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ color: fallbackStyle.color || '#a99a83', opacity: 0.8 }}
+          style={{ color: fallbackStyle?.color || '#a99a83', opacity: 0.8 }}
         >
           <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />

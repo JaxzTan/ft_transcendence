@@ -42,8 +42,8 @@ function getNotificationTypeBadge(type: string): { tagKey: string; defaultTag: s
   }
 }
 
-function renderNotificationBody(n: Notification, t: (key: string, options?: any) => string) {
-  let payload: Record<string, any> = {}
+function renderNotificationBody(n: Notification, t: (key: string, options?: Record<string, unknown>) => string) {
+  let payload: Record<string, unknown>
   try {
     payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : (n?.payload || {})
   } catch {
@@ -97,7 +97,7 @@ function renderNotificationBody(n: Notification, t: (key: string, options?: any)
   }
 }
 
-function timeAgo(iso: string, t: (key: string, options?: any) => string): string {
+function timeAgo(iso: string, t: (key: string, options?: Record<string, unknown>) => string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
   if (mins < 1) return t('notifications.justNow')
@@ -187,7 +187,9 @@ export function NotificationBell({
   const toggleOpen = () => {
     try {
       retroAudio.playUiBeep(open ? 480 : 720, 0.05)
-    } catch {}
+    } catch {
+      // Audio can be blocked before a user gesture — never fail the UI for it.
+    }
     setOpen(!open)
   }
 
@@ -197,9 +199,11 @@ export function NotificationBell({
     }
     try {
       retroAudio.playUiBeep(640, 0.05)
-    } catch {}
+    } catch {
+      // Audio can be blocked before a user gesture — never fail the UI for it.
+    }
 
-    let p: Record<string, any> = {}
+    let p: Record<string, unknown>
     try {
       p = typeof n?.payload === 'string' ? JSON.parse(n.payload) : (n?.payload || {})
     } catch {

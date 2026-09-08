@@ -57,7 +57,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
       setProviders(data.user.providers ?? [])
       setHasPassword(!!data.user.hasPassword)
       setTwoFactorEnabled(!!(data.user as { twoFactorEnabled?: boolean }).twoFactorEnabled)
-    })
+    }).catch(() => undefined)
     return () => { cancelled = true }
   }, [])
 
@@ -78,7 +78,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
     try {
       const data = await patchApi<ProfileResp>('/api/auth/profile', body)
       if (data?.user) {
-        setUser(data.user as never)
+        setUser(data.user)
         setProviders(data.user.providers ?? [])
         setTwoFactorEnabled(!!(data.user as { twoFactorEnabled?: boolean }).twoFactorEnabled)
         if (!data.user.email && email.trim()) setEmail(email.trim())
