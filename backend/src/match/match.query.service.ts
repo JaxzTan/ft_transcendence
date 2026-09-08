@@ -16,13 +16,20 @@ export class MatchQueryService {
 		const port = parseInt(process.env.REDIS_PORT || '6479', 10);
 		const password = secret('REDIS_PASSWORD');
 		this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-		this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+		this.redis.on('error', (error) => {
+			console.error('Redis error:', error.message);
+		});
 	}
 
 	// List all currently ACTIVE matches.
 	async listActiveGames() {
 		let cursor = '0';
-		const games: any[] = [];
+		const games: Array<{
+			id: string;
+			gameType: string;
+			player1: string;
+			player2: string;
+		}> = [];
 		do {
 			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
 			cursor = nextCursor;

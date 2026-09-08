@@ -10,6 +10,17 @@ const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
 const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
 
+// Shape handed back to the frontend when a match is created/joined/rejoined.
+export interface MatchRoomHandoff {
+	gameId: string;
+	token: string;
+	engineUrl: string;
+	color: string;
+	mode: string;
+	playerCount: number;
+	inviteCode?: string;
+}
+
 function generateInviteCode(): string {
 	const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 	let code = '';
@@ -36,7 +47,9 @@ export class MatchCreatorService {
 		const port = parseInt(process.env.REDIS_PORT || '6479', 10);
 		const password = secret('REDIS_PASSWORD');
 		this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-		this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+		this.redis.on('error', (error) => {
+			console.error('Redis error:', error.message);
+		});
 	}
 
 	// Create a new match room (PvP, PvE, or hotseat). PvP rooms start in WAITING;
@@ -208,41 +221,11 @@ export class MatchCreatorService {
 		// mode + playerCount are required: the frontend persists activeMatch for
 		// refresh/reconnect and branches on mode. Without them a refresh makes
 		// hotseat/PvE rejoin as a generic PvP seat.
-		const result: any = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color, mode, playerCount };
+		const result: MatchRoomHandoff = { gameId, token, engineUrl: ENGINE_WS_URL, color: player1Color, mode, playerCount };
 		if (isPvP) {
 			result.inviteCode = updates.inviteCode;
 		}
 		return result;
-	}
-
-	// Find an open PvP room to join, or create a new one if none available.
-	// If the caller already has a WAITING/ACTIVE room, rejoin it instead.
-	async findRandomMatch(userId: string, joiner: any, lister: any) {
-		// Prevent duplicate rooms: if caller already has a WAITING or ACTIVE room, reuse it
-		const myRooms = await lister(userId);
-		const existing = myRooms.find((r: any) => r.status === 'WAITING' || r.status === 'ACTIVE');
-		if (existing) {
-			return joiner(existing.id, userId);
-		}
-
-		// Scan Redis for a WAITING PvP game with an open slot
-		let cursor = '0';
-		do {
-			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
-			cursor = nextCursor;
-			for (const key of keys) {
-				const data = await this.redis.hgetall(key);
-				if (
-					data.status === 'WAITING' &&
-					data.gameType === 'PVP' &&
-					data.player1_id !== userId &&
-					!data.player2_id
-				) {
-					return joiner(data.id, userId);
-				}
-			}
-		} while (cursor !== '0');
-		return this.createMatch(userId, 'pvp', 4, 0);
 	}
 
 	// Create a PvP room and return its invite code (alias for createMatch).
@@ -261,7 +244,11 @@ export class MatchCreatorService {
 	}
 
 	// Join a PvP room by its 6-character invite code.
-	async joinByInvite(inviteCode: string, userId: string, joiner: any) {
+	async joinByInvite(
+		inviteCode: string,
+		userId: string,
+		joiner: (gameId: string, userId: string) => Promise<MatchRoomHandoff>,
+	) {
 		let cursor = '0';
 		do {
 			const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);

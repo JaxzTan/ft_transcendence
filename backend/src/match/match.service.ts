@@ -3,7 +3,8 @@ import { MatchCreatorService } from './match.creator.service';
 export { ENGINE_WS_URL } from './match.creator.service';
 import { MatchPlayerService } from './match.player.service';
 import { MatchQueryService } from './match.query.service';
-import { MatchPostgameService } from './match.postgame.service';
+import { MatchPostgameService, type GameEndPayload } from './match.postgame.service';
+export type { GameEndPayload } from './match.postgame.service';
 
 @Injectable()
 // Facade over the four match sub-services (creator, player, query,
@@ -26,9 +27,6 @@ export class MatchService {
 		seatColors?: string[],
 	) {
 		return this.creator.createMatch(userId, mode, playerCount, botCount, botColors, seatColors);
-	}
-	async findRandomMatch(userId: string) {
-		return this.creator.findRandomMatch(userId, (gameId: string, uid: string) => this.player.joinMatch(gameId, uid), (uid: string) => this.query.listMyRooms(uid));
 	}
 	async createInvite(userId: string) {
 		return this.creator.createInvite(userId);
@@ -85,7 +83,7 @@ export class MatchService {
 	}
 
 	// Post-game
-	async processGameEnd(data: any) {
+	async processGameEnd(data: GameEndPayload) {
 		return this.postgame.processGameEnd(data);
 	}
 	async cleanupStaleGames() {

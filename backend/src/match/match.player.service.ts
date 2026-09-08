@@ -25,7 +25,9 @@ export class MatchPlayerService {
 		const port = parseInt(process.env.REDIS_PORT || '6479', 10);
 		const password = secret('REDIS_PASSWORD');
 		this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-		this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+		this.redis.on('error', (error) => {
+			console.error('Redis error:', error.message);
+		});
 	}
 
 	// Join an existing WAITING match by filling the next empty slot.
@@ -71,7 +73,7 @@ export class MatchPlayerService {
 		const slotIndex = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(userId);
 		if (slotIndex === -1) throw new ForbiddenException('You are not a player in this game');
 
-		const color = (data[`player${slotIndex + 1}_color`] as string) || SLOT_COLORS[slotIndex];
+		const color = data[`player${slotIndex + 1}_color`] || SLOT_COLORS[slotIndex];
 		const username = await this.resolveUsername(userId);
 		const displayName = await this.resolveDisplayName(userId);
 		const token = this.jwt.sign(

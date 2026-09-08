@@ -7,6 +7,20 @@ import { NotificationService } from '../notification/notification.service';
 import { isBotUserId } from '../common/bot';
 import { ratingDeltaFor } from '../common/scoring'
 
+// Engine → backend payload for POST /api/game/end. Colors arrive uppercase
+// (matching the PlayerColor enum, e.g. 'RED').
+export interface GameEndParticipant {
+	userId: string;
+	color: string;
+	rank: number;
+	piecesCaptured?: number;
+	piecesInGoal?: number;
+}
+export interface GameEndPayload {
+	gameId: string;
+	participants: GameEndParticipant[];
+}
+
 // POST-GAME POINTS (piece-based): each piece home = 2 pts (PvP) or 1 pt (PvE),
 // winner gets +1 bonus piece. Losers still earn points; bots are skipped.
 
@@ -27,13 +41,15 @@ export class MatchPostgameService {
 		const port = parseInt(process.env.REDIS_PORT || '6479', 10);
 		const password = secret('REDIS_PASSWORD');
 		this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-		this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+		this.redis.on('error', (error) => {
+			console.error('Redis error:', error.message);
+		});
 	}
 
 	// Write final results to Postgres (game + participant rows), award piece-
 	// based rating, refresh the Redis leaderboard, and notify players. Called
 	// by the engine when a match ends.
-	async processGameEnd(data: { gameId: string; participants: Array<{ userId: string; color: string; rank: number; piecesCaptured?: number; piecesInGoal?: number }> }) {
+	async processGameEnd(data: GameEndPayload) {
 		const { gameId, participants } = data;
 		if (!gameId) throw new BadRequestException('gameId is required');
 		if (!participants || !Array.isArray(participants) || participants.length < 2) {
@@ -48,7 +64,7 @@ export class MatchPostgameService {
 		const matchData = await this.redis.hgetall(`match:${gameId}`);
 		const startedAt = matchData?.startedAt ? parseInt(matchData.startedAt) : null;
 		const endedAt = Date.now();
-		const gameType = (matchData?.gameType as any) || 'PVP';
+		const gameType = (matchData?.gameType || 'PVP') as 'PVP' | 'PVE';
 		const inviteCode = matchData?.inviteCode || null;
 
 		await this.prisma.db.$transaction(async (tx) => {
@@ -87,7 +103,7 @@ export class MatchPostgameService {
 						id: crypto.randomUUID(),
 						game_id: game.id,
 						user_id: p.userId,
-						color: p.color as any,
+						color: p.color as 'RED' | 'GREEN' | 'YELLOW' | 'BLUE',
 						rank: p.rank,
 						piecesCaptured: p.piecesCaptured || 0,
 						piecesInGoal: p.piecesInGoal || 0,

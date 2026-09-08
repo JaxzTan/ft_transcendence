@@ -1,5 +1,5 @@
 import { Controller, Post, UseGuards, Request, Body, Param, Get, Headers, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { MatchService } from './match.service';
+import { MatchService, type GameEndPayload } from './match.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { requireSecret } from '../secrets';
 
@@ -27,15 +27,6 @@ export class MatchController {
 		@Param('code') code: string,
 	) {
 		return this.match.joinByInvite(code, req.user.id);
-	}
-
-	// PvP: Quick match (findRandomMatch) : join first open room or create
-	@UseGuards(JwtAuthGuard)
-	@Post('api/match/pvp/random')
-	quickMatch(
-		@Request() req: { user: { id: string } },
-	) {
-		return this.match.findRandomMatch(req.user.id);
 	}
 
 	// PvE: Human vs Bot (1 - 3 bots)
@@ -133,7 +124,7 @@ export class MatchController {
 
 	// Game End (called by ludo-engine)
 	@Post('api/game/end')
-	gameEnd(@Headers('x-engine-key') key: string, @Body() body: any) {
+	gameEnd(@Headers('x-engine-key') key: string, @Body() body: GameEndPayload) {
 		if (key !== requireSecret('ENGINE_API_KEY')) {
 			throw new UnauthorizedException('Invalid engine key');
 		}
