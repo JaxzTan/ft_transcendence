@@ -22,7 +22,7 @@ colors, mark ready, and trigger the start.
 
 | File | Role |
 |------|------|
-| `lobby.ts` | `LobbyManager` — color selection (with swap), ready check |
+| `lobby.ts` | `LobbyManager` — color selection (with swap); readiness lives in the engine GameState |
 
 ---
 
@@ -30,10 +30,10 @@ colors, mark ready, and trigger the start.
 
 ### Lobby data
 
-The lobby is backed by the Redis **match metadata hash** (`match:{gameId}`),
-with fields like `player1_id`, `player1_color`, `readyPlayers`, and `status`.
-`LobbyManager.getLobbyState()` reads it and returns the player list with
-`{ userId, color, ready }`.
+The **match metadata hash** (`match:{gameId}`) tracks seats — `player1_id`,
+`player1_color`, `status`, `gameType`, etc. Readiness is NOT stored there: the
+roster and ready flags live in the engine GameState (`state.players` +
+`state.readyPlayers`), which `emitLobbyUpdate` broadcasts to clients.
 
 ---
 
@@ -45,21 +45,25 @@ with fields like `player1_id`, `player1_color`, `readyPlayers`, and `status`.
 sequenceDiagram
     participant Player
     participant Lobby as LobbyManager
+    participant Engine as LudoEngine (player-handler)
 
     Player->>Lobby: Pick a color
     alt That color is already taken
-        Lobby->>Lobby: Swap you with the player on that color
+        Lobby->>Lobby: Swap the two players' seats
+        Lobby->>Lobby: Clear Ready on both colors
     else Color free
-        Lobby->>Lobby: Reserve the color for you
+        Lobby->>Lobby: Assign the color
+        Lobby->>Lobby: Clear Ready on old + new color
     end
-    Lobby-->>Player: color_selected
+    Lobby-->>Player: color_selected / lobby_update
 
-    Player->>Lobby: Press "Ready"
-    Lobby->>Lobby: Are all seated players ready with a color?
+    Player->>Engine: Press "Ready" (player_ready)
+    Engine->>Engine: Mark the seat's color ready
+    Engine->>Engine: ≥2 active seats and all of them ready?
     alt Yes
-        Lobby->>Lobby: Start the game
+        Engine->>Engine: Start the game (WAITING → ACTIVE)
     else Not yet
-        Lobby-->>Player: lobby_update (keep waiting)
+        Engine-->>Player: lobby_update (keep waiting)
     end
 ```
 
@@ -72,19 +76,20 @@ sequenceDiagram
 select_color(color)
   ├── Game must be WAITING
   ├── Color out of seat count → error
-  ├── Color taken by someone else → swap colors between the two players
+  ├── Color taken by someone else → swap the two players' seats
   ├── Color free → assign
   ├── Mirror swap into engine GameState (seat identity only, pre-game)
+  ├── Clear the Ready flag on both colors involved (re-confirm after a change)
   └── Emit color_selected / lobby_update
 ```
 
 ### Ready Check Path
 ```
 player_ready
-  ├── Mark color ready in match hash
-  ├── All seated players have a color AND are ready?
+  ├── Mark the seat's color ready in engine GameState (state.readyPlayers)
+  ├── ≥2 active seats AND every active seat's color is ready?
   │   ├── Yes → start the game (WAITING → ACTIVE)
-  │   └── No → keep waiting
+  │   └── No → keep waiting (lobby_update)
 ```
 
 ---
@@ -93,6 +98,6 @@ player_ready
 
 | Dependency | Purpose |
 |-----------|---------|
-| `RedisGameStore` | Match data (seats, colors, ready flags, status) |
+| `RedisGameStore` | Match seats/colors/status + GameState persistence |
 | `EventPublisher` | Publishes lobby events to Redis pub/sub |
-| `LudoEngine` | Game state and ready-check integration |
+| `LudoEngine` | Game state and the ready/start gate (player-handler, join-manager) |

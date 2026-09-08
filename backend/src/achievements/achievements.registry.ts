@@ -164,7 +164,3 @@ export const ACHIEVEMENT_RULES: AchievementRule[] = [
     perGameSource: (part) => part.piecesCaptured,
   },
 ];
-
-export function getRule(key: AchKey): AchievementRule | undefined {
-  return ACHIEVEMENT_RULES.find((r) => r.key === key);
-}

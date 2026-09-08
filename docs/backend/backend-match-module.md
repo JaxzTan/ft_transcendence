@@ -230,9 +230,8 @@ GET /api/games/active
 
 | Dependency | Purpose |
 |-----------|---------|
-| `LeaderboardRedisService` | Reads/writes Redis sorted sets for rating updates |
 | `PresenceService` | Updates player presence when entering/leaving games |
-| `Redis` (ioredis) | Match state, invite codes |
+| `Redis` (ioredis) | Match state, invite codes; match.postgame posts finished-game ratings into `leaderboard:global` (zadd) |
 | `PrismaService` | Game history, rating updates, achievement evaluation |
 | `JwtService` | Issue JWTs for Socket.IO engine handshake |
 | `secrets.ts` | `ENGINE_API_KEY` for validating engine callbacks |

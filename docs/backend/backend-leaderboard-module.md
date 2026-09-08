@@ -179,7 +179,7 @@ from Redis — nothing needs to be filled again.
 
 #### 3b. Redis is empty (volume wiped / flushed) but PostgreSQL has users
 
-The first read **rebuilds Redis on demand** from PostgreSQL:
+The first read **backfills Redis on demand** from PostgreSQL:
 
 ```mermaid
 sequenceDiagram
@@ -246,7 +246,7 @@ sequenceDiagram
 |------|------|
 | `leaderboard.controller.ts` | HTTP route: GET with mode, page, limit query params (needs login) |
 | `leaderboard.service.ts` | Business logic: reads Redis, fills it from PostgreSQL (`User.rating`) when empty |
-| `leaderboard-redis.service.ts` | Redis layer: ZADD / ZREVRANGE / ZREVRANK / ZCARD + full rebuild helper |
+| `leaderboard-redis.service.ts` | Redis layer: ZADD / ZREVRANGE / ZREVRANK / ZCARD (PostgreSQL backfill orchestrated by LeaderboardService) |
 | `leaderboard.module.ts` | NestJS module — registers controller, services, and PrismaService |
 
 ---
@@ -383,7 +383,7 @@ FILL ON DEMAND (first read after Redis is empty)
 | Dependency | Purpose |
 |-----------|---------|
 | `PrismaService` | Database access (User model — ratings, profile info) |
-| `LeaderboardRedisService` | Redis layer: sorted-set reads/writes + rebuild helper |
+| `LeaderboardRedisService` | Redis layer: sorted-set reads/writes (PostgreSQL backfill lives in LeaderboardService) |
 | `ioredis` | Redis client |
 
 ---

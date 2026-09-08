@@ -3,7 +3,6 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { secret } from '../secrets';
 import Redis from 'ioredis';
-import { LeaderboardRedisService } from '../leaderboard/leaderboard-redis.service';
 import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
@@ -41,7 +40,6 @@ export class MatchCreatorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
-    private readonly leaderboardRedis: LeaderboardRedisService,
   ) {
     const host = process.env.REDIS_HOST ?? 'redis';
     const port = parseInt(process.env.REDIS_PORT ?? '6479', 10);

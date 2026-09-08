@@ -35,7 +35,7 @@ input/output. Each event is documented in full below; see
 | `roll_dice` | Current player, phase `WAITING_FOR_ROLL` | `()` | Roll the die and compute the legal moves (a 3rd six auto-forfeits the turn) | `dice_rolled` |
 | `move_piece` | Current player, phase `WAITING_FOR_MOVE` | `(pieceId: string)` | Validate and apply the move | `piece_moved` |
 | `player_ready` | Seated player in the waiting lobby | `()` | Mark ready; when every active player is ready the game starts | `game_started` |
-| `select_color` | Seated player during color selection | `(color: 'red'/'green'/'yellow'/'blue')` | Move the player to the requested seat color | `color_selected` + `lobby_update` |
+| `select_color` | Seated player during color selection | `(color: 'red'/'green'/'yellow'/'blue')` | Move the player to the requested seat color; clears Ready on both colors involved | `color_selected` + `lobby_update` |
 | `leave_game` | Player leaving a room (e.g. after a match) | `()` | Mark the seat exited, clear its pieces, advance the turn | `player_exited` |
 | `resign` | Player forfeiting an active match | `()` | Record the resignation as a loss and finish the player | `player_resigned` (+ `game_ended` if no active players remain) |
 | `end_game` | Host presses "End Game" | `()` | PvE/hotseat: abort the whole game. PvP: prune this player, abort the room if fewer than 2 humans remain | `game_expired` or `player_aborted` |

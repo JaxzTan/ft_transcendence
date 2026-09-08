@@ -1783,7 +1783,7 @@ socket.emit('move_piece', pieceId);
 
 **Source:** `backend/app/ludo-engine/src/socket/socket-handlers.ts` (`handlePlayerReady`)
 
-Mark the current player as ready in the lobby (triggers the ready-check that starts the game).
+Mark the current seat's color as ready (readiness is color-keyed in engine state). The game starts once ≥2 active seats are all ready.
 
 ```js
 socket.emit('player_ready');
@@ -1798,7 +1798,7 @@ socket.emit('player_ready');
 
 **Source:** `backend/app/ludo-engine/src/socket/socket-handlers.ts` (`handleSelectColor`)
 
-Pick a seat color in the lobby.
+Pick a seat color in the lobby. Picking or swapping a seat clears the Ready flag on both colors involved (readiness is tracked per color in engine state and must be re-confirmed after a change).
 
 ```js
 socket.emit('select_color', color);

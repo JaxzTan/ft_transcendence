@@ -2,11 +2,11 @@ import { LudoEngine } from './engine';
 import { RedisGameStore } from './redis';
 import { BoardMapper } from './board-mapper';
 import { isBotUserId } from './socket/auth';
-import type { PlayerColor, PieceId, GameState, LegalMove } from './types';
+import type { PlayerColor, GameState, LegalMove } from './types';
 
 const botMap = new Map<string, Map<PlayerColor, LudoBot>>();
 
-// Get (or lazily create) the bot instance for one seat in one game.
+// Get/create the bot instance for one seat in one game.
 // Used by socket/server.ts whenever a bot's turn must be triggered.
 export function getOrCreateBot(
   gameId: string,
@@ -158,13 +158,5 @@ export class LudoBot {
     }
 
     return true; // Game still active
-  }
-
-  getGameId(): string {
-    return this.gameId;
-  }
-
-  getColor(): PlayerColor {
-    return this.color;
   }
 }

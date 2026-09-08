@@ -37,7 +37,7 @@ The engine core is the game's referee: it runs inside the `ludo-engine` service 
 | `redis.ts` | `RedisGameStore` — Redis persistence layer |
 | `bot.ts` | Heuristic bot AI |
 | `player-handler.ts` | Disconnect/reconnect/exit/ready management and turn advance |
-| `lobby.ts` | Lobby management — color selection, ready check |
+| `lobby.ts` | Lobby management — color selection with seat swap (ready gate lives in player-handler.ts) |
 | `index.ts` | Entry point — starts Socket.IO server on port 3001 |
 
 ---
@@ -103,7 +103,7 @@ export interface GameState {
   resultDetail?: string;           // Human-readable finish reason
   resultSubmitted?: boolean;       // prevents duplicate backend submissions
   botBusy?: boolean;               // prevents overlapping bot turns
-  readyPlayers: PlayerColor[];     // Players who clicked "ready"
+  readyPlayers: PlayerColor[];     // Colors whose seat is ready (cleared when seats swap)
   paused?: boolean;                // Whether the game is paused
   pauseTurnOwner?: PlayerColor;    // Whose turn it was when paused
 }
@@ -241,8 +241,8 @@ move_piece(pieceId)
 | `MoveValidator` | Legal move computation |
 | `BoardMapper` | Board geometry, safe zones, track positions |
 | `RedisGameStore` | Redis persistence for game state |
-| `player-handler` | Disconnect/reconnect/exit/ready + `advanceTurnInState` |
-| `LobbyManager` | Color selection and ready check |
+| `player-handler` | Disconnect/reconnect/exit/ready + `advanceTurnInState`; ready/start gate |
+| `LobbyManager` | Color selection with seat swap (readiness cleared on swap) |
 
 ### Tunable constants
 

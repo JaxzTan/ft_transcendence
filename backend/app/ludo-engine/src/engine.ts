@@ -1,12 +1,4 @@
-import {
-  GameState,
-  PlayerColor,
-  LegalMove,
-  MoveResult,
-  MovePieceOutput,
-  PieceId,
-  GameEvent,
-} from './types';
+import { GameState, PlayerColor, LegalMove, MovePieceOutput, PieceId, GameEvent } from './types';
 import { RedisGameStore } from './redis';
 import { MoveValidator } from './move-validator';
 import { applyMoveOutcome } from './turn';

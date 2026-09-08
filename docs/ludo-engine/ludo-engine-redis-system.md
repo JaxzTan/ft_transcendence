@@ -110,7 +110,9 @@ session creates exactly three keys:
 |-----|------|---------------|
 | `game:{gameId}` | Hash | **One** field `state` = the whole game state as one JSON blob (the one true copy) |
 | `game:{gameId}:moves` | List | Last 200 moves (LPUSH + LTRIM), for replay/turn-log |
-| `match:{gameId}` | Hash | Lobby info: seats (`player{1-4}_id/color`), `readyPlayers`, `status`, `gameType`, `inviteCode`, `idleSince` |
+| `match:{gameId}` | Hash | Lobby info: seats (`player{1-4}_id/color`), `status`, `gameType`, `inviteCode`, `idleSince` |
+
+Readiness is stored inside the game `state` blob (`state.readyPlayers`), not in the match hash.
 
 That's the whole picture: **3 keys per game** — no matter how many pieces are
 moving, how many bots are seated, or how many cells the board has. When the
@@ -351,7 +353,7 @@ model already *is* the occupancy map: **16 nodes with a `step` field answer
 |---------|------|-----|-------------|
 | `game:{gameId}` | Hash | 86400s (24h) | One field `state` = serialized GameState JSON |
 | `game:{gameId}:moves` | List | — | Move history, trimmed to 200 entries |
-| `match:{gameId}` | Hash | 3600s (aborted) | Match metadata: `player{1-4}_id`, `player{1-4}_color`, `readyPlayers`, `status`, `gameType`, `inviteCode`, `idleSince` |
+| `match:{gameId}` | Hash | 3600s (aborted) | Match metadata: `player{1-4}_id`, `player{1-4}_color`, `status`, `gameType`, `inviteCode`, `idleSince` |
 
 ### Value Format
 

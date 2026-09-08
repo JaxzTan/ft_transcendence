@@ -164,8 +164,8 @@ export async function handlePlayerReconnect(
   await store.saveGameState(gameId, state);
 }
 
-// Handle a player clicking "ready". When all joined players are ready,
-// the game transitions to 'active'.
+// Handle a player clicking "ready". When every active seat is ready the
+// game transitions to 'active'.
 export async function handlePlayerReady(
   store: RedisGameStore,
   emit: (event: GameEvent) => void,
@@ -182,9 +182,9 @@ export async function handlePlayerReady(
 
   await store.saveGameState(gameId, state);
 
-  // Check if game should start (delegate to lobby manager if available).
-  // Requires >= 2 active seats : a lone host marking themselves ready must
-  // not be able to flip a pvp match to 'active' with nobody else in the room.
+  // Start gate: at least 2 active seats and every one of them ready. A lone
+  // host marking themselves ready must not flip a pvp match to 'active' with
+  // nobody else in the room.
   const activeCount = state.players.filter((p) => p.status === 'active').length;
   const allReady =
     activeCount >= 2 &&
