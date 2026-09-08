@@ -66,14 +66,14 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10010] flex items-center justify-center p-4 sm:p-6 bg-[rgba(5,2,14,0.82)] backdrop-blur-[12px] animate-fade-in"
+      className="animate-fade-in fixed inset-0 z-[10010] flex items-center justify-center bg-[rgba(5,2,14,0.82)] p-4 backdrop-blur-[12px] sm:p-6"
       onClick={() => {
         retroAudio.playUiBeep(440, 0.05);
         onClose();
       }}
     >
       <div
-        className={`${RETRO_WINDOW} w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(0,240,255,0.25)] border-[1.5px] border-[rgba(0,240,255,0.4)] rounded-xl overflow-hidden`}
+        className={`${RETRO_WINDOW} flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border-[1.5px] border-[rgba(0,240,255,0.4)] shadow-[0_25px_70px_rgba(0,0,0,0.95),0_0_35px_rgba(0,240,255,0.25)]`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with Title, Controls & Switchers */}
@@ -87,7 +87,7 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
           }}
         >
           <div className="flex items-center gap-3">
-            <span className="font-display font-black text-sm tracking-wider text-[#ffffff]">
+            <span className="font-display text-sm font-black tracking-wider text-[#ffffff]">
               {activeDoc === 'privacy'
                 ? '🛡️ ' + t('legal.privacyPolicy', 'PRIVACY POLICY')
                 : '📜 ' + t('legal.termsOfService', 'TERMS OF SERVICE')}
@@ -96,10 +96,10 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
 
           <div className="flex items-center gap-3">
             {/* Document Tabs */}
-            <div className="flex items-center bg-[rgba(0,0,0,0.5)] p-0.5 rounded-lg border border-[rgba(0,240,255,0.25)]">
+            <div className="flex items-center rounded-lg border border-[rgba(0,240,255,0.25)] bg-[rgba(0,0,0,0.5)] p-0.5">
               <button
                 type="button"
-                className={`px-2.5 py-1 text-[0.7rem] font-display font-bold rounded transition-all ${
+                className={`font-display rounded px-2.5 py-1 text-[0.7rem] font-bold transition-all ${
                   activeDoc === 'privacy'
                     ? 'bg-[var(--accent-pink)] text-[#ffffff] shadow-[0_0_10px_rgba(255,0,127,0.5)]'
                     : 'text-[var(--text-muted)] hover:text-[#ffffff]'
@@ -113,7 +113,7 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
               </button>
               <button
                 type="button"
-                className={`px-2.5 py-1 text-[0.7rem] font-display font-bold rounded transition-all ${
+                className={`font-display rounded px-2.5 py-1 text-[0.7rem] font-bold transition-all ${
                   activeDoc === 'terms'
                     ? 'bg-[var(--accent-pink)] text-[#ffffff] shadow-[0_0_10px_rgba(255,0,127,0.5)]'
                     : 'text-[var(--text-muted)] hover:text-[#ffffff]'
@@ -128,12 +128,12 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
             </div>
 
             {/* Language Switcher */}
-            <div className="flex items-center bg-[rgba(0,0,0,0.5)] p-0.5 rounded-lg border border-[rgba(0,240,255,0.25)]">
+            <div className="flex items-center rounded-lg border border-[rgba(0,240,255,0.25)] bg-[rgba(0,0,0,0.5)] p-0.5">
               {(['en', 'ms', 'fr'] as const).map((l) => (
                 <button
                   key={l}
                   type="button"
-                  className={`px-2 py-1 text-[0.68rem] font-mono font-bold rounded transition-all ${
+                  className={`rounded px-2 py-1 font-mono text-[0.68rem] font-bold transition-all ${
                     docLang === l
                       ? 'bg-[var(--accent-cyan)] text-[#0a0519] shadow-[0_0_8px_rgba(0,240,255,0.5)]'
                       : 'text-[var(--text-muted)] hover:text-[#ffffff]'
@@ -166,20 +166,20 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
 
         {/* Scrollable Document Body */}
         <div
-          className={`${WINDOW_BODY} flex-1 overflow-y-auto p-6 sm:p-8 bg-[rgba(12,4,28,0.92)] text-[var(--text-main)]`}
+          className={`${WINDOW_BODY} flex-1 overflow-y-auto bg-[rgba(12,4,28,0.92)] p-6 text-[var(--text-main)] sm:p-8`}
           style={{ maxHeight: 'calc(90vh - 110px)' }}
         >
           <MarkdownViewer content={currentContent} />
         </div>
 
         {/* Modal Footer Bar */}
-        <div className="p-3 bg-[rgba(18,6,42,0.95)] border-t border-[rgba(0,240,255,0.2)] flex justify-between items-center px-6">
+        <div className="flex items-center justify-between border-t border-[rgba(0,240,255,0.2)] bg-[rgba(18,6,42,0.95)] p-3 px-6">
           <span className="font-mono text-[0.68rem] text-[var(--text-muted)]">
             // PACE 24 · RETROLUDO '42 LEGAL ARCHIVE [{docLang.toUpperCase()}]
           </span>
           <button
             type="button"
-            className={`${RETRO_BTN} px-4 py-1.5 text-xs font-display font-black text-[#ffffff] bg-[linear-gradient(90deg,rgba(0,240,255,0.3),rgba(255,0,127,0.3))] border border-[var(--accent-cyan)] rounded-lg hover:shadow-[0_0_15px_rgba(0,240,255,0.4)]`}
+            className={`${RETRO_BTN} font-display rounded-lg border border-[var(--accent-cyan)] bg-[linear-gradient(90deg,rgba(0,240,255,0.3),rgba(255,0,127,0.3))] px-4 py-1.5 text-xs font-black text-[#ffffff] hover:shadow-[0_0_15px_rgba(0,240,255,0.4)]`}
             onClick={() => {
               retroAudio.playUiBeep(440, 0.05);
               onClose();

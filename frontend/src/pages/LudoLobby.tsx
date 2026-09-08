@@ -233,17 +233,17 @@ export function LudoLobby() {
       {/* CRT Monitor Overlay FX Container */}
       <div className={`${CRT_SCREEN} crt-screen ${crtEnabled ? 'relative' : ''}`} id="crtScreen">
         {/* Dynamic Full-Width Seated Sidebar & Content Layout Container */}
-        <div className="w-full min-h-screen px-6 py-8 flex flex-row items-start justify-center gap-7 relative z-10 box-border">
+        <div className="relative z-10 box-border flex min-h-screen w-full flex-row items-start justify-center gap-7 px-6 py-8">
           {/* Left-Seated Navigation Dock */}
           <aside
-            className="shrink-0 w-[88px] xl:w-[270px] sticky top-8"
+            className="sticky top-8 w-[88px] shrink-0 xl:w-[270px]"
             style={{ margin: 0, padding: 0 }}
           >
             <RetroNavbar activeRoute="/gamelobby" crtEnabled={crtEnabled} toggleCrt={toggleCrt} />
           </aside>
 
           {/* Main Content Flow */}
-          <div className="flex-1 w-full min-w-0 sticky top-8" style={{ margin: 0, padding: 0 }}>
+          <div className="sticky top-8 w-full min-w-0 flex-1" style={{ margin: 0, padding: 0 }}>
             {/* Hero Telemetry Banner */}
             <header className={HERO_SECTION} style={{ marginTop: 0, padding: '16px 0 14px' }}>
               <h1 className={HERO_TITLE} style={{ fontSize: '1.45rem', marginBottom: 4 }}>

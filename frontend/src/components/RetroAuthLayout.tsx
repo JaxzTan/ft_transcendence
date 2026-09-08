@@ -45,7 +45,7 @@ export function RetroAuthLayout({ tag, children }: { tag?: string; children: Rea
       >
         {/* Glass card */}
         <div
-          className="w-full max-w-155 py-12 px-13 rounded-[22px] bg-[rgba(13,2,33,0.78)] backdrop-blur-xl backdrop-saturate-[1.8] [border:1.5px_solid_rgba(0,240,255,0.35)] shadow-[0_0_45px_rgba(0,240,255,0.18),0_0_90px_rgba(255,0,127,0.12),0_28px_70px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.08)]"
+          className="w-full max-w-155 rounded-[22px] bg-[rgba(13,2,33,0.78)] px-13 py-12 shadow-[0_0_45px_rgba(0,240,255,0.18),0_0_90px_rgba(255,0,127,0.12),0_28px_70px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl backdrop-saturate-[1.8] [border:1.5px_solid_rgba(0,240,255,0.35)]"
           style={{
             width: '100%',
             maxWidth: 'calc(620px + 2vw)',

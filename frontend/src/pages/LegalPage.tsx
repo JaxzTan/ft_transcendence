@@ -71,10 +71,10 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
       </div>
 
       <div
-        className={`${CRT_SCREEN} crt-screen flex flex-col justify-start items-center min-h-screen w-full`}
+        className={`${CRT_SCREEN} crt-screen flex min-h-screen w-full flex-col items-center justify-start`}
         id="crtScreen"
       >
-        <div className="w-full min-h-screen px-4 sm:px-6 py-8 flex flex-col items-center justify-start max-w-5xl relative z-10 box-border">
+        <div className="relative z-10 box-border flex min-h-screen w-full max-w-5xl flex-col items-center justify-start px-4 py-8 sm:px-6">
           {/* Header */}
           <header
             className={`${HERO_SECTION} w-full`}
@@ -84,7 +84,7 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  className={`${RETRO_BTN} px-3 py-1.5 text-xs font-display font-black text-[var(--accent-cyan)] border border-[var(--accent-cyan)] rounded-lg`}
+                  className={`${RETRO_BTN} font-display rounded-lg border border-[var(--accent-cyan)] px-3 py-1.5 text-xs font-black text-[var(--accent-cyan)]`}
                   onClick={() => {
                     retroAudio.playUiBeep(440, 0.05);
                     navigate('/home');
@@ -92,7 +92,7 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
                 >
                   ← {t('common.back', 'BACK')}
                 </button>
-                <h1 className={`${HERO_TITLE} text-lg sm:text-xl m-0`}>
+                <h1 className={`${HERO_TITLE} m-0 text-lg sm:text-xl`}>
                   {activeDoc === 'privacy'
                     ? '🛡️ ' + t('legal.privacyPolicy', 'PRIVACY POLICY')
                     : '📜 ' + t('legal.termsOfService', 'TERMS OF SERVICE')}
@@ -101,10 +101,10 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
 
               <div className="flex items-center gap-3">
                 {/* Document Switcher */}
-                <div className="flex items-center bg-[rgba(0,0,0,0.5)] p-0.5 rounded-lg border border-[rgba(0,240,255,0.25)]">
+                <div className="flex items-center rounded-lg border border-[rgba(0,240,255,0.25)] bg-[rgba(0,0,0,0.5)] p-0.5">
                   <button
                     type="button"
-                    className={`px-3 py-1 text-xs font-display font-bold rounded transition-all ${
+                    className={`font-display rounded px-3 py-1 text-xs font-bold transition-all ${
                       activeDoc === 'privacy'
                         ? 'bg-[var(--accent-pink)] text-[#ffffff] shadow-[0_0_10px_rgba(255,0,127,0.5)]'
                         : 'text-[var(--text-muted)] hover:text-[#ffffff]'
@@ -119,7 +119,7 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
                   </button>
                   <button
                     type="button"
-                    className={`px-3 py-1 text-xs font-display font-bold rounded transition-all ${
+                    className={`font-display rounded px-3 py-1 text-xs font-bold transition-all ${
                       activeDoc === 'terms'
                         ? 'bg-[var(--accent-pink)] text-[#ffffff] shadow-[0_0_10px_rgba(255,0,127,0.5)]'
                         : 'text-[var(--text-muted)] hover:text-[#ffffff]'
@@ -135,12 +135,12 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
                 </div>
 
                 {/* Language Switcher */}
-                <div className="flex items-center bg-[rgba(0,0,0,0.5)] p-0.5 rounded-lg border border-[rgba(0,240,255,0.25)]">
+                <div className="flex items-center rounded-lg border border-[rgba(0,240,255,0.25)] bg-[rgba(0,0,0,0.5)] p-0.5">
                   {(['en', 'ms', 'fr'] as const).map((l) => (
                     <button
                       key={l}
                       type="button"
-                      className={`px-2.5 py-1 text-xs font-mono font-bold rounded transition-all ${
+                      className={`rounded px-2.5 py-1 font-mono text-xs font-bold transition-all ${
                         docLang === l
                           ? 'bg-[var(--accent-cyan)] text-[#0a0519] shadow-[0_0_8px_rgba(0,240,255,0.5)]'
                           : 'text-[var(--text-muted)] hover:text-[#ffffff]'
@@ -160,7 +160,7 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
           </header>
 
           {/* Window Container */}
-          <section className={`${RETRO_WINDOW} w-full flex-1 flex flex-col overflow-hidden`}>
+          <section className={`${RETRO_WINDOW} flex w-full flex-1 flex-col overflow-hidden`}>
             <div className={WINDOW_HEADER} style={{ padding: '8px 16px' }}>
               <span className="font-mono text-xs text-[var(--accent-cyan)]">
                 // LEGAL DOCUMENTATION ARCHIVE [{activeDoc.toUpperCase()}_{docLang.toUpperCase()}]
@@ -168,7 +168,7 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
             </div>
 
             <div
-              className={`${WINDOW_BODY} flex-1 p-6 sm:p-10 overflow-y-auto bg-[rgba(12,4,28,0.94)]`}
+              className={`${WINDOW_BODY} flex-1 overflow-y-auto bg-[rgba(12,4,28,0.94)] p-6 sm:p-10`}
             >
               <MarkdownViewer content={currentContent} />
             </div>

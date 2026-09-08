@@ -81,7 +81,7 @@ export function RankBadge({
       {isMamee && showParticles && (
         <>
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] opacity-95 shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00]"
             style={{
               width: 3,
               height: 3,
@@ -93,7 +93,7 @@ export function RankBadge({
             }}
           />
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] opacity-95 shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00]"
             style={{
               width: 2.5,
               height: 2.5,
@@ -105,7 +105,7 @@ export function RankBadge({
             }}
           />
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] opacity-95 shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00]"
             style={{
               width: 3.5,
               height: 3.5,
@@ -117,7 +117,7 @@ export function RankBadge({
             }}
           />
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] opacity-95 shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00]"
             style={{
               width: 2,
               height: 2,
@@ -129,7 +129,7 @@ export function RankBadge({
             }}
           />
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:mamee-spark-rise_var(--spark-dur,2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_10%,#ffe600_50%,#ff3d00_100%)] opacity-95 shadow-[0_0_6px_#ffe600,0_0_12px_#ff3d00]"
             style={{
               width: 3,
               height: 3,
@@ -147,7 +147,7 @@ export function RankBadge({
       {isMilo && showParticles && (
         <>
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] opacity-95 shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff]"
             style={{
               width: 3,
               height: 3,
@@ -159,7 +159,7 @@ export function RankBadge({
             }}
           />
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] opacity-95 shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff]"
             style={{
               width: 2.5,
               height: 2.5,
@@ -171,7 +171,7 @@ export function RankBadge({
             }}
           />
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] opacity-95 shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff]"
             style={{
               width: 3.5,
               height: 3.5,
@@ -183,7 +183,7 @@ export function RankBadge({
             }}
           />
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] opacity-95 shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff]"
             style={{
               width: 2,
               height: 2,
@@ -195,7 +195,7 @@ export function RankBadge({
             }}
           />
           <span
-            className="absolute rounded-full pointer-events-none z-[3] opacity-95 bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out]"
+            className="pointer-events-none absolute z-[3] [animation:milo-spark-rise_var(--spark-dur,2.2s)_infinite_ease-out] rounded-full bg-[radial-gradient(circle,#ffffff_15%,#00f0ff_50%,#ff00ff_85%,#bd00ff_100%)] opacity-95 shadow-[0_0_6px_#00f0ff,0_0_12px_#ff00ff]"
             style={{
               width: 3,
               height: 3,
@@ -211,7 +211,7 @@ export function RankBadge({
 
       {/* Subtle Rainbow Prism Sheen (PADDLE POP ONLY) */}
       {isPaddle && showParticles && (
-        <span className="absolute top-0 left-[-130%] w-3/4 h-full bg-[linear-gradient(90deg,transparent,rgba(0,240,255,.45)_15%,rgba(255,0,234,.7)_35%,rgba(255,255,255,.95)_50%,rgba(255,230,0,.75)_65%,rgba(0,255,136,.5)_85%,transparent)] [transform:skewX(-24deg)] pointer-events-none [animation:paddle-prism-sweep_2.4s_cubic-bezier(0.2,0.8,0.2,1)_infinite] z-[1]" />
+        <span className="pointer-events-none absolute top-0 left-[-130%] z-[1] h-full w-3/4 [transform:skewX(-24deg)] [animation:paddle-prism-sweep_2.4s_cubic-bezier(0.2,0.8,0.2,1)_infinite] bg-[linear-gradient(90deg,transparent,rgba(0,240,255,.45)_15%,rgba(255,0,234,.7)_35%,rgba(255,255,255,.95)_50%,rgba(255,230,0,.75)_65%,rgba(0,255,136,.5)_85%,transparent)]" />
       )}
 
       {/* Absolute Symmetrical 4-Corner HUD Crosshairs */}

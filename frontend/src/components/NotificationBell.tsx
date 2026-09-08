@@ -504,7 +504,7 @@ export function NotificationBell({
           />
 
           <span
-            className="text-[0.62rem] tracking-[0.5px] leading-none whitespace-nowrap"
+            className="text-[0.62rem] leading-none tracking-[0.5px] whitespace-nowrap"
             style={{ fontSize: '0.62rem' }}
           >
             {t('notifications.title')}
