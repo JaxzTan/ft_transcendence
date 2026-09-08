@@ -18,6 +18,8 @@ i18n.use(initReactI18next).init({
   interpolation: {
     escapeValue: false,
   },
+}).catch(() => {
+  // Language loading failure is non-fatal — i18next falls back to defaults.
 })
 
 export default i18n

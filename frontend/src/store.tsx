@@ -209,7 +209,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // renders instead of hanging on a spinner.
     }
 
-    restore().finally(() => {
+    void restore().finally(() => {
       if (!cancelled) setAuthReady(true)
     })
 
@@ -346,7 +346,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // heartbeat's own 401 handling still logs the user out correctly.
   useEffect(() => {
     if (!user) return
-    const id = setInterval(() => { refreshOnce() }, ACCESS_TOKEN_REFRESH_MS)
+    const id = setInterval(() => { void refreshOnce() }, ACCESS_TOKEN_REFRESH_MS)
     return () => clearInterval(id)
   }, [user])
 
@@ -374,7 +374,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLangState(l)
     localStorage.setItem(LANG_KEY, l)
     document.documentElement.lang = l
-    i18n.changeLanguage(l)
+    void i18n.changeLanguage(l)
   }, [])
 
   // Load the account's real 2FA preference once signed in — GET /api/auth/2fa.
@@ -408,7 +408,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang
-    i18n.changeLanguage(lang)
+    void i18n.changeLanguage(lang)
   }, [lang])
 
   const addBot = useCallback((i: number) => {

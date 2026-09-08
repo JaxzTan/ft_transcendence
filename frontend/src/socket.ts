@@ -1,4 +1,5 @@
-import { io, Socket } from 'socket.io-client'
+import { io } from 'socket.io-client'
+import type { Socket } from 'socket.io-client'
 import type { GameState, PlayerColor, LegalMove, MoveResult } from './game/types'
 
 export type ServerEvents = {

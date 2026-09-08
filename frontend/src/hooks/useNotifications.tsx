@@ -93,7 +93,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
             // badge. The actor also skips their own announcement (they already
             // get the persisted `profile_updated` toast instead).
             if (notification.type === 'display_name_changed') {
-              const p = (notification.payload || {}) as Record<string, unknown>
+              const p = notification.payload || {}
               if (user && p.fromUserId === user.id) return
               setToasts((prev) => [notification, ...prev])
               return
@@ -102,7 +102,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
             // badge (the backend sends these via notifyTransient, so they aren't
             // persisted). Skip the actor's own tabs defensively.
             if (notification.type === 'friend_online' || notification.type === 'friend_offline') {
-              const p = (notification.payload || {}) as Record<string, unknown>
+              const p = notification.payload || {}
               if (user && p.userId === user.id) return
               setToasts((prev) => [notification, ...prev])
               return
@@ -111,7 +111,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
             // entry, no toast. Just bump the per-user avatar version so every
             // open <UserAvatar> for that username re-fetches the photo.
             if (notification.type === 'avatar_changed') {
-              const p = (notification.payload || {}) as Record<string, unknown>
+              const p = notification.payload || {}
               if (p.username) bumpAvatarVersion(String(p.username))
               return
             }
@@ -133,7 +133,9 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return () => {
       try {
         es?.close()
-      } catch {}
+      } catch {
+        // ignore EventSource close failure
+      }
       esRef.current = null
     }
   }, [user])

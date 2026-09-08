@@ -42,7 +42,7 @@ export class RetroAudioEngine {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume()
+      void this.ctx.resume().catch(() => undefined)
     }
   }
 
