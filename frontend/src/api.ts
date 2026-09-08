@@ -1,47 +1,29 @@
-// Wrapper for calls to protected API routes.
-//
-// Access tokens are short-lived (15 min), so a request can come back 401 simply
-// because the access token expired — even though the user is still "logged in"
-// (their refresh token is good for 7 days). When that happens we transparently
-// POST /api/auth/refresh once (the browser sends the refresh cookie), which
-// mints a new access token, then retry the original request.
-//
-// Single-flight: several requests can 401 at the same instant (e.g. on page
-// load). They share ONE in-flight refresh promise, so we don't fire /refresh
-// many times and trip over the refresh-token rotation (each rotation
-// invalidates the previous refresh token).
+// Helpers for authenticated API calls. Access tokens expire quickly: on a 401
+// we refresh once via POST /api/auth/refresh (one shared request across all
+// callers, so the token is never rotated twice), then retry. If refresh fails,
+// a dead token means signed out; a blocked refresh returns its own status.
 
-// ngrok's free tier answers a fresh client's first request with an HTML
-// "you are about to visit…" interstitial instead of proxying it through,
-// unless this header is present. Harmless off ngrok — nginx/localhost just
-// ignore it. Spreading a Headers instance (`{...init.headers}`) silently
-// yields `{}`, so this goes through the Headers constructor instead.
+// ngrok needs this header to skip its first-request interstitial; other hosts
+// ignore it. Headers go through the Headers constructor because spreading a
+// Headers instance yields {}.
 function withNgrokHeader(init?: RequestInit): RequestInit {
   const headers = new Headers(init?.headers);
   headers.set('ngrok-skip-browser-warning', 'true');
   return { ...init, headers };
 }
 
-// 'ok'       — new access token minted, retry the original call
-// 'expired'  — the refresh token itself is dead; the user really is signed out
-// 'blocked'  — rate limited / server error / offline. Says NOTHING about
-//              whether the session is valid, so callers must not treat it as a
-//              logout; it is surfaced as the refresh response's own status.
+// Refresh outcomes: 'ok' → retry the call; 'expired' → signed out; 'blocked' →
+// refresh failed (rate limit/server/offline), keeping its status/retryAfter so
+// callers don't mistake it for a logout.
 type RefreshResult =
   | { outcome: 'ok' }
   | { outcome: 'expired' }
-  // `status` and `retryAfter` are carried from the refresh response so callers
-  // can report it accurately without issuing another request at the limiter
-  // that just turned us away.
   | { outcome: 'blocked'; status: number; retryAfter: string | null };
 
 let refreshing: Promise<RefreshResult> | null = null;
 
-// Exported so callers (store.tsx's proactive refresh timer) can mint a new
-// access token *before* it expires, instead of only reacting to a 401 —
-// that reactive path still works, but every 401 it triggers gets logged to
-// the browser console by the network stack itself, outside app control.
-// Shares the same single-flight promise as the reactive path in apiFetch.
+// Exported so callers (e.g. the store's refresh timer) can refresh before the
+// token expires, sharing apiFetch's single in-flight request.
 export function refreshOnce(): Promise<RefreshResult> {
   const pending = refreshing;
   if (pending !== null) return pending;
@@ -58,19 +40,10 @@ export function refreshOnce(): Promise<RefreshResult> {
   return refreshing;
 }
 
-/**
- * Like fetch(), but for authenticated endpoints. On a 401 it attempts a single
- * silent token refresh and retries once.
- *
- * If the refresh token itself is expired/revoked, the original 401 is returned
- * so the caller can treat the user as logged out. If the refresh could not be
- * *attempted* properly — rate limited, server error, offline — the refresh
- * response is returned instead, so a caller checking for 401 doesn't mistake
- * "try again shortly" for "you are signed out".
- *
- * Note: the request is retried by re-issuing `init` as-is, so keep bodies as
- * plain values (strings/objects), not one-shot streams.
- */
+
+// fetch() for authenticated endpoints: on a 401 it refreshes once and retries.
+// Expired refresh returns the 401 (signed out); blocked refresh returns its own
+// status. Retries reuse `init`, so keep bodies as plain values, not streams.
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const finalInit = withNgrokHeader(init);
   const res = await fetch(input, finalInit);
@@ -78,21 +51,15 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
 
   const result = await refreshOnce();
   if (result.outcome === 'ok') return fetch(input, finalInit);
-  if (result.outcome === 'expired') return res; // session really is over — hand back the 401
+  if (result.outcome === 'expired') return res;
 
-  // 'blocked': report the refresh's own status (429/5xx) rather than the
-  // misleading 401 from the original call. Synthesised locally — re-probing
-  // would mean another request at the limiter that just rejected us.
   return new Response(null, {
     status: result.status,
     headers: result.retryAfter ? { 'Retry-After': result.retryAfter } : undefined,
   });
 }
 
-// ---------------------------------------------------------------------------
-// Typed JSON helpers for REST calls that return JSON.
-// Builds on apiFetch so 401 → refresh → retry is transparent.
-// ---------------------------------------------------------------------------
+// Typed JSON REST helpers built on apiFetch.
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');

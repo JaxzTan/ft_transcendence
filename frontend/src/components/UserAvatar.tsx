@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { dicebearAvatar } from '../dicebear';
 import { useAvatarVersion } from '../avatarCache';
@@ -22,15 +22,21 @@ export function UserAvatar({
   cacheBuster,
   hasAvatarPhoto,
 }: UserAvatarProps) {
+  // Each avatar photo gets up to 2 load attempts; after 2 failures (e.g. a
+  // malformed file) we keep the dicebear fallback until the user or photo
+  // changes. SSE avatar_changed events refresh photos via a new versioned URL.
   const [error, setError] = useState(false);
-  // Live avatar-change propagation: bumped by the `avatar_changed` SSE event.
-  // Used as the img `key` so a bump remounts the <img> and re-fetches the photo.
-  // The avatar endpoint serves Cache-Control: no-store, so the refetch is fresh.
+  const photoErrorsRef = useRef(0);
+  const [stuckOnFallback, setStuckOnFallback] = useState(false);
   const liveVersion = useAvatarVersion(username);
 
-  // Reset error state if username or cache buster changes
   useEffect(() => {
     setError(false);
+  }, [username, cacheBuster, liveVersion]);
+
+  useEffect(() => {
+    photoErrorsRef.current = 0;
+    setStuckOnFallback(false);
   }, [username, cacheBuster]);
 
   if (!username) {
@@ -66,18 +72,23 @@ export function UserAvatar({
     );
   }
 
-  // Known to have no photo → never ask. Otherwise try it, with `error` still
-  // guarding the case where a photo exists but fails to load.
-  const src =
-    hasAvatarPhoto === false || error
-      ? dicebearAvatar(username, avatarStyle)
-      : `/api/user/${username}/avatar${cacheBuster ? `?t=${cacheBuster}` : ''}`;
+  const version = cacheBuster ?? liveVersion;
+  const showFallback = hasAvatarPhoto === false || error || stuckOnFallback;
+  const src = showFallback
+    ? dicebearAvatar(username, avatarStyle)
+    : `/api/user/${username}/avatar?t=${version}`;
+
+  const handlePhotoError = () => {
+    photoErrorsRef.current += 1;
+    setError(true);
+    if (photoErrorsRef.current >= 2) setStuckOnFallback(true);
+  };
 
   return (
     <img
       key={liveVersion}
       src={src}
-      onError={error ? undefined : () => setError(true)}
+      onError={showFallback ? undefined : handlePhotoError}
       style={{
         width: size,
         height: size,

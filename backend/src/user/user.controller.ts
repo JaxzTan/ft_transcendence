@@ -18,17 +18,15 @@ import { Response } from 'express';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-// Multer attaches an upload descriptor to the request (an Express.Multer.File
-// at runtime). Keep a minimal structural shape here so this controller doesn't
-// depend on @types/multer being installed.
+// User routes: public profile/history plus authenticated avatar upload, fetch
+// and delete. Avatars are cacheable; clients change the cache by requesting a
+// new ?t= URL after each SSE avatar_changed event.
 interface UploadedAvatarFile {
   mimetype: string;
   buffer: Buffer;
 }
 
 @Controller('api/user')
-// HTTP routes for user profiles: public profile, game history, and the
-// authenticated avatar upload/get/delete endpoints. Delegates to UserService.
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -48,11 +46,9 @@ export class UserController {
     return this.userService.getUserGames(username, pageNum, limitNum);
   }
 
-  // Accept an avatar image (multipart 'avatar' field, max 2MB), allowlist
-  // the content type, and store it. POST /api/user/avatar.
   @UseGuards(JwtAuthGuard)
   @Post('avatar')
-  @UseInterceptors(FileInterceptor('avatar', { limits: { fileSize: 2 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('avatar', { limits: { fileSize: 2 * 1024 * 1024 } })) //Max 2Mb
   async uploadAvatar(
     @Request() req: { user: { id: string } },
     @UploadedFile() file: UploadedAvatarFile | undefined,

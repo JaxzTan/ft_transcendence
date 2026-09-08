@@ -6,14 +6,8 @@ import { COL, type ColorKey } from '../theme';
 const CELL_BG = '#050515';
 const LINE = '#00f0ff';
 
-// ─── Track geometry ─────────────────────────────────────────────────────────
-// The engine works purely in logical steps (0-57, see board-mapper.ts) and has
-// no concept of board coordinates — the UI owns that mapping entirely. Red's
-// 13-cell path segment below was derived from the existing STARTS/laneColor
-// cells already in this file, then the other 3 colors' segments are generated
-// by rotating it 90° around the grid center — the classic 15×15 cross board
-// has exact 4-fold rotational symmetry, and this closes correctly (each
-// color's last cell is adjacent to the next color's start, verified by hand).
+// Track geometry: the engine uses logical steps (0-57); the UI maps them to
+// board cells. (15×15 cross board has exact 4-fold symmetry).
 type Cell = { r: number; c: number };
 
 const RED_SEGMENT: Cell[] = [
@@ -254,7 +248,7 @@ function Yard({
       >
         {[0, 1, 2, 3].map((s) => {
           const piece = basePieces[s];
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- fewer than four pieces sit in base at runtime
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (!piece)
             return (
               <div

@@ -1,10 +1,8 @@
 import { useSyncExternalStore } from 'react';
 
-// Per-username avatar cache-busting store. An `avatar_changed` SSE event bumps
-// the version for that username; every open <UserAvatar> for that user then
-// re-renders with a fresh `?t=<version>` on /api/user/<username>/avatar — so
-// photo changes propagate to all clients in near-real-time instead of showing
-// a stale photo (or a stale 404→dicebear fallback) until the next reload.
+// Avatar cache-buster store. SSE avatar_changed events bump a per-user version;
+// <UserAvatar> reads it via useAvatarVersion and puts it in the photo URL so
+// every open client refetches the new photo without a reload.
 const versions = new Map<string, number>();
 const listeners = new Set<() => void>();
 
