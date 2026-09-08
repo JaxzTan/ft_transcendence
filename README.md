@@ -68,13 +68,27 @@ make dev
 
 ### Access
 
-| URL                       | What it is                                                      | Profile |
-| ------------------------- | --------------------------------------------------------------- | ------- |
-| `https://localhost:8443`  | The app (via nginx)                                             | default |
-| `http://localhost:8080`   | Vite dev server with hot reload                                 | dev     |
-| `http://localhost:3000`   | Backend API (direct, host-only)                                 | default |
-| `http://localhost:5555`   | Prisma Studio (database browser)                                | default |
-| `wss://<host>/socket.io/` | Game engine connection (same-origin through nginx / Vite proxy) | default |
+| URL                       | What it is                                                      | Profile | Exposure |
+| ------------------------- | --------------------------------------------------------------- | ------- | -------- |
+| `https://localhost:8443`  | The app (via nginx)                                             | default | Public entry — TLS 1.2/1.3, security headers/CSP, nginx rate limits, proxies to JWT-guarded backend & token-verified engine |
+| `http://localhost:8080`   | Vite dev server with hot reload                                 | dev     | Dev only — no TLS; keep off untrusted/shared hosts |
+| `http://localhost:3000`   | Backend API (direct, host-only)                                 | default | Loopback-only publish; JWT/2FA/bcrypt, throttling, production CORS locked to the app origin |
+| `http://localhost:5555`   | Prisma Studio (database browser)                                | default | Loopback-only publish; no app-level auth — interactive host use only |
+| `wss://<host>/socket.io/` | Game engine connection (same-origin through nginx / Vite proxy) | default | Same-origin `wss` only; engine verifies the Socket.IO handshake JWT before joining rooms |
+
+**Hardening notes**
+
+- **`8443` (nginx)** is the only intentionally public-facing port (published on all host interfaces). It runs **TLS 1.2/1.3 only** with a self-signed cert and **no plain-HTTP listener**, sets HSTS + security headers + a CSP, disables `server_tokens`, denies hidden-file access, and applies per-IP rate limits (login `5r/m`, auth `60r/m`, refresh `30r/m`, leaderboard `30r/m`) in front of the API.
+
+- **`8080` (Vite)** exists only under the `dev` compose profile (`make dev`). It serves the SPA and proxies `/api` and `/socket.io` without TLS.
+
+- **`3000` (backend)** is published loopback-only; clients reach it exclusively through nginx's `/api` proxy. Backend hardening: JWT auth in httpOnly cookies, bcrypt password hashes, class-validator on DTOs, NestJS rate throttling, and CORS restricted to the app origin in production.
+
+- **`5555` (Prisma Studio)** is a raw database browser with no application-level authentication — its protection is the loopback-only binding plus the Postgres credentials. Used on the host only.
+
+- **`/socket.io/`** is reachable only same-origin: over TLS via nginx (`wss://`) or through the Vite dev proxy — never on a raw `ws://` port. The engine validates the Socket.IO handshake JWT (game-scoped, with role/color) before the socket can join a room.
+
+- **Infrastructure ports not listed** — Postgres (`127.0.0.1:5432`), Redis (`127.0.0.1:6479`) and the engine (`127.0.0.1:3001`) — are all published loopback-only. Redis requires a password, Postgres requires credentials, and cross-container traffic rides the private `transcendence_network`.
 
 ### Configuration (.env)
 
