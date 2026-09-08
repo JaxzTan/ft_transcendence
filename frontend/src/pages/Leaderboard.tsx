@@ -56,7 +56,7 @@ export function Leaderboard() {
   const [crtEnabled, setCrtEnabled] = useState(true);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('retro_theme') || 'synthwave';
+    const savedTheme = localStorage.getItem('retro_theme') ?? 'synthwave';
     document.documentElement.setAttribute('data-theme', savedTheme);
     document.body.setAttribute('data-theme', savedTheme);
 
@@ -96,9 +96,9 @@ export function Leaderboard() {
     };
   }, []);
 
-  const top1 = data?.entries?.find((e) => e.rank === 1);
-  const top2 = data?.entries?.find((e) => e.rank === 2);
-  const top3 = data?.entries?.find((e) => e.rank === 3);
+  const top1 = data?.entries.find((e) => e.rank === 1);
+  const top2 = data?.entries.find((e) => e.rank === 2);
+  const top3 = data?.entries.find((e) => e.rank === 3);
 
   return (
     <>
@@ -287,7 +287,7 @@ export function Leaderboard() {
                                     letterSpacing: '0.04em',
                                   }}
                                 >
-                                  {top2.displayName || top2.username}
+                                  {top2.displayName ?? top2.username}
                                 </div>
                                 <div
                                   style={{
@@ -422,7 +422,7 @@ export function Leaderboard() {
                                     letterSpacing: '0.04em',
                                   }}
                                 >
-                                  {top1.displayName || top1.username}
+                                  {top1.displayName ?? top1.username}
                                 </div>
                                 <div
                                   style={{
@@ -543,7 +543,7 @@ export function Leaderboard() {
                                     letterSpacing: '0.04em',
                                   }}
                                 >
-                                  {top3.displayName || top3.username}
+                                  {top3.displayName ?? top3.username}
                                 </div>
                                 <div
                                   style={{
@@ -785,7 +785,7 @@ export function Leaderboard() {
                                     textOverflow: 'ellipsis',
                                   }}
                                 >
-                                  {entry.displayName || entry.username}{' '}
+                                  {entry.displayName ?? entry.username}{' '}
                                   {isYou && (
                                     <span
                                       style={{

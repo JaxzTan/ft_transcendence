@@ -68,7 +68,7 @@ export function Lobby() {
     resetSeats();
   }, [resetSeats]);
 
-  const playerCount = (Number(query.get('mode')) as PlayerCount) || 4;
+  const playerCount = (Number(query.get('mode')) || 4) as PlayerCount;
   const allowAddPlayers = query.get('bots') !== '0';
   const isLocal = query.get('local') === '1';
   const isSolo = playerCount === 1;
@@ -346,7 +346,7 @@ export function Lobby() {
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <UserAvatar
-                                  username={user?.username || ''}
+                                  username={user?.username ?? ''}
                                   hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
                                   size={40}
                                   fallbackStyle={{
@@ -841,7 +841,9 @@ export function Lobby() {
                   <div>
                     {/* LAUNCH BUTTON */}
                     <button
-                      onClick={onStart}
+                      onClick={() => {
+                        void onStart();
+                      }}
                       disabled={!canStart || starting}
                       className={RETRO_BTN}
                       style={{

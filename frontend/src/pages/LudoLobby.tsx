@@ -321,7 +321,7 @@ export function LudoLobby() {
                  ════════════════════════════════════════════════════════════════════════════ */}
                 <div
                   className={`${RETRO_TICKET_PASS} ${TICKET_PINK} ${hostBusy ? 'disabled' : ''}`}
-                  onClick={hostBusy ? undefined : createRoom}
+                  onClick={hostBusy ? undefined : () => { void createRoom(); }}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -936,7 +936,7 @@ export function LudoLobby() {
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <UserAvatar
-                                  username={room.hostUsername || room.host}
+                                  username={room.hostUsername ?? room.host}
                                   hasAvatarPhoto={room.hasAvatarPhoto}
                                   size={28}
                                   fallbackStyle={{
@@ -988,7 +988,10 @@ export function LudoLobby() {
                               <div>
                                 <button
                                   className={RETRO_BTN}
-                                  onClick={() => (isOwn ? rejoinRoom(room) : joinRoom(room))}
+                                  onClick={() => {
+                                    if (isOwn) void rejoinRoom(room);
+                                    else void joinRoom(room);
+                                  }}
                                   disabled={(!isOwn && full) || joiningRoomId === room.id}
                                   style={{
                                     padding: '5px 12px',

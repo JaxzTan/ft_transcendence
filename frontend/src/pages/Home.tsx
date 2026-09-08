@@ -181,9 +181,9 @@ export function Home() {
     ])
       .then(([friendsData, reqData]) => {
         const list = Array.isArray(friendsData) ? friendsData : [];
-        list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
         setFriends(list);
-        setPendingRequestsCount(Array.isArray(reqData?.received) ? reqData.received.length : 0);
+        setPendingRequestsCount(Array.isArray(reqData.received) ? reqData.received.length : 0);
       })
       .catch((e) => {
         console.error(e);
@@ -419,7 +419,7 @@ export function Home() {
       },
     };
 
-    const currentCfg = themeConfig[theme] || themeConfig.synthwave;
+    const currentCfg = themeConfig[theme];
 
     // Background stars
     const stars = Array.from({ length: 65 }, () => ({
@@ -445,7 +445,7 @@ export function Home() {
 
     const faces = currentCfg.faces;
 
-    const pipPositions: Record<number, number[][]> = {
+    const pipPositions: Partial<Record<number, number[][]>> = {
       1: [[0, 0]],
       2: [
         [-0.28, -0.28],
@@ -647,7 +647,7 @@ export function Home() {
         ctx.shadowBlur = 0;
 
         // Draw Pips on face
-        const pips = pipPositions[face.pips] || [];
+        const pips = pipPositions[face.pips] ?? [];
         const p0 = face.pts[0],
           p1 = face.pts[1],
           p2 = face.pts[2],
@@ -973,7 +973,7 @@ export function Home() {
                     friends.map((f) => {
                       const fRank = leaderboardMap[f.username];
                       const fTier = getRankTier(f.rating ?? 1200, fRank);
-                      const fStatus = STATUS_STYLE[f.status || 'offline'] || STATUS_STYLE.offline;
+                      const fStatus = STATUS_STYLE[f.status ?? 'offline'];
 
                       return (
                         <div
@@ -1076,7 +1076,7 @@ export function Home() {
                                     letterSpacing: '0.02em',
                                   }}
                                 >
-                                  {f.displayName || f.username}
+                                  {f.displayName ?? f.username}
                                 </span>
                                 <RankBadge tier={fTier} fontSize="9.5px" padding="2px 7px" />
                               </div>

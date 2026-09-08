@@ -52,7 +52,7 @@ export function RetroNavbar({
     setTheme,
     setActiveMatch,
   } = useApp();
-  const currentPath = activeRoute || route.path;
+  const currentPath = activeRoute ?? route.path;
 
   // Below Tailwind's `xl` breakpoint (1280px) the sidebar collapses to an
   // icon-only rail — labels are JS-conditional (not just CSS-hidden) because
@@ -221,8 +221,8 @@ export function RetroNavbar({
     };
   }, [isThemePopoverOpen, isCompact]);
 
-  const username = user?.username || 'PILOT';
-  const displayName = user?.displayName || username;
+  const username = user?.username ?? 'PILOT';
+  const displayName = user?.displayName ?? username;
 
   return (
     <nav
@@ -447,7 +447,7 @@ export function RetroNavbar({
                       { code: 'ms' as const, label: 'MS', full: 'MELAYU' },
                       { code: 'fr' as const, label: 'FR', full: 'FRANÇAIS' },
                     ].map((item) => {
-                      const isSelected = (lang || 'en') === item.code;
+                      const isSelected = lang === item.code;
                       return (
                         <button
                           key={item.code}
@@ -608,11 +608,10 @@ export function RetroNavbar({
                 {/* 4. Logout / Disconnect Button */}
                 <button
                   className={RETRO_BTN}
-                  onClick={async () => {
+                  onClick={() => {
                     setIsAccountPopoverOpen(false);
                     retroAudio.playUiBeep(330, 0.08);
-                    await logout();
-                    navigate('/login');
+                    void logout().then(() => navigate('/login'));
                   }}
                   style={{
                     width: '100%',
@@ -650,7 +649,9 @@ export function RetroNavbar({
             type="button"
             className={RETRO_BTN}
             id="navRejoinActiveGameBtn"
-            onClick={handleRejoinActive}
+            onClick={() => {
+              void handleRejoinActive();
+            }}
             disabled={isRejoining}
             style={{
               width: '100%',
