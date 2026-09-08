@@ -56,7 +56,6 @@ Complete reference of all HTTP and WebSocket APIs in the project. Updated 30 Aug
    - [`DELETE /api/user/avatar`](#delete-apiuseravatar) — Remove your custom avatar
 
 6. **[Match — Matchmaking](#6-match--matchmaking)** — Create/join PvP, PvE, hotseat games
-   - [`POST /api/match/pvp/random`](#post-apimatchpvprandom) — Queue for a random PvP game (join an open room or create one)
    - [`POST /api/match/pvp/invite`](#post-apimatchpvpinvite) — Create a private PvP room with an invite code to share
    - [`POST /api/match/join/:code`](#post-apimatchjoincode) — Join a private PvP room using an invite code
    - [`POST /api/match/pve`](#post-apimatchpve) — Start a single-player game against bots
@@ -697,7 +696,7 @@ Retrieve a user's custom avatar image.
 
 **Headers:** None  
 **Path:** `:username` = username string  
-**Response:** Binary image data with `Content-Type` set to the stored MIME type, served with `Cache-Control: public, max-age=86400`.
+**Response:** Binary image data with `Content-Type` set to the stored MIME type, served with `Cache-Control: public, max-age=86400`. Clients refresh a changed avatar by appending a new `?t=<version>` (bumped per user by the SSE `avatar_changed` event), so cached copies are never reused stale.
 
 **Errors:** 404 if no custom avatar set.
 
@@ -742,35 +741,6 @@ const socket = io(window.location.origin, { // same-origin → nginx → ludo-en
 });
 
 ```
-
----
-
-#### `POST /api/match/pvp/random`
-
-**Source:** `backend/src/match/match.controller.ts` — MatchModule
-
-Find or create a random PvP match.
-
-**Headers:** 🔒 (requires `token` cookie)  
-**Body:** None (all fields optional)
-
-**Response:**
-
-```json
-{
-  "gameId": "uuid",
-  "token": "jwt-string",
-  "engineUrl": "ws://localhost:8443",
-  "color": "blue",
-  "mode": "pvp",
-  "playerCount": 4
-}
-
-```
-
-**Notes:**
-- If a WAITING PvP game with an open slot exists, joins it immediately.
-- Otherwise, creates a new WAITING game.
 
 ---
 
@@ -1933,7 +1903,7 @@ Automatically handled when the WebSocket connection drops. Marks player as disco
    → { user: { id, username } }
    ← Set-Cookie: token=<jwt> (httpOnly)
 
-2. POST /api/match/pvp/random (or /pve, /invite, /create)
+2. POST /api/match/create { mode: "pvp" } (or /pve, or /pvp/invite then /match/join/:code)
    → { gameId, token, engineUrl }
 
 3. Connect to engine:

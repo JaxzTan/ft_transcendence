@@ -32,7 +32,7 @@ The module uses Redis for short-lived match data (queues, active games) and lets
 |------|------|
 | `match.controller.ts` | HTTP routes: matchmaking, game actions, browse games, engine callbacks, cleanup |
 | `match.service.ts` | Facade — composes the four split services (`MatchCreatorService`, `MatchPlayerService`, `MatchQueryService`, `MatchPostgameService`) and re-exports `ENGINE_WS_URL` |
-| `match.creator.service.ts` | Match creation: PvP/PvE/hotseat, invite codes, random match, bot seeding |
+| `match.creator.service.ts` | Match creation: PvP/PvE/hotseat, invite codes, room joining, bot seeding |
 | `match.player.service.ts` | In-game actions: join, rejoin, invite friend, ready, exit, cancel, resign |
 | `match.query.service.ts` | Browse queries: active games, open rooms, my rooms |
 | `match.postgame.service.ts` | `POST /api/game/end` processing (scoring, ratings, achievements), stale-game cleanup |
@@ -80,7 +80,6 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/api/match/pvp/random` | JWT | Find or create random PvP match |
 | `POST` | `/api/match/pvp/invite` | JWT | Create invite-only PvP match |
 | `POST` | `/api/match/join/:code` | JWT | Join PvP match by invite code |
 | `POST` | `/api/match/pve` | JWT | Start PvE (vs bot) game |
@@ -102,7 +101,7 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
 
 ## Core Logic / Flow
 
-### 1. Create Random PvP Match
+### 1. Create a PvP Match
 
 ```mermaid
 sequenceDiagram
@@ -110,17 +109,12 @@ sequenceDiagram
     participant Site as Your App
     participant Server as Backend
 
-    User->>Site: Click "Play vs random player"
-    Site->>Server: POST /api/match/pvp/random
-    Server->>Server: Look for an open game waiting for a second player
-    alt An open game exists
-        Server->>Server: Add you to it
-    else Nobody is waiting
-        Server->>Server: Create a new game and wait for an opponent
-    end
-    Server->>Server: Make a one-time login token for the game
+    User->>Site: Configure PvP and press Start
+    Site->>Server: POST /api/match/create { mode: "pvp" }
+    Server->>Server: Create a WAITING game + a one-time login token
     Server-->>Site: { gameId, token, engineUrl }
     Site-->>User: Take you into the game room
+    Note over Site,Server: Opponents join later via invite code (/pvp/invite) or an open room
 ```
 
 ### 2. Create Invite Match
@@ -178,12 +172,10 @@ sequenceDiagram
 
 ## Logic Paths Summary
 
-### Random PvP Path
+### Create PvP Path
 ```
-POST /api/match/pvp/random
-  ├── Redis: Get waiting PvP with open slot
-  │   ├── Found → add player, update Redis
-  │   └── Not found → create new WAITING game
+POST /api/match/create   (mode: "pvp")
+  ├── Create a new WAITING game
   ├── issueEngineToken(gameId, userId, role, color)
   └── Return { gameId, token, engineUrl }
 ```

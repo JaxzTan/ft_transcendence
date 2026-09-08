@@ -223,6 +223,8 @@ GET /api/user/:username/avatar
   ├── getAvatar(username) via User.avatarPhoto
   │   ├── null → 404
   │   └── found → res.set(Content-Type), send binary (Cache-Control: 1 day)
+  └── Note: clients request `?t=<version>` after each SSE `avatar_changed`
+      event, so changed photos are always refetched despite the 1-day cache.
 ```
 
 ### Delete Avatar Path
