@@ -9,7 +9,7 @@ const BOT_DISCONNECT_GRACE_MS = 60 * 60 * 1000; // 1 hour to reconnect before au
 // seated color : pre-game color swaps mean 'blue' isn't guaranteed occupied,
 // and an inactive currentTurn soft-locks the game.
 export function firstActiveColor(state: GameState): PlayerColor | undefined {
-  return COLORS.find(c => state.players.find(p => p.color === c)?.status === 'active');
+  return COLORS.find((c) => state.players.find((p) => p.color === c)?.status === 'active');
 }
 
 // Advance turn to the next seated (active) player.
@@ -23,7 +23,7 @@ export function advanceTurnInState(state: GameState): void {
     // Find by color, not index: state.players only holds seats actually in
     // the match (see redis.ts activeColors), so it isn't aligned 1:1 with
     // COLORS by position.
-    const p = state.players.find(pl => pl.color === COLORS[nextIndex]);
+    const p = state.players.find((pl) => pl.color === COLORS[nextIndex]);
     // Only an *active* seat can hold the turn : 'inactive' seats were never
     // joined; skipping them prevents the turn stalling on a seat nobody
     // controls.
@@ -40,7 +40,7 @@ export function advanceTurnInState(state: GameState): void {
   state.currentTurn = COLORS[nextIndex];
   state.firstRollOfTurn = true;
   // Reset the new player's 6-streak so it never leaks across turns.
-  const nextPlayer = state.players.find(p => p.color === COLORS[nextIndex]);
+  const nextPlayer = state.players.find((p) => p.color === COLORS[nextIndex]);
   if (nextPlayer) nextPlayer.consecutiveSixes = 0;
 }
 
@@ -57,7 +57,7 @@ export async function handlePlayerDisconnect(
   if (!state) return;
 
   // Check if already disconnected
-  const existing = state.disconnectedPlayers.find(d => d.color === color);
+  const existing = state.disconnectedPlayers.find((d) => d.color === color);
   if (existing) return; // Already in grace period
 
   // Determine mode up-front: bot-mode games PAUSE on disconnect (and use a
@@ -75,7 +75,7 @@ export async function handlePlayerDisconnect(
   });
 
   // Mark player as disconnected (not exited : they can still reconnect)
-  const player = state.players.find(p => p.color === color);
+  const player = state.players.find((p) => p.color === color);
   if (player && player.status === 'active') {
     player.status = 'disconnected';
     player.isConnected = false;
@@ -104,7 +104,7 @@ export async function handlePlayerDisconnect(
     const currentState = await store.loadGameState(gameId);
     if (!currentState) return;
 
-    const disc = currentState.disconnectedPlayers.find(d => d.color === color);
+    const disc = currentState.disconnectedPlayers.find((d) => d.color === color);
     if (!disc) return; // Already reconnected
 
     // Check if deadline has passed
@@ -120,8 +120,9 @@ export async function handlePlayerDisconnect(
         // match hash captured at disconnect time still lists the pruned user,
         // which made a 2-player room never look like it dropped below 2.
         const after = await store.loadGameState(gameId);
-        const humansLeft = (after?.players ?? [])
-          .filter(p => p.status === 'active' && !p.isBot).length;
+        const humansLeft = (after?.players ?? []).filter(
+          (p) => p.status === 'active' && !p.isBot,
+        ).length;
         if (!after || humansLeft < 2) {
           await store.abortMatch(gameId);
           await store.deleteGame(gameId);
@@ -141,7 +142,7 @@ export async function handlePlayerReconnect(
   const state = await store.loadGameState(gameId);
   if (!state) return;
 
-  const discIndex = state.disconnectedPlayers.findIndex(d => d.color === color);
+  const discIndex = state.disconnectedPlayers.findIndex((d) => d.color === color);
   if (discIndex === -1) return; // Not in grace period
 
   const disc = state.disconnectedPlayers[discIndex];
@@ -154,7 +155,7 @@ export async function handlePlayerReconnect(
   state.disconnectedPlayers.splice(discIndex, 1);
 
   // Restore player to active
-  const player = state.players.find(p => p.color === color);
+  const player = state.players.find((p) => p.color === color);
   if (player) {
     player.status = 'active';
     player.isConnected = true;
@@ -184,9 +185,12 @@ export async function handlePlayerReady(
   // Check if game should start (delegate to lobby manager if available).
   // Requires >= 2 active seats : a lone host marking themselves ready must
   // not be able to flip a pvp match to 'active' with nobody else in the room.
-  const activeCount = state.players.filter(p => p.status === 'active').length;
-  const allReady = activeCount >= 2 &&
-    state.players.filter(p => p.status === 'active').every(p => state.readyPlayers.includes(p.color));
+  const activeCount = state.players.filter((p) => p.status === 'active').length;
+  const allReady =
+    activeCount >= 2 &&
+    state.players
+      .filter((p) => p.status === 'active')
+      .every((p) => state.readyPlayers.includes(p.color));
 
   if (allReady) {
     state.currentTurn = firstActiveColor(state) ?? state.currentTurn;
@@ -217,9 +221,7 @@ export async function handlePlayerResign(
   state.disconnectedPlayers = state.disconnectedPlayers.filter((d) => d.color !== color);
 
   // Who is still playing? Bots count : conceding to a bot is still a loss.
-  const stillPlaying = state.players.filter(
-    (p) => p.status === 'active' && !p.isFinished,
-  );
+  const stillPlaying = state.players.filter((p) => p.status === 'active' && !p.isFinished);
 
   if (stillPlaying.length <= 1) {
     state.status = 'finished';
@@ -256,13 +258,13 @@ export async function handlePlayerExit(
   if (!state) return;
 
   // Remove from disconnect list if present
-  state.disconnectedPlayers = state.disconnectedPlayers.filter(d => d.color !== color);
+  state.disconnectedPlayers = state.disconnectedPlayers.filter((d) => d.color !== color);
 
-  for (const piece of state.pieces.filter(p => p.color === color)) {
+  for (const piece of state.pieces.filter((p) => p.color === color)) {
     piece.step = -1;
   }
 
-  const player = state.players.find(p => p.color === color);
+  const player = state.players.find((p) => p.color === color);
   if (player) {
     player.status = 'exited';
     player.isConnected = false;
@@ -273,13 +275,13 @@ export async function handlePlayerExit(
     advanceTurnInState(state);
   }
 
-	await store.saveGameState(gameId, state);
-	emit({ type: 'player_exited', gameId, color });
+  await store.saveGameState(gameId, state);
+  emit({ type: 'player_exited', gameId, color });
 
-	// Waiting-room cleanup: a guest leaving a PvP lobby must vacate their
-	// Redis seat or the room counts 2 seated forever and the idle-abort never
-	// restarts. The host's seat is never cleared : the room stays rejoinable.
-	if (state.status === 'waiting') {
-		await store.clearMatchSeat(gameId, color);
-	}
+  // Waiting-room cleanup: a guest leaving a PvP lobby must vacate their
+  // Redis seat or the room counts 2 seated forever and the idle-abort never
+  // restarts. The host's seat is never cleared : the room stays rejoinable.
+  if (state.status === 'waiting') {
+    await store.clearMatchSeat(gameId, color);
+  }
 }

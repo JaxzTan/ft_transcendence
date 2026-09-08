@@ -27,8 +27,9 @@ export class NgrokGoogleStrategy extends PassportStrategy(Strategy, 'google-tunn
     _refreshToken: string,
     profile: Profile,
   ) {
-    const email = profile.emails?.find((e) => String((e as { verified?: unknown }).verified) === 'true')
-      ?.value;
+    const email = profile.emails?.find(
+      (e) => String((e as { verified?: unknown }).verified) === 'true',
+    )?.value;
     return this.authService.validateOAuthLogin(
       {
         provider: 'google',

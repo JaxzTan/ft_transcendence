@@ -1,16 +1,16 @@
-import React from 'react'
-import { useTranslation } from 'react-i18next'
-import type { RankTier } from '../utils/ranks'
-import { BADGE_MAMEE_AURA, BADGE_MILO_AURA } from '../styles/tw'
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import type { RankTier } from '../utils/ranks';
+import { BADGE_MAMEE_AURA, BADGE_MILO_AURA } from '../styles/tw';
 
 interface RankBadgeProps {
-  tier: RankTier
-  fontSize?: string | number
-  padding?: string
-  style?: React.CSSProperties
-  className?: string
-  showCrosshairs?: boolean
-  showParticles?: boolean
+  tier: RankTier;
+  fontSize?: string | number;
+  padding?: string;
+  style?: React.CSSProperties;
+  className?: string;
+  showCrosshairs?: boolean;
+  showParticles?: boolean;
 }
 
 export function RankBadge({
@@ -22,14 +22,14 @@ export function RankBadge({
   showCrosshairs = true,
   showParticles = true,
 }: RankBadgeProps) {
-  const { t } = useTranslation()
-  const isMamee = tier.key === 'mamee'
-  const isMilo = tier.key === 'milo'
-  const isPaddle = tier.key === 'paddle' || tier.key === 'super'
-  const isHoney = tier.key === 'honey'
-  const isChoki = tier.key === 'choki'
+  const { t } = useTranslation();
+  const isMamee = tier.key === 'mamee';
+  const isMilo = tier.key === 'milo';
+  const isPaddle = tier.key === 'paddle' || tier.key === 'super';
+  const isHoney = tier.key === 'honey';
+  const isChoki = tier.key === 'choki';
 
-  const tierName = t(`ranks.${tier.key}`, tier.name)
+  const tierName = t(`ranks.${tier.key}`, tier.name);
 
   const tierClass = isMamee
     ? `${BADGE_MAMEE_AURA} relative [z-index:1] [margin:6px_8px_3px] bg-[linear-gradient(180deg,rgba(45,8,20,.96)_0%,rgba(20,3,10,.98)_100%)] text-white [border:1.5px_solid_#ff3d00] [text-shadow:0_0_6px_#ffffff,0_-2px_10px_#ffdd00,0_-4px_18px_#ff3d00,0_-8px_24px_#ff1744] shadow-[0_0_14px_rgba(255,61,0,.9),0_-6px_18px_rgba(255,170,0,.85),0_-14px_28px_rgba(255,23,68,.75),0_-20px_36px_rgba(255,230,0,.5),inset_0_0_12px_rgba(255,170,0,.6),inset_0_-2px_6px_rgba(255,23,68,.7)] [animation:mamee-flame-steady-glow_2.8s_ease-in-out_infinite_alternate]`
@@ -41,7 +41,7 @@ export function RankBadge({
           ? 'relative bg-[linear-gradient(135deg,rgba(38,30,6,.95),rgba(20,15,3,.98))] [border:1.5px_solid_#ffd700] text-white shadow-[0_0_14px_rgba(255,215,0,.65),inset_0_0_8px_rgba(255,215,0,.35)] [text-shadow:0_0_6px_#ffffff,0_0_10px_#ffd700] [animation:honey-starlight-pulse_2.4s_infinite_alternate]'
           : isChoki
             ? 'relative bg-[linear-gradient(135deg,rgba(28,18,10,.95),rgba(16,10,5,.98))] [border:1.5px_solid_#d7a15c] text-white shadow-[0_0_10px_rgba(215,161,92,.5)] [text-shadow:0_0_6px_#ffffff,0_0_8px_#d7a15c]'
-            : ''
+            : '';
 
   const crosshairColor = isMamee
     ? '#ffe600'
@@ -51,7 +51,7 @@ export function RankBadge({
         ? '#00f0ff'
         : isHoney
           ? '#ffd700'
-          : '#d7a15c'
+          : '#d7a15c';
 
   return (
     <span
@@ -292,5 +292,5 @@ export function RankBadge({
         {tierName}
       </span>
     </span>
-  )
+  );
 }

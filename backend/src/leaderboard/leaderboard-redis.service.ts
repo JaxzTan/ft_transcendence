@@ -27,7 +27,11 @@ export class LeaderboardRedisService implements OnModuleDestroy {
   }
 
   // Set a user's rating in a mode's sorted set (key leaderboard:<mode>).
-  async updateLeaderboardEntry(userId: string, rating: number, mode: 'global' | 'ranked' | 'casual' | 'bot'): Promise<void> {
+  async updateLeaderboardEntry(
+    userId: string,
+    rating: number,
+    mode: 'global' | 'ranked' | 'casual' | 'bot',
+  ): Promise<void> {
     const key = `leaderboard:${mode}`;
     await this.redis.zadd(key, rating, userId);
   }

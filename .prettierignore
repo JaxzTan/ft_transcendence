@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+backend/generated
+frontend/public
+frontend/src/content/docs
+frontend/src/locales
+nginx/**
+*.md
+package-lock.json
+.env
+.env.*
+/compose.yaml

@@ -1,13 +1,13 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 // Inside compose the backend/engine resolve as `backend`/`ludo-engine`; running
 // `npm run dev` on the host they're on their published ports instead. Both
 // proxies mirror the location blocks in nginx/conf/app.inc so all three paths
 // (nginx, this dev server, and — for the engine — direct docker DNS) behave
 // the same and the browser never needs to know the engine's real address.
-const inContainer = process.env.VITE_IN_CONTAINER === 'true'
+const inContainer = process.env.VITE_IN_CONTAINER === 'true';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -29,18 +29,18 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('@dicebear')) {
-              return 'vendor-dicebear'
+              return 'vendor-dicebear';
             }
             if (id.includes('socket.io-client')) {
-              return 'vendor-socket'
+              return 'vendor-socket';
             }
             if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react'
+              return 'vendor-react';
             }
             if (id.includes('i18next')) {
-              return 'vendor-i18n'
+              return 'vendor-i18n';
             }
-            return 'vendor'
+            return 'vendor';
           }
         },
       },
@@ -64,4 +64,4 @@ export default defineConfig({
     // changes only reach HMR via polling when containerised.
     watch: inContainer ? { usePolling: true, interval: 300 } : undefined,
   },
-})
+});

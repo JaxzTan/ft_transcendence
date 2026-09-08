@@ -1,10 +1,10 @@
-import type { CSSProperties, ReactNode } from 'react'
-import { useEffect, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
-import { COL, type ColorKey } from '../theme'
+import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { COL, type ColorKey } from '../theme';
 
-const CELL_BG = '#050515'
-const LINE = '#00f0ff'
+const CELL_BG = '#050515';
+const LINE = '#00f0ff';
 
 // ─── Track geometry ─────────────────────────────────────────────────────────
 // The engine works purely in logical steps (0-57, see board-mapper.ts) and has
@@ -14,49 +14,65 @@ const LINE = '#00f0ff'
 // by rotating it 90° around the grid center — the classic 15×15 cross board
 // has exact 4-fold rotational symmetry, and this closes correctly (each
 // color's last cell is adjacent to the next color's start, verified by hand).
-type Cell = { r: number; c: number }
+type Cell = { r: number; c: number };
 
 const RED_SEGMENT: Cell[] = [
-  { r: 6, c: 1 }, { r: 6, c: 2 }, { r: 6, c: 3 }, { r: 6, c: 4 }, { r: 6, c: 5 },
-  { r: 5, c: 6 }, { r: 4, c: 6 }, { r: 3, c: 6 }, { r: 2, c: 6 }, { r: 1, c: 6 }, { r: 0, c: 6 },
-  { r: 0, c: 7 }, { r: 0, c: 8 },
-]
+  { r: 6, c: 1 },
+  { r: 6, c: 2 },
+  { r: 6, c: 3 },
+  { r: 6, c: 4 },
+  { r: 6, c: 5 },
+  { r: 5, c: 6 },
+  { r: 4, c: 6 },
+  { r: 3, c: 6 },
+  { r: 2, c: 6 },
+  { r: 1, c: 6 },
+  { r: 0, c: 6 },
+  { r: 0, c: 7 },
+  { r: 0, c: 8 },
+];
 
 /** 90° clockwise rotation about the 15×15 grid's center (7,7). */
 function rotate90({ r, c }: Cell): Cell {
-  return { r: c, c: 14 - r }
+  return { r: c, c: 14 - r };
 }
 
 function rotateN(cell: Cell, n: number): Cell {
-  let out = cell
-  for (let i = 0; i < n; i++) out = rotate90(out)
-  return out
+  let out = cell;
+  for (let i = 0; i < n; i++) out = rotate90(out);
+  return out;
 }
 
 /** The full 52-cell shared outer loop, track position 1-52 → board cell. */
-const TRACK_CELLS: Cell[] = [0, 1, 2, 3].flatMap((rot) => RED_SEGMENT.map((cell) => rotateN(cell, rot)))
+const TRACK_CELLS: Cell[] = [0, 1, 2, 3].flatMap((rot) =>
+  RED_SEGMENT.map((cell) => rotateN(cell, rot)),
+);
 
 const RED_HOME_LANE: Cell[] = [
-  { r: 7, c: 1 }, { r: 7, c: 2 }, { r: 7, c: 3 }, { r: 7, c: 4 }, { r: 7, c: 5 },
-]
+  { r: 7, c: 1 },
+  { r: 7, c: 2 },
+  { r: 7, c: 3 },
+  { r: 7, c: 4 },
+  { r: 7, c: 5 },
+];
 
 const HOME_LANES: Record<ColorKey, Cell[]> = {
   red: RED_HOME_LANE,
   green: RED_HOME_LANE.map((cell) => rotateN(cell, 1)),
   yellow: RED_HOME_LANE.map((cell) => rotateN(cell, 2)),
   blue: RED_HOME_LANE.map((cell) => rotateN(cell, 3)),
-}
+};
 
-const TRACK_OFFSET: Record<ColorKey, number> = { red: 0, green: 13, yellow: 26, blue: 39 }
+const TRACK_OFFSET: Record<ColorKey, number> = { red: 0, green: 13, yellow: 26, blue: 39 };
 
 /** Map a piece's logical step (1-57) to a board cell, or null if not on the board (base/goal). */
 function stepToCell(color: ColorKey, step: number): Cell | null {
-  if (step >= 52 && step <= 56) return HOME_LANES[color][step - 52]
+  if (step >= 52 && step <= 56) return HOME_LANES[color][step - 52];
   if (step >= 1 && step <= 51) {
-    const trackPos = ((step + TRACK_OFFSET[color] - 1) % 52) + 1
-    return TRACK_CELLS[trackPos - 1]
+    const trackPos = ((step + TRACK_OFFSET[color] - 1) % 52) + 1;
+    return TRACK_CELLS[trackPos - 1];
   }
-  return null
+  return null;
 }
 
 const PATH_MAP: Record<ColorKey, string> = {
@@ -100,11 +116,11 @@ const PATH_MAP: Record<ColorKey, string> = {
     M1,6 h1 v1 h-1 z  M4,6 h1 v1 h-1 z  M6,6 h1 v1 h-1 z  M9,6 h1 v1 h-1 z
     M0,7 h1 v1 h-1 z  M10,7 h1 v1 h-1 z
   `,
-}
+};
 
 function Sphere({ ck, isLegal }: { ck: ColorKey; isLegal?: boolean }) {
-  const c = COL[ck]
-  const d = PATH_MAP[ck]
+  const c = COL[ck];
+  const d = PATH_MAP[ck];
 
   return (
     <svg
@@ -131,7 +147,7 @@ function Sphere({ ck, isLegal }: { ck: ColorKey; isLegal?: boolean }) {
       {/* Original Invader color fill */}
       <path fill={c.base} d={d} />
     </svg>
-  )
+  );
 }
 
 function Ring({ ck }: { ck: ColorKey }) {
@@ -145,23 +161,29 @@ function Ring({ ck }: { ck: ColorKey }) {
         boxSizing: 'border-box',
       }}
     />
-  )
+  );
 }
 
 function Yard({
-  r, c, ck, basePieces, goalCount, legalPieceIds, onPieceClick,
+  r,
+  c,
+  ck,
+  basePieces,
+  goalCount,
+  legalPieceIds,
+  onPieceClick,
 }: {
-  r: number
-  c: number
-  ck: ColorKey
-  basePieces: Array<{ id: string }>
-  goalCount: number
-  legalPieceIds: Set<string>
-  onPieceClick?: (pieceId: string) => void
+  r: number;
+  c: number;
+  ck: ColorKey;
+  basePieces: Array<{ id: string }>;
+  goalCount: number;
+  legalPieceIds: Set<string>;
+  onPieceClick?: (pieceId: string) => void;
 }) {
-  const { t } = useTranslation()
-  const col = COL[ck]
-  const label = t(`board.${ck}Bay`)
+  const { t } = useTranslation();
+  const col = COL[ck];
+  const label = t(`board.${ck}Bay`);
   return (
     <div
       style={{
@@ -231,9 +253,23 @@ function Yard({
         }}
       >
         {[0, 1, 2, 3].map((s) => {
-          const piece = basePieces[s]
-          if (!piece) return <div key={s} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ring ck={ck} /></div>
-          const isLegal = legalPieceIds.has(piece.id)
+          const piece = basePieces[s];
+          if (!piece)
+            return (
+              <div
+                key={s}
+                style={{
+                  width: 28,
+                  height: 28,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ring ck={ck} />
+              </div>
+            );
+          const isLegal = legalPieceIds.has(piece.id);
           return (
             <div
               key={s}
@@ -251,15 +287,20 @@ function Yard({
             >
               <Sphere ck={ck} isLegal={isLegal} />
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 /** Star/safe start cells, tinted the owner color. */
-const STARTS: Record<string, ColorKey> = { '6,1': 'red', '1,8': 'green', '8,13': 'yellow', '13,6': 'blue' }
+const STARTS: Record<string, ColorKey> = {
+  '6,1': 'red',
+  '1,8': 'green',
+  '8,13': 'yellow',
+  '13,6': 'blue',
+};
 
 // Pre-start safe cells matching the backend's SAFE_TRACK_POSITIONS.
 const SAFE_STAR_CELLS: Record<string, boolean> = (() => {
@@ -274,42 +315,59 @@ const SAFE_STAR_CELLS: Record<string, boolean> = (() => {
 
 /** Home-stretch lane color for a track cell, or null for a plain cell. */
 function laneColor(r: number, c: number): string | null {
-  if (r === 7 && c >= 1 && c <= 5) return COL.red.base
-  if (c === 7 && r >= 1 && r <= 5) return COL.green.base
-  if (r === 7 && c >= 9 && c <= 13) return COL.yellow.base
-  if (c === 7 && r >= 9 && r <= 13) return COL.blue.base
-  return null
+  if (r === 7 && c >= 1 && c <= 5) return COL.red.base;
+  if (c === 7 && r >= 1 && r <= 5) return COL.green.base;
+  if (r === 7 && c >= 9 && c <= 13) return COL.yellow.base;
+  if (c === 7 && r >= 9 && r <= 13) return COL.blue.base;
+  return null;
 }
 
 type BoardProps = {
-  pieces?: Array<{ id: string; color: string; step: number; isInGoal: boolean; isInBase: boolean }>
-  players?: Array<{ color: string; status: string }>
-  legalMoves?: Array<{ pieceId: string; from: number; to: number; isCapture: boolean; isHomeEntry: boolean }>
-  onPieceClick?: (pieceId: string) => void
+  pieces?: Array<{ id: string; color: string; step: number; isInGoal: boolean; isInBase: boolean }>;
+  players?: Array<{ color: string; status: string }>;
+  legalMoves?: Array<{
+    pieceId: string;
+    from: number;
+    to: number;
+    isCapture: boolean;
+    isHomeEntry: boolean;
+  }>;
+  onPieceClick?: (pieceId: string) => void;
   /** While set, this piece renders at `step` (box by box) instead of its real logical step — see Game.tsx's move animation. */
-  animating?: { pieceId: string; step: number } | null
+  animating?: { pieceId: string; step: number } | null;
   /** Transient capture burst: expanding ring + sparks on the cell the mover landed on. Pure cosmetic overlay. */
-  fx?: { color: string; to: number } | null
-}
+  fx?: { color: string; to: number } | null;
+};
 
 /** The classic 15×15 cross board, rendered procedurally — no images. */
-export function Board({ pieces = [], players = [], legalMoves, onPieceClick, animating, fx }: BoardProps = {}) {
-  const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId))
-  const activeColors = new Set(players.filter((p) => p.status === 'active' || p.status === 'disconnected').map((p) => p.color))
+export function Board({
+  pieces = [],
+  players = [],
+  legalMoves,
+  onPieceClick,
+  animating,
+  fx,
+}: BoardProps = {}) {
+  const legalPieceIds = new Set((legalMoves ?? []).map((m) => m.pieceId));
+  const activeColors = new Set(
+    players.filter((p) => p.status === 'active' || p.status === 'disconnected').map((p) => p.color),
+  );
   const basePieces = (ck: ColorKey) =>
-    activeColors.has(ck) ? pieces.filter((p) => p.color === ck && p.isInBase && p.id !== animating?.pieceId) : []
+    activeColors.has(ck)
+      ? pieces.filter((p) => p.color === ck && p.isInBase && p.id !== animating?.pieceId)
+      : [];
   const goalCount = (ck: ColorKey) =>
-    pieces.filter((p) => p.color === ck && p.isInGoal && p.id !== animating?.pieceId).length
+    pieces.filter((p) => p.color === ck && p.isInGoal && p.id !== animating?.pieceId).length;
 
-  const cells: ReactNode[] = []
+  const cells: ReactNode[] = [];
   for (let r = 0; r < 15; r++) {
     for (let c = 0; c < 15; c++) {
-      const inCross = (r >= 6 && r <= 8) || (c >= 6 && c <= 8)
-      if (!inCross) continue
-      if (r >= 6 && r <= 8 && c >= 6 && c <= 8) continue // center handled separately
-      const key = `${r},${c}`
-      const startCol = STARTS[key]
-      const bg = startCol ? COL[startCol].base : laneColor(r, c) || CELL_BG
+      const inCross = (r >= 6 && r <= 8) || (c >= 6 && c <= 8);
+      if (!inCross) continue;
+      if (r >= 6 && r <= 8 && c >= 6 && c <= 8) continue; // center handled separately
+      const key = `${r},${c}`;
+      const startCol = STARTS[key];
+      const bg = startCol ? COL[startCol].base : laneColor(r, c) || CELL_BG;
       const style: CSSProperties = {
         gridRow: r + 1,
         gridColumn: c + 1,
@@ -319,8 +377,8 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
         alignItems: 'center',
         justifyContent: 'center',
         boxSizing: 'border-box',
-      }
-      let inner: ReactNode = null
+      };
+      let inner: ReactNode = null;
       if (startCol) {
         inner = (
           <div
@@ -333,7 +391,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
               filter: 'drop-shadow(0 0 4px #ffffff)',
             }}
           />
-        )
+        );
       } else if (SAFE_STAR_CELLS[key]) {
         inner = (
           <div
@@ -346,7 +404,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
               filter: 'drop-shadow(0 0 5px #ffe600)',
             }}
           />
-        )
+        );
       } else if (!laneColor(r, c)) {
         inner = (
           <div
@@ -358,50 +416,53 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
               boxShadow: '0 0 4px #ffb8ae',
             }}
           />
-        )
+        );
       }
       cells.push(
         <div key={`p${key}`} style={style}>
           {inner}
         </div>,
-      )
+      );
     }
   }
 
   // Render engine-driven pieces on the actual track cell their step maps to.
   // Grouped by cell so pieces sharing a square (common near base/captures)
   // fan out into sub-positions instead of fully overlapping.
-  const byCell = new Map<string, Array<{ id: string; ck: ColorKey; isLegal: boolean }>>()
+  const byCell = new Map<string, Array<{ id: string; ck: ColorKey; isLegal: boolean }>>();
   for (const piece of pieces) {
-    if (!activeColors.has(piece.color)) continue
-    const isAnimating = animating?.pieceId === piece.id
+    if (!activeColors.has(piece.color)) continue;
+    const isAnimating = animating?.pieceId === piece.id;
     // Mid-animation the piece may already be logically captured/home/goal in
     // state (server applies the full move atomically) — render it at its
     // in-transit step regardless so the box-by-box travel stays visible.
-    if (!isAnimating && (piece.isInBase || piece.isInGoal || piece.step <= 0)) continue
-    const ck = piece.color as ColorKey
-    const cell = stepToCell(ck, isAnimating && animating ? animating.step : piece.step)
-    if (!cell) continue
-    const key = `${cell.r},${cell.c}`
-    const list = byCell.get(key) ?? []
-    list.push({ id: piece.id, ck, isLegal: legalPieceIds.has(piece.id) })
-    byCell.set(key, list)
+    if (!isAnimating && (piece.isInBase || piece.isInGoal || piece.step <= 0)) continue;
+    const ck = piece.color as ColorKey;
+    const cell = stepToCell(ck, isAnimating && animating ? animating.step : piece.step);
+    if (!cell) continue;
+    const key = `${cell.r},${cell.c}`;
+    const list = byCell.get(key) ?? [];
+    list.push({ id: piece.id, ck, isLegal: legalPieceIds.has(piece.id) });
+    byCell.set(key, list);
   }
 
   // Sub-cell offsets so up to 4 stacked pieces stay individually visible/clickable.
   const SUB_OFFSETS = [
-    { x: -22, y: -22 }, { x: 22, y: -22 }, { x: -22, y: 22 }, { x: 22, y: 22 },
-  ]
+    { x: -22, y: -22 },
+    { x: 22, y: -22 },
+    { x: -22, y: 22 },
+    { x: 22, y: 22 },
+  ];
 
   // Inject halo pulse keyframes once
-  const injected = useRef(false)
+  const injected = useRef(false);
   useEffect(() => {
-    if (injected.current) return
-    injected.current = true
-    const id = 'board-halo-keyframes'
-    if (document.getElementById(id)) return
-    const style = document.createElement('style')
-    style.id = id
+    if (injected.current) return;
+    injected.current = true;
+    const id = 'board-halo-keyframes';
+    if (document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
     style.textContent = `
       @keyframes piecePulse {
         0%   { transform: scale(1); }
@@ -416,20 +477,20 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
         from { transform: translate(0,0) scale(1); opacity: 1; }
         to   { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; }
       }
-    `
-    document.head.appendChild(style)
-  }, [])
+    `;
+    document.head.appendChild(style);
+  }, []);
 
-  const enginePieces: ReactNode[] = []
+  const enginePieces: ReactNode[] = [];
 
   // Capture burst FX: transient ring + sparks on the landing cell. Positioned
   // like enginePieces (grid row/col), above them (zIndex 11), non-interactive.
   if (fx && fx.to >= 1 && fx.to <= 57) {
-    const ck = fx.color as ColorKey
-    const cell = stepToCell(ck, fx.to)
+    const ck = fx.color as ColorKey;
+    const cell = stepToCell(ck, fx.to);
     if (cell) {
-      const col = COL[ck]
-      let uid = 0
+      const col = COL[ck];
+      let uid = 0;
       const spark = (dx: number, dy: number, size: number, bg: string) => (
         <div
           key={`fx-s${uid++}`}
@@ -451,7 +512,7 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
             } as CSSProperties & Record<'--dx' | '--dy', string>
           }
         />
-      )
+      );
       enginePieces.push(
         <div
           key="fx-ring"
@@ -478,14 +539,14 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
         spark(14, -14, 5, '#ffffff'),
         spark(-14, 14, 5, '#ffffff'),
         spark(14, 14, 5, col.base),
-      )
+      );
     }
   }
 
   for (const [key, list] of byCell) {
-    const [r, c] = key.split(',').map(Number)
+    const [r, c] = key.split(',').map(Number);
     list.forEach((p, i) => {
-      const offset = list.length > 1 ? SUB_OFFSETS[i % SUB_OFFSETS.length] : { x: 0, y: 0 }
+      const offset = list.length > 1 ? SUB_OFFSETS[i % SUB_OFFSETS.length] : { x: 0, y: 0 };
       enginePieces.push(
         <div
           key={p.id}
@@ -508,8 +569,8 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
         >
           <Sphere ck={p.ck} isLegal={p.isLegal} />
         </div>,
-      )
-    })
+      );
+    });
   }
 
   return (
@@ -529,10 +590,42 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
           boxShadow: '0 0 25px rgba(33, 33, 255, 0.6), inset 0 0 20px rgba(0, 240, 255, 0.25)',
         }}
       >
-        <Yard r={0} c={0} ck="red" basePieces={basePieces('red')} goalCount={goalCount('red')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={0} c={9} ck="green" basePieces={basePieces('green')} goalCount={goalCount('green')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={9} c={9} ck="yellow" basePieces={basePieces('yellow')} goalCount={goalCount('yellow')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
-        <Yard r={9} c={0} ck="blue" basePieces={basePieces('blue')} goalCount={goalCount('blue')} legalPieceIds={legalPieceIds} onPieceClick={onPieceClick} />
+        <Yard
+          r={0}
+          c={0}
+          ck="red"
+          basePieces={basePieces('red')}
+          goalCount={goalCount('red')}
+          legalPieceIds={legalPieceIds}
+          onPieceClick={onPieceClick}
+        />
+        <Yard
+          r={0}
+          c={9}
+          ck="green"
+          basePieces={basePieces('green')}
+          goalCount={goalCount('green')}
+          legalPieceIds={legalPieceIds}
+          onPieceClick={onPieceClick}
+        />
+        <Yard
+          r={9}
+          c={9}
+          ck="yellow"
+          basePieces={basePieces('yellow')}
+          goalCount={goalCount('yellow')}
+          legalPieceIds={legalPieceIds}
+          onPieceClick={onPieceClick}
+        />
+        <Yard
+          r={9}
+          c={0}
+          ck="blue"
+          basePieces={basePieces('blue')}
+          goalCount={goalCount('blue')}
+          legalPieceIds={legalPieceIds}
+          onPieceClick={onPieceClick}
+        />
         <div
           style={{
             gridRow: '7 / span 3',
@@ -546,5 +639,5 @@ export function Board({ pieces = [], players = [], legalMoves, onPieceClick, ani
         {enginePieces}
       </div>
     </div>
-  )
+  );
 }

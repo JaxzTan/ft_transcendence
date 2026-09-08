@@ -8,16 +8,16 @@ export class MoveValidator {
   // LudoEngine.rollDice to build pendingLegalMoves.
   static getLegalMoves(state: GameState, color: PlayerColor, diceValue: number): LegalMove[] {
     const moves: LegalMove[] = [];
-    
-    for (const piece of state.pieces.filter(p => p.color === color)) {
+
+    for (const piece of state.pieces.filter((p) => p.color === color)) {
       const from = piece.step;
-      
+
       // Skip if exited (step < 0)
       if (from < 0) continue;
-      
+
       // Skip if already finished (step === 57)
       if (from === 57) continue;
-      
+
       // Prison exit rule: can only leave prison on a roll of 6.
       // Exiting places the piece on the starting track square (step 1) : the 6
       // is consumed to exit; the remaining 5 steps are NOT applied. The next
@@ -30,28 +30,28 @@ export class MoveValidator {
         moves.push({ pieceId: piece.id, from, to, isCapture, isHomeEntry });
         continue;
       }
-      
+
       const to = from + diceValue;
       if (to > 57) continue; // overshoot
-      
+
       // Blockade rule: cannot pass THROUGH a two-or-more same-color opponent stack.
       // Any intermediate track step the piece would cross is blocked.
       if (this.blockadeBlocksPath(state, color, from, to, piece.id)) {
         continue;
       }
-      
+
       const isHomeEntry = to >= 52 && to <= 56;
       const isCapture = this.isCapturableTarget(state, color, piece.id, to);
-      
+
       moves.push({
         pieceId: piece.id,
         from,
         to,
         isCapture,
-        isHomeEntry
+        isHomeEntry,
       });
     }
-    
+
     return moves;
   }
 
@@ -69,7 +69,9 @@ export class MoveValidator {
     if (from < 1 || to < 1) return false;
 
     // Opponents' blockades only matter; own pieces never physically block the mover.
-    const opponentColors: PlayerColor[] = ['blue', 'red', 'green', 'yellow'].filter(c => c !== moverColor) as PlayerColor[];
+    const opponentColors: PlayerColor[] = ['blue', 'red', 'green', 'yellow'].filter(
+      (c) => c !== moverColor,
+    ) as PlayerColor[];
 
     // Walk the mover's own-step path, but only main-track steps (1-51) participate.
     // When the move ends in the home stretch/goal (to > 51), still check the
@@ -92,7 +94,12 @@ export class MoveValidator {
   // Single source of truth for "can the mover capture on targetStep?" :
   // detection and execution both derive from it. Main track only, safe zones
   // never capturable, blockades uncapturable, else opponent must be there.
-  static isCapturableTarget(state: GameState, moverColor: PlayerColor, pieceId: PieceId, targetStep: number): boolean {
+  static isCapturableTarget(
+    state: GameState,
+    moverColor: PlayerColor,
+    pieceId: PieceId,
+    targetStep: number,
+  ): boolean {
     if (targetStep <= 0 || targetStep >= 52) return false;
 
     // Safe zones (start squares + shared safe loop) never allow captures.
@@ -104,7 +111,9 @@ export class MoveValidator {
     // Blockade rule: a 2+ same-color opponent stack on the landing square is
     // uncapturable : sharing is fine, capturing is not. The blocker pieces are
     // compared on the shared track loop via the mover's target track position.
-    const opponentColors: PlayerColor[] = ['blue', 'red', 'green', 'yellow'].filter(c => c !== moverColor) as PlayerColor[];
+    const opponentColors: PlayerColor[] = ['blue', 'red', 'green', 'yellow'].filter(
+      (c) => c !== moverColor,
+    ) as PlayerColor[];
     for (const blockerColor of opponentColors) {
       if (BoardMapper.isBlockadeAtTrackPos(state.pieces, blockerColor, targetPos)) {
         return false;
@@ -124,7 +133,11 @@ export class MoveValidator {
   // Every opponent piece occupying the landing square : a stacked block is
   // captured as a whole. Defensive: normally one color's block at most, but
   // the whole-square rule means a rule change can't leave defenders behind.
-  static findPiecesAtPosition(state: GameState, excludeColor: PlayerColor, targetStep: number): PieceId[] {
+  static findPiecesAtPosition(
+    state: GameState,
+    excludeColor: PlayerColor,
+    targetStep: number,
+  ): PieceId[] {
     if (targetStep <= 0 || targetStep >= 52) return [];
 
     const targetPos = BoardMapper.toTrackPosition(`${excludeColor}-0`, targetStep);
@@ -138,14 +151,18 @@ export class MoveValidator {
     return found;
   }
 
-  static resolveCapture(state: GameState, capturerColor: PlayerColor, targetStep: number): PieceId[] {
+  static resolveCapture(
+    state: GameState,
+    capturerColor: PlayerColor,
+    targetStep: number,
+  ): PieceId[] {
     return this.findPiecesAtPosition(state, capturerColor, targetStep);
   }
 
   static checkWinner(state: GameState): PlayerColor | null {
     for (const player of state.players) {
-      const playerPieces = state.pieces.filter(p => p.color === player.color);
-      if (playerPieces.every(p => p.step === 57)) {
+      const playerPieces = state.pieces.filter((p) => p.color === player.color);
+      if (playerPieces.every((p) => p.step === 57)) {
         return player.color;
       }
     }
@@ -153,37 +170,37 @@ export class MoveValidator {
   }
 
   static countPiecesInGoal(state: GameState, color: PlayerColor): number {
-    return state.pieces.filter(p => p.color === color && p.step === 57).length;
+    return state.pieces.filter((p) => p.color === color && p.step === 57).length;
   }
 
   // Apply a chosen legal move to the state: move the piece, send captured
   // pieces home, bump turn counts, and build the MoveResult (path, capture
   // list, bonus-roll flag). Used by LudoEngine.movePiece.
   static executeMove(state: GameState, pendingMove: LegalMove, diceValue: number): MoveResult {
-    const piece = state.pieces.find(p => p.id === pendingMove.pieceId)!;
+    const piece = state.pieces.find((p) => p.id === pendingMove.pieceId)!;
     const capturerColor = piece.color;
-    
+
     // Move piece
     piece.step = pendingMove.to;
-    
+
     // Resolve capture : every opponent piece stacked on the landing square goes home
     let capturedPieceIds: PieceId[] = [];
     if (pendingMove.isCapture) {
       capturedPieceIds = this.resolveCapture(state, capturerColor, pendingMove.to);
       for (const id of capturedPieceIds) {
-        const captured = state.pieces.find(p => p.id === id)!;
+        const captured = state.pieces.find((p) => p.id === id)!;
         captured.step = 0;
       }
       if (capturedPieceIds.length > 0) {
-        const capturer = state.players.find(p => p.color === capturerColor)!;
+        const capturer = state.players.find((p) => p.color === capturerColor)!;
         capturer.stats.captures += capturedPieceIds.length;
       }
     }
-    
+
     // Update player turn count
-    const player = state.players.find(p => p.color === capturerColor)!;
+    const player = state.players.find((p) => p.color === capturerColor)!;
     player.stats.turns++;
-    
+
     // Build result. path is every intermediate square the piece actually
     // crosses (from+1 .. to) : server-authoritative so the frontend animates
     // the real route instead of re-deriving it (and can't skip captures).
@@ -201,7 +218,7 @@ export class MoveValidator {
       captured,
       capturedPieceIds,
       enteredHome: pendingMove.isHomeEntry,
-      bonusRoll: diceValue === 6 || captured
+      bonusRoll: diceValue === 6 || captured,
     };
   }
 }

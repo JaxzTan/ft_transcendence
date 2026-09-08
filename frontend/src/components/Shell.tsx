@@ -1,28 +1,28 @@
-import type { CSSProperties, ReactNode } from 'react'
-import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { navigate, useRoute } from '../router'
-import { AccountMenu } from './AccountMenu'
-import { NotificationBell } from './NotificationBell'
-import { NotificationToasts } from './NotificationToast'
-import { useNotifications } from '../hooks/useNotifications'
-import { goldText } from '../theme'
-import { apiFetch } from '../api'
-import { useApp } from '../store'
+import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { navigate, useRoute } from '../router';
+import { AccountMenu } from './AccountMenu';
+import { NotificationBell } from './NotificationBell';
+import { NotificationToasts } from './NotificationToast';
+import { useNotifications } from '../hooks/useNotifications';
+import { goldText } from '../theme';
+import { apiFetch } from '../api';
+import { useApp } from '../store';
 
 const NAV: Array<{ path: string; glyph: string; titleKey: string }> = [
   { path: '/home', glyph: '⌂', titleKey: 'nav.home' },
   { path: '/friends', glyph: '♟', titleKey: 'nav.friends' },
   { path: '/profile', glyph: '👤', titleKey: 'nav.profile' },
   { path: '/leaderboard', glyph: '♛', titleKey: 'nav.leaderboard' },
-]
+];
 
 export const SCREEN_TITLE_KEYS: Record<string, string> = {
   '/home': 'nav.home',
   '/leaderboard': 'nav.leaderboard',
   '/friends': 'nav.friends',
   '/profile': 'nav.playerProfile',
-}
+};
 
 function railItemStyle(active: boolean): CSSProperties {
   return {
@@ -36,7 +36,7 @@ function railItemStyle(active: boolean): CSSProperties {
     background: active ? 'linear-gradient(180deg,#2e2317,#241a0f)' : 'transparent',
     border: '1px solid ' + (active ? '#4a3826' : 'transparent'),
     boxShadow: active ? 'inset 0 1px 0 rgba(255,255,255,.06)' : 'none',
-  }
+  };
 }
 
 function railGlyphStyle(active: boolean): CSSProperties {
@@ -51,37 +51,38 @@ function railGlyphStyle(active: boolean): CSSProperties {
     color: active ? '#3a2a10' : '#d8b25e',
     background: active ? 'linear-gradient(180deg,#f0d18a,#c99b45)' : '#2a2016',
     border: '1px solid ' + (active ? '#b8873a' : '#3e2f1f'),
-  }
+  };
 }
 
 /** Sidebar rail + top header wrapping home/dashboard/leaderboard/friends/settings. */
 export function Shell({ children }: { children: ReactNode }) {
-  const { t } = useTranslation()
-  const { path } = useRoute()
-  const { user } = useApp()
-  const [rating, setRating] = useState<number | null>(null)
+  const { t } = useTranslation();
+  const { path } = useRoute();
+  const { user } = useApp();
+  const [rating, setRating] = useState<number | null>(null);
 
   // Notification system — replaces the old polling-based invite check.
-  const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } = useNotifications()
+  const { notifications, toasts, unreadCount, markRead, markAllRead, dismissToast } =
+    useNotifications();
 
   useEffect(() => {
     if (!user) {
-      setRating(null)
-      return
+      setRating(null);
+      return;
     }
-    let cancelled = false
+    let cancelled = false;
     apiFetch('/api/leaderboard?mode=global&limit=1')
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
-        if (!cancelled) setRating(body?.myRank?.rating ?? null)
+        if (!cancelled) setRating(body?.myRank?.rating ?? null);
       })
       .catch(() => {
-        if (!cancelled) setRating(null)
-      })
+        if (!cancelled) setRating(null);
+      });
     return () => {
-      cancelled = true
-    }
-  }, [user])
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -125,13 +126,13 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         </div>
         {NAV.map((it) => {
-          const active = path === it.path
+          const active = path === it.path;
           return (
             <div key={it.path} style={railItemStyle(active)} onClick={() => navigate(it.path)}>
               <div style={railGlyphStyle(active)}>{it.glyph}</div>
               <div style={{ fontWeight: 600, fontSize: '14.5px' }}>{t(it.titleKey)}</div>
             </div>
-          )
+          );
         })}
         <div style={{ flex: 1 }} />
       </aside>
@@ -147,17 +148,33 @@ export function Shell({ children }: { children: ReactNode }) {
             background: 'rgba(20,14,9,.55)',
           }}
         >
-          <div style={{ fontFamily: "'Cinzel',serif", fontSize: 22, fontWeight: 600, color: '#f0e2c4' }}>
+          <div
+            style={{
+              fontFamily: "'Cinzel',serif",
+              fontSize: 22,
+              fontWeight: 600,
+              color: '#f0e2c4',
+            }}
+          >
             {SCREEN_TITLE_KEYS[path] ? t(SCREEN_TITLE_KEYS[path]) : ''}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div
               style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999,
-                border: '1px solid #3a2c1d', background: '#1a130d', fontWeight: 700, fontSize: 14, color: '#e8dcc6',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 14px',
+                borderRadius: 999,
+                border: '1px solid #3a2c1d',
+                background: '#1a130d',
+                fontWeight: 700,
+                fontSize: 14,
+                color: '#e8dcc6',
               }}
             >
-              <span style={{ color: '#f0c24e' }}>♛</span>{rating !== null ? rating.toLocaleString() : '—'}
+              <span style={{ color: '#f0c24e' }}>♛</span>
+              {rating !== null ? rating.toLocaleString() : '—'}
             </div>
             <NotificationBell
               notifications={notifications}
@@ -175,5 +192,5 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* Toast notifications — slide in from the right */}
       <NotificationToasts toasts={toasts} onDismiss={dismissToast} />
     </div>
-  )
+  );
 }

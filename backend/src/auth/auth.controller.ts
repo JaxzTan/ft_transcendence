@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpCode, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Patch,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -27,7 +39,8 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 
 const LOCAL_FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
-const NGROK_FRONTEND_URL = secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev';
+const NGROK_FRONTEND_URL =
+  secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev';
 
 // Picked per request from the Host header : a tunnel and a local client can
 // both be live against the same backend (same signal oauth.guards.ts uses).
@@ -36,8 +49,8 @@ function frontendUrlFor(req: Request): string {
 }
 
 function originFromRequest(req: Request): string {
-  const proto = (req.headers['x-forwarded-proto'] as string)?.split(',')[0]?.trim()
-    || req.protocol || 'https';
+  const proto =
+    (req.headers['x-forwarded-proto'] as string)?.split(',')[0]?.trim() || req.protocol || 'https';
   return `${proto}://${req.get('host') || 'localhost:8443'}`;
 }
 
@@ -153,7 +166,6 @@ export class AuthController {
     return { user: profile.user };
   }
 
-
   // ---- Get full profile (used by the Edit-Profile card) ----
   @UseGuards(JwtAuthGuard)
   @Get('profile')
@@ -189,7 +201,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Delete('profile')
   @HttpCode(200)
-  async deleteAccount(@Req() req: Request, @Body() dto: DeleteAccountDto, @Res({ passthrough: true }) res: Response) {
+  async deleteAccount(
+    @Req() req: Request,
+    @Body() dto: DeleteAccountDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     await this.authService.deleteAccount((req.user as { id: string }).id, dto);
     // Drop both session cookies so the (now-deleted) browser ends logged out.
     res.clearCookie(ACCESS_COOKIE, { path: '/' });
@@ -213,8 +229,7 @@ export class AuthController {
   // ---- Google OAuth ----
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  googleAuth() {
-  }
+  googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
@@ -248,12 +263,14 @@ export class AuthController {
   // 2FA on, we still email a code and hand off to the SPA's /2fa page; if they
   // turned it off, we set the session here and go straight to the app.
   private async finishOAuth(req: Request, res: Response) {
-    const user = req.user as {
-      id: string;
-      username: string;
-      email: string | null;
-      twoFactorEnabled: boolean;
-    } | undefined;
+    const user = req.user as
+      | {
+          id: string;
+          username: string;
+          email: string | null;
+          twoFactorEnabled: boolean;
+        }
+      | undefined;
     const frontendUrl = frontendUrlFor(req);
 
     if (!user) {
@@ -316,6 +333,10 @@ export class AuthController {
     // Access token: path '/' so it rides along on every /api call for verification.
     res.cookie(ACCESS_COOKIE, accessToken, { ...base, path: '/', maxAge: ACCESS_MAX_AGE_MS });
     // Refresh token: path /api/auth so it's only sent to refresh + logout.
-    res.cookie(REFRESH_COOKIE, refreshToken, { ...base, path: REFRESH_PATH, maxAge: REFRESH_MAX_AGE_MS });
+    res.cookie(REFRESH_COOKIE, refreshToken, {
+      ...base,
+      path: REFRESH_PATH,
+      maxAge: REFRESH_MAX_AGE_MS,
+    });
   }
 }

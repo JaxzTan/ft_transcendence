@@ -68,8 +68,11 @@ const countsOld = Object.fromEntries(faces.map((v) => [v, 0]));
 for (let i = 0; i < N; i++) counts[roll()]++;
 for (let i = 0; i < N; i++) countsOld[rollOldAveraging()]++;
 
-const chi2 = faces.reduce((sum, v) => sum + ((counts[v] - N * FAIR) ** 2) / (N * FAIR), 0);
-const chi2Old = faces.reduce((sum, v) => sum + ((countsOld[v] - N * theoryOld[v]) ** 2) / (N * theoryOld[v]), 0);
+const chi2 = faces.reduce((sum, v) => sum + (counts[v] - N * FAIR) ** 2 / (N * FAIR), 0);
+const chi2Old = faces.reduce(
+  (sum, v) => sum + (countsOld[v] - N * theoryOld[v]) ** 2 / (N * theoryOld[v]),
+  0,
+);
 
 // ── Report ─────────────────────────────────────────────────────────────────
 console.log('DICE ROLL RANDOMNESS MODEL — fixbugs ludo-engine');
@@ -94,7 +97,17 @@ console.log('Chi-square (previous, 5 dof):', chi2Old.toFixed(2), '(99% critical 
 console.log('  →', chi2Old < 15.086 ? 'CONSISTENT ✅  triangular' : 'MISMATCH ❌');
 
 console.log('\nEntropy comparison');
-console.log('  current  : H =', H_FAIR.toFixed(4), 'bits  (theoretical maximum log2(6) =', H_FAIR.toFixed(4), ')');
-console.log('  previous : H =', H_OLD.toFixed(4), 'bits  (−' + ((1 - H_OLD / H_FAIR) * 100).toFixed(1) + '% vs fair)');
+console.log(
+  '  current  : H =',
+  H_FAIR.toFixed(4),
+  'bits  (theoretical maximum log2(6) =',
+  H_FAIR.toFixed(4),
+  ')',
+);
+console.log(
+  '  previous : H =',
+  H_OLD.toFixed(4),
+  'bits  (−' + ((1 - H_OLD / H_FAIR) * 100).toFixed(1) + '% vs fair)',
+);
 
 console.log('\nVerdict: the single-draw formula restores a perfectly fair die.');

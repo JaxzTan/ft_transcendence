@@ -106,7 +106,7 @@ export class NotificationService implements OnModuleDestroy {
     await this.pub.quit();
     await this.sub.quit();
   }
-// SSE connection management
+  // SSE connection management
   // Client opens the SSE stream. Returns an Observable the controller pipes
   // into the response; subscribes to the Redis channel on first connection.
   subscribe(userId: string): Observable<NotificationPayload> {
@@ -160,7 +160,7 @@ export class NotificationService implements OnModuleDestroy {
       this.sub.unsubscribe(`notify:${userId}`).catch(() => {});
     }
   }
-// Emit a notification
+  // Emit a notification
   // Persist a notification for a user in Postgres and push it live over
   // Redis Pub/Sub to their connected SSE clients.
   async notify(
@@ -198,7 +198,10 @@ export class NotificationService implements OnModuleDestroy {
     try {
       await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
     } catch (err) {
-      console.warn(`[notifications] live push failed for ${type} -> user ${userId} (persisted, will show on next load):`, err);
+      console.warn(
+        `[notifications] live push failed for ${type} -> user ${userId} (persisted, will show on next load):`,
+        err,
+      );
     }
   }
 
@@ -224,7 +227,11 @@ export class NotificationService implements OnModuleDestroy {
 
   // TRANSIENT per-user notification (same path as notify(), no Postgres
   // write) so ephemeral events can't flood the bell.
-  async notifyTransient(userId: string, type: NotificationType, payload: Record<string, unknown>): Promise<void> {
+  async notifyTransient(
+    userId: string,
+    type: NotificationType,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
     const event: NotificationPayload = {
       id: randomUUID(),
       type,
@@ -240,7 +247,7 @@ export class NotificationService implements OnModuleDestroy {
       console.warn(`[notifications] transient push failed for ${type} -> user ${userId}:`, err);
     }
   }
-// REST helpers (for the controller)
+  // REST helpers (for the controller)
   // Fetch unread notifications for the bell dropdown on page load.
   async getUnread(userId: string): Promise<NotificationPayload[]> {
     const rows = await this.prisma.db.notification.findMany({

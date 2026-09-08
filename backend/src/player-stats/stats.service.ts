@@ -32,7 +32,7 @@ export class StatsService {
       losses: totalGames - wins,
       totalCaptures,
       totalPiecesInGoal,
-      avgCapturesPerGame: totalGames > 0 ? Math.round(totalCaptures / totalGames * 10) / 10 : 0,
+      avgCapturesPerGame: totalGames > 0 ? Math.round((totalCaptures / totalGames) * 10) / 10 : 0,
     };
   }
 }

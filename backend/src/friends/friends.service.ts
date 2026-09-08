@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
@@ -48,7 +53,10 @@ export class FriendsService {
     if (!friendship) throw new ForbiddenException('You are not friends with this user');
 
     const match = await this.matchService.createInvite(userId);
-    const inviter = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true, displayName: true } });
+    const inviter = await this.prisma.db.user.findUnique({
+      where: { id: userId },
+      select: { username: true, displayName: true },
+    });
 
     // Seat the friend into the room now : they only confirm before entering,
     // they don't have to "accept" first.
@@ -134,7 +142,10 @@ export class FriendsService {
     });
 
     // Notify the target user that they have a new friend request.
-    const sender = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true, displayName: true, avatarStyle: true } });
+    const sender = await this.prisma.db.user.findUnique({
+      where: { id: userId },
+      select: { username: true, displayName: true, avatarStyle: true },
+    });
     await this.notificationService.notify(targetUserId, 'friend_request', {
       requestId: friendship.id,
       fromUserId: userId,
@@ -202,7 +213,10 @@ export class FriendsService {
     });
 
     // Notify the original sender that their request was declined.
-    const decliner = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+    const decliner = await this.prisma.db.user.findUnique({
+      where: { id: userId },
+      select: { username: true },
+    });
     await this.notificationService.notify(request.userId, 'friend_declined', {
       fromUserId: userId,
       fromUsername: decliner?.username || 'A pilot',
@@ -233,7 +247,10 @@ export class FriendsService {
     });
 
     // Notify the removed friend that the link was severed.
-    const remover = await this.prisma.db.user.findUnique({ where: { id: userId }, select: { username: true } });
+    const remover = await this.prisma.db.user.findUnique({
+      where: { id: userId },
+      select: { username: true },
+    });
     await this.notificationService.notify(friendId, 'friend_removed', {
       fromUserId: userId,
       fromUsername: remover?.username || 'A pilot',
@@ -264,8 +281,26 @@ export class FriendsService {
         ],
       },
       include: {
-        user: { select: { id: true, username: true, displayName: true, avatarStyle: true, avatarPhotoContentType: true, rating: true } },
-        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true, avatarPhotoContentType: true, rating: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarStyle: true,
+            avatarPhotoContentType: true,
+            rating: true,
+          },
+        },
+        friend: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarStyle: true,
+            avatarPhotoContentType: true,
+            rating: true,
+          },
+        },
       },
     });
 
@@ -407,7 +442,16 @@ export class FriendsService {
         status: 'blocked',
       },
       include: {
-        friend: { select: { id: true, username: true, displayName: true, avatarStyle: true, avatarPhotoContentType: true, rating: true } },
+        friend: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarStyle: true,
+            avatarPhotoContentType: true,
+            rating: true,
+          },
+        },
       },
     });
 

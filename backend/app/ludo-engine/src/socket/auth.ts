@@ -20,7 +20,15 @@ function requireJwtSecret(): string {
   return secret;
 }
 
-export function verifyToken(token: string): { gameId: string; userId: string; username?: string; displayName?: string; role: string; color?: PlayerColor; mode?: string } | null {
+export function verifyToken(token: string): {
+  gameId: string;
+  userId: string;
+  username?: string;
+  displayName?: string;
+  role: string;
+  color?: PlayerColor;
+  mode?: string;
+} | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;

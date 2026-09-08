@@ -1,44 +1,56 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
-import { useTranslation } from 'react-i18next'
-import { RetroAuthLayout, NeonCheck } from '../components/RetroAuthLayout'
-import { navigate } from '../router'
-import { useApp } from '../store'
-import { passwordError } from '../validatePassword'
-import '../styles/retrowave.css'
-import { RETRO_AUTH_BTN, RETRO_AUTH_BTN_OUTLINE, RETRO_AUTH_DIVIDER, RETRO_AUTH_DIVIDER_LINE, RETRO_AUTH_ERROR, RETRO_AUTH_INPUT, RETRO_AUTH_LABEL, RETRO_AUTH_LINK, RETRO_AUTH_MUTED, RETRO_AUTH_SUBTITLE, RETRO_AUTH_TITLE } from '../styles/tw'
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { RetroAuthLayout, NeonCheck } from '../components/RetroAuthLayout';
+import { navigate } from '../router';
+import { useApp } from '../store';
+import { passwordError } from '../validatePassword';
+import '../styles/retrowave.css';
+import {
+  RETRO_AUTH_BTN,
+  RETRO_AUTH_BTN_OUTLINE,
+  RETRO_AUTH_DIVIDER,
+  RETRO_AUTH_DIVIDER_LINE,
+  RETRO_AUTH_ERROR,
+  RETRO_AUTH_INPUT,
+  RETRO_AUTH_LABEL,
+  RETRO_AUTH_LINK,
+  RETRO_AUTH_MUTED,
+  RETRO_AUTH_SUBTITLE,
+  RETRO_AUTH_TITLE,
+} from '../styles/tw';
 
 export function Signup() {
-  const { t } = useTranslation()
-  const { register } = useApp()
-  const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [sent, setSent] = useState(false)
+  const { t } = useTranslation();
+  const { register } = useApp();
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
 
   async function onSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (submitting) return
+    e.preventDefault();
+    if (submitting) return;
     // Mirror the backend rule (RegisterDto) so weak passwords fail instantly
     // rather than round-tripping to a 400. The server still re-checks.
-    const pwError = passwordError(password)
+    const pwError = passwordError(password);
     if (pwError) {
-      setError(pwError)
-      return
+      setError(pwError);
+      return;
     }
     if (password !== confirm) {
-      setError(t('auth.passwordMismatch'))
-      return
+      setError(t('auth.passwordMismatch'));
+      return;
     }
-    setSubmitting(true)
-    setError(null)
-    const err = await register(username, password, email.trim())
-    setSubmitting(false)
-    if (err) setError(err)
-    else setSent(true) // no session yet — the account activates via the emailed link
+    setSubmitting(true);
+    setError(null);
+    const err = await register(username, password, email.trim());
+    setSubmitting(false);
+    if (err) setError(err);
+    else setSent(true); // no session yet — the account activates via the emailed link
   }
 
   if (sent) {
@@ -49,19 +61,23 @@ export function Signup() {
             {t('auth.checkInboxTitle')}
           </div>
           <div className={RETRO_AUTH_MUTED} style={{ lineHeight: 1.5, fontSize: '14px' }}>
-            {t('auth.verificationSentPrefix')}{' '}
-            <b style={{ color: '#00f0ff' }}>{email}</b>.{' '}
+            {t('auth.verificationSentPrefix')} <b style={{ color: '#00f0ff' }}>{email}</b>.{' '}
             {t('auth.verificationSentSuffix')}
           </div>
           <div className={RETRO_AUTH_MUTED} style={{ fontSize: '13px' }}>
             {t('auth.doneVerifying')}{' '}
-            <a onClick={() => { navigate('/login'); }} className={RETRO_AUTH_LINK}>
+            <a
+              onClick={() => {
+                navigate('/login');
+              }}
+              className={RETRO_AUTH_LINK}
+            >
               {t('auth.signInLink')}
             </a>
           </div>
         </div>
       </RetroAuthLayout>
-    )
+    );
   }
 
   return (
@@ -74,9 +90,7 @@ export function Signup() {
           <div className={RETRO_AUTH_TITLE} style={{ fontSize: 24 }}>
             {t('auth.createSeatTitle')}
           </div>
-          <div className={RETRO_AUTH_SUBTITLE}>
-            {t('auth.claimSeatDesc')}
-          </div>
+          <div className={RETRO_AUTH_SUBTITLE}>{t('auth.claimSeatDesc')}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div className={RETRO_AUTH_LABEL}>{t('auth.usernameLabel')}</div>
@@ -124,9 +138,7 @@ export function Signup() {
             />
           </div>
         </div>
-        {error && (
-          <div className={RETRO_AUTH_ERROR}>{error}</div>
-        )}
+        {error && <div className={RETRO_AUTH_ERROR}>{error}</div>}
         <label
           className={RETRO_AUTH_MUTED}
           style={{
@@ -161,10 +173,16 @@ export function Signup() {
             <button
               key={p.name}
               type="button"
-              onClick={() => { window.location.href = p.path }}
+              onClick={() => {
+                window.location.href = p.path;
+              }}
               className={RETRO_AUTH_BTN_OUTLINE}
             >
-              <img src={p.icon} alt={p.name} style={{ width: 18, height: 18, objectFit: 'contain' }} />
+              <img
+                src={p.icon}
+                alt={p.name}
+                style={{ width: 18, height: 18, objectFit: 'contain' }}
+              />
               {p.name}
             </button>
           ))}
@@ -172,11 +190,16 @@ export function Signup() {
 
         <div className={RETRO_AUTH_MUTED} style={{ textAlign: 'center' }}>
           {t('auth.alreadyHaveSeat')}{' '}
-          <a onClick={() => { navigate('/login'); }} className={RETRO_AUTH_LINK}>
+          <a
+            onClick={() => {
+              navigate('/login');
+            }}
+            className={RETRO_AUTH_LINK}
+          >
             {t('auth.signInLink')}
           </a>
         </div>
       </form>
     </RetroAuthLayout>
-  )
+  );
 }

@@ -1,4 +1,12 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, OnModuleDestroy, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  OnModuleDestroy,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import Redis from 'ioredis';
@@ -112,10 +120,7 @@ export class AuthService implements OnModuleDestroy {
 
     // No session yet, the account activates via the emailed link.
     const token = await this.twoFactor.createVerifyToken(user.id);
-    await this.mail.sendVerification(
-      email,
-      `${baseUrl}/api/auth/verify-email?token=${token}`,
-    );
+    await this.mail.sendVerification(email, `${baseUrl}/api/auth/verify-email?token=${token}`);
     return { message: 'Account created : check your email to verify your address.' };
   }
 
@@ -139,10 +144,7 @@ export class AuthService implements OnModuleDestroy {
     // Accept either a username or an email in the same field.
     const user = await this.prisma.db.user.findFirst({
       where: {
-        OR: [
-          { username: dto.identifier },
-          { email: normalizeEmail(dto.identifier) },
-        ],
+        OR: [{ username: dto.identifier }, { email: normalizeEmail(dto.identifier) }],
       },
     });
     if (!user || !user.password_hash) {
@@ -157,7 +159,10 @@ export class AuthService implements OnModuleDestroy {
     // 2FA off → password alone is enough; issue the session immediately.
     // 2FA on → password is only factor one; email a code and finish later.
     if (!user.twoFactorEnabled) {
-      return { twoFactorRequired: false as const, ...(await this.issueSession(user.id, user.username)) };
+      return {
+        twoFactorRequired: false as const,
+        ...(await this.issueSession(user.id, user.username)),
+      };
     }
     const { pendingToken } = await this.startTwoFactor(user.id, user.email ?? '');
     return { twoFactorRequired: true as const, pendingToken };
@@ -398,7 +403,10 @@ export class AuthService implements OnModuleDestroy {
     // Email change → auto-send a fresh verification link (reuse register's path).
     if (emailChanged && newEmail) {
       const token = await this.twoFactor.createVerifyToken(userId);
-      await this.mail.sendVerification(newEmail, `${BASE_URL}/api/auth/verify-email?token=${token}`);
+      await this.mail.sendVerification(
+        newEmail,
+        `${BASE_URL}/api/auth/verify-email?token=${token}`,
+      );
     }
 
     // Profile-change notifications
@@ -449,7 +457,12 @@ export class AuthService implements OnModuleDestroy {
   // Logged-in password change: verify the current password (if one exists),
   // set the new one, and revoke every other session. OAuth-only accounts
   // set their FIRST password here.
-  async changePassword(userId: string, currentPassword: string | undefined, newPassword: string, currentRefreshToken?: string) {
+  async changePassword(
+    userId: string,
+    currentPassword: string | undefined,
+    newPassword: string,
+    currentRefreshToken?: string,
+  ) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
 
@@ -516,7 +529,12 @@ export class AuthService implements OnModuleDestroy {
         cursor = nextCursor;
         for (const key of keys) {
           const data = await this.redis.hgetall(key);
-          const seated = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].includes(userId);
+          const seated = [
+            data.player1_id,
+            data.player2_id,
+            data.player3_id,
+            data.player4_id,
+          ].includes(userId);
           if (seated && (data.status === 'WAITING' || data.status === 'ACTIVE')) {
             await this.redis.hset(key, 'status', 'ABORTED');
             await this.redis.expire(key, 3600);

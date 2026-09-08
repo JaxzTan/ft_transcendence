@@ -87,7 +87,6 @@ export class SessionService implements OnModuleDestroy {
   }
 }
 
-
 // Session flow: the client gets a JWT (15 min) + refresh token (7 days) as
 // httpOnly cookies. On a 401, apiFetch POSTs /api/auth/refresh with the refresh
 // cookie; the server validates the hash in Redis, rotates both tokens, and

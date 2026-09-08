@@ -10,11 +10,16 @@ const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 export class LobbyManager {
   // Redis persistence for game/match state, and the publisher used to push
   // lobby update events to connected clients.
-  constructor(private store: RedisGameStore, private publisher: EventPublisher) {}
+  constructor(
+    private store: RedisGameStore,
+    private publisher: EventPublisher,
+  ) {}
 
   // Read the waiting-room roster from the match hash (seat, color, ready).
   // Used by socket handlers to serve the lobby screen.
-  async getLobbyState(gameId: string): Promise<{ players: { userId: string; color: PlayerColor; ready: boolean }[] } | null> {
+  async getLobbyState(
+    gameId: string,
+  ): Promise<{ players: { userId: string; color: PlayerColor; ready: boolean }[] } | null> {
     const data = await this.store.getMatchData(gameId);
     if (!data) return null;
 
@@ -39,7 +44,9 @@ export class LobbyManager {
     }
 
     // Find which slot this user is in
-    const slotIndex = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(userId);
+    const slotIndex = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(
+      userId,
+    );
     if (slotIndex === -1) {
       throw new Error('You are not a player in this game');
     }
@@ -57,12 +64,18 @@ export class LobbyManager {
     const currentColor = (data[currentColorKey] as PlayerColor) || SLOT_COLORS[slotIndex];
     if (currentColor === color) return; // already has this color
 
-    const takenBy = [data.player1_id, data.player2_id, data.player3_id, data.player4_id]
-      .find((id, idx) => id && id !== userId && (data[`player${idx + 1}_color`] as string) === color);
+    const takenBy = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].find(
+      (id, idx) => id && id !== userId && (data[`player${idx + 1}_color`] as string) === color,
+    );
 
     if (takenBy) {
       // Swap: give requested color to requester, take the other player's color
-      const otherSlot = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(takenBy);
+      const otherSlot = [
+        data.player1_id,
+        data.player2_id,
+        data.player3_id,
+        data.player4_id,
+      ].indexOf(takenBy);
       const otherColorKey = `player${otherSlot + 1}_color`;
       const otherColor = data[otherColorKey] as PlayerColor;
 
@@ -81,8 +94,8 @@ export class LobbyManager {
     // still sitting in base : only seat *identity* moves between the two slots.
     const state = await this.store.loadGameState(gameId);
     if (state) {
-      const a = state.players.find(p => p.color === currentColor);
-      const b = state.players.find(p => p.color === color);
+      const a = state.players.find((p) => p.color === currentColor);
+      const b = state.players.find((p) => p.color === color);
       if (a && b) {
         const { color: _colorA, ...aRest } = a;
         const { color: _colorB, ...bRest } = b;
@@ -99,7 +112,12 @@ export class LobbyManager {
     const data = await this.store.getMatchData(gameId);
     if (!data || data.status !== 'WAITING') return false;
 
-    const activePlayers = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].filter(Boolean);
+    const activePlayers = [
+      data.player1_id,
+      data.player2_id,
+      data.player3_id,
+      data.player4_id,
+    ].filter(Boolean);
     if (activePlayers.length < 2) return false;
 
     // Check all active players have selected colors

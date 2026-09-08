@@ -13,16 +13,16 @@ export function applyMoveOutcome(
   // Sync the frontend-compatible piece mirrors. The authoritative field is
   // `step` (all rules read it); isInGoal/isInBase are read by the UI and must
   // stay in lockstep so the board renders correctly after every move.
-  const movedPiece = state.pieces.find(p => p.id === result.pieceId);
+  const movedPiece = state.pieces.find((p) => p.id === result.pieceId);
   if (movedPiece) {
     movedPiece.isInGoal = result.to === 57; // goal: the piece is finished
-    movedPiece.isInBase = result.to <= 0;   // prison: back in the starting area
+    movedPiece.isInBase = result.to <= 0; // prison: back in the starting area
   }
   if (result.captured && result.capturedPieceIds) {
     // Captured pieces were sent home (step 0) by executeMove : mirror that on
     // the frontend fields too.
     for (const id of result.capturedPieceIds) {
-      const capturedPiece = state.pieces.find(p => p.id === id);
+      const capturedPiece = state.pieces.find((p) => p.id === id);
       if (capturedPiece) {
         capturedPiece.isInGoal = false;
         capturedPiece.isInBase = true;
@@ -41,7 +41,7 @@ export function applyMoveOutcome(
     // completion stats, and set resultDetail so the end-card / result
     // submission can label the finish reason ('four_pieces').
     const piecesInGoal = MoveValidator.countPiecesInGoal(state, winner);
-    const winnerPlayer = state.players.find(p => p.color === winner);
+    const winnerPlayer = state.players.find((p) => p.color === winner);
     if (winnerPlayer) {
       winnerPlayer.stats.piecesInGoal = piecesInGoal;
       winnerPlayer.piecesInGoal = piecesInGoal;
@@ -54,7 +54,7 @@ export function applyMoveOutcome(
   } else {
     // Game continues: refresh the mover's piecesInGoal (display) and reset
     // hasRolled so the next turn starts clean.
-    const mover = state.players.find(p => p.color === result.color);
+    const mover = state.players.find((p) => p.color === result.color);
     const sixBonus = diceValue === 6;
     if (mover) {
       mover.piecesInGoal = MoveValidator.countPiecesInGoal(state, result.color);

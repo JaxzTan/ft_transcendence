@@ -67,7 +67,10 @@ export class AchievementsService {
     game?: GameWithParticipants | null,
     announce = true,
   ): Promise<{ unlocked: string[] }> {
-    const user = await this.prisma.db.user.findUnique({ where: { id: userId }, include: { achievement: true } });
+    const user = await this.prisma.db.user.findUnique({
+      where: { id: userId },
+      include: { achievement: true },
+    });
     if (!user) return { unlocked: [] };
 
     const unlocked: string[] = [];
@@ -161,7 +164,10 @@ export class AchievementsService {
       }
     }
 
-    const user = await this.prisma.db.user.findUnique({ where: { id: effectiveUserId }, include: { achievement: true } });
+    const user = await this.prisma.db.user.findUnique({
+      where: { id: effectiveUserId },
+      include: { achievement: true },
+    });
     if (!user) return {};
 
     const counts = await this.computeLifecycleCounts(effectiveUserId, user);
@@ -170,9 +176,7 @@ export class AchievementsService {
       orderBy: { endedAt: 'desc' },
       include: { participants: true },
     });
-    const myParticipation = latestGame?.participants?.find(
-      (p) => p.user_id === effectiveUserId,
-    );
+    const myParticipation = latestGame?.participants?.find((p) => p.user_id === effectiveUserId);
 
     const result: Record<string, { unlocked: boolean; progress: number; target: number }> = {};
 
@@ -202,7 +206,10 @@ export class AchievementsService {
   }
 
   // Compute lifetime counters once per evaluation (PVP/PVE games only).
-  private async computeLifecycleCounts(userId: string, user: UserStreaks): Promise<LifecycleCounts> {
+  private async computeLifecycleCounts(
+    userId: string,
+    user: UserStreaks,
+  ): Promise<LifecycleCounts> {
     const participations = await this.prisma.db.gameParticipant.findMany({
       where: { user_id: userId },
       include: { game: { select: { gameType: true, status: true } } },
@@ -217,12 +224,8 @@ export class AchievementsService {
     );
 
     const wins = pvpPve.filter((p) => p.rank === 1).length;
-    const botWins = pvpPve.filter(
-      (p) => p.rank === 1 && p.game?.gameType === 'PVE',
-    ).length;
-    const humanWins = pvpPve.filter(
-      (p) => p.rank === 1 && p.game?.gameType === 'PVP',
-    ).length;
+    const botWins = pvpPve.filter((p) => p.rank === 1 && p.game?.gameType === 'PVE').length;
+    const humanWins = pvpPve.filter((p) => p.rank === 1 && p.game?.gameType === 'PVP').length;
 
     return {
       wins,
@@ -237,7 +240,10 @@ export class AchievementsService {
   // Set an achievement flag. Returns true only on first unlock (fire-once).
   private async unlock(userId: string, field: AchKey): Promise<boolean> {
     try {
-      const user = await this.prisma.db.user.findUnique({ where: { id: userId }, include: { achievement: true } });
+      const user = await this.prisma.db.user.findUnique({
+        where: { id: userId },
+        include: { achievement: true },
+      });
       if (!user) return false;
       if (user.achievement?.[field]) return false; // already unlocked : no re-notify
 

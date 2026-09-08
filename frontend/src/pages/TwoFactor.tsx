@@ -1,11 +1,20 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
-import { useTranslation } from 'react-i18next'
-import { RetroAuthLayout } from '../components/RetroAuthLayout'
-import { navigate, useRoute } from '../router'
-import { useApp } from '../store'
-import '../styles/retrowave.css'
-import { RETRO_AUTH_BTN, RETRO_AUTH_ERROR, RETRO_AUTH_INPUT, RETRO_AUTH_LABEL, RETRO_AUTH_LINK, RETRO_AUTH_MUTED, RETRO_AUTH_SUBTITLE, RETRO_AUTH_TITLE } from '../styles/tw'
+import { useState } from 'react';
+import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { RetroAuthLayout } from '../components/RetroAuthLayout';
+import { navigate, useRoute } from '../router';
+import { useApp } from '../store';
+import '../styles/retrowave.css';
+import {
+  RETRO_AUTH_BTN,
+  RETRO_AUTH_ERROR,
+  RETRO_AUTH_INPUT,
+  RETRO_AUTH_LABEL,
+  RETRO_AUTH_LINK,
+  RETRO_AUTH_MUTED,
+  RETRO_AUTH_SUBTITLE,
+  RETRO_AUTH_TITLE,
+} from '../styles/tw';
 
 /**
  * Second login factor. Reached two ways, both carrying ?token=<pendingToken>:
@@ -13,23 +22,23 @@ import { RETRO_AUTH_BTN, RETRO_AUTH_ERROR, RETRO_AUTH_INPUT, RETRO_AUTH_LABEL, R
  *  - OAuth: the backend callback redirects here after emailing the code
  */
 export function TwoFactor() {
-  const { t } = useTranslation()
-  const { verify2fa } = useApp()
-  const { query } = useRoute()
-  const pendingToken = query.get('token') ?? ''
-  const [code, setCode] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
+  const { t } = useTranslation();
+  const { verify2fa } = useApp();
+  const { query } = useRoute();
+  const pendingToken = query.get('token') ?? '';
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (submitting) return
-    setSubmitting(true)
-    setError(null)
-    const err = await verify2fa(pendingToken, code)
-    setSubmitting(false)
-    if (err) setError(err)
-    else navigate('/home')
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const err = await verify2fa(pendingToken, code);
+    setSubmitting(false);
+    if (err) setError(err);
+    else navigate('/home');
   }
 
   return (
@@ -42,9 +51,7 @@ export function TwoFactor() {
           <div className={RETRO_AUTH_TITLE} style={{ fontSize: 32 }}>
             {t('authExtra.twoFactorAuthTitle')}
           </div>
-          <div className={RETRO_AUTH_SUBTITLE}>
-            {t('auth.codeSentDesc')}
-          </div>
+          <div className={RETRO_AUTH_SUBTITLE}>{t('auth.codeSentDesc')}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div className={RETRO_AUTH_LABEL}>{t('auth.loginCodeLabel')}</div>
@@ -67,24 +74,23 @@ export function TwoFactor() {
             }}
           />
         </div>
-        {error && (
-          <div className={RETRO_AUTH_ERROR}>{error}</div>
-        )}
-        <button
-          type="submit"
-          disabled={submitting || code.length !== 6}
-          className={RETRO_AUTH_BTN}
-        >
+        {error && <div className={RETRO_AUTH_ERROR}>{error}</div>}
+        <button type="submit" disabled={submitting || code.length !== 6} className={RETRO_AUTH_BTN}>
           {submitting ? t('auth.checkingBtn') : t('authExtra.verifyEnterArenaBtn')}
         </button>
         <div className={RETRO_AUTH_MUTED} style={{ textAlign: 'center' }}>
           {t('auth.codeExpired')}{' '}
-          <a onClick={() => { navigate('/login'); }} className={RETRO_AUTH_LINK}>
+          <a
+            onClick={() => {
+              navigate('/login');
+            }}
+            className={RETRO_AUTH_LINK}
+          >
             {t('auth.logInAgainLink')}
           </a>{' '}
           {t('auth.toGetNewOne')}
         </div>
       </form>
     </RetroAuthLayout>
-  )
+  );
 }

@@ -1,125 +1,129 @@
-import { useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { UserAvatar } from './UserAvatar'
-import { useApp, type LastResult } from '../store'
-import { retroAudio } from '../utils/audio'
-import { localizedBotName } from '../utils/botName'
-import '../styles/retrowave.css'
+import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { UserAvatar } from './UserAvatar';
+import { useApp, type LastResult } from '../store';
+import { retroAudio } from '../utils/audio';
+import { localizedBotName } from '../utils/botName';
+import '../styles/retrowave.css';
 import {
-	RETRO_BTN,
-	TICKET_CONTAINER,
-	RESULTS_INVOICE_CONTAINER,
-	INVOICE_SLOT_BOTTOM,
-	SLOT_HOLE_BOTTOM,
-	INVOICE_SLOT_TOP,
-	VENDING_HEADER_BAR,
-	SLOT_HOLE_TOP,
-	TICKET_PAPER_WRAPPER,
-	RESULTS_INVOICE,
-	TICKET_NOTCH_LEFT,
-	TICKET_NOTCH_RIGHT,
-	INVOICE_TITLE,
-	INVOICE_AMOUNT,
-	INVOICE_VALUE,
-	PAYERS_LIST,
-	PAYERS_LI,
-	PAYERS_LI_P,
-	PAYER_IMAGE_CONTAINER,
-	PAY_TAG_BASE,
-	PAY_TAG_WIN,
-	PAY_TAG_RUNNER,
-	PAY_TAG_THIRD,
-	PAY_TAG_FOURTH,
-	PAY_NOW_BTN,
-} from '../styles/tw'
+  RETRO_BTN,
+  TICKET_CONTAINER,
+  RESULTS_INVOICE_CONTAINER,
+  INVOICE_SLOT_BOTTOM,
+  SLOT_HOLE_BOTTOM,
+  INVOICE_SLOT_TOP,
+  VENDING_HEADER_BAR,
+  SLOT_HOLE_TOP,
+  TICKET_PAPER_WRAPPER,
+  RESULTS_INVOICE,
+  TICKET_NOTCH_LEFT,
+  TICKET_NOTCH_RIGHT,
+  INVOICE_TITLE,
+  INVOICE_AMOUNT,
+  INVOICE_VALUE,
+  PAYERS_LIST,
+  PAYERS_LI,
+  PAYERS_LI_P,
+  PAYER_IMAGE_CONTAINER,
+  PAY_TAG_BASE,
+  PAY_TAG_WIN,
+  PAY_TAG_RUNNER,
+  PAY_TAG_THIRD,
+  PAY_TAG_FOURTH,
+  PAY_NOW_BTN,
+} from '../styles/tw';
 
 type ResultsModalProps = {
-  result: NonNullable<LastResult>
-  onReturnToLobby: () => void
-  onClose?: () => void
-}
+  result: NonNullable<LastResult>;
+  onReturnToLobby: () => void;
+  onClose?: () => void;
+};
 
 export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalProps) {
-  const { t } = useTranslation()
-  const { user } = useApp()
+  const { t } = useTranslation();
+  const { user } = useApp();
 
   // Trigger vending machine mechanical stepping feed sounds during 0.72s print animation
   useEffect(() => {
-    const steps = [0, 80, 180, 290, 410, 540]
+    const steps = [0, 80, 180, 290, 410, 540];
     const stepTimers = steps.map((ms, i) =>
       setTimeout(() => {
-        retroAudio.playUiBeep(340 + (i % 3) * 60, 0.025, 'sawtooth')
-      }, ms)
-    )
+        retroAudio.playUiBeep(340 + (i % 3) * 60, 0.025, 'sawtooth');
+      }, ms),
+    );
     const finalTimer = setTimeout(() => {
-      retroAudio.playUiBeep(880, 0.08, 'sine')
-    }, 720)
+      retroAudio.playUiBeep(880, 0.08, 'sine');
+    }, 720);
     return () => {
-      stepTimers.forEach(clearTimeout)
-      clearTimeout(finalTimer)
-    }
-  }, [])
+      stepTimers.forEach(clearTimeout);
+      clearTimeout(finalTimer);
+    };
+  }, []);
 
-  const ranked = [...result.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal)
+  const ranked = [...result.players].sort((a, b) => b.piecesInGoal - a.piecesInGoal);
 
   // A match is only completed with a real champion if it wasn't abandoned and has a winner
-  const hasRealWinner = !result.abandoned && (Boolean(result.winner) || result.players.some((p) => p.piecesInGoal >= 4))
+  const hasRealWinner =
+    !result.abandoned &&
+    (Boolean(result.winner) || result.players.some((p) => p.piecesInGoal >= 4));
 
   // Find current player's color or fallback to first human/player
   const myPlayer =
     result.players.find((p) => !p.isBot && p.username === user?.username) ||
     result.players.find((p) => !p.isBot) ||
-    result.players[0]
-  const myColor = myPlayer?.color || 'red'
-  const won = hasRealWinner && result.winner === myColor
-  const winnerPlayer = result.players.find((p) => p.color === result.winner)
+    result.players[0];
+  const myColor = myPlayer?.color || 'red';
+  const won = hasRealWinner && result.winner === myColor;
+  const winnerPlayer = result.players.find((p) => p.color === result.winner);
 
   const COLOR_NAME_KEYS: Record<string, string> = {
     red: 'lobby.colorRed',
     green: 'lobby.colorGreen',
     yellow: 'lobby.colorYellow',
     blue: 'lobby.colorBlue',
-  }
-  const winnerColorName = COLOR_NAME_KEYS[result.winner] ?? COLOR_NAME_KEYS.red
+  };
+  const winnerColorName = COLOR_NAME_KEYS[result.winner] ?? COLOR_NAME_KEYS.red;
   const winnerName = winnerPlayer
     ? winnerPlayer.color === myColor
       ? t('common.you')
       : localizedBotName(t, winnerPlayer.username)
-    : t(winnerColorName)
+    : t(winnerColorName);
 
   const modeLabels: Record<string, string> = {
     pvp: t('results.modePvp'),
     pve: t('results.modePve'),
     hotseat: t('results.modeHotseat'),
-  }
-  const modeLabel = modeLabels[result.mode] || t('results.modeDefault')
+  };
+  const modeLabel = modeLabels[result.mode] || t('results.modeDefault');
 
   // Calculate outcome display title
-  let outcomeTitle: string
+  let outcomeTitle: string;
   if (result.abandoned || !hasRealWinner) {
-    outcomeTitle = t('results.outcomeAbandoned')
+    outcomeTitle = t('results.outcomeAbandoned');
   } else if (result.mode === 'hotseat') {
-    outcomeTitle = t('results.outcomeMatchComplete')
+    outcomeTitle = t('results.outcomeMatchComplete');
   } else if (won) {
-    outcomeTitle = t('results.outcomeVictory')
+    outcomeTitle = t('results.outcomeVictory');
   } else {
-    outcomeTitle = t('results.outcomeDefeat')
+    outcomeTitle = t('results.outcomeDefeat');
   }
 
   // Render rank badge with correct 1st, 2nd, 3rd, 4th ordinal suffixes (only when not abandoned)
   const renderRankBadge = (rank: number, isWinner: boolean) => {
-    if (!hasRealWinner) return null
+    if (!hasRealWinner) return null;
     if (isWinner) {
-      return <span className={`${PAY_TAG_BASE} ${PAY_TAG_WIN}`}>{t('results.firstPlace')}</span>
+      return <span className={`${PAY_TAG_BASE} ${PAY_TAG_WIN}`}>{t('results.firstPlace')}</span>;
     }
     if (rank === 2) {
-      return <span className={`${PAY_TAG_BASE} ${PAY_TAG_RUNNER}`}>{t('results.secondPlace')}</span>
+      return (
+        <span className={`${PAY_TAG_BASE} ${PAY_TAG_RUNNER}`}>{t('results.secondPlace')}</span>
+      );
     }
     if (rank === 3) {
-      return <span className={`${PAY_TAG_BASE} ${PAY_TAG_THIRD}`}>{t('results.thirdPlace')}</span>
+      return <span className={`${PAY_TAG_BASE} ${PAY_TAG_THIRD}`}>{t('results.thirdPlace')}</span>;
     }
-    return <span className={`${PAY_TAG_BASE} ${PAY_TAG_FOURTH}`}>{t('results.fourthPlace')}</span>
-  }
+    return <span className={`${PAY_TAG_BASE} ${PAY_TAG_FOURTH}`}>{t('results.fourthPlace')}</span>;
+  };
 
   return (
     <div
@@ -171,7 +175,8 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                 </p>
                 {hasRealWinner && (
                   <p className={INVOICE_AMOUNT}>
-                    {t('results.championLabel')} <span className={INVOICE_VALUE}>{winnerName.toUpperCase()}</span>
+                    {t('results.championLabel')}{' '}
+                    <span className={INVOICE_VALUE}>{winnerName.toUpperCase()}</span>
                   </p>
                 )}
 
@@ -187,9 +192,9 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                 {/* Player Roster Breakdown List */}
                 <ul className={PAYERS_LIST}>
                   {ranked.map((p, index) => {
-                    const isWinner = index === 0 && hasRealWinner
-                    const isMe = p.color === myColor
-                    const pName = isMe ? t('common.you') : localizedBotName(t, p.username)
+                    const isWinner = index === 0 && hasRealWinner;
+                    const isMe = p.color === myColor;
+                    const pName = isMe ? t('common.you') : localizedBotName(t, p.username);
 
                     return (
                       <li key={p.color} className={PAYERS_LI}>
@@ -202,7 +207,9 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                             // fires a real 404 for every photo-less opponent.
                             // Only `user` (the logged-in viewer) has real data,
                             // via `?? false` for the same reason as below.
-                            hasAvatarPhoto={p.isBot || !isMe ? false : (user?.hasAvatarPhoto ?? false)}
+                            hasAvatarPhoto={
+                              p.isBot || !isMe ? false : (user?.hasAvatarPhoto ?? false)
+                            }
                             size={40}
                             fallbackStyle={{
                               width: 40,
@@ -224,17 +231,25 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                           {renderRankBadge(index + 1, isWinner)}
                         </p>
                       </li>
-                    )
+                    );
                   })}
                 </ul>
 
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', marginTop: '1.2em' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    width: '100%',
+                    marginTop: '1.2em',
+                  }}
+                >
                   <button
                     className={PAY_NOW_BTN}
                     onClick={() => {
-                      retroAudio.playUiBeep(600, 0.05)
-                      onReturnToLobby()
+                      retroAudio.playUiBeep(600, 0.05);
+                      onReturnToLobby();
                     }}
                   >
                     {t('results.returnToLobbyBtn')}
@@ -244,8 +259,8 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                     <button
                       className={RETRO_BTN}
                       onClick={() => {
-                        retroAudio.playUiBeep(520, 0.05)
-                        onClose()
+                        retroAudio.playUiBeep(520, 0.05);
+                        onClose();
                       }}
                       style={{
                         width: '100%',
@@ -273,5 +288,5 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
         </section>
       </div>
     </div>
-  )
+  );
 }

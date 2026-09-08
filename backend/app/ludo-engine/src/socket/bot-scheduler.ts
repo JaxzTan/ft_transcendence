@@ -12,7 +12,12 @@ export class BotTurnScheduler {
     private store: RedisGameStore,
     private engine: LudoEngine,
     private userIdMap: Map<string, Map<PlayerColor, string>>,
-    private getOrCreateBot: (gameId: string, color: PlayerColor, engine: LudoEngine, store: RedisGameStore) => LudoBot,
+    private getOrCreateBot: (
+      gameId: string,
+      color: PlayerColor,
+      engine: LudoEngine,
+      store: RedisGameStore,
+    ) => LudoBot,
   ) {}
 
   // If the current turn belongs to a bot, run its turn after `delayMs` (lets
@@ -25,25 +30,34 @@ export class BotTurnScheduler {
     }
     const timer = setTimeout(() => {
       this.botTurnTimers.delete(gameId);
-      this.store.loadGameState(gameId).then(state => {
-        if (!state || state.status !== 'active') return;
-        // Pause-air guard: while a bot-mode game is paused, the in-flight bot
-        // may finish its chain, but no further triggers run once the turn
-        // moves past pauseTurnOwner.
-        if (state.paused && state.currentTurn !== state.pauseTurnOwner) return;
-        if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
+      this.store
+        .loadGameState(gameId)
+        .then((state) => {
+          if (!state || state.status !== 'active') return;
+          // Pause-air guard: while a bot-mode game is paused, the in-flight bot
+          // may finish its chain, but no further triggers run once the turn
+          // moves past pauseTurnOwner.
+          if (state.paused && state.currentTurn !== state.pauseTurnOwner) return;
+          if (!isBotPlayer(this.userIdMap, gameId, state.currentTurn)) return;
 
-        const bot = this.getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
-        // takeTurn() catches its own failures, but this is fire-and-forget :
-        // a rejection here would crash the whole engine process, not just
-        // this game. Belt-and-suspenders.
-        bot.takeTurn().catch((err) => {
-          console.error(`[bot] unexpected takeTurn rejection for game ${gameId}:`, err instanceof Error ? err.message : err);
+          const bot = this.getOrCreateBot(gameId, state.currentTurn, this.engine, this.store);
+          // takeTurn() catches its own failures, but this is fire-and-forget :
+          // a rejection here would crash the whole engine process, not just
+          // this game. Belt-and-suspenders.
+          bot.takeTurn().catch((err) => {
+            console.error(
+              `[bot] unexpected takeTurn rejection for game ${gameId}:`,
+              err instanceof Error ? err.message : err,
+            );
+          });
+          // Bonus roll / capture chains emit piece_moved -> engine event -> schedule again
+        })
+        .catch((err) => {
+          console.error(
+            `[bot] failed to load game state for ${gameId}:`,
+            err instanceof Error ? err.message : err,
+          );
         });
-        // Bonus roll / capture chains emit piece_moved -> engine event -> schedule again
-      }).catch((err) => {
-        console.error(`[bot] failed to load game state for ${gameId}:`, err instanceof Error ? err.message : err);
-      });
     }, delayMs);
     this.botTurnTimers.set(gameId, timer);
   }

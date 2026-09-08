@@ -44,7 +44,11 @@ export class BoardMapper {
   ): boolean {
     if (trackPos < 1 || trackPos > 52) return false;
 
-    const targetColorPieces = pieces.filter(p => p.color === blockerColor && p.step >= 1 && p.step <= 51);
-    return targetColorPieces.filter(p => this.toTrackPosition(p.id, p.step) === trackPos).length >= 2;
+    const targetColorPieces = pieces.filter(
+      (p) => p.color === blockerColor && p.step >= 1 && p.step <= 51,
+    );
+    return (
+      targetColorPieces.filter((p) => this.toTrackPosition(p.id, p.step) === trackPos).length >= 2
+    );
   }
 }

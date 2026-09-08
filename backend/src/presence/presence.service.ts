@@ -107,9 +107,7 @@ export class PresenceService implements OnModuleDestroy {
         select: { userId: true, friendId: true },
       });
       const friendIds = [
-        ...new Set(
-          friends.flatMap((f) => (f.userId === userId ? [f.friendId] : [f.userId])),
-        ),
+        ...new Set(friends.flatMap((f) => (f.userId === userId ? [f.friendId] : [f.userId]))),
       ];
       if (friendIds.length === 0) return;
 

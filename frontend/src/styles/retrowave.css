@@ -9,7 +9,7 @@
    -------------------------------------------------------------------------- */
 
 :root,
-[data-theme="synthwave"] {
+[data-theme='synthwave'] {
   /* Default Theme: Synthwave '84 */
   --bg-primary: #0d0221;
   --bg-secondary: #190a38;
@@ -37,7 +37,7 @@
 }
 
 /* Theme: Windows 95 Desktop */
-[data-theme="win95"] {
+[data-theme='win95'] {
   --bg-primary: #008080;
   --bg-secondary: #c0c0c0;
   --bg-card: #c0c0c0;
@@ -64,7 +64,7 @@
 }
 
 /* Theme: CRT Terminal (Green Phosphor) */
-[data-theme="terminal"] {
+[data-theme='terminal'] {
   --bg-primary: #051005;
   --bg-secondary: #0a1f0a;
   --bg-card: rgba(10, 31, 10, 0.9);
@@ -113,7 +113,9 @@ body {
   font-family: var(--font-mono);
   overflow-x: hidden;
   position: relative;
-  transition: background-color 0.4s ease, color 0.4s ease;
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
 }
 
 /* Custom Scrollbar */
@@ -186,7 +188,6 @@ body {
 /* --------------------------------------------------------------------------
    MAMEE MONSTER APEX RANK SPECIAL FX (RISING CYBER FIRE & FLAMES)
    -------------------------------------------------------------------------- */
-
 
 /* The ::before/::after aura rules that used to live here (targeting
    .badge-mamee-monster-aura) are now BADGE_MAMEE_AURA in tw.ts — the
@@ -323,7 +324,6 @@ body {
   }
 }
 
-
 @keyframes milo-spark-rise {
   0% {
     transform: translate(0, 0) scale(1);
@@ -340,7 +340,6 @@ body {
     opacity: 0;
   }
 }
-
 
 @keyframes paddle-prism-sweep {
   0% {
@@ -393,13 +392,13 @@ body {
   }
 
   100% {
-    box-shadow: 0 0 18px rgba(255, 215, 0, 0.85), 0 0 28px rgba(255, 230, 0, 0.4);
+    box-shadow:
+      0 0 18px rgba(255, 215, 0, 0.85),
+      0 0 28px rgba(255, 230, 0, 0.4);
   }
 }
 
 /* Apex Champion Podium Card - Steady Constant Glow */
-
-
 
 /* --------------------------------------------------------------------------
    GRID DASHBOARD BOARDS & WIDGETS
@@ -437,11 +436,16 @@ body:has(.game-page) .crt-screen {
 @keyframes arcade-start-pulse {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(255, 0, 127, 0.35), inset 0 0 12px rgba(0, 240, 255, 0.2);
+    box-shadow:
+      0 0 20px rgba(255, 0, 127, 0.35),
+      inset 0 0 12px rgba(0, 240, 255, 0.2);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 30px rgba(255, 0, 127, 0.7), inset 0 0 18px rgba(0, 240, 255, 0.4), 0 0 10px #ff007f;
+    box-shadow:
+      0 0 30px rgba(255, 0, 127, 0.7),
+      inset 0 0 18px rgba(0, 240, 255, 0.4),
+      0 0 10px #ff007f;
     transform: scale(1.02);
   }
 }
@@ -452,11 +456,15 @@ body:has(.game-page) .crt-screen {
 @keyframes terminal-start-pulse {
   0%,
   100% {
-    box-shadow: 0 0 15px rgba(51, 255, 51, 0.35), inset 0 0 10px rgba(51, 255, 51, 0.15);
+    box-shadow:
+      0 0 15px rgba(51, 255, 51, 0.35),
+      inset 0 0 10px rgba(51, 255, 51, 0.15);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 25px rgba(51, 255, 51, 0.65), inset 0 0 15px rgba(51, 255, 51, 0.3);
+    box-shadow:
+      0 0 25px rgba(51, 255, 51, 0.65),
+      inset 0 0 15px rgba(51, 255, 51, 0.3);
     transform: scale(1.02);
   }
 }
@@ -486,8 +494,8 @@ canvas#snakeCanvas {
    ========================================================================== */
 
 @font-face {
-  src: url("https://assets.codepen.io/2392/Silkscreen-Regular.woff2");
-  font-family: "Silkscreen";
+  src: url('https://assets.codepen.io/2392/Silkscreen-Regular.woff2');
+  font-family: 'Silkscreen';
 }
 
 /* Base Theme Variable Mapping */
@@ -500,7 +508,7 @@ canvas#snakeCanvas {
   --fs-glow: rgba(255, 0, 127, 0.5);
 }
 
-[data-theme="win95"] {
+[data-theme='win95'] {
   --fs-border: #808080;
   --fs-text: #000000;
   --fs-accent: #000080;
@@ -509,7 +517,7 @@ canvas#snakeCanvas {
   --fs-glow: transparent;
 }
 
-[data-theme="terminal"] {
+[data-theme='terminal'] {
   --fs-border: #33ff33;
   --fs-text: #33ff33;
   --fs-accent: #33ff33;
@@ -557,9 +565,9 @@ canvas#snakeCanvas {
   outline-offset: 2px;
   filter: drop-shadow(0 0 8px var(--fs-glow));
 
-  font-family: "Silkscreen", monospace;
+  font-family: 'Silkscreen', monospace;
   font-size: 0.75rem;
-  letter-spacing: -.05ch;
+  letter-spacing: -0.05ch;
   text-rendering: geometricprecision;
 
   display: flex;
@@ -646,7 +654,10 @@ canvas#snakeCanvas {
   cursor: pointer;
   box-sizing: border-box;
   border: 1px solid transparent;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 #color-scheme label span {
@@ -674,29 +685,26 @@ canvas#snakeCanvas {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-
   #color-scheme,
   #color-scheme label,
   #color-scheme input {
     transition-property: background, border-color, box-shadow, color, filter, rotate, transform;
-    transition-duration: .2s;
+    transition-duration: 0.2s;
     transition-timing-function: ease-out;
   }
 
   #color-scheme label,
   #color-scheme input {
-
     &:focus-within,
     &:focus,
     &:hover,
     &:focus-visible {
       transition-property: background, border-color, rotate, transform;
-      transition-duration: .2s;
+      transition-duration: 0.2s;
       transition-timing-function: ease-in;
     }
   }
 }
-
 
 /* ==========================================================================
    RETRO AUTH SCENE — Neon City Skyline Login
@@ -725,7 +733,6 @@ canvas#snakeCanvas {
 /* Floating 42 holographic logo */
 
 @keyframes retro-auth-float {
-
   0%,
   100% {
     transform: translateY(0);
@@ -735,7 +742,6 @@ canvas#snakeCanvas {
     transform: translateY(-8px);
   }
 }
-
 
 /* Kept for RESULTS_INVOICE in tw.ts, which applies this via an arbitrary
    `animation:` value. */
@@ -807,18 +813,20 @@ canvas#snakeCanvas {
    ========================================================================== */
 
 :root {
-  --flicker: linear(0 0%,
-      0.1864 6.17%,
-      0.0001 14.41%,
-      0.5244 20.97%,
-      0.3927 37.91%,
-      0.8115 60.62%,
-      0.9416 61.92%,
-      0.9928 67.98%,
-      0.5032 70.42%,
-      0.9077 96.96%,
-      0.6736 98.74%,
-      1 100%);
+  --flicker: linear(
+    0 0%,
+    0.1864 6.17%,
+    0.0001 14.41%,
+    0.5244 20.97%,
+    0.3927 37.91%,
+    0.8115 60.62%,
+    0.9416 61.92%,
+    0.9928 67.98%,
+    0.5032 70.42%,
+    0.9077 96.96%,
+    0.6736 98.74%,
+    1 100%
+  );
 }
 
 /* Kept for CYBER_MODAL_GLITCH/CYBER_BTN_GLITCH_LAYER/CYBER_MODAL_BOX in

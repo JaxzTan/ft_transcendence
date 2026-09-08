@@ -15,7 +15,12 @@ export class SocketHandlers {
     private store: RedisGameStore,
     private engine: LudoEngine,
     private userIdMap: Map<string, Map<PlayerColor, string>>,
-    private getOrCreateBot: (gameId: string, color: PlayerColor, engine: LudoEngine, store: RedisGameStore) => LudoBot,
+    private getOrCreateBot: (
+      gameId: string,
+      color: PlayerColor,
+      engine: LudoEngine,
+      store: RedisGameStore,
+    ) => LudoBot,
     private scheduleBotTurn?: (gameId: string) => void,
     private notifyAbort?: (gameId: string) => void,
   ) {
@@ -28,7 +33,13 @@ export class SocketHandlers {
     );
   }
 
-  handleJoinGame(socket: GameSocket, gameId: string, playerColor: PlayerColor, userId?: string, displayName?: string): void {
+  handleJoinGame(
+    socket: GameSocket,
+    gameId: string,
+    playerColor: PlayerColor,
+    userId?: string,
+    displayName?: string,
+  ): void {
     this.joinManager.handleJoinGame(socket, gameId, playerColor, userId, displayName);
   }
 
@@ -72,7 +83,7 @@ export class SocketHandlers {
         const state = await this.store.loadGameState(gameId);
         if (state?.status === 'active') {
           if (state.currentTurn !== color) return;
-          const piece = state.pieces.find(p => p.id === pieceId);
+          const piece = state.pieces.find((p) => p.id === pieceId);
           if (!piece || piece.color !== color) return;
         }
         await this.engine.movePiece(gameId, pieceId);

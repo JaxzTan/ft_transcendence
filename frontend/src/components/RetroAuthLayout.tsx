@@ -1,17 +1,11 @@
-import type { ReactNode } from 'react'
-import { GRID_BACKGROUND, SYNTHWAVE_SUN, GRID_HORIZON, PERSPECTIVE_GRID } from '../styles/tw'
+import type { ReactNode } from 'react';
+import { GRID_BACKGROUND, SYNTHWAVE_SUN, GRID_HORIZON, PERSPECTIVE_GRID } from '../styles/tw';
 
 /**
  * Full-bleed Retrowave auth shell matching Home.tsx background:
  * Animated 3D Synthwave Grid & Sun Background with centered glassmorphism card.
  */
-export function RetroAuthLayout({
-  tag,
-  children,
-}: {
-  tag?: string
-  children: ReactNode
-}) {
+export function RetroAuthLayout({ tag, children }: { tag?: string; children: ReactNode }) {
   return (
     <div
       style={{
@@ -70,7 +64,7 @@ export function RetroAuthLayout({
         )}
       </div>
     </div>
-  )
+  );
 }
 
 /** Neon cyan checkbox used by auth forms */
@@ -95,5 +89,5 @@ export function NeonCheck({ offsetTop }: { offsetTop?: boolean }) {
     >
       ✓
     </span>
-  )
+  );
 }

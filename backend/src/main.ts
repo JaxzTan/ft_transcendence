@@ -17,15 +17,12 @@ async function bootstrap() {
   // JwtStrategy reads the token from req.cookies; without this it's undefined.
   app.use(cookieParser());
 
-
   // Enforce the class-validator decorators on register/login DTOs.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   // CORS - only allow requests from nginx origin
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production'
-      ? ['https://transcendence-ludo']
-      : true, // Allow all origins in development
+    origin: process.env.NODE_ENV === 'production' ? ['https://transcendence-ludo'] : true, // Allow all origins in development
     credentials: true,
   });
 

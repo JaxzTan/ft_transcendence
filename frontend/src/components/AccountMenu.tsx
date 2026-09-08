@@ -1,53 +1,52 @@
-import { useEffect, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { navigate } from '../router'
-import { LANGUAGES, useApp, type Lang } from '../store'
-import { avatarBlue, sectionLabel } from '../theme'
-import { UserAvatar } from './UserAvatar'
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { navigate } from '../router';
+import { LANGUAGES, useApp, type Lang } from '../store';
+import { avatarBlue, sectionLabel } from '../theme';
+import { UserAvatar } from './UserAvatar';
 
 /**
  * CJK glyphs fill the em box while Latin sits at roughly half of it, so the same
  * px value renders the Latin labels optically larger. Size Latin down to match 中文.
  */
-const CJK = /[\u3000-\u9fff\uF900-\uFAFF]/
-const labelSize = (label: string) => (CJK.test(label) ? '13.5px' : '12.5px')
-
+const CJK = /[\u3000-\u9fff\uF900-\uFAFF]/;
+const labelSize = (label: string) => (CJK.test(label) ? '13.5px' : '12.5px');
 
 /** Header avatar that opens a panel for language + two-factor auth. */
 export function AccountMenu() {
-  const { t } = useTranslation()
-  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp()
-  const [open, setOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const name = user?.displayName ?? user?.username ?? 'You'
+  const { t } = useTranslation();
+  const { user, logout, lang, setLang, twoFactor, toggleTwoFactor } = useApp();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const name = user?.displayName ?? user?.username ?? 'You';
 
   // Close on outside click / Escape.
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
-    }
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   async function onSignOut() {
-    setOpen(false)
-    await logout()
-    navigate('/login')
+    setOpen(false);
+    await logout();
+    navigate('/login');
   }
 
   const pickLang = (code: Lang) => {
-    setLang(code)
-    setOpen(false)
-  }
+    setLang(code);
+    setOpen(false);
+  };
 
   return (
     <div ref={wrapRef} style={{ position: 'relative' }}>
@@ -60,8 +59,8 @@ export function AccountMenu() {
         onClick={() => setOpen((v) => !v)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setOpen((v) => !v)
+            e.preventDefault();
+            setOpen((v) => !v);
           }
         }}
         style={{
@@ -102,15 +101,26 @@ export function AccountMenu() {
           }}
         >
           <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid #2a2015' }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#f0e2c4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: 14,
+                color: '#f0e2c4',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {name}
             </div>
             <div style={{ color: '#a99a83', fontSize: 12 }}>{t('accountMenu.signedIn')}</div>
           </div>
 
-          <div style={{ ...sectionLabel, padding: '12px 10px 4px' }}>{t('accountMenu.language')}</div>
+          <div style={{ ...sectionLabel, padding: '12px 10px 4px' }}>
+            {t('accountMenu.language')}
+          </div>
           {LANGUAGES.map((l) => {
-            const active = l.code === lang
+            const active = l.code === lang;
             return (
               <div
                 key={l.code}
@@ -132,12 +142,21 @@ export function AccountMenu() {
               >
                 <span style={{ fontSize: 15 }}>{l.flag}</span>
                 <span style={{ flex: 1, fontSize: labelSize(l.label) }}>{l.label}</span>
-                {active && <span style={{ color: '#f0c24e', fontSize: '13.5px', fontWeight: 800 }}>✓</span>}
+                {active && (
+                  <span style={{ color: '#f0c24e', fontSize: '13.5px', fontWeight: 800 }}>✓</span>
+                )}
               </div>
-            )
+            );
           })}
 
-          <div style={{ ...sectionLabel, padding: '12px 10px 4px', borderTop: '1px solid #2a2015', marginTop: 6 }}>
+          <div
+            style={{
+              ...sectionLabel,
+              padding: '12px 10px 4px',
+              borderTop: '1px solid #2a2015',
+              marginTop: 6,
+            }}
+          >
             {t('accountMenu.security')}
           </div>
           <div
@@ -154,7 +173,9 @@ export function AccountMenu() {
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#f0e2c4' }}>{t('accountMenu.twoFactorAuth')}</div>
+              <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#f0e2c4' }}>
+                {t('accountMenu.twoFactorAuth')}
+              </div>
               <div style={{ color: '#a99a83', fontSize: '11.5px' }}>
                 {twoFactor ? t('accountMenu.codeRequired') : t('accountMenu.passwordOnly')}
               </div>
@@ -189,7 +210,14 @@ export function AccountMenu() {
             <div
               role="menuitem"
               onClick={onSignOut}
-              style={{ padding: '9px 10px', borderRadius: 9, cursor: 'pointer', fontSize: '13.5px', fontWeight: 700, color: '#e8918a' }}
+              style={{
+                padding: '9px 10px',
+                borderRadius: 9,
+                cursor: 'pointer',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                color: '#e8918a',
+              }}
             >
               {t('accountMenu.signOut')}
             </div>
@@ -197,5 +225,5 @@ export function AccountMenu() {
         </div>
       )}
     </div>
-  )
+  );
 }

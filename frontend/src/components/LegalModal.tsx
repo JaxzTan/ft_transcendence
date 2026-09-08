@@ -1,29 +1,24 @@
-import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { useTranslation } from 'react-i18next'
-import { useApp, type Lang } from '../store'
-import { retroAudio } from '../utils/audio'
-import { MarkdownViewer } from './MarkdownViewer'
-import {
-  RETRO_WINDOW,
-  WINDOW_HEADER,
-  WINDOW_BODY,
-  RETRO_BTN,
-} from '../styles/tw'
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import { useApp, type Lang } from '../store';
+import { retroAudio } from '../utils/audio';
+import { MarkdownViewer } from './MarkdownViewer';
+import { RETRO_WINDOW, WINDOW_HEADER, WINDOW_BODY, RETRO_BTN } from '../styles/tw';
 
-import privacyEn from '../content/docs/Privacy-Policy-en.md?raw'
-import privacyFr from '../content/docs/Privacy-Policy-fr.md?raw'
-import privacyMs from '../content/docs/Privacy-Policy-my.md?raw'
-import termsEn from '../content/docs/Terms-of-Service-en.md?raw'
-import termsFr from '../content/docs/Terms-of-Service-fr.md?raw'
-import termsMs from '../content/docs/Terms-of-Service-my.md?raw'
+import privacyEn from '../content/docs/Privacy-Policy-en.md?raw';
+import privacyFr from '../content/docs/Privacy-Policy-fr.md?raw';
+import privacyMs from '../content/docs/Privacy-Policy-my.md?raw';
+import termsEn from '../content/docs/Terms-of-Service-en.md?raw';
+import termsFr from '../content/docs/Terms-of-Service-fr.md?raw';
+import termsMs from '../content/docs/Terms-of-Service-my.md?raw';
 
-export type LegalDocType = 'privacy' | 'terms'
+export type LegalDocType = 'privacy' | 'terms';
 
 interface LegalModalProps {
-  isOpen: boolean
-  initialDoc?: LegalDocType
-  onClose: () => void
+  isOpen: boolean;
+  initialDoc?: LegalDocType;
+  onClose: () => void;
 }
 
 const DOCS: Record<LegalDocType, Record<Lang, string>> = {
@@ -37,44 +32,44 @@ const DOCS: Record<LegalDocType, Record<Lang, string>> = {
     fr: termsFr,
     ms: termsMs,
   },
-}
+};
 
 export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalModalProps) {
-  const { t } = useTranslation()
-  const { lang, setLang } = useApp()
-  const [activeDoc, setActiveDoc] = useState<LegalDocType>(initialDoc)
-  const [docLang, setDocLang] = useState<Lang>(lang || 'en')
+  const { t } = useTranslation();
+  const { lang, setLang } = useApp();
+  const [activeDoc, setActiveDoc] = useState<LegalDocType>(initialDoc);
+  const [docLang, setDocLang] = useState<Lang>(lang || 'en');
 
   useEffect(() => {
-    if (initialDoc) setActiveDoc(initialDoc)
-  }, [initialDoc])
+    if (initialDoc) setActiveDoc(initialDoc);
+  }, [initialDoc]);
 
   useEffect(() => {
-    if (lang) setDocLang(lang)
-  }, [lang])
+    if (lang) setDocLang(lang);
+  }, [lang]);
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        retroAudio.playUiBeep(440, 0.05)
-        onClose()
+        retroAudio.playUiBeep(440, 0.05);
+        onClose();
       }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
-  const currentContent = DOCS[activeDoc][docLang] || DOCS[activeDoc]['en']
+  const currentContent = DOCS[activeDoc][docLang] || DOCS[activeDoc]['en'];
 
   return createPortal(
     <div
       className="fixed inset-0 z-[10010] flex items-center justify-center p-4 sm:p-6 bg-[rgba(5,2,14,0.82)] backdrop-blur-[12px] animate-fade-in"
       onClick={() => {
-        retroAudio.playUiBeep(440, 0.05)
-        onClose()
+        retroAudio.playUiBeep(440, 0.05);
+        onClose();
       }}
     >
       <div
@@ -82,10 +77,20 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with Title, Controls & Switchers */}
-        <div className={WINDOW_HEADER} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px' }}>
+        <div
+          className={WINDOW_HEADER}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '10px 16px',
+          }}
+        >
           <div className="flex items-center gap-3">
             <span className="font-display font-black text-sm tracking-wider text-[#ffffff]">
-              {activeDoc === 'privacy' ? '🛡️ ' + t('legal.privacyPolicy', 'PRIVACY POLICY') : '📜 ' + t('legal.termsOfService', 'TERMS OF SERVICE')}
+              {activeDoc === 'privacy'
+                ? '🛡️ ' + t('legal.privacyPolicy', 'PRIVACY POLICY')
+                : '📜 ' + t('legal.termsOfService', 'TERMS OF SERVICE')}
             </span>
           </div>
 
@@ -100,8 +105,8 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
                     : 'text-[var(--text-muted)] hover:text-[#ffffff]'
                 }`}
                 onClick={() => {
-                  retroAudio.playUiBeep(720, 0.05)
-                  setActiveDoc('privacy')
+                  retroAudio.playUiBeep(720, 0.05);
+                  setActiveDoc('privacy');
                 }}
               >
                 {t('legal.tabPrivacy', 'PRIVACY')}
@@ -114,8 +119,8 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
                     : 'text-[var(--text-muted)] hover:text-[#ffffff]'
                 }`}
                 onClick={() => {
-                  retroAudio.playUiBeep(720, 0.05)
-                  setActiveDoc('terms')
+                  retroAudio.playUiBeep(720, 0.05);
+                  setActiveDoc('terms');
                 }}
               >
                 {t('legal.tabTerms', 'TERMS')}
@@ -134,9 +139,9 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
                       : 'text-[var(--text-muted)] hover:text-[#ffffff]'
                   }`}
                   onClick={() => {
-                    retroAudio.playUiBeep(880, 0.05)
-                    setDocLang(l)
-                    setLang(l)
+                    retroAudio.playUiBeep(880, 0.05);
+                    setDocLang(l);
+                    setLang(l);
                   }}
                 >
                   {l.toUpperCase()}
@@ -149,8 +154,8 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
               type="button"
               className={`${RETRO_BTN} px-2 py-0.5 text-xs text-[var(--accent-pink)] hover:bg-[rgba(255,0,127,0.2)]`}
               onClick={() => {
-                retroAudio.playUiBeep(440, 0.05)
-                onClose()
+                retroAudio.playUiBeep(440, 0.05);
+                onClose();
               }}
               title={t('common.close', 'Close')}
             >
@@ -176,8 +181,8 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
             type="button"
             className={`${RETRO_BTN} px-4 py-1.5 text-xs font-display font-black text-[#ffffff] bg-[linear-gradient(90deg,rgba(0,240,255,0.3),rgba(255,0,127,0.3))] border border-[var(--accent-cyan)] rounded-lg hover:shadow-[0_0_15px_rgba(0,240,255,0.4)]`}
             onClick={() => {
-              retroAudio.playUiBeep(440, 0.05)
-              onClose()
+              retroAudio.playUiBeep(440, 0.05);
+              onClose();
             }}
           >
             {t('legal.acceptClose', 'CLOSE')}
@@ -185,6 +190,6 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
         </div>
       </div>
     </div>,
-    document.body
-  )
+    document.body,
+  );
 }

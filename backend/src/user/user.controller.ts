@@ -1,4 +1,18 @@
-import { Controller, Get, Post, Delete, Param, UseGuards, Request, Res, UploadedFile, UseInterceptors, NotFoundException, BadRequestException, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  UseGuards,
+  Request,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+  NotFoundException,
+  BadRequestException,
+  Query,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { UserService } from './user.service';

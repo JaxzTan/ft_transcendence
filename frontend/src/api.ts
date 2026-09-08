@@ -17,9 +17,9 @@
 // ignore it. Spreading a Headers instance (`{...init.headers}`) silently
 // yields `{}`, so this goes through the Headers constructor instead.
 function withNgrokHeader(init?: RequestInit): RequestInit {
-  const headers = new Headers(init?.headers)
-  headers.set('ngrok-skip-browser-warning', 'true')
-  return { ...init, headers }
+  const headers = new Headers(init?.headers);
+  headers.set('ngrok-skip-browser-warning', 'true');
+  return { ...init, headers };
 }
 
 // 'ok'       — new access token minted, retry the original call
@@ -33,9 +33,9 @@ type RefreshResult =
   // `status` and `retryAfter` are carried from the refresh response so callers
   // can report it accurately without issuing another request at the limiter
   // that just turned us away.
-  | { outcome: 'blocked'; status: number; retryAfter: string | null }
+  | { outcome: 'blocked'; status: number; retryAfter: string | null };
 
-let refreshing: Promise<RefreshResult> | null = null
+let refreshing: Promise<RefreshResult> | null = null;
 
 // Exported so callers (store.tsx's proactive refresh timer) can mint a new
 // access token *before* it expires, instead of only reacting to a 401 —
@@ -46,16 +46,16 @@ export function refreshOnce(): Promise<RefreshResult> {
   if (!refreshing) {
     refreshing = fetch('/api/auth/refresh', withNgrokHeader({ method: 'POST' }))
       .then((r): RefreshResult => {
-        if (r.ok) return { outcome: 'ok' }
-        if (r.status === 401 || r.status === 403) return { outcome: 'expired' }
-        return { outcome: 'blocked', status: r.status, retryAfter: r.headers.get('Retry-After') }
+        if (r.ok) return { outcome: 'ok' };
+        if (r.status === 401 || r.status === 403) return { outcome: 'expired' };
+        return { outcome: 'blocked', status: r.status, retryAfter: r.headers.get('Retry-After') };
       })
       .catch((): RefreshResult => ({ outcome: 'blocked', status: 503, retryAfter: null }))
       .finally(() => {
-        refreshing = null
-      })
+        refreshing = null;
+      });
   }
-  return refreshing
+  return refreshing;
 }
 
 /**
@@ -72,13 +72,13 @@ export function refreshOnce(): Promise<RefreshResult> {
  * plain values (strings/objects), not one-shot streams.
  */
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const finalInit = withNgrokHeader(init)
-  const res = await fetch(input, finalInit)
-  if (res.status !== 401) return res
+  const finalInit = withNgrokHeader(init);
+  const res = await fetch(input, finalInit);
+  if (res.status !== 401) return res;
 
-  const result = await refreshOnce()
-  if (result.outcome === 'ok') return fetch(input, finalInit)
-  if (result.outcome === 'expired') return res // session really is over — hand back the 401
+  const result = await refreshOnce();
+  if (result.outcome === 'ok') return fetch(input, finalInit);
+  if (result.outcome === 'expired') return res; // session really is over — hand back the 401
 
   // 'blocked': report the refresh's own status (429/5xx) rather than the
   // misleading 401 from the original call. Synthesised locally — re-probing
@@ -86,7 +86,7 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   return new Response(null, {
     status: result.status,
     headers: result.retryAfter ? { 'Retry-After': result.retryAfter } : undefined,
-  })
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -94,25 +94,31 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
 // Builds on apiFetch so 401 → refresh → retry is transparent.
 // ---------------------------------------------------------------------------
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers = new Headers(options.headers)
-  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   const res = await apiFetch(path, {
     ...options,
     headers,
     credentials: 'include',
-  })
+  });
   if (!res.ok) {
-    const body = await res.json().catch(() => null)
-    const msg = (body as { message?: string | string[] } | null)?.message
-    throw new Error(Array.isArray(msg) ? msg.join('. ') : (msg ?? `Request failed (${res.status})`))
+    const body = await res.json().catch(() => null);
+    const msg = (body as { message?: string | string[] } | null)?.message;
+    throw new Error(
+      Array.isArray(msg) ? msg.join('. ') : (msg ?? `Request failed (${res.status})`),
+    );
   }
-  return res.json() as Promise<T>
+  return res.json() as Promise<T>;
 }
 
-export const getApi = <T>(path: string) => request<T>(path)
+export const getApi = <T>(path: string) => request<T>(path);
 export const postApi = <T>(path: string, body?: unknown) =>
-  request<T>(path, { method: 'POST', body: body != null ? JSON.stringify(body) : undefined })
+  request<T>(path, { method: 'POST', body: body != null ? JSON.stringify(body) : undefined });
 export const deleteApi = <T>(path: string, body?: unknown) =>
-  request<T>(path, { method: 'DELETE', body: body != null ? JSON.stringify(body) : undefined })
+  request<T>(path, { method: 'DELETE', body: body != null ? JSON.stringify(body) : undefined });
 export const patchApi = <T>(path: string, body?: unknown) =>
-  request<T>(path, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body ?? {}) })
+  request<T>(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body ?? {}),
+  });

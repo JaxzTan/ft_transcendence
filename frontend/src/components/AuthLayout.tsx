@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { Board } from './Board'
+import type { ReactNode } from 'react';
+import { Board } from './Board';
 
 /** Two-column full-bleed shell for login/signup: felt panel + floating board left, form right. */
 export function AuthLayout({ tag, children }: { tag: string; children: ReactNode }) {
@@ -22,7 +22,8 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'repeating-linear-gradient(45deg,rgba(0,0,0,.11) 0 3px,transparent 3px 11px)',
+            background:
+              'repeating-linear-gradient(45deg,rgba(0,0,0,.11) 0 3px,transparent 3px 11px)',
             opacity: 0.55,
           }}
         />
@@ -50,11 +51,19 @@ export function AuthLayout({ tag, children }: { tag: string; children: ReactNode
           {tag}
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflow: 'auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 40,
+          overflow: 'auto',
+        }}
+      >
         {children}
       </div>
     </div>
-  )
+  );
 }
 
 /** Gold gradient checkbox glyph used by both auth forms. */
@@ -77,5 +86,5 @@ export function GoldCheck({ offsetTop }: { offsetTop?: boolean }) {
     >
       ✓
     </span>
-  )
+  );
 }

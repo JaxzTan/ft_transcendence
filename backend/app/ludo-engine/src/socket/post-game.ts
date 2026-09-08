@@ -54,7 +54,10 @@ export class PostGameManager {
 
     // If fewer than 2 humans remain, the game cannot continue -> abort+clean.
     const remaining = await this.store.loadGameState(gameId);
-    if (!remaining || remaining.players.filter((p: any) => p.status === 'active' && !p.isBot).length < 2) {
+    if (
+      !remaining ||
+      remaining.players.filter((p: any) => p.status === 'active' && !p.isBot).length < 2
+    ) {
       this.getIo().to(gameId).emit('game_expired');
       this.cleanup(gameId);
       await this.store.abortMatch(gameId);

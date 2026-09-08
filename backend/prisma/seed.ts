@@ -176,7 +176,7 @@ async function main() {
     const redisPort = parseInt(process.env.REDIS_PORT || '6479', 10);
     const redisPassword = process.env.REDIS_PASSWORD || 'password123';
     const redis = new Redis({ host: redisHost, port: redisPort, password: redisPassword });
-    
+
     // Clear old Redis leaderboards
     await redis.del('leaderboard:global', 'leaderboard:ranked', 'leaderboard:casual');
 
@@ -204,9 +204,8 @@ async function main() {
   });
 
   // Target non-seed user(s) + the first 2 seed players
-  const targetsForRequests = nonSeedUsers.length > 0
-    ? nonSeedUsers
-    : [createdUsers[0], createdUsers[1]];
+  const targetsForRequests =
+    nonSeedUsers.length > 0 ? nonSeedUsers : [createdUsers[0], createdUsers[1]];
 
   for (const target of targetsForRequests) {
     // 1. Incoming Pending Friend Requests sent TO target
@@ -282,10 +281,38 @@ async function main() {
         gameType: 'PVP',
         participants: {
           create: [
-            { id: randomUUID(), user_id: createdUsers[0].id, color: 'RED', rank: 1, piecesCaptured: 6, piecesInGoal: 4 },
-            { id: randomUUID(), user_id: createdUsers[1].id, color: 'GREEN', rank: 2, piecesCaptured: 3, piecesInGoal: 3 },
-            { id: randomUUID(), user_id: createdUsers[2].id, color: 'YELLOW', rank: 3, piecesCaptured: 2, piecesInGoal: 2 },
-            { id: randomUUID(), user_id: createdUsers[3].id, color: 'BLUE', rank: 4, piecesCaptured: 1, piecesInGoal: 1 },
+            {
+              id: randomUUID(),
+              user_id: createdUsers[0].id,
+              color: 'RED',
+              rank: 1,
+              piecesCaptured: 6,
+              piecesInGoal: 4,
+            },
+            {
+              id: randomUUID(),
+              user_id: createdUsers[1].id,
+              color: 'GREEN',
+              rank: 2,
+              piecesCaptured: 3,
+              piecesInGoal: 3,
+            },
+            {
+              id: randomUUID(),
+              user_id: createdUsers[2].id,
+              color: 'YELLOW',
+              rank: 3,
+              piecesCaptured: 2,
+              piecesInGoal: 2,
+            },
+            {
+              id: randomUUID(),
+              user_id: createdUsers[3].id,
+              color: 'BLUE',
+              rank: 4,
+              piecesCaptured: 1,
+              piecesInGoal: 1,
+            },
           ],
         },
       },

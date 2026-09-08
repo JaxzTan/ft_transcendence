@@ -1,31 +1,34 @@
-import { useEffect, useState } from 'react'
-import type { CSSProperties } from 'react'
-import { useTranslation } from 'react-i18next'
-import type { Notification } from '../hooks/useNotifications'
-import { useApp } from '../store'
-import { navigate } from '../router'
-import { apiFetch } from '../api'
-import type { PlayerColor } from '../game/types'
-import { retroAudio } from '../utils/audio'
-import { RETRO_BTN } from '../styles/tw'
+import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { Notification } from '../hooks/useNotifications';
+import { useApp } from '../store';
+import { navigate } from '../router';
+import { apiFetch } from '../api';
+import type { PlayerColor } from '../game/types';
+import { retroAudio } from '../utils/audio';
+import { RETRO_BTN } from '../styles/tw';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getToastInfo(n: Notification, t: (key: string, options?: Record<string, unknown>) => string): {
-  tag: string
-  badgeLabel: string
-  badgeColor: string
-  badgeBg: string
-  fromUser: string | null
-  actionMessage: string
+function getToastInfo(
+  n: Notification,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): {
+  tag: string;
+  badgeLabel: string;
+  badgeColor: string;
+  badgeBg: string;
+  fromUser: string | null;
+  actionMessage: string;
 } {
-  let payload: Record<string, unknown>
+  let payload: Record<string, unknown>;
   try {
-    payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : (n?.payload || {})
+    payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : n?.payload || {};
   } catch {
-    payload = {}
+    payload = {};
   }
-  const from = payload?.fromUsername ? String(payload.fromUsername) : null
+  const from = payload?.fromUsername ? String(payload.fromUsername) : null;
 
   switch (n?.type) {
     case 'friend_request':
@@ -36,7 +39,7 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeBg: 'rgba(255, 0, 127, 0.18)',
         fromUser: from,
         actionMessage: t('notifications.actionFriendReq'),
-      }
+      };
     case 'friend_accepted':
       return {
         tag: t('notifications.linkEstablishedTag'),
@@ -45,7 +48,7 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeBg: 'rgba(255, 230, 0, 0.18)',
         fromUser: from,
         actionMessage: t('notifications.actionFriendAccepted'),
-      }
+      };
     case 'game_invite':
       return {
         tag: t('notifications.matchChallengeTag'),
@@ -54,10 +57,10 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeBg: 'rgba(0, 240, 255, 0.18)',
         fromUser: from,
         actionMessage: t('notifications.actionMatchChallenge'),
-      }
+      };
     case 'achievement': {
-      const nameKey = payload?.nameKey as string | undefined
-      const name = nameKey ? t(nameKey) : ''
+      const nameKey = payload?.nameKey as string | undefined;
+      const name = nameKey ? t(nameKey) : '';
       return {
         tag: t('notifications.achievementTag'),
         badgeLabel: 'ACHV',
@@ -65,19 +68,22 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeBg: 'rgba(0, 255, 136, 0.18)',
         fromUser: null,
         actionMessage: name ? `${name}!` : t('notifications.achievementUnlocked'),
-      }
+      };
     }
     case 'match_finished': {
-      const rank = payload?.rank
-      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival'
+      const rank = payload?.rank;
+      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival';
       return {
         tag: t('notifications.matchEndTag'),
         badgeLabel: 'END',
         badgeColor: '#00ff88',
         badgeBg: 'rgba(0, 255, 136, 0.18)',
         fromUser: null,
-        actionMessage: rank === 1 ? t('notifications.matchEndWonText') : t('notifications.matchEndLostText', { winner }),
-      }
+        actionMessage:
+          rank === 1
+            ? t('notifications.matchEndWonText')
+            : t('notifications.matchEndLostText', { winner }),
+      };
     }
     case 'match_cancelled':
       return payload?.reason === 'resign'
@@ -96,7 +102,7 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
             badgeBg: 'rgba(255, 230, 0, 0.18)',
             fromUser: from,
             actionMessage: t('notifications.actionMatchCancelled'),
-          }
+          };
     case 'friend_removed':
       return {
         tag: t('notifications.friendRemovedTag'),
@@ -105,7 +111,7 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeBg: 'rgba(255, 0, 127, 0.18)',
         fromUser: from,
         actionMessage: t('notifications.actionFriendRemoved'),
-      }
+      };
     case 'friend_declined':
       return {
         tag: t('notifications.friendDeclinedTag'),
@@ -114,7 +120,7 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeBg: 'rgba(255, 230, 0, 0.18)',
         fromUser: from,
         actionMessage: t('notifications.actionFriendDeclined'),
-      }
+      };
     case 'friend_online':
       return {
         tag: t('notifications.friendOnlineTag'),
@@ -122,8 +128,10 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeColor: '#00ff88',
         badgeBg: 'rgba(0, 255, 136, 0.18)',
         fromUser: String(payload?.displayName || from),
-        actionMessage: t('notifications.actionFriendOnline', { displayName: payload?.displayName || from }),
-      }
+        actionMessage: t('notifications.actionFriendOnline', {
+          displayName: payload?.displayName || from,
+        }),
+      };
     case 'friend_offline':
       return {
         tag: t('notifications.friendOfflineTag'),
@@ -131,11 +139,15 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeColor: 'var(--accent-yellow, #ffe600)',
         badgeBg: 'rgba(255, 230, 0, 0.18)',
         fromUser: String(payload?.displayName || from),
-        actionMessage: t('notifications.actionFriendOffline', { displayName: payload?.displayName || from }),
-      }
+        actionMessage: t('notifications.actionFriendOffline', {
+          displayName: payload?.displayName || from,
+        }),
+      };
     case 'profile_updated': {
-      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : []
-      const labels = items.map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`)).join(', ')
+      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : [];
+      const labels = items
+        .map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`))
+        .join(', ');
       return {
         tag: t('notifications.profileUpdatedTag'),
         badgeLabel: 'PROF',
@@ -143,19 +155,24 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeBg: 'rgba(0, 240, 255, 0.18)',
         fromUser: null,
         actionMessage: t('notifications.profileUpdatedText', { item: labels || '—' }),
-      }
+      };
     }
     case 'display_name_changed': {
-      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from
-      const newName = payload?.displayName ? String(payload.displayName) : t('notifications.unknown')
+      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from;
+      const newName = payload?.displayName
+        ? String(payload.displayName)
+        : t('notifications.unknown');
       return {
         tag: t('notifications.displayNameChangedTag'),
         badgeLabel: 'CALL',
         badgeColor: 'var(--accent-cyan, #00f0ff)',
         badgeBg: 'rgba(0, 240, 255, 0.18)',
         fromUser: null,
-        actionMessage: t('notifications.displayNameChangedText', { displayName: oldName, newDisplayName: newName }),
-      }
+        actionMessage: t('notifications.displayNameChangedText', {
+          displayName: oldName,
+          newDisplayName: newName,
+        }),
+      };
     }
     default:
       return {
@@ -165,7 +182,7 @@ function getToastInfo(n: Notification, t: (key: string, options?: Record<string,
         badgeBg: 'rgba(0, 240, 255, 0.18)',
         fromUser: null,
         actionMessage: t('notifications.actionSysBroadcast'),
-      }
+      };
   }
 }
 
@@ -176,60 +193,63 @@ function Toast({
   onDismiss,
   index,
 }: {
-  notification: Notification
-  onDismiss: (id: string) => void
-  index: number
+  notification: Notification;
+  onDismiss: (id: string) => void;
+  index: number;
 }) {
-  const { t } = useTranslation()
-  const { setActiveMatch } = useApp()
-  const [visible, setVisible] = useState(false)
+  const { t } = useTranslation();
+  const { setActiveMatch } = useApp();
+  const [visible, setVisible] = useState(false);
 
   // Play audio alert and slide in on mount.
   useEffect(() => {
     try {
-      retroAudio.playUiBeep(1200, 0.04)
+      retroAudio.playUiBeep(1200, 0.04);
       setTimeout(() => {
-        retroAudio.playUiBeep(1760, 0.08)
-      }, 60)
+        retroAudio.playUiBeep(1760, 0.08);
+      }, 60);
     } catch {
       // Audio safety fallback
     }
 
-    const t = setTimeout(() => setVisible(true), 30)
-    return () => clearTimeout(t)
-  }, [])
+    const t = setTimeout(() => setVisible(true), 30);
+    return () => clearTimeout(t);
+  }, []);
 
   // Auto-dismiss after 9 seconds.
   useEffect(() => {
     const t = setTimeout(() => {
-      setVisible(false)
-      setTimeout(() => onDismiss(notification.id), 350)
-    }, 9000)
-    return () => clearTimeout(t)
-  }, [notification.id, onDismiss])
+      setVisible(false);
+      setTimeout(() => onDismiss(notification.id), 350);
+    }, 9000);
+    return () => clearTimeout(t);
+  }, [notification.id, onDismiss]);
 
   const dismiss = () => {
     try {
-      retroAudio.playUiBeep(400, 0.04)
+      retroAudio.playUiBeep(400, 0.04);
     } catch {
       // Ignore: a sound failure should never break the UI.
     }
-    setVisible(false)
-    setTimeout(() => onDismiss(notification.id), 350)
-  }
+    setVisible(false);
+    setTimeout(() => onDismiss(notification.id), 350);
+  };
 
   // Accept a game invite
   const acceptInvite = () => {
     try {
-      retroAudio.playUiBeep(880, 0.08)
+      retroAudio.playUiBeep(880, 0.08);
     } catch {
       // Ignore: a sound failure should never break the UI.
     }
-    let p: Record<string, unknown>
+    let p: Record<string, unknown>;
     try {
-      p = typeof notification?.payload === 'string' ? JSON.parse(notification.payload) : (notification?.payload || {})
+      p =
+        typeof notification?.payload === 'string'
+          ? JSON.parse(notification.payload)
+          : notification?.payload || {};
     } catch {
-      p = {}
+      p = {};
     }
     setActiveMatch({
       gameId: p.gameId as string,
@@ -238,61 +258,70 @@ function Toast({
       inviteCode: p.inviteCode as string | undefined,
       mode: 'pvp',
       playerCount: 4,
-    })
-    onDismiss(notification.id)
+    });
+    onDismiss(notification.id);
     if (p.gameId) {
-      navigate(`/game?gameId=${p.gameId}`)
+      navigate(`/game?gameId=${p.gameId}`);
     }
-  }
+  };
 
   // Accept a friend request directly from toast
   const acceptFriend = async () => {
     try {
-      retroAudio.playUiBeep(880, 0.08)
+      retroAudio.playUiBeep(880, 0.08);
     } catch {
       // Ignore: a sound failure should never break the UI.
     }
-    let p: Record<string, unknown>
+    let p: Record<string, unknown>;
     try {
-      p = typeof notification?.payload === 'string' ? JSON.parse(notification.payload) : (notification?.payload || {})
+      p =
+        typeof notification?.payload === 'string'
+          ? JSON.parse(notification.payload)
+          : notification?.payload || {};
     } catch {
-      p = {}
+      p = {};
     }
     if (p.requestId) {
       try {
-        await apiFetch(`/api/friends/accept/${p.requestId}`, { method: 'POST' })
+        await apiFetch(`/api/friends/accept/${p.requestId}`, { method: 'POST' });
       } catch {
         // Ignore: non-critical action; the toast still dismisses.
       }
     }
-    dismiss()
-  }
+    dismiss();
+  };
 
   // Decline a friend request directly from toast
   const declineFriend = async () => {
     try {
-      retroAudio.playUiBeep(400, 0.05)
+      retroAudio.playUiBeep(400, 0.05);
     } catch {
       // Ignore: a sound failure should never break the UI.
     }
-    let p: Record<string, unknown>
+    let p: Record<string, unknown>;
     try {
-      p = typeof notification?.payload === 'string' ? JSON.parse(notification.payload) : (notification?.payload || {})
+      p =
+        typeof notification?.payload === 'string'
+          ? JSON.parse(notification.payload)
+          : notification?.payload || {};
     } catch {
-      p = {}
+      p = {};
     }
     if (p.requestId) {
       try {
-        await apiFetch(`/api/friends/decline/${p.requestId}`, { method: 'POST' })
+        await apiFetch(`/api/friends/decline/${p.requestId}`, { method: 'POST' });
       } catch {
         // Ignore: non-critical action; the toast still dismisses.
       }
     }
-    dismiss()
-  }
+    dismiss();
+  };
 
-  const { tag, badgeLabel, badgeColor, badgeBg, fromUser, actionMessage } = getToastInfo(notification, t)
-  const isInvite = notification.type === 'game_invite'
+  const { tag, badgeLabel, badgeColor, badgeBg, fromUser, actionMessage } = getToastInfo(
+    notification,
+    t,
+  );
+  const isInvite = notification.type === 'game_invite';
 
   const toastStyle: CSSProperties = {
     position: 'fixed',
@@ -312,7 +341,7 @@ function Toast({
     opacity: visible ? 1 : 0,
     transition: 'transform 0.35s cubic-bezier(.22,1,.36,1), opacity 0.35s ease',
     pointerEvents: 'auto',
-  }
+  };
 
   return (
     <div style={toastStyle}>
@@ -577,7 +606,7 @@ function Toast({
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Toast Container ─────────────────────────────────────────────────────────
@@ -586,11 +615,11 @@ export function NotificationToasts({
   toasts,
   onDismiss,
 }: {
-  toasts: Notification[]
-  onDismiss: (id: string) => void
+  toasts: Notification[];
+  onDismiss: (id: string) => void;
 }) {
   // Show at most 3 toasts at once — oldest ones get pushed off.
-  const visible = toasts.slice(0, 3)
+  const visible = toasts.slice(0, 3);
 
   return (
     <>
@@ -598,5 +627,5 @@ export function NotificationToasts({
         <Toast key={n.id} notification={n} onDismiss={onDismiss} index={i} />
       ))}
     </>
-  )
+  );
 }

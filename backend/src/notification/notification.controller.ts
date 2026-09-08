@@ -58,10 +58,7 @@ export class NotificationController {
   // notification in the dropdown or interacts with a toast.
   @UseGuards(JwtAuthGuard)
   @Patch('api/notifications/:id/read')
-  markRead(
-    @Request() req: { user: { id: string } },
-    @Param('id') notificationId: string,
-  ) {
+  markRead(@Request() req: { user: { id: string } }, @Param('id') notificationId: string) {
     return this.notifications.markRead(notificationId, req.user.id);
   }
 

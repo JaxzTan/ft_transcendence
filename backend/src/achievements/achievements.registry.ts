@@ -31,11 +31,11 @@ export interface GameLike {
 }
 
 export interface LifecycleCounts {
-  wins: number;        // rank-1 in PVP + PVE
-  botWins: number;     // rank-1 in PVE
-  humanWins: number;   // rank-1 in PVP
-  totalGames: number;  // participations in PVP + PVE
-  winStreak: number;   // User.winStreak
+  wins: number; // rank-1 in PVP + PVE
+  botWins: number; // rank-1 in PVE
+  humanWins: number; // rank-1 in PVP
+  totalGames: number; // participations in PVP + PVE
+  winStreak: number; // User.winStreak
   pveGameStreak: number; // User.pveGameStreak (consecutive PvE games, any outcome)
 }
 

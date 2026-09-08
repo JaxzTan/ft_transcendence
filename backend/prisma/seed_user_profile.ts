@@ -83,21 +83,133 @@ async function main() {
 
     // 15 matches (12 wins, 3 losses, 62 captures, 51 pieces in goal)
     const matches1 = [
-      { ago: 1 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'RED', r: 1, cap: 6, goal: 4 }, { uid: alice?.id, c: 'GREEN', r: 2, cap: 2, goal: 2 }, { uid: bob?.id, c: 'YELLOW', r: 3, cap: 1, goal: 1 }, { uid: eve?.id, c: 'BLUE', r: 4, cap: 0, goal: 0 }] },
-      { ago: 2 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'RED', r: 1, cap: 5, goal: 4 }, { uid: alice?.id, c: 'GREEN', r: 2, cap: 1, goal: 2 }] },
-      { ago: 4 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'RED', r: 1, cap: 4, goal: 4 }, { uid: bob?.id, c: 'YELLOW', r: 2, cap: 2, goal: 1 }] },
-      { ago: 7 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'RED', r: 1, cap: 6, goal: 4 }, { uid: carol?.id, c: 'YELLOW', r: 2, cap: 1, goal: 2 }, { uid: dave?.id, c: 'BLUE', r: 3, cap: 0, goal: 0 }] },
-      { ago: 10 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'GREEN', r: 1, cap: 4, goal: 4 }, { uid: eve?.id, c: 'RED', r: 2, cap: 1, goal: 2 }] },
-      { ago: 14 * HOUR, type: 'PVP', parts: [{ uid: alice?.id, c: 'RED', r: 1, cap: 4, goal: 4 }, { uid: harleyhxng.id, c: 'GREEN', r: 2, cap: 2, goal: 3 }] },
-      { ago: 18 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'YELLOW', r: 1, cap: 5, goal: 4 }, { uid: dave?.id, c: 'RED', r: 2, cap: 0, goal: 1 }] },
-      { ago: 24 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'BLUE', r: 1, cap: 4, goal: 4 }, { uid: carol?.id, c: 'GREEN', r: 2, cap: 1, goal: 2 }] },
-      { ago: 30 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'RED', r: 1, cap: 5, goal: 4 }, { uid: bob?.id, c: 'GREEN', r: 2, cap: 2, goal: 2 }, { uid: dave?.id, c: 'YELLOW', r: 3, cap: 0, goal: 1 }, { uid: carol?.id, c: 'BLUE', r: 4, cap: 0, goal: 0 }] },
-      { ago: 36 * HOUR, type: 'PVP', parts: [{ uid: bob?.id, c: 'RED', r: 1, cap: 3, goal: 4 }, { uid: harleyhxng.id, c: 'GREEN', r: 2, cap: 2, goal: 2 }] },
-      { ago: 42 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'RED', r: 1, cap: 5, goal: 4 }, { uid: alice?.id, c: 'GREEN', r: 2, cap: 2, goal: 3 }] },
-      { ago: 48 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'GREEN', r: 1, cap: 4, goal: 4 }, { uid: eve?.id, c: 'YELLOW', r: 2, cap: 1, goal: 2 }] },
-      { ago: 54 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'RED', r: 1, cap: 6, goal: 4 }, { uid: dave?.id, c: 'BLUE', r: 2, cap: 0, goal: 0 }] },
-      { ago: 60 * HOUR, type: 'PVP', parts: [{ uid: eve?.id, c: 'GREEN', r: 1, cap: 4, goal: 4 }, { uid: harleyhxng.id, c: 'RED', r: 2, cap: 1, goal: 2 }] },
-      { ago: 72 * HOUR, type: 'PVP', parts: [{ uid: harleyhxng.id, c: 'RED', r: 1, cap: 5, goal: 4 }, { uid: carol?.id, c: 'GREEN', r: 2, cap: 1, goal: 1 }, { uid: alice?.id, c: 'YELLOW', r: 3, cap: 2, goal: 2 }, { uid: bob?.id, c: 'BLUE', r: 4, cap: 0, goal: 0 }] },
+      {
+        ago: 1 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'RED', r: 1, cap: 6, goal: 4 },
+          { uid: alice?.id, c: 'GREEN', r: 2, cap: 2, goal: 2 },
+          { uid: bob?.id, c: 'YELLOW', r: 3, cap: 1, goal: 1 },
+          { uid: eve?.id, c: 'BLUE', r: 4, cap: 0, goal: 0 },
+        ],
+      },
+      {
+        ago: 2 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'RED', r: 1, cap: 5, goal: 4 },
+          { uid: alice?.id, c: 'GREEN', r: 2, cap: 1, goal: 2 },
+        ],
+      },
+      {
+        ago: 4 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'RED', r: 1, cap: 4, goal: 4 },
+          { uid: bob?.id, c: 'YELLOW', r: 2, cap: 2, goal: 1 },
+        ],
+      },
+      {
+        ago: 7 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'RED', r: 1, cap: 6, goal: 4 },
+          { uid: carol?.id, c: 'YELLOW', r: 2, cap: 1, goal: 2 },
+          { uid: dave?.id, c: 'BLUE', r: 3, cap: 0, goal: 0 },
+        ],
+      },
+      {
+        ago: 10 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'GREEN', r: 1, cap: 4, goal: 4 },
+          { uid: eve?.id, c: 'RED', r: 2, cap: 1, goal: 2 },
+        ],
+      },
+      {
+        ago: 14 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: alice?.id, c: 'RED', r: 1, cap: 4, goal: 4 },
+          { uid: harleyhxng.id, c: 'GREEN', r: 2, cap: 2, goal: 3 },
+        ],
+      },
+      {
+        ago: 18 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'YELLOW', r: 1, cap: 5, goal: 4 },
+          { uid: dave?.id, c: 'RED', r: 2, cap: 0, goal: 1 },
+        ],
+      },
+      {
+        ago: 24 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'BLUE', r: 1, cap: 4, goal: 4 },
+          { uid: carol?.id, c: 'GREEN', r: 2, cap: 1, goal: 2 },
+        ],
+      },
+      {
+        ago: 30 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'RED', r: 1, cap: 5, goal: 4 },
+          { uid: bob?.id, c: 'GREEN', r: 2, cap: 2, goal: 2 },
+          { uid: dave?.id, c: 'YELLOW', r: 3, cap: 0, goal: 1 },
+          { uid: carol?.id, c: 'BLUE', r: 4, cap: 0, goal: 0 },
+        ],
+      },
+      {
+        ago: 36 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: bob?.id, c: 'RED', r: 1, cap: 3, goal: 4 },
+          { uid: harleyhxng.id, c: 'GREEN', r: 2, cap: 2, goal: 2 },
+        ],
+      },
+      {
+        ago: 42 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'RED', r: 1, cap: 5, goal: 4 },
+          { uid: alice?.id, c: 'GREEN', r: 2, cap: 2, goal: 3 },
+        ],
+      },
+      {
+        ago: 48 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'GREEN', r: 1, cap: 4, goal: 4 },
+          { uid: eve?.id, c: 'YELLOW', r: 2, cap: 1, goal: 2 },
+        ],
+      },
+      {
+        ago: 54 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'RED', r: 1, cap: 6, goal: 4 },
+          { uid: dave?.id, c: 'BLUE', r: 2, cap: 0, goal: 0 },
+        ],
+      },
+      {
+        ago: 60 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: eve?.id, c: 'GREEN', r: 1, cap: 4, goal: 4 },
+          { uid: harleyhxng.id, c: 'RED', r: 2, cap: 1, goal: 2 },
+        ],
+      },
+      {
+        ago: 72 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleyhxng.id, c: 'RED', r: 1, cap: 5, goal: 4 },
+          { uid: carol?.id, c: 'GREEN', r: 2, cap: 1, goal: 1 },
+          { uid: alice?.id, c: 'YELLOW', r: 3, cap: 2, goal: 2 },
+          { uid: bob?.id, c: 'BLUE', r: 4, cap: 0, goal: 0 },
+        ],
+      },
     ];
 
     for (const m of matches1) {
@@ -109,14 +221,16 @@ async function main() {
           status: 'COMPLETED',
           gameType: m.type as any,
           participants: {
-            create: m.parts.filter((p) => p.uid).map((p) => ({
-              id: randomUUID(),
-              user_id: p.uid!,
-              color: p.c as any,
-              rank: p.r,
-              piecesCaptured: p.cap,
-              piecesInGoal: p.goal,
-            })),
+            create: m.parts
+              .filter((p) => p.uid)
+              .map((p) => ({
+                id: randomUUID(),
+                user_id: p.uid!,
+                color: p.c as any,
+                rank: p.r,
+                piecesCaptured: p.cap,
+                piecesInGoal: p.goal,
+              })),
           },
         },
       });
@@ -127,11 +241,41 @@ async function main() {
       where: { OR: [{ userId: harleyhxng.id }, { friendId: harleyhxng.id }] },
     });
     const f1 = [];
-    if (alice) f1.push({ id: randomUUID(), userId: harleyhxng.id, friendId: alice.id, status: 'accepted' as const });
-    if (bob) f1.push({ id: randomUUID(), userId: harleyhxng.id, friendId: bob.id, status: 'accepted' as const });
-    if (eve) f1.push({ id: randomUUID(), userId: harleyhxng.id, friendId: eve.id, status: 'accepted' as const });
-    if (harleynghxedu) f1.push({ id: randomUUID(), userId: harleyhxng.id, friendId: harleynghxedu.id, status: 'accepted' as const });
-    if (carol) f1.push({ id: randomUUID(), userId: carol.id, friendId: harleyhxng.id, status: 'pending' as const });
+    if (alice)
+      f1.push({
+        id: randomUUID(),
+        userId: harleyhxng.id,
+        friendId: alice.id,
+        status: 'accepted' as const,
+      });
+    if (bob)
+      f1.push({
+        id: randomUUID(),
+        userId: harleyhxng.id,
+        friendId: bob.id,
+        status: 'accepted' as const,
+      });
+    if (eve)
+      f1.push({
+        id: randomUUID(),
+        userId: harleyhxng.id,
+        friendId: eve.id,
+        status: 'accepted' as const,
+      });
+    if (harleynghxedu)
+      f1.push({
+        id: randomUUID(),
+        userId: harleyhxng.id,
+        friendId: harleynghxedu.id,
+        status: 'accepted' as const,
+      });
+    if (carol)
+      f1.push({
+        id: randomUUID(),
+        userId: carol.id,
+        friendId: harleyhxng.id,
+        status: 'pending' as const,
+      });
     await prisma.friendship.createMany({ data: f1 });
   }
 
@@ -184,13 +328,64 @@ async function main() {
 
     // 7 matches (4 wins, 3 losses, 23 captures, 20 pieces in goal)
     const matches2 = [
-      { ago: 2 * HOUR, type: 'PVP', parts: [{ uid: harleynghxedu.id, c: 'RED', r: 1, cap: 5, goal: 4 }, { uid: dave?.id, c: 'YELLOW', r: 2, cap: 0, goal: 1 }] },
-      { ago: 5 * HOUR, type: 'PVP', parts: [{ uid: alice?.id, c: 'RED', r: 1, cap: 4, goal: 4 }, { uid: harleynghxedu.id, c: 'GREEN', r: 2, cap: 2, goal: 2 }] },
-      { ago: 11 * HOUR, type: 'PVP', parts: [{ uid: harleynghxedu.id, c: 'GREEN', r: 1, cap: 4, goal: 4 }, { uid: carol?.id, c: 'YELLOW', r: 2, cap: 1, goal: 2 }, { uid: dave?.id, c: 'BLUE', r: 3, cap: 0, goal: 0 }] },
-      { ago: 19 * HOUR, type: 'PVP', parts: [{ uid: bob?.id, c: 'RED', r: 1, cap: 3, goal: 4 }, { uid: harleynghxedu.id, c: 'GREEN', r: 2, cap: 2, goal: 2 }] },
-      { ago: 27 * HOUR, type: 'PVP', parts: [{ uid: harleynghxedu.id, c: 'YELLOW', r: 1, cap: 4, goal: 4 }, { uid: eve?.id, c: 'RED', r: 2, cap: 1, goal: 2 }] },
-      { ago: 38 * HOUR, type: 'PVP', parts: [{ uid: eve?.id, c: 'GREEN', r: 1, cap: 3, goal: 4 }, { uid: harleynghxedu.id, c: 'RED', r: 2, cap: 1, goal: 1 }] },
-      { ago: 49 * HOUR, type: 'PVP', parts: [{ uid: harleynghxedu.id, c: 'RED', r: 1, cap: 5, goal: 4 }, { uid: bob?.id, c: 'GREEN', r: 2, cap: 1, goal: 3 }, { uid: carol?.id, c: 'BLUE', r: 3, cap: 0, goal: 0 }] },
+      {
+        ago: 2 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleynghxedu.id, c: 'RED', r: 1, cap: 5, goal: 4 },
+          { uid: dave?.id, c: 'YELLOW', r: 2, cap: 0, goal: 1 },
+        ],
+      },
+      {
+        ago: 5 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: alice?.id, c: 'RED', r: 1, cap: 4, goal: 4 },
+          { uid: harleynghxedu.id, c: 'GREEN', r: 2, cap: 2, goal: 2 },
+        ],
+      },
+      {
+        ago: 11 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleynghxedu.id, c: 'GREEN', r: 1, cap: 4, goal: 4 },
+          { uid: carol?.id, c: 'YELLOW', r: 2, cap: 1, goal: 2 },
+          { uid: dave?.id, c: 'BLUE', r: 3, cap: 0, goal: 0 },
+        ],
+      },
+      {
+        ago: 19 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: bob?.id, c: 'RED', r: 1, cap: 3, goal: 4 },
+          { uid: harleynghxedu.id, c: 'GREEN', r: 2, cap: 2, goal: 2 },
+        ],
+      },
+      {
+        ago: 27 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleynghxedu.id, c: 'YELLOW', r: 1, cap: 4, goal: 4 },
+          { uid: eve?.id, c: 'RED', r: 2, cap: 1, goal: 2 },
+        ],
+      },
+      {
+        ago: 38 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: eve?.id, c: 'GREEN', r: 1, cap: 3, goal: 4 },
+          { uid: harleynghxedu.id, c: 'RED', r: 2, cap: 1, goal: 1 },
+        ],
+      },
+      {
+        ago: 49 * HOUR,
+        type: 'PVP',
+        parts: [
+          { uid: harleynghxedu.id, c: 'RED', r: 1, cap: 5, goal: 4 },
+          { uid: bob?.id, c: 'GREEN', r: 2, cap: 1, goal: 3 },
+          { uid: carol?.id, c: 'BLUE', r: 3, cap: 0, goal: 0 },
+        ],
+      },
     ];
 
     for (const m of matches2) {
@@ -202,14 +397,16 @@ async function main() {
           status: 'COMPLETED',
           gameType: m.type as any,
           participants: {
-            create: m.parts.filter((p) => p.uid).map((p) => ({
-              id: randomUUID(),
-              user_id: p.uid!,
-              color: p.c as any,
-              rank: p.r,
-              piecesCaptured: p.cap,
-              piecesInGoal: p.goal,
-            })),
+            create: m.parts
+              .filter((p) => p.uid)
+              .map((p) => ({
+                id: randomUUID(),
+                user_id: p.uid!,
+                color: p.c as any,
+                rank: p.r,
+                piecesCaptured: p.cap,
+                piecesInGoal: p.goal,
+              })),
           },
         },
       });
@@ -220,10 +417,34 @@ async function main() {
       where: { OR: [{ userId: harleynghxedu.id }, { friendId: harleynghxedu.id }] },
     });
     const f2 = [];
-    if (alice) f2.push({ id: randomUUID(), userId: harleynghxedu.id, friendId: alice.id, status: 'accepted' as const });
-    if (dave) f2.push({ id: randomUUID(), userId: harleynghxedu.id, friendId: dave.id, status: 'accepted' as const });
-    if (harleyhxng) f2.push({ id: randomUUID(), userId: harleynghxedu.id, friendId: harleyhxng.id, status: 'accepted' as const });
-    if (bob) f2.push({ id: randomUUID(), userId: bob.id, friendId: harleynghxedu.id, status: 'pending' as const });
+    if (alice)
+      f2.push({
+        id: randomUUID(),
+        userId: harleynghxedu.id,
+        friendId: alice.id,
+        status: 'accepted' as const,
+      });
+    if (dave)
+      f2.push({
+        id: randomUUID(),
+        userId: harleynghxedu.id,
+        friendId: dave.id,
+        status: 'accepted' as const,
+      });
+    if (harleyhxng)
+      f2.push({
+        id: randomUUID(),
+        userId: harleynghxedu.id,
+        friendId: harleyhxng.id,
+        status: 'accepted' as const,
+      });
+    if (bob)
+      f2.push({
+        id: randomUUID(),
+        userId: bob.id,
+        friendId: harleynghxedu.id,
+        status: 'pending' as const,
+      });
     await prisma.friendship.createMany({ data: f2 });
   }
 

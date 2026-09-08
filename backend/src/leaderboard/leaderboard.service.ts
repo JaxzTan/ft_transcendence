@@ -5,27 +5,27 @@ import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
 // One row on the leaderboard, fully denormalized for display.
 export interface LeaderboardEntry {
-  rank: number;          // 1-based position on this page
-  username: string;      // immutable account name
-  displayName: string;   // shown name
-  rating: number;        // current Elo-style score
-  gamesPlayed: number;   // wins + losses
+  rank: number; // 1-based position on this page
+  username: string; // immutable account name
+  displayName: string; // shown name
+  rating: number; // current Elo-style score
+  gamesPlayed: number; // wins + losses
   wins: number;
   losses: number;
   draws: number;
-  winRate: number;       // wins / gamesPlayed, as a whole-number percent
-  avatarStyle: string | null;   // dicebear fallback style
-  hasAvatarPhoto: boolean;      // true when a photo avatar was uploaded
+  winRate: number; // wins / gamesPlayed, as a whole-number percent
+  avatarStyle: string | null; // dicebear fallback style
+  hasAvatarPhoto: boolean; // true when a photo avatar was uploaded
 }
 
 // Envelope the frontend receives from GET /api/leaderboard.
 export interface LeaderboardResponse {
   entries: LeaderboardEntry[]; // one page of ranked players
-  total: number;               // total entries on the board
-  page: number;                // current page (1-based)
-  limit: number;               // page size
+  total: number; // total entries on the board
+  page: number; // current page (1-based)
+  limit: number; // page size
   myRank?: { rank: number; username: string; displayName: string; rating: number } | null; // caller's own position, when logged in
-  source: 'redis';             // where the data was read from
+  source: 'redis'; // where the data was read from
 }
 
 @Injectable()
@@ -73,7 +73,7 @@ export class LeaderboardService {
       }
 
       if (redisEntries.length > 0) {
-        const userIds = redisEntries.map(e => e.userId);
+        const userIds = redisEntries.map((e) => e.userId);
         const users = await this.prisma.db.user.findMany({
           where: { id: { in: userIds } },
           select: {
@@ -88,7 +88,7 @@ export class LeaderboardService {
           },
         });
 
-        const userMap = new Map(users.map(u => [u.id, u]));
+        const userMap = new Map(users.map((u) => [u.id, u]));
         const entries: LeaderboardEntry[] = [];
         // Belt and braces: the query above keeps bots out of the sorted set
         // from here on, but entries written before this fix (or by any future

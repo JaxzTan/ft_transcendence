@@ -22,20 +22,34 @@ export class JoinManager {
     private store: RedisGameStore,
     private engine: LudoEngine,
     private userIdMap: Map<string, Map<PlayerColor, string>>,
-    private getOrCreateBot: (gameId: string, color: PlayerColor, engine: LudoEngine, store: RedisGameStore) => LudoBot,
+    private getOrCreateBot: (
+      gameId: string,
+      color: PlayerColor,
+      engine: LudoEngine,
+      store: RedisGameStore,
+    ) => LudoBot,
     private scheduleBotTurn?: (gameId: string) => void,
   ) {}
 
   private withGameLock<T>(gameId: string, fn: () => Promise<T>): Promise<T> {
     const prev = this.joinLocks.get(gameId) ?? Promise.resolve();
     const run = prev.then(fn, fn);
-    this.joinLocks.set(gameId, run.catch(() => undefined));
+    this.joinLocks.set(
+      gameId,
+      run.catch(() => undefined),
+    );
     return run;
   }
 
   // The join_game flow: bind socket to room/seat, create the game if needed,
   // resolve reconnects vs fresh joins, seed bot metadata, reply game_joined.
-  handleJoinGame(socket: GameSocket, gameId: string, playerColor: PlayerColor, userId?: string, displayName?: string): void {
+  handleJoinGame(
+    socket: GameSocket,
+    gameId: string,
+    playerColor: PlayerColor,
+    userId?: string,
+    displayName?: string,
+  ): void {
     const effectiveGameId = socket.data.gameId || gameId;
     const effectiveUserId = socket.data.userId || userId;
     const effectiveUsername = displayName || socket.data.username;
@@ -69,7 +83,7 @@ export class JoinManager {
           state = await this.store.loadGameState(effectiveGameId);
         }
         if (state) {
-          const discIndex = state.disconnectedPlayers.findIndex(d => d.color === effectiveColor);
+          const discIndex = state.disconnectedPlayers.findIndex((d) => d.color === effectiveColor);
           const isReconnectingPlayer = discIndex !== -1;
 
           // Socket locking: reject non-reconnecting joins to games already in
@@ -85,19 +99,26 @@ export class JoinManager {
             // The player is back on their old seat : tell the room so everyone
             // sees them flip from "Reconnecting…" back to active.
             if (state && !state.disconnectedPlayers.some((d) => d.color === effectiveColor)) {
-              this.engine.emitEvent({ type: 'player_reconnected', gameId: effectiveGameId, color: effectiveColor });
+              this.engine.emitEvent({
+                type: 'player_reconnected',
+                gameId: effectiveGameId,
+                color: effectiveColor,
+              });
             }
           } else {
-            const player = state.players.find(p => p.color === effectiveColor);
+            const player = state.players.find((p) => p.color === effectiveColor);
             if (player) player.status = 'active';
           }
 
           // Populate PlayerMeta with frontend-compatible fields.
           // `username` is the immutable identity (used for login/avatar/URLs);
           // `displayName` is what the UI actually shows in-game.
-          const meta = state.players.find(p => p.color === effectiveColor);
+          const meta = state.players.find((p) => p.color === effectiveColor);
           if (meta) {
-            const resolvedUsername = effectiveUsername || effectiveUserId || (effectiveColor.charAt(0).toUpperCase() + effectiveColor.slice(1));
+            const resolvedUsername =
+              effectiveUsername ||
+              effectiveUserId ||
+              effectiveColor.charAt(0).toUpperCase() + effectiveColor.slice(1);
             meta.username = resolvedUsername;
             meta.displayName = displayName || socket.data.displayName || resolvedUsername;
             meta.isBot = isBotUserId(effectiveUserId);
@@ -135,7 +156,11 @@ export class JoinManager {
           delete state.pauseTurnOwner;
           await this.store.saveGameState(effectiveGameId, state);
         }
-        if (state?.status === 'active' && state.currentTurn && isBotUserId(this.userIdMap.get(effectiveGameId)?.get(state.currentTurn))) {
+        if (
+          state?.status === 'active' &&
+          state.currentTurn &&
+          isBotUserId(this.userIdMap.get(effectiveGameId)?.get(state.currentTurn))
+        ) {
           this.scheduleBotTurn?.(effectiveGameId);
         }
 
@@ -164,7 +189,7 @@ export class JoinManager {
         const botUserId = `${BOT_PREFIX}${slotColor}`;
 
         // Mark bot player as active and populate frontend-compatible metadata
-        const player = state.players.find(p => p.color === slotColor);
+        const player = state.players.find((p) => p.color === slotColor);
         if (player) {
           player.status = 'active';
           player.username = botUserId;
@@ -196,11 +221,12 @@ export class JoinManager {
     // Hotseat must wait for every local seat to have joined (they join one at
     // a time, via separate join_game calls on the same socket) before
     // starting : otherwise it'd fire after just the first seat.
-    const expectedSeats = matchData.gameType === 'HOTSEAT' ? parseInt(matchData.playerCount || '2', 10) : 0;
-    const activePlayers = state.players.filter(p => p.status === 'active');
+    const expectedSeats =
+      matchData.gameType === 'HOTSEAT' ? parseInt(matchData.playerCount || '2', 10) : 0;
+    const activePlayers = state.players.filter((p) => p.status === 'active');
     const allJoined = activePlayers.length >= expectedSeats;
-    const allReady = activePlayers.length > 0 &&
-      activePlayers.every(p => state.readyPlayers.includes(p.color));
+    const allReady =
+      activePlayers.length > 0 && activePlayers.every((p) => state.readyPlayers.includes(p.color));
 
     if (allJoined && allReady && state.status === 'waiting') {
       state.currentTurn = firstActiveColor(state) ?? state.currentTurn;

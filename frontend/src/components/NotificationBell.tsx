@@ -1,110 +1,193 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react'
-import { createPortal } from 'react-dom'
-import type { CSSProperties } from 'react'
-import { useTranslation } from 'react-i18next'
-import type { Notification } from '../hooks/useNotifications'
-import { navigate } from '../router'
-import { useApp } from '../store'
-import type { PlayerColor } from '../game/types'
-import { retroAudio } from '../utils/audio'
-import { RETRO_BTN, THEME_TRIGGER_BTN_BASE } from '../styles/tw'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
+import type { CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { Notification } from '../hooks/useNotifications';
+import { navigate } from '../router';
+import { useApp } from '../store';
+import type { PlayerColor } from '../game/types';
+import { retroAudio } from '../utils/audio';
+import { RETRO_BTN, THEME_TRIGGER_BTN_BASE } from '../styles/tw';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getNotificationTypeBadge(type: string): { tagKey: string; defaultTag: string; color: string } {
+function getNotificationTypeBadge(type: string): {
+  tagKey: string;
+  defaultTag: string;
+  color: string;
+} {
   switch (type) {
     case 'game_invite':
-      return { tagKey: 'notifications.matchChallengeTag', defaultTag: '[MATCH_INVITE]', color: 'var(--accent-cyan, #00f0ff)' }
+      return {
+        tagKey: 'notifications.matchChallengeTag',
+        defaultTag: '[MATCH_INVITE]',
+        color: 'var(--accent-cyan, #00f0ff)',
+      };
     case 'friend_request':
-      return { tagKey: 'notifications.linkReqTag', defaultTag: '[FRIEND_REQ]', color: 'var(--accent-pink, #ff007f)' }
+      return {
+        tagKey: 'notifications.linkReqTag',
+        defaultTag: '[FRIEND_REQ]',
+        color: 'var(--accent-pink, #ff007f)',
+      };
     case 'friend_accepted':
-      return { tagKey: 'notifications.linkEstablishedTag', defaultTag: '[FRIEND_ACK]', color: 'var(--accent-yellow, #ffe600)' }
+      return {
+        tagKey: 'notifications.linkEstablishedTag',
+        defaultTag: '[FRIEND_ACK]',
+        color: 'var(--accent-yellow, #ffe600)',
+      };
     case 'achievement':
-      return { tagKey: 'notifications.achievementTag', defaultTag: '[ACHIEVEMENT]', color: '#00ff88' }
+      return {
+        tagKey: 'notifications.achievementTag',
+        defaultTag: '[ACHIEVEMENT]',
+        color: '#00ff88',
+      };
     case 'match_finished':
-      return { tagKey: 'notifications.matchEndTag', defaultTag: '[MATCH_COMPLETE]', color: '#00ff88' }
+      return {
+        tagKey: 'notifications.matchEndTag',
+        defaultTag: '[MATCH_COMPLETE]',
+        color: '#00ff88',
+      };
     case 'match_cancelled':
-      return { tagKey: 'notifications.matchCancelledTag', defaultTag: '[MATCH_ABORTED]', color: 'var(--accent-yellow, #ffe600)' }
+      return {
+        tagKey: 'notifications.matchCancelledTag',
+        defaultTag: '[MATCH_ABORTED]',
+        color: 'var(--accent-yellow, #ffe600)',
+      };
     case 'friend_removed':
-      return { tagKey: 'notifications.friendRemovedTag', defaultTag: '[LINK_SEVERED]', color: 'var(--accent-pink, #ff007f)' }
+      return {
+        tagKey: 'notifications.friendRemovedTag',
+        defaultTag: '[LINK_SEVERED]',
+        color: 'var(--accent-pink, #ff007f)',
+      };
     case 'friend_declined':
-      return { tagKey: 'notifications.friendDeclinedTag', defaultTag: '[LINK_REJECTED]', color: 'var(--accent-yellow, #ffe600)' }
+      return {
+        tagKey: 'notifications.friendDeclinedTag',
+        defaultTag: '[LINK_REJECTED]',
+        color: 'var(--accent-yellow, #ffe600)',
+      };
     case 'friend_online':
-      return { tagKey: 'notifications.friendOnlineTag', defaultTag: '[PILOT_ONLINE]', color: '#00ff88' }
+      return {
+        tagKey: 'notifications.friendOnlineTag',
+        defaultTag: '[PILOT_ONLINE]',
+        color: '#00ff88',
+      };
     case 'friend_offline':
-      return { tagKey: 'notifications.friendOfflineTag', defaultTag: '[PILOT_OFFLINE]', color: 'var(--accent-yellow, #ffe600)' }
+      return {
+        tagKey: 'notifications.friendOfflineTag',
+        defaultTag: '[PILOT_OFFLINE]',
+        color: 'var(--accent-yellow, #ffe600)',
+      };
     case 'profile_updated':
-      return { tagKey: 'notifications.profileUpdatedTag', defaultTag: '[PROFILE_UPDATED]', color: 'var(--accent-cyan, #00f0ff)' }
+      return {
+        tagKey: 'notifications.profileUpdatedTag',
+        defaultTag: '[PROFILE_UPDATED]',
+        color: 'var(--accent-cyan, #00f0ff)',
+      };
     case 'display_name_changed':
-      return { tagKey: 'notifications.displayNameChangedTag', defaultTag: '[CALLSIGN_CHANGED]', color: 'var(--accent-cyan, #00f0ff)' }
+      return {
+        tagKey: 'notifications.displayNameChangedTag',
+        defaultTag: '[CALLSIGN_CHANGED]',
+        color: 'var(--accent-cyan, #00f0ff)',
+      };
     default:
-      return { tagKey: 'notifications.sysBroadcastTag', defaultTag: '[SYS_MSG]', color: 'var(--accent-cyan, #00f0ff)' }
+      return {
+        tagKey: 'notifications.sysBroadcastTag',
+        defaultTag: '[SYS_MSG]',
+        color: 'var(--accent-cyan, #00f0ff)',
+      };
   }
 }
 
-function renderNotificationBody(n: Notification, t: (key: string, options?: Record<string, unknown>) => string) {
-  let payload: Record<string, unknown>
+function renderNotificationBody(
+  n: Notification,
+  t: (key: string, options?: Record<string, unknown>) => string,
+) {
+  let payload: Record<string, unknown>;
   try {
-    payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : (n?.payload || {})
+    payload = typeof n?.payload === 'string' ? JSON.parse(n.payload) : n?.payload || {};
   } catch {
-    payload = {}
+    payload = {};
   }
-  const from = payload?.fromUsername ? String(payload.fromUsername) : 'UNKNOWN'
+  const from = payload?.fromUsername ? String(payload.fromUsername) : 'UNKNOWN';
 
   switch (n?.type) {
     case 'friend_request':
-      return <span>{t('notifications.friendRequestText', { username: from })}</span>
+      return <span>{t('notifications.friendRequestText', { username: from })}</span>;
     case 'friend_accepted':
-      return <span>{t('notifications.friendAcceptedText', { username: from })}</span>
+      return <span>{t('notifications.friendAcceptedText', { username: from })}</span>;
     case 'game_invite':
-      return <span>{t('notifications.matchChallengeText', { username: from })}</span>
+      return <span>{t('notifications.matchChallengeText', { username: from })}</span>;
     case 'achievement': {
-      const nameKey = payload?.nameKey as string | undefined
-      const name = nameKey ? t(nameKey) : ''
-      return name ? <span>{name}!</span> : <span>{t('notifications.achievementUnlocked')}</span>
+      const nameKey = payload?.nameKey as string | undefined;
+      const name = nameKey ? t(nameKey) : '';
+      return name ? <span>{name}!</span> : <span>{t('notifications.achievementUnlocked')}</span>;
     }
     case 'friend_removed':
-      return <span>{t('notifications.friendRemovedText', { username: from })}</span>
+      return <span>{t('notifications.friendRemovedText', { username: from })}</span>;
     case 'friend_declined':
-      return <span>{t('notifications.friendDeclinedText', { username: from })}</span>
+      return <span>{t('notifications.friendDeclinedText', { username: from })}</span>;
     case 'friend_online':
-      return <span>{t('notifications.friendOnlineText', { displayName: payload?.displayName || from })}</span>
+      return (
+        <span>
+          {t('notifications.friendOnlineText', { displayName: payload?.displayName || from })}
+        </span>
+      );
     case 'friend_offline':
-      return <span>{t('notifications.friendOfflineText', { displayName: payload?.displayName || from })}</span>
+      return (
+        <span>
+          {t('notifications.friendOfflineText', { displayName: payload?.displayName || from })}
+        </span>
+      );
     case 'match_cancelled':
-      return payload?.reason === 'resign'
-        ? <span>{t('notifications.matchResignedText', { username: from })}</span>
-        : <span>{t('notifications.matchCancelledText', { username: from })}</span>
+      return payload?.reason === 'resign' ? (
+        <span>{t('notifications.matchResignedText', { username: from })}</span>
+      ) : (
+        <span>{t('notifications.matchCancelledText', { username: from })}</span>
+      );
     case 'match_finished': {
-      const rank = payload?.rank
-      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival'
-      return rank === 1
-        ? <span>{t('notifications.matchEndWonText')}</span>
-        : <span>{t('notifications.matchEndLostText', { winner })}</span>
+      const rank = payload?.rank;
+      const winner = payload?.winnerUsername ? String(payload.winnerUsername) : 'A rival';
+      return rank === 1 ? (
+        <span>{t('notifications.matchEndWonText')}</span>
+      ) : (
+        <span>{t('notifications.matchEndLostText', { winner })}</span>
+      );
     }
     case 'profile_updated': {
-      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : []
-      const labels = items.map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`)).join(', ')
-      return <span>{t('notifications.profileUpdatedText', { item: labels || '—' })}</span>
+      const items = Array.isArray(payload?.items) ? (payload.items as string[]) : [];
+      const labels = items
+        .map((i) => t(`notifications.profileItem${i.charAt(0).toUpperCase()}${i.slice(1)}`))
+        .join(', ');
+      return <span>{t('notifications.profileUpdatedText', { item: labels || '—' })}</span>;
     }
     case 'display_name_changed': {
-      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from
-      const newName = payload?.displayName ? String(payload.displayName) : 'UNKNOWN'
-      return <span>{t('notifications.displayNameChangedText', { displayName: oldName, newDisplayName: newName })}</span>
+      const oldName = payload?.oldDisplayName ? String(payload.oldDisplayName) : from;
+      const newName = payload?.displayName ? String(payload.displayName) : 'UNKNOWN';
+      return (
+        <span>
+          {t('notifications.displayNameChangedText', {
+            displayName: oldName,
+            newDisplayName: newName,
+          })}
+        </span>
+      );
     }
     default:
-      return <span>{t('notifications.systemTransmissionText')}</span>
+      return <span>{t('notifications.systemTransmissionText')}</span>;
   }
 }
 
-function timeAgo(iso: string, t: (key: string, options?: Record<string, unknown>) => string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return t('notifications.justNow')
-  if (mins < 60) return t('notifications.minsAgo', { count: mins })
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return t('notifications.hoursAgo', { count: hrs })
-  return t('notifications.daysAgo', { count: Math.floor(hrs / 24) })
+function timeAgo(
+  iso: string,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return t('notifications.justNow');
+  if (mins < 60) return t('notifications.minsAgo', { count: mins });
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return t('notifications.hoursAgo', { count: hrs });
+  return t('notifications.daysAgo', { count: Math.floor(hrs / 24) });
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -120,39 +203,39 @@ export function NotificationBell({
   containerStyle,
   buttonStyle,
 }: {
-  notifications: Notification[]
-  unreadCount: number
-  onMarkRead: (id: string) => void
-  onMarkAllRead: () => void
-  placement?: 'bottom-right' | 'right'
-  fullWidth?: boolean
+  notifications: Notification[];
+  unreadCount: number;
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
+  placement?: 'bottom-right' | 'right';
+  fullWidth?: boolean;
   /** Icon-only trigger (no text pill) — used by RetroNavbar's collapsed sidebar rail. */
-  compact?: boolean
-  containerStyle?: CSSProperties
-  buttonStyle?: CSSProperties
+  compact?: boolean;
+  containerStyle?: CSSProperties;
+  buttonStyle?: CSSProperties;
 }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const { setActiveMatch } = useApp()
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { setActiveMatch } = useApp();
 
-  const list = Array.isArray(notifications) ? notifications : []
-  const count = typeof unreadCount === 'number' ? unreadCount : list.filter((n) => !n?.read).length
+  const list = Array.isArray(notifications) ? notifications : [];
+  const count = typeof unreadCount === 'number' ? unreadCount : list.filter((n) => !n?.read).length;
 
   // Close dropdown when clicking outside (either the trigger or the
   // portaled dropdown itself, which no longer lives inside `ref`).
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const handler = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (ref.current?.contains(target)) return
-      if (dropdownRef.current?.contains(target)) return
-      setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+      const target = e.target as Node;
+      if (ref.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
   // The dropdown is portaled to <body> so it always renders above every
   // other element on the page, regardless of which stacking context the
@@ -161,53 +244,58 @@ export function NotificationBell({
   // it — no in-place z-index value could ever escape that). Since it's no
   // longer positioned relative to the trigger via CSS, its coordinates are
   // computed from the trigger's live bounding box instead.
-  const [coords, setCoords] = useState<{ top: number; left: number; right: number; bottom: number } | null>(null)
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
+  } | null>(null);
 
   useLayoutEffect(() => {
-    if (!open) return
+    if (!open) return;
     const updateCoords = () => {
-      const rect = ref.current?.getBoundingClientRect()
-      if (!rect) return
+      const rect = ref.current?.getBoundingClientRect();
+      if (!rect) return;
       setCoords({
         top: rect.bottom,
         bottom: window.innerHeight - rect.bottom,
         left: rect.right,
         right: window.innerWidth - rect.right,
-      })
-    }
-    updateCoords()
-    window.addEventListener('scroll', updateCoords, true)
-    window.addEventListener('resize', updateCoords)
+      });
+    };
+    updateCoords();
+    window.addEventListener('scroll', updateCoords, true);
+    window.addEventListener('resize', updateCoords);
     return () => {
-      window.removeEventListener('scroll', updateCoords, true)
-      window.removeEventListener('resize', updateCoords)
-    }
-  }, [open])
+      window.removeEventListener('scroll', updateCoords, true);
+      window.removeEventListener('resize', updateCoords);
+    };
+  }, [open]);
 
   const toggleOpen = () => {
     try {
-      retroAudio.playUiBeep(open ? 480 : 720, 0.05)
+      retroAudio.playUiBeep(open ? 480 : 720, 0.05);
     } catch {
       // Audio can be blocked before a user gesture — never fail the UI for it.
     }
-    setOpen(!open)
-  }
+    setOpen(!open);
+  };
 
   const handleItemClick = (n: Notification) => {
     if (onMarkRead && n?.id) {
-      onMarkRead(n.id)
+      onMarkRead(n.id);
     }
     try {
-      retroAudio.playUiBeep(640, 0.05)
+      retroAudio.playUiBeep(640, 0.05);
     } catch {
       // Audio can be blocked before a user gesture — never fail the UI for it.
     }
 
-    let p: Record<string, unknown>
+    let p: Record<string, unknown>;
     try {
-      p = typeof n?.payload === 'string' ? JSON.parse(n.payload) : (n?.payload || {})
+      p = typeof n?.payload === 'string' ? JSON.parse(n.payload) : n?.payload || {};
     } catch {
-      p = {}
+      p = {};
     }
 
     if (n?.type === 'game_invite') {
@@ -218,26 +306,26 @@ export function NotificationBell({
         inviteCode: p.inviteCode as string | undefined,
         mode: 'pvp',
         playerCount: 4,
-      })
+      });
       if (p.gameId) {
-        navigate(`/game?gameId=${p.gameId}`)
+        navigate(`/game?gameId=${p.gameId}`);
       }
-      setOpen(false)
+      setOpen(false);
     } else if (n?.type === 'friend_request' || n?.type === 'friend_accepted') {
-      navigate('/friends')
-      setOpen(false)
+      navigate('/friends');
+      setOpen(false);
     }
-  }
+  };
 
   const handleClearAll = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    retroAudio.playUiBeep(380, 0.06)
+    e.stopPropagation();
+    retroAudio.playUiBeep(380, 0.06);
     if (onMarkAllRead) {
-      onMarkAllRead()
+      onMarkAllRead();
     }
-  }
+  };
 
-  const isRight = placement === 'right'
+  const isRight = placement === 'right';
 
   const bellContainerStyle: CSSProperties = {
     position: 'relative',
@@ -248,7 +336,7 @@ export function NotificationBell({
     width: fullWidth ? '100%' : 'auto',
     height: fullWidth ? 44 : 38,
     ...containerStyle,
-  }
+  };
 
   const dropdownStyle: CSSProperties = isRight
     ? {
@@ -297,7 +385,7 @@ export function NotificationBell({
         transform: open ? 'translateY(0)' : 'translateY(-8px)',
         pointerEvents: open ? 'auto' : 'none',
         transition: 'opacity 0.2s ease, transform 0.2s ease',
-      }
+      };
 
   return (
     <div ref={ref} style={bellContainerStyle}>
@@ -356,7 +444,14 @@ export function NotificationBell({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontFamily: 'var(--font-display)', letterSpacing: '1px', fontWeight: 900, fontSize: '0.94rem' }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-display)',
+                letterSpacing: '1px',
+                fontWeight: 900,
+                fontSize: '0.94rem',
+              }}
+            >
               {t('notifications.title')}
             </span>
           </div>
@@ -408,165 +503,186 @@ export function NotificationBell({
             }}
           />
 
-          <span className="text-[0.62rem] tracking-[0.5px] leading-none whitespace-nowrap" style={{ fontSize: '0.62rem' }}>
-            {t('notifications.title')}{count > 0 ? ` [${count < 10 ? `0${count}` : count}]` : ''}
+          <span
+            className="text-[0.62rem] tracking-[0.5px] leading-none whitespace-nowrap"
+            style={{ fontSize: '0.62rem' }}
+          >
+            {t('notifications.title')}
+            {count > 0 ? ` [${count < 10 ? `0${count}` : count}]` : ''}
           </span>
         </button>
       )}
 
       {/* Retro Dropdown Window Frame — portaled to <body>, see useLayoutEffect above */}
       {createPortal(
-      <div ref={dropdownRef} style={dropdownStyle}>
-        {/* Window Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 14px',
-            background: 'rgba(0, 240, 255, 0.12)',
-            borderBottom: '1px solid rgba(0, 240, 255, 0.3)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span
-              style={{
-                fontFamily: 'var(--font-heading, monospace)',
-                fontSize: '0.78rem',
-                color: 'var(--accent-cyan, #00f0ff)',
-                letterSpacing: 1,
-                fontWeight: 'bold',
-              }}
-            >
-              {t('notifications.transmissionLogTitle')}
-            </span>
+        <div ref={dropdownRef} style={dropdownStyle}>
+          {/* Window Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: 'rgba(0, 240, 255, 0.12)',
+              borderBottom: '1px solid rgba(0, 240, 255, 0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-heading, monospace)',
+                  fontSize: '0.78rem',
+                  color: 'var(--accent-cyan, #00f0ff)',
+                  letterSpacing: 1,
+                  fontWeight: 'bold',
+                }}
+              >
+                {t('notifications.transmissionLogTitle')}
+              </span>
+            </div>
+
+            {count > 0 && (
+              <button
+                onClick={handleClearAll}
+                style={{
+                  background: 'transparent',
+                  border: '1px dashed var(--accent-yellow, #ffe600)',
+                  color: 'var(--accent-yellow, #ffe600)',
+                  fontSize: '0.62rem',
+                  fontFamily: 'var(--font-mono, monospace)',
+                  fontWeight: 'bold',
+                  padding: '3px 8px',
+                  cursor: 'pointer',
+                  borderRadius: 2,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  lineHeight: 1,
+                }}
+              >
+                {t('notifications.ackAllBtn')}
+              </button>
+            )}
           </div>
 
-          {count > 0 && (
-            <button
-              onClick={handleClearAll}
-              style={{
-                background: 'transparent',
-                border: '1px dashed var(--accent-yellow, #ffe600)',
-                color: 'var(--accent-yellow, #ffe600)',
-                fontSize: '0.62rem',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontWeight: 'bold',
-                padding: '3px 8px',
-                cursor: 'pointer',
-                borderRadius: 2,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                lineHeight: 1,
-              }}
-            >
-              {t('notifications.ackAllBtn')}
-            </button>
-          )}
-        </div>
-
-        {/* Transmission List Buffer */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            maxHeight: 380,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {list.length === 0 ? (
-            <div
-              style={{
-                padding: '36px 16px',
-                textAlign: 'center',
-                color: 'var(--text-muted, #8a7a64)',
-                fontFamily: 'var(--font-mono, monospace)',
-                fontSize: '0.78rem',
-                letterSpacing: 0.5,
-              }}
-            >
-              {t('notifications.noTransmissions')}
-            </div>
-          ) : (
-            list.slice(0, 30).map((n) => {
-              const badge = getNotificationTypeBadge(n.type)
-              return (
-                <div
-                  key={n.id}
-                  onClick={() => handleItemClick(n)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                    padding: '12px 14px',
-                    cursor: 'pointer',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                    background: n.read ? 'transparent' : 'rgba(0, 240, 255, 0.08)',
-                    transition: 'background 0.15s ease',
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.15)')
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(0, 240, 255, 0.08)')
-                  }
-                >
-                  {/* Unread diamond indicator */}
-                  <span
+          {/* Transmission List Buffer */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              maxHeight: 380,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            {list.length === 0 ? (
+              <div
+                style={{
+                  padding: '36px 16px',
+                  textAlign: 'center',
+                  color: 'var(--text-muted, #8a7a64)',
+                  fontFamily: 'var(--font-mono, monospace)',
+                  fontSize: '0.78rem',
+                  letterSpacing: 0.5,
+                }}
+              >
+                {t('notifications.noTransmissions')}
+              </div>
+            ) : (
+              list.slice(0, 30).map((n) => {
+                const badge = getNotificationTypeBadge(n.type);
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => handleItemClick(n)}
                     style={{
-                      marginTop: 3,
-                      fontSize: '0.65rem',
-                      color: n.read ? 'transparent' : 'var(--accent-pink, #ff007f)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                      padding: '12px 14px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: n.read ? 'transparent' : 'rgba(0, 240, 255, 0.08)',
+                      transition: 'background 0.15s ease',
                     }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.15)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = n.read
+                        ? 'transparent'
+                        : 'rgba(0, 240, 255, 0.08)')
+                    }
                   >
-                    ◆
-                  </span>
-
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                      <span
-                        style={{
-                          fontSize: '0.65rem',
-                          color: badge.color,
-                          fontFamily: 'var(--font-mono, monospace)',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        {t(badge.tagKey, badge.defaultTag)}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.62rem',
-                          color: 'var(--text-muted, #8a7a64)',
-                          fontFamily: 'var(--font-mono, monospace)',
-                        }}
-                      >
-                        {timeAgo(n.createdAt, t)}
-                      </span>
-                    </div>
+                    {/* Unread diamond indicator */}
+                    <span
+                      style={{
+                        marginTop: 3,
+                        fontSize: '0.65rem',
+                        color: n.read ? 'transparent' : 'var(--accent-pink, #ff007f)',
+                      }}
+                    >
+                      ◆
+                    </span>
 
                     <div
                       style={{
-                        fontSize: '0.78rem',
-                        fontWeight: n.read ? 'normal' : 'bold',
-                        color: n.read ? 'var(--text-muted, #aaa)' : '#ffffff',
-                        lineHeight: 1.35,
-                        fontFamily: 'var(--font-mono, monospace)',
+                        flex: 1,
+                        minWidth: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 3,
                       }}
                     >
-                      {renderNotificationBody(n, t)}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '0.65rem',
+                            color: badge.color,
+                            fontFamily: 'var(--font-mono, monospace)',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          {t(badge.tagKey, badge.defaultTag)}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.62rem',
+                            color: 'var(--text-muted, #8a7a64)',
+                            fontFamily: 'var(--font-mono, monospace)',
+                          }}
+                        >
+                          {timeAgo(n.createdAt, t)}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: n.read ? 'normal' : 'bold',
+                          color: n.read ? 'var(--text-muted, #aaa)' : '#ffffff',
+                          lineHeight: 1.35,
+                          fontFamily: 'var(--font-mono, monospace)',
+                        }}
+                      >
+                        {renderNotificationBody(n, t)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })
-          )}
-        </div>
-      </div>,
-      document.body,
+                );
+              })
+            )}
+          </div>
+        </div>,
+        document.body,
       )}
     </div>
-  )
+  );
 }

@@ -1,42 +1,42 @@
-import React, { useCallback, useEffect, useState, useRef } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
-import { retroAudio } from '../utils/audio'
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { retroAudio } from '../utils/audio';
 import {
-	CYBER_MODAL_OVERLAY,
-	CYBER_MODAL_BOX,
-	CYBER_MODAL_BODY,
-	CYBER_MODAL_BODY_BACKDROP,
-	CYBER_MODAL_BACKDROP_PLATE,
-	CYBER_MODAL_CONTENT,
-	CYBER_MODAL_VERSION,
-	CYBER_MODAL_H2,
-	CYBER_MODAL_H2_SPAN,
-	CYBER_MODAL_BODY_TEXT,
-	CYBER_MODAL_ACTIONS,
-	CYBER_MODAL_GLITCH,
-	CYBER_BTN_BASE,
-	CYBER_BTN_PINK,
-	CYBER_BTN_YELLOW,
-	CYBER_BTN_DANGER,
-	CYBER_BTN_BACKDROP,
-	CYBER_BTN_BACKDROP_GLITCH,
-	CYBER_BTN_CORNER,
-	CYBER_BTN_KBD,
-	CYBER_BTN_LABEL,
-	CYBER_BTN_GLITCH_LAYER,
-	CYBER_BTN_LETTERS,
-} from '../styles/tw'
+  CYBER_MODAL_OVERLAY,
+  CYBER_MODAL_BOX,
+  CYBER_MODAL_BODY,
+  CYBER_MODAL_BODY_BACKDROP,
+  CYBER_MODAL_BACKDROP_PLATE,
+  CYBER_MODAL_CONTENT,
+  CYBER_MODAL_VERSION,
+  CYBER_MODAL_H2,
+  CYBER_MODAL_H2_SPAN,
+  CYBER_MODAL_BODY_TEXT,
+  CYBER_MODAL_ACTIONS,
+  CYBER_MODAL_GLITCH,
+  CYBER_BTN_BASE,
+  CYBER_BTN_PINK,
+  CYBER_BTN_YELLOW,
+  CYBER_BTN_DANGER,
+  CYBER_BTN_BACKDROP,
+  CYBER_BTN_BACKDROP_GLITCH,
+  CYBER_BTN_CORNER,
+  CYBER_BTN_KBD,
+  CYBER_BTN_LABEL,
+  CYBER_BTN_GLITCH_LAYER,
+  CYBER_BTN_LETTERS,
+} from '../styles/tw';
 
 interface CyberButtonProps {
-  label: string
-  shortcut?: string | ReactNode
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
-  variant?: 'cyan' | 'pink' | 'yellow' | 'danger'
-  disabled?: boolean
-  style?: CSSProperties
-  className?: string
-  autoFocus?: boolean
-  type?: 'button' | 'submit' | 'reset'
+  label: string;
+  shortcut?: string | ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  variant?: 'cyan' | 'pink' | 'yellow' | 'danger';
+  disabled?: boolean;
+  style?: CSSProperties;
+  className?: string;
+  autoFocus?: boolean;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 export function CyberButton({
@@ -54,12 +54,12 @@ export function CyberButton({
     variant === 'pink'
       ? CYBER_BTN_PINK
       : variant === 'yellow'
-      ? CYBER_BTN_YELLOW
-      : variant === 'danger'
-      ? CYBER_BTN_DANGER
-      : ''
+        ? CYBER_BTN_YELLOW
+        : variant === 'danger'
+          ? CYBER_BTN_DANGER
+          : '';
 
-  const letters = typeof label === 'string' ? label.split('') : []
+  const letters = typeof label === 'string' ? label.split('') : [];
 
   return (
     <button
@@ -91,23 +91,23 @@ export function CyberButton({
         </div>
       )}
     </button>
-  )
+  );
 }
 
 interface CyberModalProps {
-  isOpen: boolean
-  title: string
-  message: ReactNode
-  subMessage?: string
-  versionTag?: string
-  onCancel: () => void
-  onProceed: () => void
-  cancelLabel?: string
-  proceedLabel?: string
-  cancelShortcut?: string
-  proceedShortcut?: string
-  isDanger?: boolean
-  closeOnProceed?: boolean
+  isOpen: boolean;
+  title: string;
+  message: ReactNode;
+  subMessage?: string;
+  versionTag?: string;
+  onCancel: () => void;
+  onProceed: () => void;
+  cancelLabel?: string;
+  proceedLabel?: string;
+  cancelShortcut?: string;
+  proceedShortcut?: string;
+  isDanger?: boolean;
+  closeOnProceed?: boolean;
 }
 
 export function CyberModal({
@@ -125,85 +125,85 @@ export function CyberModal({
   isDanger = false,
   closeOnProceed = true,
 }: CyberModalProps) {
-  const [mounted, setMounted] = useState(isOpen)
-  const [isOpenActive, setIsOpenActive] = useState(false)
-  const [isGlitching, setIsGlitching] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const glitchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [mounted, setMounted] = useState(isOpen);
+  const [isOpenActive, setIsOpenActive] = useState(false);
+  const [isGlitching, setIsGlitching] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const glitchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      setMounted(true)
+      setMounted(true);
       // Double rAF ensures DOM is painted before transition classes trigger
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          setIsOpenActive(true)
-          retroAudio.playCyberSlide()
-        })
-      })
+          setIsOpenActive(true);
+          retroAudio.playCyberSlide();
+        });
+      });
 
       // Glitch timing choreography
       const kickOffGlitch = () => {
-        setIsGlitching(true)
-        setTimeout(() => setIsGlitching(false), 1600)
-        const nextInterval = Math.random() * 8000 + 4000
-        glitchTimerRef.current = setTimeout(kickOffGlitch, nextInterval)
-      }
+        setIsGlitching(true);
+        setTimeout(() => setIsGlitching(false), 1600);
+        const nextInterval = Math.random() * 8000 + 4000;
+        glitchTimerRef.current = setTimeout(kickOffGlitch, nextInterval);
+      };
 
-      glitchTimerRef.current = setTimeout(kickOffGlitch, 1500)
+      glitchTimerRef.current = setTimeout(kickOffGlitch, 1500);
     } else {
-      setIsOpenActive(false)
-      if (glitchTimerRef.current) clearTimeout(glitchTimerRef.current)
-      if (timerRef.current) clearTimeout(timerRef.current)
+      setIsOpenActive(false);
+      if (glitchTimerRef.current) clearTimeout(glitchTimerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
-        setMounted(false)
-      }, 350)
+        setMounted(false);
+      }, 350);
     }
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-      if (glitchTimerRef.current) clearTimeout(glitchTimerRef.current)
-    }
-  }, [isOpen])
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (glitchTimerRef.current) clearTimeout(glitchTimerRef.current);
+    };
+  }, [isOpen]);
 
   const handleCancel = useCallback(() => {
-    retroAudio.playCyberReject()
-    setIsOpenActive(false)
+    retroAudio.playCyberReject();
+    setIsOpenActive(false);
     setTimeout(() => {
-      onCancel()
-    }, 280)
-  }, [onCancel])
+      onCancel();
+    }, 280);
+  }, [onCancel]);
 
   const handleProceed = useCallback(() => {
-    retroAudio.playCyberAccept()
+    retroAudio.playCyberAccept();
     if (!closeOnProceed) {
-      onProceed()
-      return
+      onProceed();
+      return;
     }
-    setIsOpenActive(false)
+    setIsOpenActive(false);
     setTimeout(() => {
-      onProceed()
-    }, 280)
-  }, [closeOnProceed, onProceed])
+      onProceed();
+    }, 280);
+  }, [closeOnProceed, onProceed]);
 
   useEffect(() => {
-    if (!isOpenActive) return
+    if (!isOpenActive) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        e.preventDefault()
-        handleCancel()
+        e.preventDefault();
+        handleCancel();
       } else if (e.key === 'Enter') {
-        e.preventDefault()
-        handleProceed()
+        e.preventDefault();
+        handleProceed();
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpenActive, handleCancel, handleProceed])
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpenActive, handleCancel, handleProceed]);
 
-  if (!mounted) return null
+  if (!mounted) return null;
 
   return (
     <div
@@ -212,10 +212,7 @@ export function CyberModal({
       data-glitching={isGlitching ? 'true' : 'false'}
       onClick={handleCancel}
     >
-      <div
-        className={CYBER_MODAL_BOX}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className={CYBER_MODAL_BOX} onClick={(e) => e.stopPropagation()}>
         <section className={CYBER_MODAL_BODY}>
           {/* Animated Sliding Backdrop Plate */}
           <div className={CYBER_MODAL_BODY_BACKDROP}>
@@ -262,5 +259,5 @@ export function CyberModal({
         </section>
       </div>
     </div>
-  )
+  );
 }

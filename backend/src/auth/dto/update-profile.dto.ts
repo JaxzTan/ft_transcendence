@@ -10,7 +10,8 @@ export class UpdateProfileDto {
     message: 'display name must be 1-30 characters',
   })
   @Matches(/^[a-zA-Z0-9 _'-]+$/, {
-    message: 'display name can only contain letters, numbers, spaces, underscores, apostrophes and hyphens',
+    message:
+      'display name can only contain letters, numbers, spaces, underscores, apostrophes and hyphens',
   })
   displayName?: string;
 

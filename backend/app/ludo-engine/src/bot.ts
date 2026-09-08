@@ -53,23 +53,23 @@ export class LudoBot {
     if (legalMoves.length === 1) return legalMoves[0];
 
     // Priority 1: Capture moves - always take them
-    const captures = legalMoves.filter(m => m.isCapture);
+    const captures = legalMoves.filter((m) => m.isCapture);
     if (captures.length > 0) {
       return captures[0];
     }
 
     // Priority 2: On a 6, prefer freeing pieces from jail (step 0)
     if (diceValue === 6) {
-      const freesFromJail = legalMoves.filter(m => m.from === 0);
+      const freesFromJail = legalMoves.filter((m) => m.from === 0);
       if (freesFromJail.length > 0) {
         return freesFromJail[0];
       }
     }
 
     // Priority 3-5: Score remaining moves
-    const scored = legalMoves.map(move => ({
+    const scored = legalMoves.map((move) => ({
       move,
-      score: this.scoreMove(move)
+      score: this.scoreMove(move),
     }));
 
     scored.sort((a, b) => b.score - a.score);
@@ -112,7 +112,10 @@ export class LudoBot {
       // timed out, ended) during the gaps between our state checks : a normal
       // race, not a bug. Swallow it: the caller doesn't await this promise,
       // so a rejection here would kill the whole engine process.
-      console.error(`[bot] takeTurn aborted for game ${this.gameId} (${this.color}):`, err instanceof Error ? err.message : err);
+      console.error(
+        `[bot] takeTurn aborted for game ${this.gameId} (${this.color}):`,
+        err instanceof Error ? err.message : err,
+      );
       return false;
     }
   }
@@ -142,7 +145,8 @@ export class LudoBot {
       // Re-validate once more: the game can end or the turn can move on
       // during the delay above (e.g. the other player resigns/times out).
       const beforeMove = await this.store.loadGameState(this.gameId);
-      if (!beforeMove || beforeMove.status !== 'active' || beforeMove.currentTurn !== this.color) return false;
+      if (!beforeMove || beforeMove.status !== 'active' || beforeMove.currentTurn !== this.color)
+        return false;
 
       // Execute move : engine emits piece_moved and game_ended events via handleEngineEvent
       const { state: finalState } = await this.engine.movePiece(this.gameId, bestMove.pieceId);

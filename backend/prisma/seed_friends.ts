@@ -73,7 +73,9 @@ async function main() {
     data: createdFriendships,
   });
 
-  console.log(`✅ Successfully established ${createdFriendships.length} accepted allied friendships!`);
+  console.log(
+    `✅ Successfully established ${createdFriendships.length} accepted allied friendships!`,
+  );
 
   await prisma.$disconnect();
 }
