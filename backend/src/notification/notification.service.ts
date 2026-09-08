@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma.service';
 
 import { randomUUID } from 'crypto';
 import { secret } from '../secrets';
+import type { Prisma } from '../../generated/prisma/client';
 // Types
 // notification types.
 export type NotificationType =
@@ -62,8 +63,12 @@ export class NotificationService implements OnModuleDestroy {
     this.pub = new Redis(opts);
     this.sub = new Redis(opts);
 
-    this.pub.on('error', (e) => console.error('Notification pub Redis error:', (e as Error).message));
-    this.sub.on('error', (e) => console.error('Notification sub Redis error:', (e as Error).message));
+    this.pub.on('error', (e) => {
+      console.error('Notification pub Redis error:', e.message);
+    });
+    this.sub.on('error', (e) => {
+      console.error('Notification sub Redis error:', e.message);
+    });
 
     // Listen for messages on channels we subscribe to.
     // When a service calls notify(), it publishes to `notify:<userId>`.
@@ -97,9 +102,9 @@ export class NotificationService implements OnModuleDestroy {
     });
   }
 
-  onModuleDestroy() {
-    this.pub.quit();
-    this.sub.quit();
+  async onModuleDestroy() {
+    await this.pub.quit();
+    await this.sub.quit();
   }
 // SSE connection management
   // Client opens the SSE stream. Returns an Observable the controller pipes
@@ -123,15 +128,21 @@ export class NotificationService implements OnModuleDestroy {
     // When the SSE connection closes (client navigates away / closes tab),
     // clean up this Subject and unsubscribe from Redis if no tabs remain.
     subject.subscribe({
-      complete: () => this.removeClient(userId, subject),
-      error: () => this.removeClient(userId, subject),
+      complete: () => {
+        this.removeClient(userId, subject);
+      },
+      error: () => {
+        this.removeClient(userId, subject);
+      },
     });
 
     // Wrapped so cleanup actually runs: on HTTP close NestJS unsubscribes
     // (not completes), so finalize() completes the Subject → removeClient()
     // removes it and unsubscribes from Redis when the last tab closes.
     return subject.asObservable().pipe(
-      finalize(() => subject.complete()),
+      finalize(() => {
+        subject.complete();
+      }),
     );
   }
 
@@ -165,7 +176,7 @@ export class NotificationService implements OnModuleDestroy {
     // 1. Persist to DB so it shows up in the bell dropdown on next page load.
     try {
       row = await this.prisma.db.notification.create({
-        data: { userId, type, payload: payload as Record<string, any> },
+        data: { userId, type, payload: payload as unknown as Prisma.InputJsonValue },
       });
     } catch (err) {
       console.error(`[notifications] persist failed for ${type} -> user ${userId}:`, err);

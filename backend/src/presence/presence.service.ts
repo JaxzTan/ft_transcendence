@@ -27,11 +27,13 @@ export class PresenceService implements OnModuleDestroy {
     const password = secret('REDIS_PASSWORD');
 
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-    this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+    this.redis.on('error', (error) => {
+      console.error('Redis error:', error.message);
+    });
   }
 
-  onModuleDestroy() {
-    this.redis.quit();
+  async onModuleDestroy() {
+    await this.redis.quit();
   }
 
   private key(userId: string): string {
@@ -48,18 +50,18 @@ export class PresenceService implements OnModuleDestroy {
     const wasOffline = (await this.redis.exists(this.key(userId))) === 0;
     await this.redis.set(this.key(userId), playing ? 'playing' : 'online', 'EX', PRESENCE_TTL_S);
     if (wasOffline) {
-      this.notifyFriendsPresence(userId, 'online').catch((error) =>
-        console.error('Failed to broadcast friend presence:', error),
-      );
+      this.notifyFriendsPresence(userId, 'online').catch((error) => {
+        console.error('Failed to broadcast friend presence:', error);
+      });
     }
   }
 
   // Immediate offline on logout, rather than waiting out the TTL.
   async clear(userId: string): Promise<void> {
     await this.redis.del(this.key(userId));
-    this.notifyFriendsPresence(userId, 'offline').catch((error) =>
-      console.error('Failed to broadcast friend presence:', error),
-    );
+    this.notifyFriendsPresence(userId, 'offline').catch((error) => {
+      console.error('Failed to broadcast friend presence:', error);
+    });
   }
 
   // Single-user lookup : e.g. a profile page for one specific account.
