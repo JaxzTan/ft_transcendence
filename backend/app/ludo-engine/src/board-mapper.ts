@@ -14,7 +14,6 @@ export class BoardMapper {
   }
 
   // Check if a move destination (by step) lands on a safe zone.
-  // Safe zones are at shared track positions: 1, 9, 14, 22, 27, 35, 40, 48
   static isSafeZoneStep(pieceId: PieceId, step: number): boolean {
     if (step < 1 || step > 51) return false;
     const boardPos = this.toTrackPosition(pieceId, step);

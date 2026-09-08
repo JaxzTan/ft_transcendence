@@ -130,7 +130,7 @@ export class SocketServer {
     });
 
     // Periodic check for expired lobbies
-    setInterval(() => this.checkExpiredLobbies(), 60_000);
+    setInterval(() => this.checkExpiredLobbies(), 60 * 1000);
   }
 
   async stop(): Promise<void> {
@@ -144,7 +144,7 @@ export class SocketServer {
   }
 
   // Periodic sweep (1-minute interval) that aborts WAITING PvP rooms with
-  // fewer than 2 seated players after the 5-minute idle timeout.
+  // fewer than 2 seated players after the IDLE_LOBBY_TIMEOUT_MS timeout.
   private async checkExpiredLobbies(): Promise<void> {
     const now = Date.now();
     const matchKeys = await this.store.scanMatchKeys();
@@ -183,8 +183,7 @@ export class SocketServer {
     this.io.use((socket: GameSocket, next) => {
       const token = socket.handshake.auth?.token;
       // A token is mandatory: bots are driven server-side and the SPA always
-      // supplies one. Allowing tokenless connections would make signature
-      // verification pointless (attacker just omits the token).
+      // supplies one.
       if (!token) return next(new Error('Authentication required'));
 
       const payload = verifyToken(token);

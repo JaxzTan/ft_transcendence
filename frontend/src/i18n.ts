@@ -22,7 +22,7 @@ i18n
     },
   })
   .catch(() => {
-    // Language loading failure is non-fatal — i18next falls back to defaults.
+    // Language loading failure falls back to defaults.
   });
 
 export default i18n;
