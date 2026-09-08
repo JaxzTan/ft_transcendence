@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
+// passport-42 ships no type declarations (TS7016 under noImplicitAny).
+// @ts-expect-error: suppress inline; remove if @types/passport-42 is ever added.
 import Strategy from 'passport-42';
 import { Profile } from 'passport';
 import { AuthService, OAuthCallbackRequest } from './auth.service';

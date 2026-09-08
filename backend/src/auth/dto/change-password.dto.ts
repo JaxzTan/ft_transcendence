@@ -12,5 +12,5 @@ export class ChangePasswordDto {
   @MinLength(PASSWORD_MIN)
   @MaxLength(PASSWORD_MAX)
   @Matches(PASSWORD_REGEX, { message: PASSWORD_MESSAGE })
-  newPassword: string;
+  newPassword!: string;
 }

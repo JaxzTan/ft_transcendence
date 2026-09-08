@@ -5,9 +5,9 @@ export class LoginDto {
   // one it is (usernames can't contain '@', so there's no ambiguity).
   @IsString()
   @MinLength(1)
-  identifier: string;
+  identifier!: string;
 
   @IsString()
   @MinLength(1)
-  password: string;
+  password!: string;
 }

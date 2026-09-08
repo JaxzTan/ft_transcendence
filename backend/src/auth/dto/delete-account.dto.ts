@@ -10,5 +10,5 @@ export class DeleteAccountDto {
 
   // Explicit acknowledgement that the account and all data will be deleted.
   @IsBoolean()
-  confirm: boolean;
+  confirm!: boolean;
 }
