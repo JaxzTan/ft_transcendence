@@ -1762,8 +1762,8 @@ export function Game() {
                                   <button
                                     className={RETRO_BTN}
                                     onClick={() => {
-                                    void inviteFriend(f.id);
-                                  }}
+                                      void inviteFriend(f.id);
+                                    }}
                                     disabled={st !== 'idle'}
                                     style={{
                                       padding: '3px 8px',
@@ -1987,8 +1987,7 @@ export function Game() {
               </section>
 
               {/* RETURN TO LOBBY BUTTON (Shown whenever game has ended across all modes, or in online PvP) */}
-              {(isGameEnded ||
-                (activeMatch.mode !== 'pve' && activeMatch.mode !== 'hotseat')) && (
+              {(isGameEnded || (activeMatch.mode !== 'pve' && activeMatch.mode !== 'hotseat')) && (
                 <button
                   className={RETRO_BTN}
                   onClick={() => {

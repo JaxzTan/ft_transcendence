@@ -327,7 +327,7 @@ export function Profile() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!cancelled && data) {
-          const list = Array.isArray(data) ? data : data?.friends ?? [];
+          const list = Array.isArray(data) ? data : (data?.friends ?? []);
           const sorted = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
           setFriendsData(sorted);
         }
@@ -368,9 +368,7 @@ export function Profile() {
 
   const totalGames = profile ? profile.wins + profile.losses : 0;
   const winRate = profile && totalGames > 0 ? Math.round((profile.wins / totalGames) * 100) : 0;
-  const statusStyle = profile
-    ? STATUS_STYLE[profile.status]
-    : STATUS_STYLE.offline;
+  const statusStyle = profile ? STATUS_STYLE[profile.status] : STATUS_STYLE.offline;
   const rankTier = profile ? getRankTier(profile.rating, leaderboardRank) : getRankTier(1200);
   const peakRating = profile ? profile.highestRating || profile.rating : 1200;
   const peakTier =
@@ -378,8 +376,9 @@ export function Profile() {
       ? getRankTier(peakRating, leaderboardRank)
       : getRankTier(peakRating);
 
-  const unlockedCount = ACHIEVEMENTS_DEF.filter((a) => getAchievementReport(a.key)?.unlocked === true)
-    .length;
+  const unlockedCount = ACHIEVEMENTS_DEF.filter(
+    (a) => getAchievementReport(a.key)?.unlocked === true,
+  ).length;
   const totalAchievements = ACHIEVEMENTS_DEF.length;
   const achievementPercent = Math.round((unlockedCount / totalAchievements) * 100);
 
@@ -1720,11 +1719,8 @@ export function Profile() {
                                           marginTop: 2,
                                         }}
                                       >
-                                        ●{' '}
-                                        {t(
-                                          STATUS_KEYS[f.status],
-                                        ).toUpperCase()}{' '}
-                                        // {t('profile.alliedPilotTag')}
+                                        ● {t(STATUS_KEYS[f.status]).toUpperCase()} //{' '}
+                                        {t('profile.alliedPilotTag')}
                                       </div>
                                     </div>
                                   </div>

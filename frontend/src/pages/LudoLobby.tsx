@@ -321,7 +321,13 @@ export function LudoLobby() {
                  ════════════════════════════════════════════════════════════════════════════ */}
                 <div
                   className={`${RETRO_TICKET_PASS} ${TICKET_PINK} ${hostBusy ? 'disabled' : ''}`}
-                  onClick={hostBusy ? undefined : () => { void createRoom(); }}
+                  onClick={
+                    hostBusy
+                      ? undefined
+                      : () => {
+                          void createRoom();
+                        }
+                  }
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {

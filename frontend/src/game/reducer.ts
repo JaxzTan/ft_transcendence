@@ -75,7 +75,8 @@ export function applyEvent(
     }
     case 'lobby_update': {
       const payload =
-        (event.players as Array<{ username: string; color: PlayerColor; ready: boolean }> | undefined) ?? [];
+        (event.players as
+          Array<{ username: string; color: PlayerColor; ready: boolean }> | undefined) ?? [];
       // The engine only includes active seats in this payload.
       // Any seat omitted from the payload is empty and must be reset to inactive.
       const players = state.players.map((p) => {

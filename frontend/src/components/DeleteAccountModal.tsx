@@ -98,7 +98,9 @@ export function DeleteAccountModal({
       await patchApi('/api/auth/profile/password', { newPassword });
       setStep('confirm');
     } catch (e) {
-      setError((e as { message?: string } | null | undefined)?.message ?? t('profileEdit.genericError'));
+      setError(
+        (e as { message?: string } | null | undefined)?.message ?? t('profileEdit.genericError'),
+      );
     } finally {
       setBusy(false);
     }
@@ -116,7 +118,9 @@ export function DeleteAccountModal({
       await logout();
       navigate('/login');
     } catch (e) {
-      setError((e as { message?: string } | null | undefined)?.message ?? t('profileEdit.genericError'));
+      setError(
+        (e as { message?: string } | null | undefined)?.message ?? t('profileEdit.genericError'),
+      );
       setBusy(false);
     }
   };

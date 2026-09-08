@@ -111,7 +111,6 @@ function parseNotificationPayload(raw: Record<string, unknown>): Record<string, 
   return raw;
 }
 
-
 function renderNotificationBody(
   n: Notification,
   t: (key: string, options?: Record<string, unknown>) => string,

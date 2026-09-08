@@ -368,7 +368,7 @@ export function Board({
       if (r >= 6 && r <= 8 && c >= 6 && c <= 8) continue; // center handled separately
       const key = `${r},${c}`;
       const startCol = STARTS[key];
-      const bg = startCol ? COL[startCol].base : laneColor(r, c) ?? CELL_BG;
+      const bg = startCol ? COL[startCol].base : (laneColor(r, c) ?? CELL_BG);
       const style: CSSProperties = {
         gridRow: r + 1,
         gridColumn: c + 1,
@@ -439,8 +439,7 @@ export function Board({
     // in-transit step regardless so the box-by-box travel stays visible.
     if (!isAnimating && (piece.isInBase || piece.isInGoal || piece.step <= 0)) continue;
     const ck = piece.color as ColorKey;
-    const step =
-      (animating?.pieceId === piece.id ? animating.step : undefined) ?? piece.step;
+    const step = (animating?.pieceId === piece.id ? animating.step : undefined) ?? piece.step;
     const cell = stepToCell(ck, step);
     if (!cell) continue;
     const key = `${cell.r},${cell.c}`;

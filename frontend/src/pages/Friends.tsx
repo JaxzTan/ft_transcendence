@@ -725,8 +725,7 @@ export function Friends() {
                                       marginTop: 2,
                                     }}
                                   >
-                                    ●{' '}
-                                    {t(STATUS_KEYS[f.status]).toUpperCase()}
+                                    ● {t(STATUS_KEYS[f.status]).toUpperCase()}
                                   </div>
                                 </div>
                               </div>
