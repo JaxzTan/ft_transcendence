@@ -175,7 +175,7 @@ function nextTurn(players: GameState['players'], from: PlayerColor): PlayerColor
   for (let i = 1; i <= 4; i++) {
     const c = order[(idx + i) % 4];
     const p = players.find((x) => x.color === c);
-    if (p && p.status === 'active') return c;
+    if (p?.status === 'active') return c;
   }
   return from;
 }

@@ -21,8 +21,8 @@ export class MatchPlayerService {
     private readonly jwt: JwtService,
     private readonly notificationService: NotificationService,
   ) {
-    const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+    const host = process.env.REDIS_HOST ?? 'redis';
+    const port = parseInt(process.env.REDIS_PORT ?? '6479', 10);
     const password = secret('REDIS_PASSWORD');
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
     this.redis.on('error', (error) => {
@@ -33,7 +33,7 @@ export class MatchPlayerService {
   // Join an existing WAITING match by filling the next empty slot.
   async joinMatch(gameId: string, userId: string) {
     const data = await this.redis.hgetall(`match:${gameId}`);
-    if (!data || !data.id) throw new NotFoundException('Game not found');
+    if (!data.id) throw new NotFoundException('Game not found');
 
     // If player already in game, then hand back the same seat instead of allocating another
     const seatedSlot = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(
@@ -70,7 +70,7 @@ export class MatchPlayerService {
       {
         gameId,
         playerId: userId,
-        username: username || undefined,
+        username: username ?? undefined,
         displayName,
         role: 'player',
         color: assignedColor,
@@ -84,7 +84,7 @@ export class MatchPlayerService {
       engineUrl: 'ws://localhost:3001',
       color: assignedColor,
       inviteCode: data.inviteCode || undefined,
-      mode: data.gameType ? data.gameType.toLowerCase() : 'pvp',
+      mode: (data as { gameType?: string }).gameType?.toLowerCase() ?? 'pvp',
       playerCount: parseInt(data.playerCount || '2', 10),
     };
   }
@@ -92,7 +92,7 @@ export class MatchPlayerService {
   // Rejoin a match the user is already seated in (fresh token, no new slot).
   async rejoin(gameId: string, userId: string) {
     const data = await this.redis.hgetall(`match:${gameId}`);
-    if (!data || !data.id) throw new NotFoundException('Game not found');
+    if (!data.id) throw new NotFoundException('Game not found');
 
     const slotIndex = [data.player1_id, data.player2_id, data.player3_id, data.player4_id].indexOf(
       userId,
@@ -106,7 +106,7 @@ export class MatchPlayerService {
       {
         gameId,
         playerId: userId,
-        username: username || undefined,
+        username: username ?? undefined,
         displayName,
         role: slotIndex === 0 ? 'player1' : 'player',
         color,
@@ -120,7 +120,7 @@ export class MatchPlayerService {
       engineUrl: 'ws://localhost:3001',
       color,
       inviteCode: data.inviteCode || undefined,
-      mode: data.gameType ? data.gameType.toLowerCase() : 'pvp',
+      mode: (data as { gameType?: string }).gameType?.toLowerCase() ?? 'pvp',
       playerCount: parseInt(data.playerCount || '2', 10),
     };
   }
@@ -129,7 +129,7 @@ export class MatchPlayerService {
   // `invite:{friendId}` record for their client's next poll.
   async inviteFriendToGame(gameId: string, hostId: string, friendId: string) {
     const data = await this.redis.hgetall(`match:${gameId}`);
-    if (!data || !data.id) throw new NotFoundException('Game not found');
+    if (!data.id) throw new NotFoundException('Game not found');
     if (data.gameType !== 'PVP') throw new ForbiddenException('Only PvP rooms can be invited to');
     if (data.status !== 'WAITING') throw new ForbiddenException('Game already started');
 
@@ -151,7 +151,7 @@ export class MatchPlayerService {
     if (!friendship) throw new ForbiddenException('You are not friends with this user');
 
     const friendSeat = await this.joinMatch(gameId, friendId);
-    const fromUsername = (await this.resolveUsername(hostId)) || 'A friend';
+    const fromUsername = (await this.resolveUsername(hostId)) ?? 'A friend';
 
     await this.redis.set(
       `invite:${friendId}`,
@@ -185,7 +185,7 @@ export class MatchPlayerService {
   // Toggle the ready flag for a player in a WAITING match.
   async readyGame(gameId: string, userId: string) {
     const data = await this.redis.hgetall(`match:${gameId}`);
-    if (!data || !data.id) throw new NotFoundException('Game not found');
+    if (!data.id) throw new NotFoundException('Game not found');
 
     const isPlayer =
       data.player1_id === userId ||
@@ -195,7 +195,7 @@ export class MatchPlayerService {
     if (!isPlayer) throw new ForbiddenException('You are not a player in this game');
 
     const readyKey = `ready:${gameId}`;
-    const current = new Set<string>(JSON.parse((await this.redis.get(readyKey)) || '[]'));
+    const current = new Set<string>(JSON.parse((await this.redis.get(readyKey)) ?? '[]'));
     if (current.has(userId)) {
       current.delete(userId);
     } else {
@@ -223,7 +223,7 @@ export class MatchPlayerService {
   // Remove a player from a match room and clear their ready state.
   async exitGame(gameId: string, userId: string) {
     const data = await this.redis.hgetall(`match:${gameId}`);
-    if (!data || !data.id) throw new NotFoundException('Game not found');
+    if (!data.id) throw new NotFoundException('Game not found');
 
     const isPlayer =
       data.player1_id === userId ||
@@ -240,11 +240,11 @@ export class MatchPlayerService {
     };
     const slotKey = slotMap[userId];
     if (slotKey) {
-      await this.redis.hdel(`match:${gameId}`, slotKey, `${slotKey.replace('_id', '_color')}`);
+      await this.redis.hdel(`match:${gameId}`, slotKey, slotKey.replace('_id', '_color'));
     }
 
     const readyKey = `ready:${gameId}`;
-    const current = new Set<string>(JSON.parse((await this.redis.get(readyKey)) || '[]'));
+    const current = new Set<string>(JSON.parse((await this.redis.get(readyKey)) ?? '[]'));
     current.delete(userId);
     await this.redis.set(readyKey, JSON.stringify(Array.from(current)), 'EX', 86400);
 
@@ -254,7 +254,7 @@ export class MatchPlayerService {
   // Cancel (abort) a match, setting its status to ABORTED.
   async cancelGame(gameId: string, userId: string, reason: 'cancel' | 'resign' = 'cancel') {
     const data = await this.redis.hgetall(`match:${gameId}`);
-    if (!data || !data.id) throw new NotFoundException('Game not found');
+    if (!data.id) throw new NotFoundException('Game not found');
 
     const isPlayer =
       data.player1_id === userId ||
@@ -298,7 +298,7 @@ export class MatchPlayerService {
           gameId,
           reason,
           fromUserId: actorId,
-          fromUsername: actor?.username || 'A player',
+          fromUsername: actor?.username ?? 'A player',
         });
       } catch (err) {
         console.warn(`Failed to notify ${targetId} about match ${gameId} cancellation:`, err);
@@ -321,7 +321,7 @@ export class MatchPlayerService {
   // Mark a match as ENDED (called when the game is finished).
   async gameEnd(gameId: string, userId: string) {
     const data = await this.redis.hgetall(`match:${gameId}`);
-    if (!data || !data.id) throw new NotFoundException('Game not found');
+    if (!data.id) throw new NotFoundException('Game not found');
 
     const isPlayer =
       data.player1_id === userId ||

@@ -3,7 +3,7 @@
 
 // Read a config value by its env var name. Returns undefined if unset.
 export function secret(name: string): string | undefined {
-  return process.env[name] || undefined;
+  return process.env[name] ?? undefined;
 }
 
 // Per-request Host check used by oauth.guards.ts (which OAuth strategy) and

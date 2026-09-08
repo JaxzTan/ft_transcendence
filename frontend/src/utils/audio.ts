@@ -41,7 +41,7 @@ export class RetroAudioEngine {
         this.ctx = new AudioCtx();
       }
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
+    if (this.ctx?.state === 'suspended') {
       void this.ctx.resume().catch(() => undefined);
     }
   }

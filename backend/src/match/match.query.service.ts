@@ -12,8 +12,8 @@ export class MatchQueryService {
   private redis: Redis;
 
   constructor(private readonly prisma: PrismaService) {
-    const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+    const host = process.env.REDIS_HOST ?? 'redis';
+    const port = parseInt(process.env.REDIS_PORT ?? '6479', 10);
     const password = secret('REDIS_PASSWORD');
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
     this.redis.on('error', (error) => {

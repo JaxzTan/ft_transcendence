@@ -760,7 +760,7 @@ export function LudoLobby() {
               {/* ════════════════════════════════════════════════════════════════════════════
                 BELOW THEM: OPEN QUANTUM ROOMS
                ════════════════════════════════════════════════════════════════════════════ */}
-              <section className={`${RETRO_WINDOW}`} id="roomsWindow">
+              <section className={RETRO_WINDOW} id="roomsWindow">
                 <div
                   className={WINDOW_HEADER}
                   style={{

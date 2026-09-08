@@ -32,7 +32,7 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
         : (secret('FRONTEND_URL') ?? 'https://localhost:8443');
 
       // If the provider returned an OAuth error directly (e.g. ?error=access_denied)
-      if (req.query?.error) {
+      if (req.query.error) {
         const res = context.switchToHttp().getResponse<Response>();
         const errParam = req.query.error === 'access_denied' ? 'access_denied' : 'oauth_failed';
         res.redirect(`${frontendUrl}/login?error=${errParam}`);
@@ -43,7 +43,7 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
       // a short-lived oauth-link token into the provider `state` so the
       // callback links the provider to the logged-in user. No cookie = login.
       let state: string | undefined;
-      const accessToken = req.cookies?.['token'];
+      const accessToken = req.cookies['token'];
       if (typeof accessToken === 'string') {
         try {
           const payload = this.jwt.verify<{ sub?: string }>(accessToken);

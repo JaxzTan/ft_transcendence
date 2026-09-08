@@ -37,8 +37,8 @@ export class MatchPostgameService {
     private readonly achievements: AchievementsService,
     private readonly notifications: NotificationService,
   ) {
-    const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+    const host = process.env.REDIS_HOST ?? 'redis';
+    const port = parseInt(process.env.REDIS_PORT ?? '6479', 10);
     const password = secret('REDIS_PASSWORD');
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
     this.redis.on('error', (error) => {
@@ -52,7 +52,7 @@ export class MatchPostgameService {
   async processGameEnd(data: GameEndPayload) {
     const { gameId, participants } = data;
     if (!gameId) throw new BadRequestException('gameId is required');
-    if (!participants || !Array.isArray(participants) || participants.length < 2) {
+    if (!Array.isArray(participants) || participants.length < 2) {
       throw new BadRequestException('participants array is required (min 2)');
     }
 
@@ -62,16 +62,16 @@ export class MatchPostgameService {
     if (existing) return { message: 'Game already processed', gameId };
 
     const matchData = await this.redis.hgetall(`match:${gameId}`);
-    const startedAt = matchData?.startedAt ? parseInt(matchData.startedAt) : null;
+    const startedAt = matchData.startedAt ? parseInt(matchData.startedAt) : null;
     const endedAt = Date.now();
-    const gameType = (matchData?.gameType || 'PVP') as 'PVP' | 'PVE';
-    const inviteCode = matchData?.inviteCode || null;
+    const gameType = (matchData.gameType || 'PVP') as 'PVP' | 'PVE';
+    const inviteCode = matchData.inviteCode || null;
 
     await this.prisma.db.$transaction(async (tx) => {
       const game = await tx.game.create({
         data: {
           id: gameId,
-          startedAt: new Date(startedAt || endedAt),
+          startedAt: new Date(startedAt ?? endedAt),
           endedAt: new Date(endedAt),
           status: 'COMPLETED',
           gameType,
@@ -105,8 +105,8 @@ export class MatchPostgameService {
             user_id: p.userId,
             color: p.color as 'RED' | 'GREEN' | 'YELLOW' | 'BLUE',
             rank: p.rank,
-            piecesCaptured: p.piecesCaptured || 0,
-            piecesInGoal: p.piecesInGoal || 0,
+            piecesCaptured: p.piecesCaptured ?? 0,
+            piecesInGoal: p.piecesInGoal ?? 0,
           },
         });
 
@@ -186,7 +186,7 @@ export class MatchPostgameService {
         where: { id: winner.userId },
         select: { username: true },
       });
-      winnerUsername = wu?.username || 'A rival';
+      winnerUsername = wu?.username ?? 'A rival';
     }
 
     for (const p of participants) {
@@ -195,7 +195,7 @@ export class MatchPostgameService {
         gameId,
         mode: (gameType || 'PVP').toLowerCase(),
         rank: p.rank,
-        winnerColor: winner?.color?.toLowerCase(),
+        winnerColor: winner?.color.toLowerCase(),
         winnerUsername,
       });
     }

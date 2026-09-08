@@ -76,8 +76,8 @@ export class AuthService implements OnModuleDestroy {
   ) {
     // Small Redis client for account-deletion cleanup (same idiom as
     // FriendsService / MatchPlayerService).
-    const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+    const host = process.env.REDIS_HOST ?? 'redis';
+    const port = parseInt(process.env.REDIS_PORT ?? '6479', 10);
     const password = secret('REDIS_PASSWORD');
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
     this.redis.on('error', (error) => {
@@ -147,7 +147,7 @@ export class AuthService implements OnModuleDestroy {
         OR: [{ username: dto.identifier }, { email: normalizeEmail(dto.identifier) }],
       },
     });
-    if (!user || !user.password_hash) {
+    if (!user?.password_hash) {
       throw new UnauthorizedException('Invalid username, email, or password');
     }
 

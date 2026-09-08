@@ -127,11 +127,11 @@ export function Friends() {
         setFriends(sorted);
         setRequests(requestsData.received || []);
       }
-      if (bRes && bRes.ok) {
+      if (bRes?.ok) {
         const blockedData = await bRes.json();
         setBlocked(blockedData || []);
       }
-      if (lRes && lRes.ok) {
+      if (lRes?.ok) {
         const lData = await lRes.json();
         if (lData?.entries) {
           const map: Record<string, number> = {};
@@ -180,7 +180,7 @@ export function Friends() {
         const errorData: { message?: string } | null = await reqRes.json().catch(() => null);
         errorMsg = errorData?.message || errorMsg;
         retroAudio.playUiBeep(320, 0.08);
-        setMsg({ text: `${errorMsg}`, type: 'error' });
+        setMsg({ text: errorMsg, type: 'error' });
         return;
       }
 

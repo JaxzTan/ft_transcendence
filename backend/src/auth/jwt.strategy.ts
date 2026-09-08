@@ -6,7 +6,7 @@ import { JwtPayload } from './jwt-payload';
 import { requireSecret } from '../secrets';
 
 function extractFromCookie(req: Request): string | null {
-  return req?.cookies?.token ?? null;
+  return req.cookies.token ?? null;
 }
 
 @Injectable()
@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
+  validate(payload: JwtPayload) {
     return { id: payload.sub, username: payload.username };
   }
 }

@@ -24,8 +24,8 @@ export class FriendsService {
     private readonly matchService: MatchService,
     private readonly notificationService: NotificationService,
   ) {
-    const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+    const host = process.env.REDIS_HOST ?? 'redis';
+    const port = parseInt(process.env.REDIS_PORT ?? '6479', 10);
     const password = secret('REDIS_PASSWORD');
 
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
@@ -69,7 +69,7 @@ export class FriendsService {
       engineUrl: friendSeat.engineUrl,
       color: friendSeat.color,
       inviteCode: match.inviteCode,
-      fromUsername: inviter?.username || 'A friend',
+      fromUsername: inviter?.username ?? 'A friend',
     });
 
     // Return the host's own match credentials so the caller can join its own
@@ -121,11 +121,13 @@ export class FriendsService {
     if (existing) {
       if (existing.status === 'accepted') {
         throw new BadRequestException('Already friends');
-      } else if (existing.status === 'pending') {
-        throw new BadRequestException('Friend request already pending');
-      } else if (existing.status === 'blocked') {
-        throw new ForbiddenException('Cannot send request - user is blocked');
       }
+      if (existing.status === 'pending') {
+        throw new BadRequestException('Friend request already pending');
+      }
+      // FriendshipStatus is only accepted/pending/blocked, so this is the
+      // remaining case after the two checks above.
+      throw new ForbiddenException('Cannot send request - user is blocked');
     }
 
     const friendship = await this.prisma.db.friendship.create({
@@ -149,8 +151,8 @@ export class FriendsService {
     await this.notificationService.notify(targetUserId, 'friend_request', {
       requestId: friendship.id,
       fromUserId: userId,
-      fromUsername: sender?.username || 'Someone',
-      fromAvatarStyle: sender?.avatarStyle || 'bottts',
+      fromUsername: sender?.username ?? 'Someone',
+      fromAvatarStyle: sender?.avatarStyle ?? 'bottts',
     });
 
     return friendship;
@@ -219,7 +221,7 @@ export class FriendsService {
     });
     await this.notificationService.notify(request.userId, 'friend_declined', {
       fromUserId: userId,
-      fromUsername: decliner?.username || 'A pilot',
+      fromUsername: decliner?.username ?? 'A pilot',
     });
 
     return { message: 'Friend request declined' };
@@ -253,7 +255,7 @@ export class FriendsService {
     });
     await this.notificationService.notify(friendId, 'friend_removed', {
       fromUserId: userId,
-      fromUsername: remover?.username || 'A pilot',
+      fromUsername: remover?.username ?? 'A pilot',
     });
 
     return { message: 'Friend removed' };

@@ -98,7 +98,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         try {
           if (!event.data) return;
           const notification: Notification = JSON.parse(event.data);
-          if (notification && notification.id) {
+          if (notification?.id) {
             // Global broadcasts are TRANSIENT — toast only, never the bell/unread
             // badge. The actor also skips their own announcement (they already
             // get the persisted `profile_updated` toast instead).

@@ -47,9 +47,9 @@ export class MatchController {
   @Post('api/match/create')
   create(
     @Request() req: { user: { id: string } },
-    @Body('mode') mode: 'pvp' | 'pve' | 'hotseat',
+    @Body('mode') mode: string,
     @Body('playerCount') playerCount: number,
-    @Body('botCount') botCount: number,
+    @Body('botCount') botCount?: number,
     @Body('botColors') botColors?: string[],
     @Body('seatColors') seatColors?: string[],
   ) {
@@ -68,7 +68,7 @@ export class MatchController {
       req.user.id,
       mode,
       playerCount || 2,
-      botCount || 0,
+      botCount ?? 0,
       botColors,
       seatColors,
     );

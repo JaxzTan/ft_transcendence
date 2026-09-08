@@ -85,10 +85,10 @@ export function MarkdownViewer({ content }: MarkdownViewerProps) {
       const codeMatch = remaining.match(/`(.*?)`/);
 
       const firstMatch = [
-        boldMatch && boldMatch.index !== undefined
+        boldMatch?.index !== undefined
           ? { type: 'bold' as const, index: boldMatch.index, match: boldMatch }
           : null,
-        codeMatch && codeMatch.index !== undefined
+        codeMatch?.index !== undefined
           ? { type: 'code' as const, index: codeMatch.index, match: codeMatch }
           : null,
       ]

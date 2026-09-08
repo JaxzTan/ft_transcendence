@@ -22,8 +22,8 @@ export class PresenceService implements OnModuleDestroy {
     private readonly notifications: NotificationService,
   ) {
     // Host/port stay plain env : they're topology, not secrets.
-    const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+    const host = process.env.REDIS_HOST ?? 'redis';
+    const port = parseInt(process.env.REDIS_PORT ?? '6479', 10);
     const password = secret('REDIS_PASSWORD');
 
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
@@ -67,7 +67,7 @@ export class PresenceService implements OnModuleDestroy {
   // Single-user lookup : e.g. a profile page for one specific account.
   async getStatus(userId: string): Promise<PresenceStatus> {
     const value = await this.redis.get(this.key(userId));
-    return (value as PresenceStatus) ?? 'offline';
+    return (value as PresenceStatus | null) ?? 'offline';
   }
 
   // Batched lookup for a friends list : a missing key means the TTL lapsed.
@@ -76,7 +76,7 @@ export class PresenceService implements OnModuleDestroy {
     const values = await this.redis.mget(userIds.map((id) => this.key(id)));
     const statuses: Record<string, PresenceStatus> = {};
     userIds.forEach((id, i) => {
-      statuses[id] = (values[i] as PresenceStatus) ?? 'offline';
+      statuses[id] = (values[i] as PresenceStatus | null) ?? 'offline';
     });
     return statuses;
   }

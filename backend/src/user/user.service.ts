@@ -87,7 +87,7 @@ export class UserService {
       where: { username },
       select: { avatarPhoto: true, avatarPhotoContentType: true },
     });
-    if (!user || !user.avatarPhoto || !user.avatarPhotoContentType) return null;
+    if (!user?.avatarPhoto || !user.avatarPhotoContentType) return null;
     return { data: Buffer.from(user.avatarPhoto), contentType: user.avatarPhotoContentType };
   }
 

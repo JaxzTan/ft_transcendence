@@ -17,7 +17,7 @@ export class AchievementsController {
     @Query('username') targetUsername?: string,
   ) {
     const achievements = await this.achievements.getUserAchievements(req.user.id, targetUsername);
-    return achievements || {};
+    return achievements;
   }
 
   // POST /api/achievements/check : silent re-evaluation for the current

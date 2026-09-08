@@ -19,12 +19,12 @@ export class LeaderboardController {
   ) {
     // JwtStrategy.validate returns { id, username }, so the user id lives on
     // req.user.id (not req.user.sub) : this is also what makes `myRank` work.
-    const userId = req.user?.id || null;
+    const userId = req.user.id;
     return this.leaderboard.getLeaderboard({
-      mode: mode || 'global',
-      page: parseInt(page || '1', 10),
-      limit: Math.min(parseInt(limit || '20', 10), 100),
-      userId: userId || undefined,
+      mode: mode ?? 'global',
+      page: parseInt(page ?? '1', 10),
+      limit: Math.min(parseInt(limit ?? '20', 10), 100),
+      userId,
     });
   }
 }

@@ -18,8 +18,8 @@ export class TwoFactorService implements OnModuleDestroy {
 
   constructor() {
     // Host/port stay plain env : they're topology, not secrets.
-    const host = process.env.REDIS_HOST || 'redis';
-    const port = parseInt(process.env.REDIS_PORT || '6479', 10);
+    const host = process.env.REDIS_HOST ?? 'redis';
+    const port = parseInt(process.env.REDIS_PORT ?? '6479', 10);
     const password = secret('REDIS_PASSWORD');
 
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
@@ -83,9 +83,9 @@ export class TwoFactorService implements OnModuleDestroy {
   async verifyChallenge(pendingToken: string, code: string): Promise<string | null> {
     const key = `2fa:${this.hash(pendingToken)}`;
     const data = await this.redis.hgetall(key);
-    if (!data?.userId) return null; // unknown or expired
+    if (!data.userId) return null; // unknown or expired
 
-    if (parseInt(data.attempts ?? '0', 10) >= MAX_ATTEMPTS) {
+    if (parseInt((data as { attempts?: string }).attempts ?? '0', 10) >= MAX_ATTEMPTS) {
       await this.redis.del(key); // burn the challenge : brute-force cap
       return null;
     }

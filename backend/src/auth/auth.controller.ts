@@ -49,9 +49,11 @@ function frontendUrlFor(req: Request): string {
 }
 
 function originFromRequest(req: Request): string {
+  const forwarded = req.headers['x-forwarded-proto'];
   const proto =
-    (req.headers['x-forwarded-proto'] as string)?.split(',')[0]?.trim() || req.protocol || 'https';
-  return `${proto}://${req.get('host') || 'localhost:8443'}`;
+    (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : undefined) ??
+    (req.protocol || 'https');
+  return `${proto}://${req.get('host') ?? 'localhost:8443'}`;
 }
 
 @Controller('api/auth')
@@ -72,7 +74,7 @@ export class AuthController {
   // Target of the emailed verification link : lands in a browser tab, so it
   // answers with a redirect to the SPA rather than JSON.
   @Get('verify-email')
-  async verifyEmail(@Query('token') token: string, @Req() req: Request, @Res() res: Response) {
+  async verifyEmail(@Req() req: Request, @Res() res: Response, @Query('token') token?: string) {
     const ok = await this.authService.verifyEmail(token ?? '');
     res.redirect(
       `${originFromRequest(req)}/login?${ok ? 'verified=1' : 'error=invalid-verification-link'}`,
@@ -121,7 +123,7 @@ export class AuthController {
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const { accessToken, refreshToken, user } = await this.authService.refresh(
-      req.cookies?.[REFRESH_COOKIE],
+      req.cookies[REFRESH_COOKIE],
     );
     this.setSessionCookies(res, accessToken, refreshToken);
     return { user };
@@ -151,7 +153,7 @@ export class AuthController {
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     // Revoke the refresh token server-side so it can't be reused, then drop
     // both cookies. clearCookie must repeat the path the cookie was set with.
-    await this.authService.logout(req.cookies?.[REFRESH_COOKIE]);
+    await this.authService.logout(req.cookies[REFRESH_COOKIE]);
     res.clearCookie(ACCESS_COOKIE, { path: '/' });
     res.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH });
     return { ok: true };
@@ -193,7 +195,7 @@ export class AuthController {
       (req.user as { id: string }).id,
       dto.currentPassword,
       dto.newPassword,
-      req.cookies?.[REFRESH_COOKIE],
+      req.cookies[REFRESH_COOKIE],
     );
   }
 

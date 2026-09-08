@@ -619,7 +619,7 @@ export function Game() {
   }, [activeMatch?.gameId, activeMatch?.token, setLastResult]);
 
   useEffect(() => {
-    if (!activeMatch || activeMatch.mode !== 'hotseat') return;
+    if (activeMatch?.mode !== 'hotseat') return;
     if (view.status !== 'active' || view.currentTurn === viewRef.current.myColor) return;
     const seat = viewRef.current.players.find((p) => p.color === view.currentTurn);
     if (!seat || seat.isBot || seat.status !== 'active') return;

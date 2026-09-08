@@ -176,7 +176,7 @@ export class AchievementsService {
       orderBy: { endedAt: 'desc' },
       include: { participants: true },
     });
-    const myParticipation = latestGame?.participants?.find((p) => p.user_id === effectiveUserId);
+    const myParticipation = latestGame?.participants.find((p) => p.user_id === effectiveUserId);
 
     const result: Record<string, { unlocked: boolean; progress: number; target: number }> = {};
 
@@ -217,15 +217,11 @@ export class AchievementsService {
 
     // Only COMPLETED PVP/PVE participations count : ABANDONED games have no
     // definitive result, and hotseat is demo-and-forget (never reaches the DB).
-    const pvpPve = participations.filter(
-      (p) =>
-        p.game?.status === 'COMPLETED' &&
-        (p.game?.gameType === 'PVP' || p.game?.gameType === 'PVE'),
-    );
+    const pvpPve = participations.filter((p) => p.game.status === 'COMPLETED');
 
     const wins = pvpPve.filter((p) => p.rank === 1).length;
-    const botWins = pvpPve.filter((p) => p.rank === 1 && p.game?.gameType === 'PVE').length;
-    const humanWins = pvpPve.filter((p) => p.rank === 1 && p.game?.gameType === 'PVP').length;
+    const botWins = pvpPve.filter((p) => p.rank === 1 && p.game.gameType === 'PVE').length;
+    const humanWins = pvpPve.filter((p) => p.rank === 1 && p.game.gameType === 'PVP').length;
 
     return {
       wins,
