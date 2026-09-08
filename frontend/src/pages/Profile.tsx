@@ -179,7 +179,7 @@ export function Profile() {
   const { t } = useTranslation();
   const { query } = useRoute();
   const { user } = useApp();
-  const username = query.get('u') || user?.username;
+  const username = query.get('u') ?? user?.username;
   const isOwnProfile = user?.username === username;
 
   // ------------------------------------------------------------------------
@@ -188,7 +188,7 @@ export function Profile() {
   const [crtEnabled, setCrtEnabled] = useState(true);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('retro_theme') || 'synthwave';
+    const savedTheme = localStorage.getItem('retro_theme') ?? 'synthwave';
     document.documentElement.setAttribute('data-theme', savedTheme);
     document.body.setAttribute('data-theme', savedTheme);
 
@@ -211,6 +211,9 @@ export function Profile() {
   type AchievementReport = { unlocked: boolean; progress: number; target: number };
   type AchievementsResponse = Record<string, AchievementReport>;
   const [achievements, setAchievements] = useState<AchievementsResponse>({});
+  // The backend only returns entries for achievements the user has touched, so
+  // a missing key must read as "no report yet" even though the map type is dense.
+  const getAchievementReport = (key: string): AchievementReport | undefined => achievements[key];
   const [mainTab, setMainTab] = useState<'history' | 'achievements'>('history');
   const [leaderboardRank, setLeaderboardRank] = useState<number | null>(null);
   const [leaderboardMap, setLeaderboardMap] = useState<Record<string, number>>({});
@@ -252,7 +255,7 @@ export function Profile() {
       });
       if (!res.ok) {
         const err = await res.json();
-        setUploadError(err.message || t('profile.uploadFailed'));
+        setUploadError(err.message ?? t('profile.uploadFailed'));
       } else {
         retroAudio.playUiBeep(880, 0.06);
         setAvatarBuster(Date.now());
@@ -324,8 +327,8 @@ export function Profile() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!cancelled && data) {
-          const list = Array.isArray(data) ? data : data?.friends || [];
-          const sorted = [...list].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          const list = Array.isArray(data) ? data : data?.friends ?? [];
+          const sorted = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
           setFriendsData(sorted);
         }
       })
@@ -366,7 +369,7 @@ export function Profile() {
   const totalGames = profile ? profile.wins + profile.losses : 0;
   const winRate = profile && totalGames > 0 ? Math.round((profile.wins / totalGames) * 100) : 0;
   const statusStyle = profile
-    ? STATUS_STYLE[profile.status] || STATUS_STYLE.offline
+    ? STATUS_STYLE[profile.status]
     : STATUS_STYLE.offline;
   const rankTier = profile ? getRankTier(profile.rating, leaderboardRank) : getRankTier(1200);
   const peakRating = profile ? profile.highestRating || profile.rating : 1200;
@@ -375,7 +378,8 @@ export function Profile() {
       ? getRankTier(peakRating, leaderboardRank)
       : getRankTier(peakRating);
 
-  const unlockedCount = ACHIEVEMENTS_DEF.filter((a) => !!achievements[a.key]?.unlocked).length;
+  const unlockedCount = ACHIEVEMENTS_DEF.filter((a) => getAchievementReport(a.key)?.unlocked === true)
+    .length;
   const totalAchievements = ACHIEVEMENTS_DEF.length;
   const achievementPercent = Math.round((unlockedCount / totalAchievements) * 100);
 
@@ -480,7 +484,7 @@ export function Profile() {
                   >
                     <span>
                       {t('profile.windowHeader', {
-                        username: (profile.displayName || profile.username).toUpperCase(),
+                        username: (profile.displayName ?? profile.username).toUpperCase(),
                         id: profile.id.slice(0, 8).toUpperCase(),
                       })}
                     </span>
@@ -578,7 +582,7 @@ export function Profile() {
 
                         {/* Live Presence Beacon */}
                         <span
-                          title={t(STATUS_KEYS[profile.status] ?? STATUS_KEYS.offline)}
+                          title={t(STATUS_KEYS[profile.status])}
                           style={{
                             position: 'absolute',
                             right: 3,
@@ -626,7 +630,9 @@ export function Profile() {
                           type="file"
                           accept="image/png, image/jpeg, image/gif, image/webp"
                           ref={fileInputRef}
-                          onChange={handleFileChange}
+                          onChange={(e) => {
+                            void handleFileChange(e);
+                          }}
                           style={{ display: 'none' }}
                         />
                       </div>
@@ -647,7 +653,7 @@ export function Profile() {
                             textOverflow: 'ellipsis',
                           }}
                         >
-                          {profile.displayName || profile.username}
+                          {profile.displayName ?? profile.username}
                         </div>
 
                         <div
@@ -674,7 +680,7 @@ export function Profile() {
                               gap: 4,
                             }}
                           >
-                            ● {t(STATUS_KEYS[profile.status] ?? STATUS_KEYS.offline).toUpperCase()}
+                            ● {t(STATUS_KEYS[profile.status]).toUpperCase()}
                           </span>
                           <span
                             style={{
@@ -709,7 +715,9 @@ export function Profile() {
                               </button>
                               <button
                                 className={RETRO_BTN}
-                                onClick={handleRemoveAvatar}
+                                onClick={() => {
+                                  void handleRemoveAvatar();
+                                }}
                                 style={{
                                   padding: '3px 8px',
                                   fontSize: '0.68rem',
@@ -1366,7 +1374,7 @@ export function Profile() {
                               }}
                             >
                               {ACHIEVEMENTS_DEF.map((ach) => {
-                                const report = achievements[ach.key];
+                                const report = getAchievementReport(ach.key);
                                 const isUnlocked = report?.unlocked ?? false;
                                 const progress = Math.min(
                                   report?.progress ?? 0,
@@ -1593,7 +1601,7 @@ export function Profile() {
                             friendsData.map((f) => {
                               const fRank = leaderboardMap[f.username];
                               const fTier = getRankTier(f.rating, fRank);
-                              const fStatus = STATUS_STYLE[f.status] || STATUS_STYLE.offline;
+                              const fStatus = STATUS_STYLE[f.status];
                               return (
                                 <div
                                   key={f.id}
@@ -1695,7 +1703,7 @@ export function Profile() {
                                             letterSpacing: '0.02em',
                                           }}
                                         >
-                                          {f.displayName || f.username}
+                                          {f.displayName ?? f.username}
                                         </span>
                                         <RankBadge
                                           tier={fTier}
@@ -1714,7 +1722,7 @@ export function Profile() {
                                       >
                                         ●{' '}
                                         {t(
-                                          STATUS_KEYS[f.status] ?? STATUS_KEYS.offline,
+                                          STATUS_KEYS[f.status],
                                         ).toUpperCase()}{' '}
                                         // {t('profile.alliedPilotTag')}
                                       </div>
