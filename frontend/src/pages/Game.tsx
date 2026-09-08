@@ -41,7 +41,7 @@ const SEAT_HUES: Record<PlayerColor, string> = {
 };
 
 /** Pip indexes (3x3 grid, row-major) lit per face value - mirrors Die.tsx. */
-const MINI_PIP_MAP: Record<number, number[]> = {
+const MINI_PIP_MAP: Partial<Record<number, number[]>> = {
   1: [4],
   2: [0, 8],
   3: [0, 4, 8],
@@ -52,7 +52,7 @@ const MINI_PIP_MAP: Record<number, number[]> = {
 
 /** Compact 3x3 mini-die face for the "Last Rolled" box in the player rows. */
 function MiniDie({ value }: { value: number }) {
-  const on = MINI_PIP_MAP[value] || [];
+  const on = MINI_PIP_MAP[value] ?? [];
   return (
     <div
       style={{
@@ -156,7 +156,7 @@ export function Game() {
   const [turnSwapNotice, setTurnSwapNotice] = useState<string | null>(null);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const prevTurnRef = useRef<PlayerColor | null>(null);
-  const isGameEnded = Boolean(lastResult || view?.status === 'finished');
+  const isGameEnded = lastResult != null || view.status === 'finished';
 
   // Box-by-box move animation: while set, Board renders this piece at `step`
   // instead of its real (already-updated) logical position — see the
@@ -188,16 +188,15 @@ export function Game() {
   // Only update displayedTurn when the player is actually allowed to roll the dice
   // (i.e. not while piece is stepping, capture animation is running, or dice is rolling)
   useEffect(() => {
-    if (!view) return;
     if (!isMovingPiece && !animatingPiece && !captureFx && !isRolling) {
       setDisplayedTurn(view.currentTurn);
     }
-  }, [view?.currentTurn, isMovingPiece, animatingPiece, captureFx, isRolling]);
+  }, [view.currentTurn, isMovingPiece, animatingPiece, captureFx, isRolling]);
 
-  const effectiveTurn = displayedTurn || view?.currentTurn || 'red';
+  const effectiveTurn = displayedTurn;
 
   useEffect(() => {
-    if (!view || view.status === 'waiting') return;
+    if (view.status === 'waiting') return;
     if (prevTurnRef.current && prevTurnRef.current !== effectiveTurn) {
       const nextTurnPlayer = view.players.find((p) => p.color === effectiveTurn);
       const isNextBot = nextTurnPlayer?.isBot ?? false;
@@ -206,10 +205,10 @@ export function Game() {
           'lobby.colorRed' | 'lobby.colorGreen' | 'lobby.colorYellow' | 'lobby.colorBlue';
       const translatedColor = t(colorKey).toUpperCase();
       const nextName =
-        localNames[effectiveTurn]?.toUpperCase() ||
-        localizedBotName(t, nextTurnPlayer?.displayName)?.toUpperCase() ||
-        localizedBotName(t, nextTurnPlayer?.username)?.toUpperCase() ||
-        nextTurnPlayer?.color?.toUpperCase() ||
+        (localNames[effectiveTurn] ?? '').toUpperCase() ||
+        localizedBotName(t, nextTurnPlayer?.displayName).toUpperCase() ||
+        localizedBotName(t, nextTurnPlayer?.username).toUpperCase() ||
+        (nextTurnPlayer?.color ?? '').toUpperCase() ||
         (isNextBot ? `${t('common.bot').toUpperCase()} (${translatedColor})` : translatedColor);
 
       retroAudio.playUiBeep(640, 0.08, 'sine');
@@ -223,7 +222,7 @@ export function Game() {
       return () => clearTimeout(timer);
     }
     prevTurnRef.current = effectiveTurn;
-  }, [effectiveTurn, view?.status, view?.players, localNames, t]);
+  }, [effectiveTurn, view.status, view.players, localNames, t]);
   const captureFxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Friend-invite picker (waiting room, PvP only): lets the host invite an
   // online accepted friend into THIS room (POST /api/game/:id/invite).
@@ -284,6 +283,7 @@ export function Game() {
     // in the create response) may lack mode after a browser refresh. Re-derive
     // it from the match record so hotseat/PvE boundaries can never collapse
     // into a generic PvP rejoin.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cached activeMatch may lack mode after a browser refresh
     if (activeMatch && !activeMatch.mode) {
       fetch('/api/games/mine', { credentials: 'include' })
         .then((r) => (r.ok ? r.json() : null))
@@ -294,6 +294,7 @@ export function Game() {
           if (room?.gameType) {
             const mode =
               room.gameType === 'PVP' ? 'pvp' : room.gameType === 'PVE' ? 'pve' : 'hotseat';
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cached activeMatch may lack playerCount
             setActiveMatch({ ...current, mode, playerCount: current.playerCount ?? 4 });
           }
         })
@@ -359,7 +360,7 @@ export function Game() {
       }
 
       if (type !== 'piece_moved') {
-        dispatch({ type: type || 'state_update', ...(state as object) });
+        dispatch({ type: type ?? 'state_update', ...(state as object) });
       }
 
       if (type === 'piece_moved') {
@@ -372,7 +373,7 @@ export function Game() {
           captured: boolean;
           capturedPieceIds?: string[];
           to: number;
-          path: number[];
+          path?: number[];
         };
         const path = e.path ?? [];
 
@@ -464,17 +465,11 @@ export function Game() {
         let endedPlayers = viewRef.current.players
           .filter((p) => p.status !== 'inactive')
           .map((p) => {
-            const inGoal =
-              p.color === e.winner
-                ? 4
-                : (p.piecesInGoal ??
-                  viewRef.current.pieces.filter((pc) => pc.color === p.color && pc.isInGoal)
-                    .length);
+            const inGoal = p.color === e.winner ? 4 : p.piecesInGoal;
             return {
               color: p.color,
               username:
-                localNames[p.color] ||
-                localizedBotName(t, p.username) ||
+                (localNames[p.color] ?? localizedBotName(t, p.username)) ||
                 (p.isBot ? t('common.bot') : 'Pilot'),
               isBot: p.isBot,
               piecesInGoal: inGoal,
@@ -533,11 +528,10 @@ export function Game() {
         .map((p) => ({
           color: p.color,
           username:
-            localNames[p.color] ||
-            localizedBotName(t, p.username) ||
+            (localNames[p.color] ?? localizedBotName(t, p.username)) ||
             (p.isBot ? t('common.bot') : 'Pilot'),
           isBot: p.isBot,
-          piecesInGoal: p.piecesInGoal ?? 0,
+          piecesInGoal: p.piecesInGoal,
         }));
 
       if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
@@ -546,9 +540,9 @@ export function Game() {
           .map((s, idx) => {
             if (s.type === 'empty') return null;
             const color = SEAT_COLORS[idx] || 'red';
-            let username = 'Pilot';
-            if (s.type === 'you') username = user?.username || 'You';
-            else if (s.type === 'bot' || s.type === 'player') username = s.name;
+            let username: string;
+            if (s.type === 'you') username = user?.username ?? 'You';
+            else username = s.name;
             return {
               color,
               username,
@@ -578,7 +572,7 @@ export function Game() {
       }
 
       return {
-        winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
+        winner: viewRef.current.winner ?? viewRef.current.currentTurn,
         resultDetail: 'abandoned',
         mode: matchNow?.mode ?? 'pvp',
         playerCount: matchNow?.playerCount ?? players.length,
@@ -629,7 +623,7 @@ export function Game() {
       activeMatch.gameId,
       view.currentTurn,
       user?.id,
-      localNames[view.currentTurn] || user?.displayName,
+      localNames[view.currentTurn] ?? user?.displayName,
     );
   }, [view.currentTurn, view.status, activeMatch]);
 
@@ -642,11 +636,15 @@ export function Game() {
       const v = viewRef.current;
       if (v.status !== 'active') return;
       const isHotseatMode = activeMatch?.mode === 'hotseat';
-      const curTurnPlayer = v.players.find((p) => p.color === v.currentTurn);
+      const activeHumanTurn = v.players.some(
+        (p) => p.color === v.currentTurn && p.status === 'active' && !p.isBot,
+      );
+      const seatNameMatches = v.players.some(
+        (p) => p.color === v.currentTurn && p.username === user?.username,
+      );
       const myTurnNow = isHotseatMode
-        ? curTurnPlayer?.status === 'active' && !curTurnPlayer?.isBot
-        : v.currentTurn === v.myColor ||
-          (user?.username ? curTurnPlayer?.username === user?.username : false);
+        ? activeHumanTurn
+        : v.currentTurn === v.myColor || (user != null && seatNameMatches);
       if (!myTurnNow) return;
       if (v.turnPhase === 'WAITING_FOR_MOVE' || v.legalMoves.length > 0) return;
       if (isRollingRef.current || isMovingPieceRef.current) return;
@@ -725,11 +723,10 @@ export function Game() {
       .map((p) => ({
         color: p.color,
         username:
-          localNames[p.color] ||
-          localizedBotName(t, p.username) ||
+          (localNames[p.color] ?? localizedBotName(t, p.username)) ||
           (p.isBot ? t('common.bot') : 'Pilot'),
         isBot: p.isBot,
-        piecesInGoal: p.piecesInGoal ?? 0,
+        piecesInGoal: p.piecesInGoal,
       }));
 
     if (players.length === 0 && Array.isArray(seats) && seats.length > 0) {
@@ -738,9 +735,9 @@ export function Game() {
         .map((s, idx) => {
           if (s.type === 'empty') return null;
           const color = SEAT_COLORS[idx] || 'red';
-          let username = 'Pilot';
-          if (s.type === 'you') username = user?.username || 'You';
-          else if (s.type === 'bot' || s.type === 'player') username = s.name;
+          let username: string;
+          if (s.type === 'you') username = user?.username ?? 'You';
+          else username = s.name;
           return {
             color,
             username,
@@ -765,7 +762,7 @@ export function Game() {
     }
 
     setLastResult({
-      winner: viewRef.current.winner || viewRef.current.currentTurn || 'red',
+      winner: viewRef.current.winner ?? viewRef.current.currentTurn,
       resultDetail: 'abandoned',
       mode: activeMatch?.mode ?? 'pvp',
       playerCount: activeMatch?.playerCount ?? players.length,
@@ -845,12 +842,16 @@ export function Game() {
     );
   }
 
-  const isHotseat = activeMatch?.mode === 'hotseat';
-  const activeTurnPlayer = view.players.find((p) => p.color === effectiveTurn);
+  const isHotseat = activeMatch.mode === 'hotseat';
+  const activeHumanTurn = view.players.some(
+    (p) => p.color === effectiveTurn && p.status === 'active' && !p.isBot,
+  );
+  const seatNameMatches = view.players.some(
+    (p) => p.color === effectiveTurn && p.username === user?.username,
+  );
   const isMyTurn = isHotseat
-    ? !activeTurnPlayer?.isBot && activeTurnPlayer?.status === 'active'
-    : effectiveTurn === view.myColor ||
-      (user?.username ? activeTurnPlayer?.username === user?.username : false);
+    ? activeHumanTurn
+    : effectiveTurn === view.myColor || (user != null && seatNameMatches);
   // `status === 'active'` closes a narrow race at game-end: the winning
   // move can leave canRoll's other inputs looking rollable for one render
   // before the game_ended status update lands, letting a click slip through
@@ -969,7 +970,7 @@ export function Game() {
                   boxSizing: 'border-box',
                 }}
               >
-                {turnSwapNotice ||
+                {turnSwapNotice ??
                   (view.status === 'waiting'
                     ? t('game.readyNeedsOpponent')
                     : isRolling
@@ -1085,7 +1086,7 @@ export function Game() {
 
                     if (view.status === 'waiting') {
                       if (
-                        activeMatch?.playerCount &&
+                        activeMatch.playerCount &&
                         SEAT_COLORS.indexOf(ck) >= activeMatch.playerCount
                       ) {
                         return null;
@@ -1106,7 +1107,7 @@ export function Game() {
                         playerMeta?.username &&
                         playerMeta.username !== user?.username,
                       );
-                      const canSelect = activeMatch?.mode !== 'pvp' && !takenByOther && !isYou;
+                      const canSelect = activeMatch.mode !== 'pvp' && !takenByOther && !isYou;
 
                       return (
                         <div
@@ -1272,8 +1273,7 @@ export function Game() {
                       ? ck === view.myColor
                       : !playerMeta.isBot && playerMeta.username === user?.username;
                     const name =
-                      localNames[ck] ||
-                      localizedBotName(t, playerMeta.displayName) ||
+                      (localNames[ck] ?? localizedBotName(t, playerMeta.displayName)) ||
                       localizedBotName(t, playerMeta.username) ||
                       (playerMeta.isBot
                         ? t('common.bot')
@@ -1678,7 +1678,7 @@ export function Game() {
                       })}
                     </div>
 
-                    {activeMatch?.mode === 'pvp' && (
+                    {activeMatch.mode === 'pvp' && (
                       <div
                         style={{ borderTop: '1px solid rgba(255, 0, 127, 0.25)', paddingTop: 12 }}
                       >
@@ -1748,12 +1748,14 @@ export function Game() {
                                         whiteSpace: 'nowrap',
                                       }}
                                     >
-                                      {f.displayName || f.username}
+                                      {f.displayName ?? f.username}
                                     </span>
                                   </div>
                                   <button
                                     className={RETRO_BTN}
-                                    onClick={() => inviteFriend(f.id)}
+                                    onClick={() => {
+                                    void inviteFriend(f.id);
+                                  }}
                                     disabled={st !== 'idle'}
                                     style={{
                                       padding: '3px 8px',
@@ -1801,8 +1803,8 @@ export function Game() {
                         (
                           localizedBotName(t, activeTurnPlayer?.displayName) ||
                           localizedBotName(t, activeTurnPlayer?.username) ||
-                          activeTurnPlayer?.color
-                        )?.toUpperCase() ||
+                          (activeTurnPlayer?.color ?? '')
+                        ).toUpperCase() ||
                         (isBot
                           ? `AI BOT (${effectiveTurn.toUpperCase()})`
                           : effectiveTurn.toUpperCase());
@@ -1978,7 +1980,7 @@ export function Game() {
 
               {/* RETURN TO LOBBY BUTTON (Shown whenever game has ended across all modes, or in online PvP) */}
               {(isGameEnded ||
-                (activeMatch?.mode !== 'pve' && activeMatch?.mode !== 'hotseat')) && (
+                (activeMatch.mode !== 'pve' && activeMatch.mode !== 'hotseat')) && (
                 <button
                   className={RETRO_BTN}
                   onClick={() => {
@@ -2018,7 +2020,7 @@ export function Game() {
               {!isGameEnded &&
                 (() => {
                   const isBotOrHotseat =
-                    activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat';
+                    activeMatch.mode === 'pve' || activeMatch.mode === 'hotseat';
                   return (
                     <CyberButton
                       label={
@@ -2041,10 +2043,10 @@ export function Game() {
         isOpen={isAbortModalOpen}
         title={t('gameExtra.protocolTerminationTitle')}
         versionTag={
-          activeMatch?.gameId ? `ARENA.${activeMatch.gameId.slice(0, 8)}` : 'v001.e1349837856'
+          activeMatch.gameId ? `ARENA.${activeMatch.gameId.slice(0, 8)}` : 'v001.e1349837856'
         }
         message={
-          activeMatch?.mode === 'pve' || activeMatch?.mode === 'hotseat'
+          activeMatch.mode === 'pve' || activeMatch.mode === 'hotseat'
             ? t('gameExtra.abortConfirmPve')
             : t('gameExtra.abortConfirmPvp')
         }
