@@ -76,7 +76,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
       .catch(() => null)
       .then((data) => {
         if (cancelled || !data?.user) return;
-        setDisplayName(data.user.displayName ?? data.user.username ?? '');
+        setDisplayName(data.user.displayName ?? data.user.username);
         setEmail(data.user.email ?? '');
         setProviders(data.user.providers ?? []);
         setHasPassword(!!data.user.hasPassword);
@@ -113,19 +113,19 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
     }
     try {
       const data = await patchApi<ProfileResp>('/api/auth/profile', body);
-      if (data?.user) {
+      if (data.user) {
         setUser(data.user);
         setProviders(data.user.providers ?? []);
         setTwoFactorEnabled(!!(data.user as { twoFactorEnabled?: boolean }).twoFactorEnabled);
         if (!data.user.email && email.trim()) setEmail(email.trim());
       }
-      if (data?.emailVerificationSent) setNotice(t('profileEdit.emailVerificationSent'));
-      if (data?.message) setNotice(data.message);
+      if (data.emailVerificationSent) setNotice(t('profileEdit.emailVerificationSent'));
+      if (data.message) setNotice(data.message);
       if (isPasswordChange) {
         const pwBody: Record<string, string> = { newPassword };
         if (hasPassword) pwBody.currentPassword = currentPassword;
         const pwResp = await patchApi<{ message?: string }>('/api/auth/profile/password', pwBody);
-        if (pwResp?.message) setNotice(pwResp.message);
+        if (pwResp.message) setNotice(pwResp.message);
         // Password change keeps the CURRENT session alive — stay signed in.
         setHasPassword(true);
         setCurrentPassword('');
@@ -138,7 +138,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
       setNewPassword('');
       setConfirmPassword('');
     } catch (e) {
-      const msg = (e as { message?: string })?.message ?? '';
+      const msg = (e as { message?: string } | null | undefined)?.message ?? '';
       setError(
         /last sign-in|keep at least one/i.test(msg)
           ? t('profileEdit.lastMethod')
@@ -168,7 +168,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
       await patchApi<ProfileResp>('/api/auth/profile', { oauthToRemove: provider });
       setProviders((p) => p.filter((x) => x !== provider));
     } catch (e) {
-      const msg = (e as { message?: string })?.message ?? '';
+      const msg = (e as { message?: string } | null | undefined)?.message ?? '';
       setError(
         /last sign-in|keep at least one/i.test(msg)
           ? t('profileEdit.lastMethod')
@@ -419,7 +419,10 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
                 <button
                   className={RETRO_BTN}
                   disabled={busy}
-                  onClick={() => (linked ? removeOAuth(p) : addOAuth(p))}
+                  onClick={() => {
+                    if (linked) void removeOAuth(p);
+                    else addOAuth(p);
+                  }}
                   style={{
                     padding: '2px 8px',
                     fontSize: '0.62rem',
@@ -445,7 +448,9 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
         <button
           className={RETRO_BTN}
           disabled={busy}
-          onClick={handleSave}
+          onClick={() => {
+            void handleSave();
+          }}
           style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900 }}
         >
           {busy ? t('profileEdit.saving') : t('profileEdit.save')}

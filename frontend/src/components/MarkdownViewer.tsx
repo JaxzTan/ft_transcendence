@@ -95,6 +95,9 @@ export function MarkdownViewer({ content }: MarkdownViewerProps) {
         .filter((m): m is NonNullable<typeof m> => m !== null)
         .sort((a, b) => a.index - b.index)[0];
 
+      // Both regexes can miss (plain text with no markdown): the filtered array
+      // is empty at runtime even though the type still claims a match exists.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!firstMatch) {
         parts.push(remaining);
         break;
@@ -110,7 +113,7 @@ export function MarkdownViewer({ content }: MarkdownViewerProps) {
             {firstMatch.match[1]}
           </strong>,
         );
-      } else if (firstMatch.type === 'code') {
+      } else {
         parts.push(
           <code
             key={`c-${keyCounter++}`}

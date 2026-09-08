@@ -38,14 +38,14 @@ export function LegalModal({ isOpen, initialDoc = 'privacy', onClose }: LegalMod
   const { t } = useTranslation();
   const { lang, setLang } = useApp();
   const [activeDoc, setActiveDoc] = useState<LegalDocType>(initialDoc);
-  const [docLang, setDocLang] = useState<Lang>(lang || 'en');
+  const [docLang, setDocLang] = useState<Lang>(lang);
 
   useEffect(() => {
-    if (initialDoc) setActiveDoc(initialDoc);
+    setActiveDoc(initialDoc);
   }, [initialDoc]);
 
   useEffect(() => {
-    if (lang) setDocLang(lang);
+    setDocLang(lang);
   }, [lang]);
 
   useEffect(() => {

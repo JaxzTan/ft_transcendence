@@ -49,7 +49,7 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
   const [activeDoc, setActiveDoc] = useState<'privacy' | 'terms'>(
     route.path === '/terms' ? 'terms' : initialDoc,
   );
-  const [docLang, setDocLang] = useState<Lang>(lang || 'en');
+  const [docLang, setDocLang] = useState<Lang>(lang);
 
   useEffect(() => {
     if (route.path === '/terms') setActiveDoc('terms');
@@ -57,7 +57,7 @@ export function LegalPage({ initialDoc = 'privacy' }: LegalPageProps) {
   }, [route.path]);
 
   useEffect(() => {
-    if (lang) setDocLang(lang);
+    setDocLang(lang);
   }, [lang]);
 
   const currentContent = DOCS[activeDoc][docLang] || DOCS[activeDoc]['en'];

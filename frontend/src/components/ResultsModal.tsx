@@ -69,10 +69,10 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
 
   // Find current player's color or fallback to first human/player
   const myPlayer =
-    result.players.find((p) => !p.isBot && p.username === user?.username) ||
-    result.players.find((p) => !p.isBot) ||
-    result.players[0];
-  const myColor = myPlayer?.color || 'red';
+    result.players.find((p) => !p.isBot && p.username === user?.username) ??
+    result.players.find((p) => !p.isBot) ??
+    (result.players.length > 0 ? result.players[0] : undefined);
+  const myColor = myPlayer?.color ?? 'red';
   const won = hasRealWinner && result.winner === myColor;
   const winnerPlayer = result.players.find((p) => p.color === result.winner);
 

@@ -98,7 +98,7 @@ export function DeleteAccountModal({
       await patchApi('/api/auth/profile/password', { newPassword });
       setStep('confirm');
     } catch (e) {
-      setError((e as { message?: string })?.message ?? t('profileEdit.genericError'));
+      setError((e as { message?: string } | null | undefined)?.message ?? t('profileEdit.genericError'));
     } finally {
       setBusy(false);
     }
@@ -116,7 +116,7 @@ export function DeleteAccountModal({
       await logout();
       navigate('/login');
     } catch (e) {
-      setError((e as { message?: string })?.message ?? t('profileEdit.genericError'));
+      setError((e as { message?: string } | null | undefined)?.message ?? t('profileEdit.genericError'));
       setBusy(false);
     }
   };
@@ -190,7 +190,9 @@ export function DeleteAccountModal({
             <button
               className={RETRO_BTN}
               disabled={busy}
-              onClick={handleSetPassword}
+              onClick={() => {
+                void handleSetPassword();
+              }}
               style={{
                 width: '100%',
                 padding: '10px',
@@ -251,7 +253,9 @@ export function DeleteAccountModal({
             <button
               className={RETRO_BTN}
               disabled={busy || !acknowledge || !currentPassword}
-              onClick={handleDelete}
+              onClick={() => {
+                void handleDelete();
+              }}
               style={{
                 width: '100%',
                 padding: '10px',
