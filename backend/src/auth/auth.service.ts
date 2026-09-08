@@ -21,6 +21,15 @@ const BASE_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
 // store all email as lowercase since email is case-insensitive
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
+// The part of an OAuth callback request that auth code reads: the provider
+// `state` query param (a signed oauth-link token) and the access-token cookie.
+// `query` is left structural (an express Request / ParsedQs satisfies it) and
+// resolveOAuthLink narrows the state value itself.
+export interface OAuthCallbackRequest {
+  query?: { state?: unknown };
+  cookies?: Record<string, unknown>;
+}
+
 // convert at read/display time
 const formatVerifiedAt = (date: Date) =>
   new Intl.DateTimeFormat('en-MY', {
@@ -63,11 +72,13 @@ export class AuthService implements OnModuleDestroy {
     const port = parseInt(process.env.REDIS_PORT || '6479', 10);
     const password = secret('REDIS_PASSWORD');
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-    this.redis.on('error', (error) => console.error('Auth Redis error:', (error as Error).message));
+    this.redis.on('error', (error) => {
+      console.error('Auth Redis error:', error.message);
+    });
   }
 
-  onModuleDestroy() {
-    this.redis.quit();
+  async onModuleDestroy() {
+    await this.redis.quit();
   }
 
   // Create a local (password) account: check username/email are free, hash
@@ -102,7 +113,7 @@ export class AuthService implements OnModuleDestroy {
     // No session yet, the account activates via the emailed link.
     const token = await this.twoFactor.createVerifyToken(user.id);
     await this.mail.sendVerification(
-      user.email!,
+      email,
       `${baseUrl}/api/auth/verify-email?token=${token}`,
     );
     return { message: 'Account created : check your email to verify your address.' };
@@ -112,11 +123,12 @@ export class AuthService implements OnModuleDestroy {
   async verifyEmail(token: string): Promise<boolean> {
     const userId = await this.twoFactor.consumeVerifyToken(token);
     if (!userId) return false;
+    const emailVerifiedAt = new Date();
     const user = await this.prisma.db.user.update({
       where: { id: userId },
-      data: { emailVerified: new Date() },
+      data: { emailVerified: emailVerifiedAt },
     });
-    console.log(`Email verified for ${user.username} at ${formatVerifiedAt(user.emailVerified!)}`);
+    console.log(`Email verified for ${user.username} at ${formatVerifiedAt(emailVerifiedAt)}`);
     return true;
   }
 
@@ -147,7 +159,7 @@ export class AuthService implements OnModuleDestroy {
     if (!user.twoFactorEnabled) {
       return { twoFactorRequired: false as const, ...(await this.issueSession(user.id, user.username)) };
     }
-    const { pendingToken } = await this.startTwoFactor(user.id, user.email!);
+    const { pendingToken } = await this.startTwoFactor(user.id, user.email ?? '');
     return { twoFactorRequired: true as const, pendingToken };
   }
 
@@ -286,7 +298,7 @@ export class AuthService implements OnModuleDestroy {
   verifyAccessToken(token: string | undefined): string | null {
     if (!token) return null;
     try {
-      const payload = this.jwt.verify(token) as { sub?: string };
+      const payload = this.jwt.verify<{ sub?: string }>(token);
       return payload.sub ?? null;
     } catch {
       return null;
@@ -636,7 +648,10 @@ export class AuthService implements OnModuleDestroy {
 
   // Verify a `state` token from the provider callback. Returns the userId
   // when it's ours and matches `provider`; anything else means normal login.
-  resolveOAuthLinkForRequest(req: any, provider: string): string | undefined {
+  resolveOAuthLinkForRequest(
+    req: OAuthCallbackRequest | undefined,
+    provider: string,
+  ): string | undefined {
     const linkUserId = this.resolveOAuthLink(req?.query?.state, provider);
     if (!linkUserId) return undefined;
     const sessionUser = this.verifyAccessToken(
@@ -647,10 +662,10 @@ export class AuthService implements OnModuleDestroy {
 
   // Signature check only : callers must use resolveOAuthLinkForRequest, which
   // also proves the presenter is the user named in the token.
-  private resolveOAuthLink(state: string | string[] | undefined, provider: string): string | undefined {
+  private resolveOAuthLink(state: unknown, provider: string): string | undefined {
     if (typeof state !== 'string' || !state) return undefined;
     try {
-      const payload = this.jwt.verify(state) as { sub?: string; p?: string; purpose?: string };
+      const payload = this.jwt.verify<{ sub?: string; p?: string; purpose?: string }>(state);
       if (payload.purpose !== 'oauth-link' || payload.p !== provider) return undefined;
       return payload.sub;
     } catch {

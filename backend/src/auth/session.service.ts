@@ -19,11 +19,13 @@ export class SessionService implements OnModuleDestroy {
     const port = parseInt(process.env.REDIS_PORT || '6479', 10);
     const password = secret('REDIS_PASSWORD');
     this.redis = new Redis({ host, port, password, retryStrategy: (t) => Math.min(t * 50, 2000) });
-    this.redis.on('error', (error) => console.error('Redis error:', (error as Error).message));
+    this.redis.on('error', (error) => {
+      console.error('Redis error:', error.message);
+    });
   }
 
-  onModuleDestroy() {
-    this.redis.quit();
+  async onModuleDestroy() {
+    await this.redis.quit();
   }
 
   private hash(value: string): string {

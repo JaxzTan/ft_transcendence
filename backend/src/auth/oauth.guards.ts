@@ -46,7 +46,7 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
       const accessToken = req.cookies?.['token'];
       if (typeof accessToken === 'string') {
         try {
-          const payload = this.jwt.verify(accessToken) as { sub?: string };
+          const payload = this.jwt.verify<{ sub?: string }>(accessToken);
           if (payload.sub) {
             state = this.jwt.sign(
               { sub: payload.sub, p: provider, purpose: 'oauth-link' },
@@ -58,8 +58,11 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
         }
       }
 
-      const opts = (guard as any).options ?? {};
-      (guard as any).options = state ? { ...opts, state } : { ...opts, state: undefined };
+      // `guard.options` isn't part of the public AuthGuard type, so read/write
+      // it through a narrow structural type instead of `any`.
+      const guardWithOptions = guard as { options?: Record<string, unknown> };
+      const opts = guardWithOptions.options ?? {};
+      guardWithOptions.options = state ? { ...opts, state } : { ...opts, state: undefined };
 
       try {
         const result = guard.canActivate(context);

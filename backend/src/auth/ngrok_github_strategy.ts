@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile } from 'passport-github2';
-import { AuthService } from './auth.service';
+import { AuthService, OAuthCallbackRequest } from './auth.service';
 import { requireSecret } from '../secrets';
 
 @Injectable()
@@ -23,7 +23,12 @@ export class NgrokGithubStrategy extends PassportStrategy(Strategy, 'github-tunn
 
   // Runs after GitHub redirects back: pick a verified email, then log the
   // user in (or link the provider account) via validateOAuthLogin.
-  async validate(req: any, _accessToken: string, _refreshToken: string, profile: Profile) {
+  async validate(
+    req: OAuthCallbackRequest | undefined,
+    _accessToken: string,
+    _refreshToken: string,
+    profile: Profile,
+  ) {
     const emails = (profile.emails ?? []) as Array<{
       value: string;
       verified?: boolean;

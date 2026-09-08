@@ -164,11 +164,7 @@ export class AuthController {
   // ---- Complete profile update (username / email / 2FA method) ----
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
-  async updateProfile(
-    @Req() req: Request,
-    @Body() dto: UpdateProfileDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async updateProfile(@Req() req: Request, @Body() dto: UpdateProfileDto) {
     const result = await this.authService.updateProfile((req.user as { id: string }).id, dto);
     return {
       user: result.user,
@@ -292,7 +288,14 @@ export class AuthController {
       res.redirect(`${frontendUrl}/home`);
       return;
     }
-    const { pendingToken } = await this.authService.startTwoFactor(user.id, user.email!);
+    // Reaching here means 2FA is on and the earlier `!user.email` guard passed,
+    // so the code destination exists. TS can't infer that across the branches,
+    // so guard once more before using it.
+    if (!user.email) {
+      res.redirect(`${frontendUrl}/login?error=add-email-2fa`);
+      return;
+    }
+    const { pendingToken } = await this.authService.startTwoFactor(user.id, user.email);
     res.redirect(`${frontendUrl}/2fa?token=${pendingToken}`);
   }
 

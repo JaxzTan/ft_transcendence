@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile } from 'passport-google-oauth20';
-import { AuthService } from './auth.service';
+import { AuthService, OAuthCallbackRequest } from './auth.service';
 import { requireSecret } from '../secrets';
 
 @Injectable()
@@ -21,7 +21,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   // Will run after google redirects back and the code is exchanged for a profile.
   // `req` carries the OAuth `state` : when a logged-in user started an "add
   // method" flow, the state holds a signed oauth-link token → linkUserId.
-  async validate(req: any, _accessToken: string, _refreshToken: string, profile: Profile) {
+  async validate(
+    req: OAuthCallbackRequest | undefined,
+    _accessToken: string,
+    _refreshToken: string,
+    profile: Profile,
+  ) {
     const email = profile.emails?.find((e) => String((e as { verified?: unknown }).verified) === 'true')
       ?.value;
     return this.authService.validateOAuthLogin(
