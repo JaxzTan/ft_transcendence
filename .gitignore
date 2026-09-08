@@ -2,7 +2,6 @@
 backend/generated/
 backend/dist/
 
-
 # Logs
 logs
 *.log
@@ -29,6 +28,10 @@ dist-ssr
 *.sw?
 
 # planning
+eslint.md
+prettier.md
+.prettierignore
+.prettierrc
 
 # generated documentation
 
@@ -48,6 +51,8 @@ dist-ssr
 /e2e-results.json
 /test-results
 
+
+
 # next.js
 /.next/
 /out/
@@ -62,16 +67,11 @@ dist-ssr
 .env*
 !.env.example
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
 package-lock.json
-!frontend/public/*.png
-!frontend/src/content/docs/*.md
 *.sh
 .markdownlint.json
 e2e/
