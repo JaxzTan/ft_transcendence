@@ -11,6 +11,10 @@ import {
   GameLike,
 } from './achievements.registry';
 import { isBotUserId } from '../common/bot';
+import type { GameType } from '../../generated/prisma/client';
+
+// Game types that count toward lifetime achievement counters.
+const RATED_GAME_TYPES: readonly GameType[] = ['PVP', 'PVE'];
 
 // Structural shapes (kept local / decoupled from generated Prisma payloads).
 // An Achievement row exposes one boolean flag per AchKey.
@@ -217,7 +221,12 @@ export class AchievementsService {
 
     // Only COMPLETED PVP/PVE participations count : ABANDONED games have no
     // definitive result, and hotseat is demo-and-forget (never reaches the DB).
-    const pvpPve = participations.filter((p) => p.game.status === 'COMPLETED');
+    // The gameType allowlist is a typed array, not two === comparisons, so the
+    // check stays meaningful to no-unnecessary-condition even while GameType
+    // happens to hold exactly these two members.
+    const pvpPve = participations.filter(
+      (p) => p.game.status === 'COMPLETED' && RATED_GAME_TYPES.includes(p.game.gameType),
+    );
 
     const wins = pvpPve.filter((p) => p.rank === 1).length;
     const botWins = pvpPve.filter((p) => p.rank === 1 && p.game.gameType === 'PVE').length;
