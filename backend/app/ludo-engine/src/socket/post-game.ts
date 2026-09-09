@@ -35,7 +35,7 @@ export class PostGameManager {
 
     const state = await this.store.loadGameState(gameId);
     if (!state) return;
-    const player = state.players.find((p: any) => p.color === color);
+    const player = state.players.find((p) => p.color === color);
     const username = player?.username || color;
     const match = await this.store.getMatchData(gameId);
     const isBotMode = match?.gameType === 'PVE' || match?.gameType === 'HOTSEAT';
@@ -56,7 +56,7 @@ export class PostGameManager {
     const remaining = await this.store.loadGameState(gameId);
     if (
       !remaining ||
-      remaining.players.filter((p: any) => p.status === 'active' && !p.isBot).length < 2
+      remaining.players.filter((p) => p.status === 'active' && !p.isBot).length < 2
     ) {
       this.getIo().to(gameId).emit('game_expired');
       this.cleanup(gameId);

@@ -70,7 +70,7 @@ The page fetches the profile, game history, achievements, friends, and leaderboa
     endedAt: string | null;  // When the game ended
     participants: Array<{  // Everyone who played
       username: string;  // Player's username
-      avatarStyle: any;  // Avatar style name
+      avatarStyle: string | null;  // Avatar style name
       color: number;  // Seat color
       rank: number | null;  // Position in the ranking
       piecesInGoal: number;  // Pieces finished (0-4)
@@ -88,7 +88,7 @@ The page fetches the profile, game history, achievements, friends, and leaderboa
 {
   id: string;  // Unique ID
   username: string;  // Player's username
-  avatarStyle: any;  // Avatar style name
+  avatarStyle: string | null;  // Avatar style name
   rating: number;  // Player's rating (score)
   friendsSince: string;  // When the friendship started
   status: 'online' | 'playing' | 'offline';  // Current status
