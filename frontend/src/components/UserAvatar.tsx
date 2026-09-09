@@ -37,7 +37,7 @@ export function UserAvatar({
   useEffect(() => {
     photoErrorsRef.current = 0;
     setStuckOnFallback(false);
-  }, [username, cacheBuster]);
+  }, [username, cacheBuster, liveVersion]);
 
   if (!username) {
     return (
