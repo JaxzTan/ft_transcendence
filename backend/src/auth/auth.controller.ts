@@ -49,10 +49,9 @@ function frontendUrlFor(req: Request): string {
 
 function originFromRequest(req: Request): string {
   const forwarded = req.headers['x-forwarded-proto'];
-  const proto =
-    (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : undefined) ??
-    (req.protocol || 'https');
-  return `${proto}://${req.get('host') ?? 'localhost:8443'}`;
+  const forwardedProto = typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : '';
+  const proto = forwardedProto || req.protocol || 'https';
+  return `${proto}://${req.get('host') || 'localhost:8443'}`;
 }
 
 @Controller('api/auth')
