@@ -2,6 +2,11 @@ import { Controller, Get, UseGuards, Request, Query } from '@nestjs/common';
 import { LeaderboardService } from './leaderboard.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+function positiveIntOr(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 // Require a logged-in session (JWT cookie) for every leaderboard request :
 // the same guard /api/stats and /api/achievements use. The leaderboard
 // returns account-scoped ratings/profiles, so it must not be world-readable.
@@ -22,8 +27,8 @@ export class LeaderboardController {
     const userId = req.user.id;
     return this.leaderboard.getLeaderboard({
       mode: mode ?? 'global',
-      page: parseInt(page ?? '1', 10),
-      limit: Math.min(parseInt(limit ?? '20', 10), 100),
+      page: positiveIntOr(page, 1),
+      limit: Math.min(positiveIntOr(limit, 20), 100),
       userId,
     });
   }
