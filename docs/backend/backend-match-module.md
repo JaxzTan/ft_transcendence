@@ -53,7 +53,7 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
 ```typescript
 {
   mode: 'pvp' | 'pve' | 'hotseat';  // REQUIRED — no silent fallback
-  playerCount?: number;      // 1-4 (2 or 4 for PvE)
+  playerCount?: number;      // 2-4 (2 or 4 for PvE)
   botCount?: number;         // 0 - (playerCount-1), PvE only
   botColors?: string[];      // Optional per-bot slot colors
   seatColors?: string[];     // Optional human seat colors

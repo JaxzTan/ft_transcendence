@@ -71,17 +71,14 @@ export function Lobby() {
   const playerCount = (Number(query.get('mode')) || 4) as PlayerCount;
   const allowAddPlayers = query.get('bots') !== '0';
   const isLocal = query.get('local') === '1';
-  const isSolo = playerCount === 1;
 
   const visible = seats.slice(0, playerCount);
   const botCount = visible.filter((s) => s.type === 'bot').length;
   const emptyCount = visible.filter((s) => s.type === 'empty').length;
 
-  const canStart = isSolo
-    ? true
-    : allowAddPlayers
-      ? botCount >= 1
-      : visible.filter((s) => s.type === 'you' || s.type === 'player').length >= 2;
+  const canStart = allowAddPlayers
+    ? botCount >= 1
+    : visible.filter((s) => s.type === 'you' || s.type === 'player').length >= 2;
 
   const onStart = async () => {
     if (!canStart || starting) return;
@@ -89,11 +86,7 @@ export function Lobby() {
     setStartError(null);
     setStarting(true);
     try {
-      const gameMode = allowAddPlayers
-        ? 'pve'
-        : isLocal || isSolo || playerCount === 2
-          ? 'hotseat'
-          : 'pvp';
+      const gameMode = allowAddPlayers ? 'pve' : isLocal || playerCount === 2 ? 'hotseat' : 'pvp';
       const filledCount = visible.filter((s) => s.type === 'you' || s.type === 'player').length;
       const botCount = allowAddPlayers ? visible.filter((s) => s.type === 'bot').length : 0;
       // The bot seats are fixed by index (0=blue,1=red,2=green,3=yellow). Send
@@ -182,7 +175,7 @@ export function Lobby() {
                 className={HERO_TITLE}
                 style={{ fontSize: '1.75rem', marginBottom: 4, textAlign: 'center' }}
               >
-                {isSolo ? t('lobby.soloPracticeBay') : t('lobby.arenaMatchConfig')}
+                {t('lobby.arenaMatchConfig')}
               </h1>
 
               {/* Live Pill Announcement Bar */}
@@ -214,7 +207,7 @@ export function Lobby() {
                     letterSpacing: '0.5px',
                   }}
                 >
-                  {isSolo ? t('lobby.soloRunMode') : t('lobby.arenaLobbyReady')}
+                  {t('lobby.arenaLobbyReady')}
                 </span>
               </div>
 
@@ -233,7 +226,7 @@ export function Lobby() {
                   color: 'var(--accent-cyan)',
                 }}
               >
-                {isSolo ? t('lobby.soloSubtitle') : t('lobby.arenaSubtitle')}
+                {t('lobby.arenaSubtitle')}
               </div>
             </div>
           </header>
@@ -746,26 +739,22 @@ export function Lobby() {
                       </span>
                     </div>
 
-                    {!isSolo && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          fontSize: '0.9rem',
-                          fontFamily: 'var(--font-mono)',
-                        }}
-                      >
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          {t('lobby.botUnitsLabel')}
-                        </span>
-                        <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
-                          {t('lobby.unitsCount', {
-                            count: botCount,
-                            plural: botCount === 1 ? '' : 'S',
-                          })}
-                        </span>
-                      </div>
-                    )}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        fontSize: '0.9rem',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-muted)' }}>{t('lobby.botUnitsLabel')}</span>
+                      <span style={{ color: '#00ff88', fontWeight: 'bold' }}>
+                        {t('lobby.unitsCount', {
+                          count: botCount,
+                          plural: botCount === 1 ? '' : 'S',
+                        })}
+                      </span>
+                    </div>
 
                     <div
                       style={{
@@ -779,11 +768,7 @@ export function Lobby() {
                         {t('lobby.arenaModeLabel')}
                       </span>
                       <span style={{ color: '#ffe600', fontWeight: 'bold' }}>
-                        {isSolo
-                          ? t('lobby.soloSoloPractice')
-                          : isLocal
-                            ? t('lobby.localHotseat')
-                            : t('lobby.pveArena')}
+                        {isLocal ? t('lobby.localHotseat') : t('lobby.pveArena')}
                       </span>
                     </div>
 
@@ -866,9 +851,7 @@ export function Lobby() {
                       {starting
                         ? t('lobby.initializingArena')
                         : canStart
-                          ? isSolo
-                            ? t('lobby.startSoloPractice')
-                            : t('lobby.launchArenaMatch')
+                          ? t('lobby.launchArenaMatch')
                           : isLocal
                             ? t('lobby.addPlayerToStart')
                             : t('lobby.addBotToStart')}

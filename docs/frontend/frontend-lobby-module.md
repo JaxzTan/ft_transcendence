@@ -48,7 +48,7 @@ export type Seat =
 ### PlayerCount
 
 ```typescript
-export type PlayerCount = 1 | 2 | 3 | 4
+export type PlayerCount = 2 | 3 | 4
 ```
 
 ### BOT_POOL

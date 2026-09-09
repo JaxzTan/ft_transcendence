@@ -53,14 +53,9 @@ export class MatchController {
     @Body('botColors') botColors?: string[],
     @Body('seatColors') seatColors?: string[],
   ) {
-    // mode is REQUIRED: omitting it must not silently fall back to a bot game
-    // (the old `mode || 'pve'` default let any caller create a bot-seeded PvE
-    // room even when a human-vs-human game was intended).
     if (mode !== 'pvp' && mode !== 'pve' && mode !== 'hotseat') {
       throw new BadRequestException('mode is required and must be pvp, pve, or hotseat');
     }
-    // Bots are exclusively a PvE thing: any other mode with a positive
-    // botCount must fail loudly rather than relying on service checks.
     if (mode !== 'pve' && (botCount ?? 0) > 0) {
       throw new BadRequestException('Bots are only allowed in PvE games');
     }

@@ -6,7 +6,6 @@ import Redis from 'ioredis';
 import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
-// Required by the make env preflight, so no hardcoded fallback here.
 const FRONTEND_URL = requireSecret('FRONTEND_URL');
 export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
 
@@ -61,13 +60,8 @@ export class MatchCreatorService {
     botColors?: string[],
     seatColors?: string[],
   ) {
-    // playerCount === 1 is the solo "Test Your Luck" run : hotseat with
-    // nobody else seated, just the host racing their own dice.
-    if (playerCount < 1 || playerCount > 4) {
-      throw new BadRequestException('Player count must be between 1 and 4');
-    }
-    if (playerCount === 1 && mode !== 'hotseat') {
-      throw new BadRequestException('Solo play requires hotseat mode');
+    if (playerCount < 2 || playerCount > 4) {
+      throw new BadRequestException('Player count must be between 2 and 4');
     }
     if (botCount < 0 || botCount >= playerCount) {
       throw new BadRequestException('Bot count must be between 0 and playerCount - 1');

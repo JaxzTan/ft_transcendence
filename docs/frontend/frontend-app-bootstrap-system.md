@@ -80,7 +80,7 @@ type AppState = {
   twoFactor: boolean  // Whether 2FA is on
   toggleTwoFactor: () => void  // Turns 2FA on/off
   // Game setup state
-  playerCount: 1 | 2 | 3 | 4  // How many players
+  playerCount: 2 | 3 | 4  // How many players
   seats: Seat[]          // { you | bot | player | empty }
   dice: number  // Current dice value
   rolling: boolean  // Whether the dice is animating

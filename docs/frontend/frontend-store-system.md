@@ -16,7 +16,7 @@
 The store is a single React Context provider (`AppProvider`) that holds all global UI state. It provides:
 
 1. **Auth session** — `user` object, `authReady` flag, `login`, `register`, `logout` actions.
-2. **Game setup state** — `playerCount` (1-4), `seats` array (you/bot/player/empty), `dice`, `rolling`, `turn`.
+2. **Game setup state** — `playerCount` (2-4), `seats` array (you/bot/player/empty), `dice`, `rolling`, `turn`.
 3. **Settings** — on/off switches (sound, music, auto-roll, …) each identified by a string key, with defaults.
 4. **Real-time match** — `activeMatch` (engine credentials from `POST /api/match/create`) and `lastResult` (finished-match snapshot for the Results page).
 5. **Helpers** — `addBot`, `removeBot`, `addPlayer`, `removePlayer`, `startGame`, `roll`, `endTurn`, `settingOn`, `toggleSetting`.
@@ -58,7 +58,7 @@ export type Seat =
 ### PlayerCount
 
 ```typescript
-export type PlayerCount = 1 | 2 | 3 | 4
+export type PlayerCount = 2 | 3 | 4
 ```
 
 ### Lang

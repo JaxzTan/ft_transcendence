@@ -90,9 +90,8 @@ export class LeaderboardService {
 
         const userMap = new Map(users.map((u) => [u.id, u]));
         const entries: LeaderboardEntry[] = [];
-        // Belt and braces: the query above keeps bots out of the sorted set
-        // from here on, but entries written before this fix (or by any future
-        // path) are already in Redis. Never render one regardless of how it got in.
+        // The query above keeps bots out of the sorted set from here on.
+		// Entries written before this fix (or by any future are already in Redis.
         for (const entry of redisEntries) {
           const user = userMap.get(entry.userId);
           if (!user || isBotUserId(entry.userId)) continue;
@@ -146,15 +145,13 @@ export class LeaderboardService {
         return response;
       }
     } catch (err) {
-      // Redis is the leaderboard's only store now (it is rebuilt from
-      // User.rating whenever it comes up empty), so there is no PostgreSQL
-      // snapshot to fall back on : surface the failure instead of hiding it.
+      // Redis is the leaderboard's only store, rebuilt from User.rating whenever it 
+	  // comes up empty. Surfaces the failure instead of hiding it.
       console.warn('Redis leaderboard read failed:', err);
       throw err;
     }
 
-    // Nothing to serve from Redis (fresh database with no users yet) : return
-    // an empty board rather than the removed LeaderboardSnapshot fallback.
+    // Nothing to serve from Redis (fresh database with no users yet) : return an empty board
     return {
       entries: [],
       total: 0,

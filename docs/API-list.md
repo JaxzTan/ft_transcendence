@@ -876,7 +876,7 @@ Unified match creation — supports PvP, PvE, and hotseat modes.
 
 **Notes:**
 - `mode` is **required** and must be `pvp`, `pve`, or `hotseat` (no silent fallback).
-- `playerCount` accepts 1-4; `botCount` must be 0 to `playerCount-1`. Bots are only allowed in PvE games.
+- `playerCount` accepts 2-4; `botCount` must be 0 to `playerCount-1`. Bots are only allowed in PvE games.
 - `botColors` / `seatColors` (optional string arrays) can override the default slot colors. Seat `color` is otherwise assigned by the server.
 
 ---
