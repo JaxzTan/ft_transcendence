@@ -25,7 +25,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { GoogleAuthGuard, GithubAuthGuard, FortyTwoAuthGuard } from './oauth.guards';
-import { secret, isTunnelRequest } from '../secrets';
+import { requireSecret, isTunnelRequest } from '../secrets';
 
 // Access-token cookie: JwtStrategy reads this exact name. Short-lived.
 const ACCESS_COOKIE = 'token';
@@ -35,12 +35,11 @@ const ACCESS_MAX_AGE_MS = 15 * 60 * 1000; // 15 min, matches JwtModule expiresIn
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_PATH = '/api/auth';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days, matches SessionService TTL
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
 
-const LOCAL_FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
-const NGROK_FRONTEND_URL =
-  secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev';
+const LOCAL_FRONTEND_URL = requireSecret('FRONTEND_URL');
+const NGROK_FRONTEND_URL = requireSecret('NGROK_FRONTEND_URL');
 
 // Picked per request from the Host header : a tunnel and a local client can
 // both be live against the same backend (same signal oauth.guards.ts uses).

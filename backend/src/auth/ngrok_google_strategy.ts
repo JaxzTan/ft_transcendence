@@ -10,8 +10,8 @@ import { requireSecret } from '../secrets';
 export class NgrokGoogleStrategy extends PassportStrategy(Strategy, 'google-tunnel') {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: requireSecret('NGROK_GOOGLE_CLIENT_ID'),
-      clientSecret: requireSecret('NGROK_GOOGLE_CLIENT_SECRET'),
+      clientID: requireSecret('GOOGLE_CLIENT_ID'),
+      clientSecret: requireSecret('GOOGLE_CLIENT_SECRET'),
       callbackURL: requireSecret('NGROK_GOOGLE_CALLBACK_URL'),
       scope: ['email', 'profile'],
       passReqToCallback: true,

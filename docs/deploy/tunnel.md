@@ -41,7 +41,7 @@ callback URL. A tunnel's public URL is a different origin from
 `https://localhost:8443`, so **one** OAuth app can't cover both — you'd have
 to reconfigure the provider's callback URL every time you switched modes.
 Instead, this app registers **two full sets** of OAuth credentials per
-provider (`GOOGLE_CLIENT_ID` / `NGROK_GOOGLE_CLIENT_ID`, etc. — all required
+provider (`GOOGLE_CLIENT_ID`, etc. — all required
 in `.env`, see `TUNNEL_VARS` in the `Makefile`) and both Passport strategies
 are active on the backend **at the same time**.
 

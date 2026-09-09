@@ -10,8 +10,8 @@ import { requireSecret } from '../secrets';
 export class NgrokGithubStrategy extends PassportStrategy(Strategy, 'github-tunnel') {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: requireSecret('NGROK_GITHUB_CLIENT_ID'),
-      clientSecret: requireSecret('NGROK_GITHUB_CLIENT_SECRET'),
+      clientID: requireSecret('GITHUB_CLIENT_ID'),
+      clientSecret: requireSecret('GITHUB_CLIENT_SECRET'),
       callbackURL: requireSecret('NGROK_GITHUB_CALLBACK_URL'),
       scope: ['user:email'],
       // Default mode returns only the primary email and DROPS the verified

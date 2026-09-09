@@ -1,12 +1,13 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
-import { secret } from '../secrets';
+import { requireSecret, secret } from '../secrets';
 import Redis from 'ioredis';
 import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
 const SLOT_COLORS = ['blue', 'red', 'green', 'yellow'];
-const FRONTEND_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
+// Required by the make env preflight, so no hardcoded fallback here.
+const FRONTEND_URL = requireSecret('FRONTEND_URL');
 export const ENGINE_WS_URL = FRONTEND_URL.replace(/^http/, 'ws');
 
 // Shape handed back to the frontend when a match is created/joined/rejoined.

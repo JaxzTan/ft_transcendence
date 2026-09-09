@@ -3,12 +3,15 @@ import { AuthGuard } from '@nestjs/passport';
 import { Observable } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
-import { secret, isTunnelRequest } from '../secrets';
+import { requireSecret, isTunnelRequest } from '../secrets';
 
-// Builds one passport guard class per OAuth provider. Each picks between the
-// localhost and ngrok-tunnel strategies per request via the Host header
-// (ngrok forwards the original Host), mirroring the redirect-target logic in
-// auth.controller.ts. Used on the /api/auth/<provider> login routes.
+// Per-mode frontend origin for OAuth redirects (local vs ngrok tunnel). Both
+// are required by the make env preflight, so no hardcoded fallback here.
+const LOCAL_FRONTEND_URL = requireSecret('FRONTEND_URL');
+const NGROK_FRONTEND_URL = requireSecret('NGROK_FRONTEND_URL');
+
+// Builds one guard class per OAuth provider. Chooses the local vs ngrok
+// strategy per request from the Host header. Used on /api/auth/<provider> routes.
 function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provider: string) {
   const LocalGuard = AuthGuard(localStrategy);
   const TunnelGuard = AuthGuard(tunnelStrategy);
@@ -26,10 +29,9 @@ function tunnelAwareGuard(localStrategy: string, tunnelStrategy: string, provide
     // strategy, injects oauth-link state when needed, and handles rejections.
     canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
       const req = context.switchToHttp().getRequest<Request>();
-      const guard = isTunnelRequest(req.get('host')) ? new TunnelGuard() : new LocalGuard();
-      const frontendUrl = isTunnelRequest(req.get('host'))
-        ? (secret('NGROK_FRONTEND_URL') ?? 'https://polka-bless-wing.ngrok-free.dev')
-        : (secret('FRONTEND_URL') ?? 'https://localhost:8443');
+      const tunnel = isTunnelRequest(req.get('host'));
+      const guard = tunnel ? new TunnelGuard() : new LocalGuard();
+      const frontendUrl = tunnel ? NGROK_FRONTEND_URL : LOCAL_FRONTEND_URL;
 
       // If the provider returned an OAuth error directly (e.g. ?error=access_denied)
       if (req.query.error) {

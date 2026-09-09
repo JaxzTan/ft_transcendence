@@ -12,9 +12,7 @@ OAUTH_VARS     = GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_CALLBACK_URL \
 # these at boot (they fail-fast if absent), and NGROK_AUTHTOKEN/DOMAIN/FRONTEND_URL
 # are what `make tunnel` needs. Required by the preflight below.
 TUNNEL_VARS    = NGROK_AUTHTOKEN NGROK_DOMAIN NGROK_FRONTEND_URL \
-                 NGROK_GOOGLE_CLIENT_ID NGROK_GOOGLE_CLIENT_SECRET NGROK_GOOGLE_CALLBACK_URL \
-                 NGROK_GITHUB_CLIENT_ID NGROK_GITHUB_CLIENT_SECRET NGROK_GITHUB_CALLBACK_URL \
-                 NGROK_FORTYTWO_CLIENT_ID NGROK_FORTYTWO_CLIENT_SECRET NGROK_FORTYTWO_CALLBACK_URL
+                 NGROK_GOOGLE_CALLBACK_URL NGROK_GITHUB_CALLBACK_URL NGROK_FORTYTWO_CALLBACK_URL
 # Everything the stack hard-requires: core secrets/DB/URLs + OAuth apps. These
 # are validated (and never auto-generated — a real .env is copied from a
 # teammate). SMTP_CREDENTIALS is deliberately not in the list.

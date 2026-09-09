@@ -18,13 +18,14 @@ import { JwtPayload } from './jwt-payload';
 import { MailService } from './mail.service';
 import { TwoFactorService } from './twofactor.service';
 import { SessionService } from './session.service';
-import { secret } from '../secrets';
+import { requireSecret, secret } from '../secrets';
 import { NotificationService } from '../notification/notification.service';
 
 const SALT_ROUNDS = 10;
 // Also where the SPA lives; /api on the same origin reaches the backend
-// through whichever proxy (nginx or Vite) is serving it.
-const BASE_URL = secret('FRONTEND_URL') ?? 'https://localhost:8443';
+// through whichever proxy (nginx or Vite) is serving it. Required by the
+// make env preflight, so no hardcoded fallback here.
+const BASE_URL = requireSecret('FRONTEND_URL');
 
 // store all email as lowercase since email is case-insensitive
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
