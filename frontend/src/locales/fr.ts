@@ -5,7 +5,7 @@ export const fr = {
     loading: 'Chargement...',
   },
   nav: {
-    title: 'LUDO ROYALE',
+    title: 'RETROLUDO',
     home: 'Accueil',
     dashboard: 'Tableau de bord',
     friends: 'Amis',

@@ -61,8 +61,6 @@ type MatchHistory = {
     rank: number | null;
     piecesCaptured: number;
     piecesInGoal: number;
-    // Rating awarded for this game, from the backend. Never negative — a loss
-    // still earns points for pieces brought home.
     ratingDelta: number;
     startedAt: string;
     endedAt: string | null;

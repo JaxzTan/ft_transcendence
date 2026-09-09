@@ -5,7 +5,7 @@ export const ms = {
     loading: 'Memuatkan...',
   },
   nav: {
-    title: 'LUDO ROYALE',
+    title: 'RETROLUDO',
     home: 'Laman Utama',
     dashboard: 'Papan Pemuka',
     friends: 'Rakan-rakan',
