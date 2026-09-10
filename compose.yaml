@@ -66,9 +66,6 @@ services:
       # Overrides .env's host-reachable DATABASE_URL with the container form
       # (hostname "db" instead of "localhost") — see backend/prisma.config.ts.
       DATABASE_URL: ${CONTAINER_DATABASE_URL}
-      # Set by `make tunnel` only — switches AuthModule/AuthController onto the
-      # ngrok OAuth apps and frontend origin instead of the localhost ones.
-      TUNNEL_MODE: ${TUNNEL_MODE:-false}
     ports:
       # Loopback-only: clients always reach the backend through nginx's
       # /api/ proxy, never directly. Published purely for host-side debugging.
