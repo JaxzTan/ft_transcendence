@@ -51,46 +51,41 @@ make dev
 
 ### Commands
 
-| Command                                        | Effect                                                        |
-| ---------------------------------------------- | ------------------------------------------------------------- |
-| `make env`                                     | Validate required `.env` values                              |
-| `make` or `make all`                           | Build images and start the stack                              |
-| `make build`                                   | Build images only (runs `make env` first)                     |
-| `make start`                                   | Start the stack (detached)                                    |
-| `make dev`                                     | Vite HMR dev + prod SPA (`compose watch`)                     |
-| `make stop` / `make down`                      | Stop services / remove containers                             |
-| `make logs`                                    | Tail service logs                                             |
-| `make clean` / `make prune`                    | Remove all Docker data / `docker system prune`                |
-| `make fclean` / `make re`                      | `prune` + `clean` / full rebuild from scratch                 |
-| `make ngrok-auth`                              | One-time: register `NGROK_AUTHTOKEN` with the ngrok CLI        |
-| `make tunnel` / `make tunnel-url`              | Start the ngrok tunnel / print its public URL                 |
-| `make dev-tunnel`                              | Open `make dev` + `make tunnel` in two tabs (macOS only)       |
-| `make stop-tunnel`                             | Kill ngrok and stop the dev containers                        |
-| `make lan`                                     | LAN mode: start the stack and print your LAN URL               |
-| `make tunnel_up`                               | One-shot: build + start + open the tunnel                     |
+| Command                           | Effect                                                   |
+| --------------------------------- | -------------------------------------------------------- |
+| `make env`                        | Validate required `.env` values                          |
+| `make` or `make all`              | Build images and start the stack                         |
+| `make build`                      | Build images only (runs `make env` first)                |
+| `make start`                      | Start the stack (detached)                               |
+| `make dev`                        | Vite HMR dev + prod SPA (`compose watch`)                |
+| `make stop` / `make down`         | Stop services / remove containers                        |
+| `make logs`                       | Tail service logs                                        |
+| `make clean` / `make prune`       | Remove all Docker data / `docker system prune`           |
+| `make fclean` / `make re`         | `prune` + `clean` / full rebuild from scratch            |
+| `make ngrok-auth`                 | One-time: register `NGROK_AUTHTOKEN` with the ngrok CLI  |
+| `make tunnel` / `make tunnel-url` | Start the ngrok tunnel / print its public URL            |
+| `make dev-tunnel`                 | Open `make dev` + `make tunnel` in two tabs (macOS only) |
+| `make stop-tunnel`                | Kill ngrok and stop the dev containers                   |
+| `make lan`                        | LAN mode: start the stack and print your LAN URL         |
+| `make tunnel_up`                  | One-shot: build + start + open the tunnel                |
 
 ### Access
 
-| URL                       | What it is                                                      | Profile | Exposure |
-| ------------------------- | --------------------------------------------------------------- | ------- | -------- |
+| URL                       | What it is                                                      | Profile | Exposure                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `https://localhost:8443`  | The app (via nginx)                                             | default | Public entry — TLS 1.2/1.3, security headers/CSP, nginx rate limits, proxies to JWT-guarded backend & token-verified engine |
-| `http://localhost:8080`   | Vite dev server with hot reload                                 | dev     | Dev only — no TLS; keep off untrusted/shared hosts |
-| `http://localhost:3000`   | Backend API (direct, host-only)                                 | default | Loopback-only publish; JWT/2FA/bcrypt, throttling, no CORS headers (same-origin via nginx only) |
-| `http://localhost:5555`   | Prisma Studio (database browser)                                | default | Loopback-only publish; no app-level auth — interactive host use only |
-| `wss://<host>/socket.io/` | Game engine connection (same-origin through nginx / Vite proxy) | default | Same-origin `wss` only; engine verifies the Socket.IO handshake JWT before joining rooms |
+| `http://localhost:8080`   | Vite dev server with hot reload                                 | dev     | Dev only — no TLS; keep off untrusted/shared hosts                                                                          |
+| `http://localhost:3000`   | Backend API (direct, host-only)                                 | default | Loopback-only publish; JWT/2FA/bcrypt, throttling, no CORS headers (same-origin via nginx only)                             |
+| `http://localhost:5555`   | Prisma Studio (database browser)                                | default | Loopback-only publish; no app-level auth — interactive host use only                                                        |
+| `wss://<host>/socket.io/` | Game engine connection (same-origin through nginx / Vite proxy) | default | Same-origin `wss` only; engine verifies the Socket.IO handshake JWT before joining rooms                                    |
 
 **Hardening notes**
 
 - **`8443` (nginx)** is the only intentionally public-facing port (published on all host interfaces). It runs **TLS 1.2/1.3 only** with a self-signed cert and **no plain-HTTP listener**, sets HSTS + security headers + a CSP, disables `server_tokens`, denies hidden-file access, and applies per-IP rate limits (login `5r/m`, auth `60r/m`, refresh `30r/m`, leaderboard `30r/m`) in front of the API.
-
 - **`8080` (Vite)** exists only under the `dev` compose profile (`make dev`). It serves the SPA and proxies `/api` and `/socket.io` without TLS.
-
 - **`3000` (backend)** is published loopback-only; clients reach it exclusively through nginx's `/api` proxy. Backend hardening: JWT auth in httpOnly cookies, bcrypt password hashes, class-validator on DTOs, and NestJS rate throttling. CORS is intentionally not enabled — every call the SPA makes is same-origin through nginx, so the backend emits no cross-origin headers.
-
 - **`5555` (Prisma Studio)** is a raw database browser with no application-level authentication — its protection is the loopback-only binding plus the Postgres credentials. Used on the host only.
-
 - **`/socket.io/`** is reachable only same-origin: over TLS via nginx (`wss://`) or through the Vite dev proxy — never on a raw `ws://` port. The engine validates the Socket.IO handshake JWT (game-scoped, with role/color) before the socket can join a room.
-
 - **Infrastructure ports not listed** — Postgres (`127.0.0.1:5432`), Redis (`127.0.0.1:6479`) and the engine (`127.0.0.1:3001`) — are all published loopback-only. Redis requires a password, Postgres requires credentials, and cross-container traffic rides the private `transcendence_network`.
 
 ### Configuration (.env)
@@ -99,13 +94,12 @@ All config lives in the root `.env` (`KEY=VALUE` per line), loaded into containe
 
 ## Team Information
 
-| Login      | Role(s)                    | Responsibilities                                                                                                                |
-| ---------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-|   | Product Owner, Developer   | Product vision, backlog and feature priorities, validating completed work, stakeholder communication — plus feature development |
-| `bleow`    | Tech Lead, Developer       | Technical architecture, stack decisions, code quality and review of critical changes — plus feature development                 |
-| `liyu-her` | Project Manager, Developer | Planning sessions, progress and deadline tracking, risk and blocker management — plus feature development                       |
-| `hang`     | Developer                  | Feature implementation, code review, testing, documentation                                                                     |
-| `jow`      | Project Manager, Developer | Planning sessions, progress and deadline tracking, risk and blocker management — plus feature development                       |
+| Login      | Role(s)                                   | Responsibilities                                                                                                                                                                                 |
+| ---------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `liyu-her` | Product Owner, Project Manager, Developer | Planning sessions, progress and deadline tracking, risk and blocker management, backlog and feature priorities, validating completed work, stakeholder communication — plus feature development. |
+| `bleow`    | Tech Lead, Developer                      | Technical architecture, product vision, documentation, stack decisions, code quality and review of critical changes — plus feature development                                                   |
+| `hang`     | Developer                                 | Feature implementation, code review, testing, documentation                                                                                                                                      |
+| `jow`      | Project Manager, Developer                | Planning sessions, progress and deadline tracking, risk and blocker management — plus feature development                                                                                        |
 
 ## Project Management
 
@@ -185,15 +179,15 @@ consistently on any machine.
 
 ### Major modules
 
-| #   | Module                             | Owner   | How it was implemented                                                                                                            |
-| --- | ---------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Framework for frontend and backend | `chtan` | React on the client, NestJS on the server — framework routing, state and dependency injection rather than hand-rolled equivalents |
-| 2   | Real-time features                 | `bleow` | Socket.IO gateway with a Redis adapter for cross-instance broadcast; live board updates, presence, and reconnect                  |
-| 3   | Standard user management           | `hang`  | Profiles, avatar upload, friend requests, live online status                                                                      |
-| 4   | AI opponent                        | `bleow` | Heuristic move selection — no external model, no black-box library                                                                |
-| 5   | Web-based game                     | `bleow` | Server-authoritative Ludo: dice RNG, turn order, captures, safe squares and exact-count home entry all resolved server-side       |
-| 6   | Remote players                     | `chtan` | Two players on separate machines over the network, with reconnect inside a grace window                                           |
-| 7   | Multiplayer, more than two players | `chtan` | Four concurrent seats with server-enforced turn order and seat identity derived from the session                                  |
+| #   | Module                             | Owner      | How it was implemented                                                                                                                      |
+| --- | ---------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Framework for frontend and backend | `liyu-her` | React on the client, NestJS on the server — framework routing, state and dependency injection rather than developing functions from scratch |
+| 2   | Real-time features                 | `bleow`    | Socket.IO gateway with a Redis adapter for cross-instance broadcast; live board updates, presence, and reconnect                            |
+| 3   | Standard user management           | `hang`     | Profiles, avatar upload, friend requests, live online status                                                                                |
+| 4   | AI opponent                        | `bleow`    | Heuristic move selection — no external model, no black-box library                                                                          |
+| 5   | Web-based game                     | `bleow`    | Server-authoritative Ludo: dice RNG, turn order, captures, safe squares and exact-count home entry all resolved server-side                 |
+| 6   | Remote players                     | `liyu-her` | Two players on separate machines over the network, with reconnect inside a grace window                                                     |
+| 7   | Multiplayer, more than two players | `bleow`    | Four concurrent seats with server-enforced turn order and seat identity derived from the session                                            |
 
 ### Minor modules
 
@@ -203,11 +197,11 @@ consistently on any machine.
 | 2   | Multiple languages                | `liyu-her` | Session-based language switching across English, Malay and French      |
 | 3   | Game statistics and match history | `bleow`    | Wins, losses, rating and leaderboard, reconciled against match records |
 | 4   | Remote authentication             | `jow`      | OAuth 2.0 sign-in via Google, GitHub, and 42 Intra                     |
-| 5   | Two-factor authentication         | `jow`      |                                                                        |
+| 5   | Two-factor authentication         | `jow`      | Email code verification                                                |
 | 6   | Gamification                      | `bleow`    | Achievements, badges and leaderboards                                  |
-| 7   | User activity analytics           | `chtan`    | Insights dashboard                                                     |
+| 7   | User activity analytics           | `liyu-her` | Insights dashboard                                                     |
 | 8   | Notification system               | `hang`     | Notifications on create, update and delete actions                     |
-| 9   | Custom minor module               | `chtan`    | Ngrok tunneling for exposing the local stack for remote testing        |
+| 9   | Custom minor module               | `jow`      | Ngrok tunneling for exposing the local stack for remote testing        |
 
 ### Points calculation
 
@@ -219,20 +213,15 @@ consistently on any machine.
 
 ## Individual Contributions
 
-### `chtan`
+### `liyu-her`
 
-- **Built:** Frontend/backend framework setup (React + NestJS); remote players module (cross-machine play with reconnect); multiplayer module (four-seat, server-enforced turn order); user activity analytics dashboard; Ngrok tunneling for exposing the local stack, including a new auth setup to secure the tunnel
-- **Challenges:** As team lead, the main challenge was team management — balancing everyone's workload and morale while making sure each member could still learn from the project rather than just clearing tickets
+- **Built:** Frontend/backend framework setup (React + NestJS); remote players module (cross-machine play with reconnect); multiple languages module (session-based language switching across English, Malay and French); frontend design and the revamp to frontend v2; user activity analytics dashboard;
+- **Challenges:** As team lead, the main challenge was team management — balancing everyone's workload and morale while making sure each member could still learn from the project rather than just clearing tickets. Extracting all user-facing text and data out of the frontend so it could be translated, without breaking the pages being redesigned at the same time
 
 ### `bleow`
 
-- **Built:** Real-time features (Socket.IO gateway with Redis adapter for cross-instance broadcast, live board updates, presence, reconnect); AI opponent (heuristic move selection, no external model); web-based game (server-authoritative Ludo — dice RNG, turn order, captures, safe squares, exact-count home entry); game statistics and match history (wins/losses, rating, leaderboard); gamification (achievements, badges, leaderboards)
+- **Built:** Real-time features (Socket.IO gateway with Redis adapter for cross-instance broadcast, live board updates, presence, reconnect); AI opponent (heuristic move selection, no external model); web-based game (server-authoritative Ludo — dice RNG, turn order, captures, safe squares, exact-count home entry); game statistics and match history (wins/losses, rating, leaderboard); gamification (achievements, badges, leaderboards); multiplayer module (four-seat, server-enforced turn order);
 - **Challenges:** Debugging and smoothly integrating backend with frontend. Numerous small guards to include to patch problems. Timely and clear communication with team.
-
-### `liyu-her`
-
-- **Built:** Multiple languages module (session-based language switching across English, Malay and French); frontend design and the revamp to frontend v2
-- **Challenges:** Extracting all user-facing text and data out of the frontend so it could be translated, without breaking the pages being redesigned at the same time
 
 ### `hang`
 
@@ -241,7 +230,7 @@ consistently on any machine.
 
 ### `jow`
 
-- **Built:** ORM setup (Prisma — schema, relations and committed migration history); remote authentication module (OAuth 2.0 sign-in via Google, GitHub, and 42 Intra); two-factor authentication module (email code verification)
+- **Built:** ORM setup (Prisma — schema, relations and committed migration history); remote authentication module (OAuth 2.0 sign-in via Google, GitHub, and 42 Intra); two-factor authentication module (email code verification); Ngrok tunneling for exposing the local stack, including a new auth setup to secure the tunnel.
 - **Challenges:** Day-to-day database management and debugging OAuth provider integrations — tedious but constant work
 
 ## Resources
@@ -331,7 +320,7 @@ The team used **Claude** and **ChatGPT** during development, in the following ar
   it into per-module test cases and tracking execution against it.
 - **Debugging** — narrowing down defects.
 - **UI and styling**.
-- **Documentation generation** — drafting, structuring, and refining project documentation, including  
+- **Documentation generation** — drafting, structuring, and refining project documentation, including
   the architecture overview, API reference, and the per-module docs under `docs/`.
 
 No AI tool was used to generate a complete module or feature end to end; all generated
