@@ -621,9 +621,9 @@ export const en = {
   },
   auth: {
     loginTitle: 'Welcome Back',
-    loginSubtitle: 'Sign in to your Ludo Royale account',
+    loginSubtitle: 'Sign in to your RetroLudo 42 account',
     signupTitle: 'Create Account',
-    signupSubtitle: 'Join Ludo Royale today',
+    signupSubtitle: 'Join RetroLudo 42 today',
     forgotTitle: 'Forgot Password',
     forgotSubtitle: "Enter your email to receive a password reset link",
     resetTitle: 'Reset Password',
@@ -979,4 +979,3 @@ export const en = {
     acceptClose: 'CLOSE ARCHIVE',
   },
 }
-

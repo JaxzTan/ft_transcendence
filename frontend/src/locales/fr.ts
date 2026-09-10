@@ -620,9 +620,9 @@ export const fr = {
   },
   auth: {
     loginTitle: 'Bon retour',
-    loginSubtitle: 'Connectez-vous à votre compte Ludo Royale',
+    loginSubtitle: 'Connectez-vous à votre compte RetroLudo 42',
     signupTitle: 'Créer un Compte',
-    signupSubtitle: 'Rejoignez Ludo Royale dès aujourd\'hui',
+    signupSubtitle: 'Rejoignez RetroLudo 42 dès aujourd\'hui',
     forgotTitle: 'Mot de Passe Oublié',
     forgotSubtitle: 'Entrez votre e-mail pour recevoir un lien de réinitialisation',
     resetTitle: 'Réinitialiser le Mot de Passe',
@@ -978,4 +978,3 @@ export const fr = {
     acceptClose: 'FERMER',
   },
 }
-

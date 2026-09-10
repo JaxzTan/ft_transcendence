@@ -620,9 +620,9 @@ export const ms = {
   },
   auth: {
     loginTitle: 'Selamat Kembali',
-    loginSubtitle: 'Log masuk ke akaun Ludo Royale anda',
+    loginSubtitle: 'Log masuk ke akaun RetroLudo 42 anda',
     signupTitle: 'Cipta Akaun',
-    signupSubtitle: 'Sertai Ludo Royale hari ini',
+    signupSubtitle: 'Sertai RetroLudo 42 hari ini',
     forgotTitle: 'Lupa Kata Laluan',
     forgotSubtitle: 'Masukkan e-mel anda untuk menerima pautan tetapan semula kata laluan',
     resetTitle: 'Tetap Semula Kata Laluan',
@@ -978,4 +978,3 @@ export const ms = {
     acceptClose: 'TUTUP',
   },
 }
-
