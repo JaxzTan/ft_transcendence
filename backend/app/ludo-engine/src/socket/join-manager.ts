@@ -88,7 +88,8 @@ export class JoinManager {
 
           // Socket locking: reject non-reconnecting joins to games already in
           // progress : only a player reconnecting to their own seat may re-enter.
-          if (state.status !== 'waiting' && !isReconnectingPlayer) {
+          // Hotseat is exempt — only 1 socket used in this game mode.
+          if (state.status !== 'waiting' && !isReconnectingPlayer && !isHotseat) {
             socket.emit('error', 'Game already in progress');
             return;
           }

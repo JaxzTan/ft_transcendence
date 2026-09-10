@@ -216,6 +216,34 @@ roll_dice()
   └── Emit dice_rolled { value, legalMoves, bonusRoll }
 ```
 
+#### The dice math (mulberry32)
+
+`rollDice` doesn't use `Math.random()` directly — it seeds `mulberry32`, a tiny
+32-bit PRNG (`seededRand` in `engine.ts`), and draws once per roll:
+
+```ts
+s = (s + 0x6d2b79f5) | 0;                     // 1. advance a 32-bit counter
+let t = Math.imul(s ^ (s >>> 15), 1 | s);     // 2. scramble the bits
+t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+return ((t ^ (t >>> 14)) >>> 0) / 4294967296; // 3. uniform float in [0, 1)
+```
+
+- **Advance** — `s` is a 32-bit counter; adding a fixed odd constant
+  (0x6d2b79f5) steps it through all 2^32 states before repeating. `| 0`
+  keeps the arithmetic in 32-bit range — JS numbers are float64 and lose
+  integer precision past 2^53.
+- **Scramble** — the counter alone follows a simple pattern, so XOR-shifts
+  move bits to new positions and `Math.imul` (32-bit multiply) mixes them:
+  a small change in the seed produces a completely different output.
+- **Normalize** — `>>> 0` makes the result unsigned; dividing by 2^32 gives
+  an even spread over [0, 1). `Math.floor(rand() * 6) + 1` turns that into
+  a die value: each face 1–6 has the same chance.
+
+Why a fresh seed per roll: `Math.random()` cannot be seeded and shares one
+process-wide stream. Seeding mulberry32 with a new `Math.random()` value for
+each roll gives that roll its own separate stream, so other code using
+`Math.random()` cannot affect the die result.
+
 ### Move Piece Path
 ```
 move_piece(pieceId)

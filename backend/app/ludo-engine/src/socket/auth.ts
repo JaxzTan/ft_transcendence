@@ -14,7 +14,6 @@ export function isBotUserId(userId: string | undefined): boolean {
 function requireJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    // Failing loudly beats silently accepting forged tokens.
     throw new Error('JWT_SECRET is not set : engine cannot verify tokens');
   }
   return secret;

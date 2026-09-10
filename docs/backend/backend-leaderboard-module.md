@@ -210,8 +210,7 @@ background.
 
 #### 3c. Redis is completely down
 
-The Redis read is wrapped in `try/catch`. With no PostgreSQL snapshot to fall
-back on, a Redis outage surfaces as an error instead of serving a stale board.
+The Redis read is wrapped in `try/catch`. A Redis outage surfaces as an error.
 The board rebuilds itself automatically (fill-on-demand from `User.rating`)
 once Redis is back up.
 
@@ -333,7 +332,7 @@ sequenceDiagram
         Server->>FastCache: ZREVRANGE page (now filled)
         Server-->>Site: Sorted score list + page info (source: redis)
     else Redis down / throws
-        Server-->>Site: Error — no snapshot fallback; board rebuilds when Redis returns
+        Server-->>Site: Error ; board rebuilds when Redis returns
     end
     Site-->>User: Show the leaderboard table
 ```

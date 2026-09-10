@@ -68,12 +68,15 @@ export class LudoEngine {
     return await this.store.loadGameState(gameId);
   }
 
-  // Seeded PRNG (mulberry32). Math.random() can't be seeded directly, so every
-  // roll re-seeds a fresh generator from a large Math.random() value — giving
-  // each die roll its own isolated, uniform 1..6 stream.
+  // Seeded PRNG (mulberry32): one fresh generator per roll, seeded from
+  // Math.random() — isolates the die stream from other Math.random() use.
+  // The math is explained in docs/ludo-engine/ludo-engine-core-system.md
+  // (Dice Roll Path → The dice math).
   private static seededRand(seed: number): () => number {
     let s = seed >>> 0;
     return () => {
+      // 0x6d2b79f5: mulberry32's fixed odd accumulator — cycles s through all
+      // 2^32 states (full period); `| 0` wraps the sum back into 32-bit range.
       s = (s + 0x6d2b79f5) | 0;
       let t = Math.imul(s ^ (s >>> 15), 1 | s);
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;

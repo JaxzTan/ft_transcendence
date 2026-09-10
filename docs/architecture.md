@@ -1,12 +1,13 @@
 # Architecture
 
 **Project:** ft_transcendence — RetroLudo '42
-**Updated:** 2026-08-30
+**Updated:** 2026-09-10
 
-An eight-service Docker Compose stack: a React 19 SPA built by a one-shot job and
-served over TLS by nginx, a NestJS REST API, a standalone real-time game engine
-(with an inline bot AI), PostgreSQL, Redis, and a Prisma Studio DB browser. A
-separate `frontend-dev` Vite HMR service is available for development only.
+An eight-service Docker Compose stack: a React 19 SPA built, published, and
+watched for source changes by a long-running `frontend` job, served over TLS by
+nginx, a NestJS REST API, a standalone real-time game engine (with an inline bot
+AI), PostgreSQL, Redis, and a Prisma Studio DB browser. A separate `frontend-dev`
+Vite HMR service is available for development only.
 
 ---
 
@@ -22,11 +23,12 @@ graph TB
         engine["ludo-engine :3001<br/>socket.io + inline bot AI"]
         db[("db :5432<br/>PostgreSQL 16")]
         redis[("redis :6479<br/>internal only")]
-        fe["frontend<br/>build job · exits 0"]
+        fe["frontend<br/>long-running publisher<br/>rebuilds + republishes on frontend/src/ change"]
     end
 
     Browser -->|"https :8443"| nginx
     nginx -->|"/api/*"| backend
+    nginx -->|"/socket.io/*"| engine
     fe -->|"publishes dist/"| spa[("spa_dist volume")]
     spa -->|"read-only"| nginx
     backend --> db
@@ -59,9 +61,13 @@ real process (`backend/app/postgres_16_db/`, `backend/app/redis/`).
 
 ## Containers, images & volumes
 
-Everything is defined in the root `compose.yaml`. Image names are `<project>-<service>`
-(e.g. `testing-bing-28thaug-backend`); every container attaches to the `transcendence_network`
-bridge and reaches the others by service name.
+Everything is defined in the root `compose.yaml`. Image names are `<project>-<service>`,
+where `<project>` is the **compose project name** — by default the clone directory's
+name, lower-cased and stripped of characters Docker doesn't allow. It is *not* fixed
+in the repo (`compose.yaml` sets no `name:` and `COMPOSE_PROJECT_NAME` is unset), so
+it differs per machine/checkout: a clone at `Team-submission-10Sep` builds
+`team-submission-10sep-backend`, `team-submission-10sep-nginx`, etc. Every container
+attaches to the `transcendence_network` bridge and reaches the others by service name.
 
 ### Containers
 
@@ -72,7 +78,7 @@ bridge and reaches the others by service name.
 | `backend` | `…-backend` (node:22-alpine) | `docker-entrypoint.sh` validates env → `prisma db push --accept-data-loss` → `node dist/main.js` (**NestJS API** on 3000) | `127.0.0.1:3000 → 3000` | db (healthy), redis (healthy) |
 | `studio` | `…-studio` (reuses the backend image) | `npx prisma studio --port 5555 --browser none` — **Prisma DB browser** over the `db` service (skips the backend entrypoint to avoid a `prisma db push` race) | `127.0.0.1:5555 → 5555` | db (healthy) |
 | `ludo-engine` | `…-ludo-engine` (node:22-alpine) | `node dist/index.js` — **Socket.IO game engine + inline bot AI** on 3001 (clients reach it same-origin via nginx; the host port exists for local `npm run dev`) | `127.0.0.1:3001 → 3001` | redis (healthy) |
-| `frontend` | `…-frontend` (node:22-alpine) | `publish.sh` — builds the **React SPA**, publishes it into the `spa_dist` volume, then watches `src/` and republishes on change (long-running build job) | — | — |
+| `frontend` | `…-frontend` (node:22-alpine) | `publish.sh` — builds the **React SPA**, publishes it into the `spa_dist` volume, then watches the bind-mounted `./frontend/src` (`/app/src` in the container) and `package.json` and republishes on change (long-running build job) | — | — |
 | `frontend-dev` *(profile: dev)* | `…-frontend-dev` (node:22-alpine, `Dockerfile.dev`) | `npm run dev` — **Vite dev server with HMR**, serves source from the bind mount | `8080 → 8080` | backend, ludo-engine |
 | `nginx` | `…-nginx` (debian + nginx-extras) | `nginx.sh` waits for the backend health check, then `exec nginx -g "daemon off;"` — **TLS reverse proxy**: serves the SPA and proxies `/api/*` + `/socket.io/*` | `8443 → 443` | frontend (healthy), backend, ludo-engine |
 
@@ -98,17 +104,31 @@ without a rebuild.
 
 ## The SPA build handoff
 
-The frontend is **not** a server. It is a one-shot job:
+The frontend is **not** a server. It is a **long-running build-and-watch job**
+(`frontend/publish.sh`):
 
-1. `frontend` builds the SPA (`tsc -b && vite build`) into `/app/dist`.
-2. Its `CMD` copies that into `/export`, which is the `spa_dist` named volume, then exits 0.
-3. `nginx` mounts `spa_dist` read-only at `/usr/share/nginx/html`.
+1. On every boot it runs `npm install` (keeping the anonymous-volume `node_modules`
+   in sync with the current lockfile), builds the SPA, and publishes the output
+   into `/export` — the `spa_dist` named volume.
+2. The build itself runs outside the bind mount (`BUILD_OUT_DIR=/tmp/dist-out`,
+   `BUILD_PUBLIC_DIR=/tmp/public-safe`), because a Docker Desktop for macOS
+   VirtioFS bug (ENOLCK `-35`) intermittently fails reads under `/app`; each step
+   is retried a few times before giving up.
+3. It then watches `/app/src` and `/app/package.json` with `inotifywait` — `/app`
+   is the bind mount of the repo's `./frontend`, so this is the SPA's own
+   `frontend/src` (unrelated to `backend/src`) — and republishes on every
+   change. The container never exits.
+4. `nginx` mounts `spa_dist` read-only at `/usr/share/nginx/html`.
 
-`nginx` gates on `depends_on: frontend: condition: service_completed_successfully`,
-so it cannot start against an empty document root on first boot.
+`nginx` gates on `depends_on: frontend: condition: service_healthy` — the health
+check is `test -f /export/index.html` (retries 20 over ~30s) — so it cannot start
+against an empty document root on first boot.
 
-> A single `📦 SPA published to spa_dist` log line followed by `exited (0)` is the
-> success case for the `frontend` container, not a crash.
+> A failed rebuild does **not** take the site down: `publish.sh` explicitly checks
+> the build result and, on failure, keeps the last good build in `/export` rather
+> than wiping it. The log line `📦 SPA published to spa_dist` is the success
+> marker; a `❌ Build failed` line means the previously published bundle is still
+> being served — fix the error and save again.
 
 The nginx config is **bind-mounted** from `nginx/conf/nginx.conf`, so config edits
 need only a container restart, not an image rebuild. The `Dockerfile` also `COPY`s it
@@ -127,8 +147,13 @@ prefix is *preserved*, so controllers must include it themselves. There is no gl
 prefix in `backend/src/main.ts`; each controller carries `api/` in its own decorator.
 
 **Auth** — `@Controller('api/auth')` includes the `api/` prefix, so `/api/auth/*`
-is proxied through nginx to backend:3000. OAuth callback secrets point at
-`http://localhost:3000` because the OAuth providers redirect back server-side.
+is proxied through nginx to backend:3000. OAuth callbacks are **browser-facing**:
+each provider is registered with a callback URL like
+`https://localhost:8443/api/auth/github/callback` (the ngrok variants use the
+`*.ngrok-free.dev` origin), so the provider redirects the *browser* back through
+nginx, which proxies to backend:3000. The matching callback/strategy set is
+selected per request from the `Host` header (`isTunnelRequest` in
+`backend/src/secrets.ts`) — see [`deploy/tunnel.md`](./deploy/tunnel.md).
 
 **Game realtime** — the SPA connects to `socket.io` on its **own origin**: nginx
 (and the Vite dev proxy) forwards `/socket.io/` to `ludo-engine:3001`
@@ -148,14 +173,16 @@ Prisma-managed, schema at `backend/prisma/schema.prisma`.
 **Enums:** `FriendshipStatus`, `PlayerColor`, `GameStatus`, `GameType`
 
 Schema is applied with `npx prisma db push --accept-data-loss` from
-`backend/docker-entrypoint.sh` on every boot. **There is no migration history** — this
-is a deliberate project choice, so treat the schema file as the single source of truth
-and never hand-edit the database.
+`backend/docker-entrypoint.sh` on every boot — the runtime deliberately uses **db
+push, not `migrate deploy`**, so schema state is driven by `schema.prisma` (the
+single source of truth — never hand-edit the database). A `migrations/` directory
+exists for reference/history snapshots, but nothing on the boot path replays it.
 
-`DATABASE_URL` is assembled at container start from `db_credentials.txt` +
-`db_password.txt`, producing `@db:5432`. It is *not* read from `database_url.txt`,
-which holds the host-side URL (`@localhost:5432`) for running the app outside Docker.
-The two are not interchangeable.
+`DATABASE_URL` comes from the root `.env` via compose's `env_file:`; on the
+backend container compose's `environment:` override swaps in `CONTAINER_DATABASE_URL`
+(`@db:5432`, service host) before the app boots. The plain `.env` `DATABASE_URL`
+holds the host-side URL (`@localhost:5432`) for running scripts outside Docker. The
+two are not interchangeable — see `backend/prisma.config.ts`.
 
 ### Redis
 
@@ -166,11 +193,11 @@ Several distinct uses:
 - **Presence** — heartbeat keys per user for online/offline/playing status (`PresenceService`).
 - **Notifications** — Redis Pub/Sub channels (`notify:<userId>`) bridge persisted notifications to the SSE stream (`NotificationService`).
 
-Redis runs on the internal port **6479** with `requirepass` sourced from
-`redis_password.txt`. The leaderboard, presence, session, two-factor, and
-notification services all authenticate their Redis connections via
-`secret('REDIS_PASSWORD')`. The matchmaking service and the engine's
-`RedisGameStore` also authenticate.
+Redis runs on the internal port **6479** with `requirepass` sourced from the
+`REDIS_PASSWORD` env var (written into `/tmp/redis.conf` by `redis-init.sh`).
+The leaderboard, presence, session, two-factor, and notification services all
+authenticate their Redis connections via `secret('REDIS_PASSWORD')`. The
+matchmaking service and the engine's `RedisGameStore` also authenticate.
 
 ---
 
@@ -193,7 +220,9 @@ notification services all authenticate their Redis connections via
 ### Auth flow
 
 1. `GET /api/auth/{google,github,42}` → passport guard redirects to the provider.
-2. Provider redirects to the callback URL from `secrets/{provider}_callback_url.txt`.
+2. Provider redirects the browser to the callback URL from `.env`
+   (`{GOOGLE,GITHUB,FORTYTWO}_CALLBACK_URL` / `NGROK_*` variants), read at boot by
+   the matching Passport strategy via `requireSecret()`.
 3. Strategy upserts `User` + `Account`, `AuthService` validates the user.
 4. If the user has 2FA enabled, an email code is sent and the browser is redirected to `{FRONTEND_URL}/2fa?token={pendingToken}`.
 5. If 2FA is disabled, a session is issued: a short-lived access token (15 min) and a long-lived refresh token (7 days) are set as `httpOnly`, `sameSite: lax` cookies named `token` and `refresh_token`.
@@ -242,11 +271,8 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 ```
 .
 ├── compose.yaml                  # Docker Compose — all 8 services
-├── Makefile                      # Build / run / dev / secrets / tunnel targets
-├── secrets/                      # File-based secrets (gitignored)
-├── package.json                  # Root prisma dev dependency
-├── unit-tests.sh                 # Backend + engine unit tests
-├── unit-tests-achievements.sh    # Achievements-specific tests
+├── Makefile                      # Build / run / dev / tunnel targets
+├── .env.example                   # Config template (`make env` validates) — real .env is gitignored
 │
 ├── backend/                      # NestJS REST API (port 3000)
 │   ├── Dockerfile
@@ -260,7 +286,7 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   ├── app.module.ts         # Root module (9 feature modules + throttler)
 │   │   ├── main.ts               # Bootstrap, cookie-parser, CORS, /health
 │   │   ├── prisma.service.ts     # Prisma client singleton
-│   │   ├── secrets.ts            # File-based secret resolution
+│   │   ├── secrets.ts            # env-var secret lookup over process.env
 │   │   ├── common/               # Shared helpers
 │   │   │   ├── scoring.ts        # ratingDeltaFor() — piece-based scoring
 │   │   │   └── bot.ts            # isBotUserId() / BOT_PREFIX
@@ -268,7 +294,7 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   ├── auth/                 # JWT + OAuth (Google, GitHub, 42) + 2FA + mail
 │   │   │   ├── auth.controller.ts    # register, login, logout, me, 2FA, OAuth
 │   │   │   ├── auth.service.ts       # Token signing, password hashing
-│   │   │   ├── auth.module.ts
+│   │   │   ├── auth.module.ts        # JWT config (15-min access) + local & ngrok OAuth strategies
 │   │   │   ├── twofactor.service.ts  # Email one-time-code 2FA (idempotent)
 │   │   │   ├── session.service.ts    # Session/refresh concerns
 │   │   │   ├── mail.service.ts       # SMTP mailer (nodemailer)
@@ -279,55 +305,17 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   │   ├── github.strategy.ts    # GitHub OAuth
 │   │   │   ├── fortytwo.strategy.ts  # 42 (intra) OAuth
 │   │   │   ├── ngrok_google_strategy.ts / ngrok_github_strategy.ts / ngrok_fortytwo_strategy.ts  # tunnel-mode OAuth
-│   │   │   ├── oauth.guards.ts       # OAuth route guards
+│   │   │   ├── oauth.guards.ts       # OAuth route guards (per-Host strategy pick)
 │   │   │   └── dto/                  # login, register, 2FA, password, profile DTOs
 │   │   │
 │   │   ├── user/                 # User profiles & game history
-│   │   │   ├── user.controller.ts    # profile, games, avatar CRUD
-│   │   │   ├── user.service.ts
-│   │   │   └── user.module.ts
-│   │   │
-│   │   ├── friends/              # Friend system
-│   │   │   ├── friends.controller.ts # request, accept, decline, remove, list, block
-│   │   │   ├── friends.service.ts
-│   │   │   └── friends.module.ts
-│   │   │
-│   │   ├── match/                # Matchmaking & game lifecycle
-│   │   │   ├── match.controller.ts   # PvP/PvE/hotseat, game end
-│   │   │   ├── match.service.ts      # Redis matchmaking, rating updates
-│   │   │   ├── match.creator.service.ts  # game creation/join
-│   │   │   ├── match.player.service.ts    # in-game actions
-│   │   │   ├── match.query.service.ts     # active/lookup queries
-│   │   │   ├── match.postgame.service.ts  # game-end scoring
-│   │   │   └── match.module.ts
-│   │   │
-│   │   ├── leaderboard/          # Rankings
-│   │   │   ├── leaderboard.controller.ts  # GET /api/leaderboard
-│   │   │   ├── leaderboard.service.ts     # Postgres fallback
-│   │   │   ├── leaderboard-redis.service.ts  # Redis sorted sets
-│   │   │   └── leaderboard.module.ts
-│   │   │
+│   │   ├── friends/              # Friend system (requests, accept/decline, block)
+│   │   ├── match/                # Matchmaking & game lifecycle (split services)
+│   │   ├── leaderboard/          # Rankings (Redis sorted sets + Postgres fallback)
 │   │   ├── achievements/         # 13 Ludo achievements
-│   │   │   ├── achievements.controller.ts  # GET, POST /check
-│   │   │   ├── achievements.service.ts
-│   │   │   ├── achievements.registry.ts
-│   │   │   └── achievements.module.ts
-│   │   │
 │   │   ├── player-stats/         # Per-player aggregates
-│   │   │   ├── stats.controller.ts
-│   │   │   ├── stats.service.ts
-│   │   │   └── stats.module.ts
-│   │   │
 │   │   ├── presence/             # Online/offline/playing tracking
-│   │   │   ├── presence.controller.ts  # heartbeat / clear
-│   │   │   ├── presence.service.ts
-│   │   │   ├── presence.module.ts
-│   │   │   └── dto/heartbeat.dto.ts
-│   │   │
 │   │   └── notification/         # Notifications (SSE + Redis pub/sub)
-│   │       ├── notification.controller.ts  # GET, PATCH /read, POST /read-all, SSE
-│   │       ├── notification.service.ts
-│   │       └── notification.module.ts
 │   │
 │   ├── app/
 │   │   ├── ludo-engine/          # Standalone game engine (port 3001)
@@ -338,6 +326,7 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   │       ├── index.ts              # Entry point → SocketServer.start(3001)
 │   │   │       ├── engine.ts             # Game state machine (roll, move, win)
 │   │   │       ├── move-validator.ts     # Legal move computation
+│   │   │       ├── turn.ts               # Move outcome: mirrors, win check, turn advance
 │   │   │       ├── board-mapper.ts       # Board geometry (safe zones, tracks)
 │   │   │       ├── bot.ts                # Heuristic bot AI
 │   │   │       ├── player-handler.ts     # Disconnect/reconnect/exit/ready
@@ -347,6 +336,9 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   │       └── socket/
 │   │   │           ├── server.ts             # SocketServer, event routing
 │   │   │           ├── socket-handlers.ts    # join_game, roll_dice, move_piece, …
+│   │   │           ├── join-manager.ts       # Seat assignment, bot seeding on join
+│   │   │           ├── bot-scheduler.ts      # One timer per game for bot turns
+│   │   │           ├── post-game.ts          # End-of-game flow → result-submitter
 │   │   │           ├── auth.ts               # JWT middleware, GameSocket type
 │   │   │           ├── event-publisher.ts    # Redis pub/sub → Socket.IO bridge
 │   │   │           ├── redis-broadcaster.ts  # Room-based state broadcasts
@@ -361,27 +353,27 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │
 │   ├── prisma/
 │   │   ├── schema.prisma         # DB schema (single source of truth)
-│   │   ├── seed.ts               # Development seed data
-│   │   ├── seed_friends.ts       # Friendship seed
-│   │   ├── seed_user_profile.ts  # User profile seed
-│   │   ├── sync_leaderboard.ts   # Leaderboard sync script
-│   │   ├── drop-all.sql          # Drop-all script
-│   │   ├── truncate-all.sql      # Truncate-all script
-│   │   ├── migrations/           # Prisma migrations
+│   │   ├── seed.ts               # Development seed data (dev)
+│   │   ├── seed_friends.ts       # Friendship seed (dev)
+│   │   ├── seed_user_profile.ts  # User profile seed (dev)
+│   │   ├── sync_leaderboard.ts   # Leaderboard sync script (dev)
+│   │   ├── drop-all.sql          # Drop-all script (dev)
+│   │   ├── truncate-all.sql      # Truncate-all script (dev)
+│   │   ├── migrations/           # Prisma migrations (migration_lock.toml)
 │   │   └── ... (generated client output lives in backend/generated, gitignored)
 │   │
 │   └── scripts/
 │       └── migrate-snapshot.sh
 │
 ├── frontend/                     # React 19 SPA (Vite)
-│   ├── Dockerfile                # Production build (publishes dist → spa_dist)
+│   ├── Dockerfile                # Build + publish via publish.sh → spa_dist
 │   ├── Dockerfile.dev            # Vite HMR (dev profile)
 │   ├── package.json
 │   ├── vite.config.ts            # Dev proxies for /api and /socket.io
 │   ├── tsconfig.json / tsconfig.app.json / tsconfig.node.json
 │   ├── index.html
-│   ├── .oxlintrc.json
-│   ├── publish.sh
+│   ├── .npmrc / .oxlintrc.json    # npm registry config / oxlint rules
+│   ├── publish.sh                # Build, publish, watch src/ (long-running)
 │   ├── public/                   # OAuth button images + logo
 │   │
 │   └── src/
@@ -394,19 +386,25 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │       ├── i18n.ts               # i18next init
 │       ├── theme.ts              # Theme constants + bot pool
 │       ├── index.css             # Global styles
-│       ├── styles/retrowave.css  # Retro theme
+│       ├── styles/retrowave.css  # Retro theme (styles/tw.ts: tailwind helpers)
 │       ├── data.ts               # Mock/helper game data
+│       ├── avatarCache.ts        # SSE avatar_changed → cache-buster store
+│       ├── dicebear.ts           # @dicebear avatar style resolution
+│       ├── validatePassword.ts   # Client-side password policy mirror
 │       ├── pages/                # Home, Login, Signup, TwoFactor, Forgot/ResetPassword,
 │       │                         # LudoLobby, Lobby, Game, Results, Friends,
-│       │                         # Leaderboard, Profile
+│       │                         # Leaderboard, Profile, LegalPage
 │       ├── components/           # Shell, AuthLayout, RetroAuthLayout, RetroNavbar,
 │       │                         # AccountMenu, NotificationBell/Toast, Board, Die,
 │       │                         # JoinByCode, OAuthButtons, ProfileEditModal,
-│       │                         # RankBadge, RulesModal, UserAvatar
+│       │                         # RankBadge, RulesModal, UserAvatar, CyberModal,
+│       │                         # DeleteAccountModal, LegalModal, MarkdownViewer,
+│       │                         # ResultsModal
 │       ├── game/                 # reducer.ts, types.ts
 │       ├── hooks/                # useNotifications.tsx
 │       ├── locales/              # en.ts, fr.ts, ms.ts
-│       ├── utils/                # audio.ts, ranks.ts
+│       ├── content/docs/         # Markdown docs rendered by LegalPage
+│       ├── utils/                # audio.ts, ranks.ts, botName.ts
 │       └── assets/               # images/svg
 │
 ├── nginx/                        # TLS termination & reverse proxy
@@ -416,11 +414,12 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │       ├── nginx.conf            # TLS server block
 │       └── app.inc               # Shared routing (SPA, /api, /socket.io)
 │
-└── docs/                         # Documentation (local, gitignored)
+└── docs/                         # Documentation
     ├── architecture.md           # Full architecture reference (this file)
     ├── API-list.md               # Complete HTTP + WebSocket API reference
     ├── Ludo_Rules.md             # Classic Ludo rules
     ├── backend/                  # Backend module deep-dives (backend-*-module/system)
     ├── frontend/                 # Frontend deep-dives (frontend-*-module/system)
-    └── ludo-engine/              # Engine internals (core, bot, lobby, socket, redis)
+    ├── ludo-engine/              # Engine internals (core, bot, lobby, socket, redis)
+    └── deploy/                   # nginx.md, tunnel.md (ngrok mode)
 ```
