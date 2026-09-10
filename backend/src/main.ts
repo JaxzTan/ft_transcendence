@@ -20,12 +20,6 @@ async function bootstrap() {
   // Enforce the class-validator decorators on register/login DTOs.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  // CORS - only allow requests from nginx origin
-  app.enableCors({
-    origin: process.env.NODE_ENV === 'production' ? ['https://transcendence-ludo'] : true, // Allow all origins in development
-    credentials: true,
-  });
-
   // Health endpoint. Route it via the generic HttpServer interface so the
   // handler can be typed structurally (the concrete ExpressAdapter's
   // RequestHandler type is too narrow for a custom handler). Same runtime
