@@ -90,8 +90,6 @@ export class LeaderboardService {
 
         const userMap = new Map(users.map((u) => [u.id, u]));
         const entries: LeaderboardEntry[] = [];
-        // The query above keeps bots out of the sorted set from here on.
-		// Entries written before this fix (or by any future are already in Redis.
         for (const entry of redisEntries) {
           const user = userMap.get(entry.userId);
           if (!user || isBotUserId(entry.userId)) continue;
@@ -145,8 +143,8 @@ export class LeaderboardService {
         return response;
       }
     } catch (err) {
-      // Redis is the leaderboard's only store, rebuilt from User.rating whenever it 
-	  // comes up empty. Surfaces the failure instead of hiding it.
+      // Redis is the leaderboard's only store, rebuilt from User.rating whenever it
+      // comes up empty. Surfaces the failure instead of hiding it.
       console.warn('Redis leaderboard read failed:', err);
       throw err;
     }
