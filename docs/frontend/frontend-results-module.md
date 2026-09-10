@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — Post-game results summary shown in-game
+- [Overview](#overview) — Results summary shown after a match ends
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — LastResult shape
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagram for results display
@@ -13,17 +13,17 @@
 
 ## Overview
 
-The results screen is shown **inside the Game page** after a match ends, as a
-modal overlay (`ResultsModal`). It provides:
+The results screen appears **inside the Game page** after a match ends, as a
+modal overlay (`ResultsModal`). It shows:
 
 1. **Match summary** — winner, final ranks, podium, per-player pieces in goal.
-2. **Outcome handling** — victory / defeat / abandoned states with the right label.
-3. **Exit** — returns to the lobby/home after the game.
+2. **Outcome handling** — the right label for a victory, a defeat or an abandoned match.
+3. **Exit** — returns to the lobby or the home page after the game.
 
 > **Note:** The old standalone `/results` route and `src/pages/Results.tsx` page
-> have been **removed** (the file is commented out and the route is no longer
-> registered). Results now render via `src/components/ResultsModal.tsx`, opened
-> by `Game.tsx` when the engine emits `game_ended`.
+> have been **removed** (the route line in `App.tsx` is commented out). Results now
+> render through `src/components/ResultsModal.tsx`, which `Game.tsx` opens when the
+> engine emits `game_ended`.
 
 ---
 
@@ -32,7 +32,7 @@ modal overlay (`ResultsModal`). It provides:
 | File | Role |
 |------|------|
 | `src/components/ResultsModal.tsx` | Results overlay — podium, summary, rank badges, outcome title |
-| `src/pages/Game.tsx` | Opens the modal on `game_ended`; holds the socket + `lastResult` |
+| `src/pages/Game.tsx` | Opens the modal on `game_ended`; owns the socket and `lastResult` |
 | `src/store.tsx` | `setLastResult` / `lastResult` state |
 
 ---
@@ -63,7 +63,7 @@ type LastResult = {
 
 ### Results Rendering
 
-Sequence of steps when the engine reports the game has ended.
+Sequence of steps when the engine reports that the game has ended.
 ```mermaid
 sequenceDiagram
     participant Engine as ludo-engine
@@ -75,7 +75,7 @@ sequenceDiagram
     Game->>Game: Build endedPlayers (from current view, filter inactive)
     Game->>Store: setLastResult({ winner, resultDetail, mode, playerCount, players })
     Game->>Modal: Open results modal (showResultsModal = true)
-    Modal->>Modal: Sort players, pick my color, work out outcome title
+    Modal->>Modal: Sort players, find my color, compute the outcome title
     alt abandoned or no real winner
         Modal->>Modal: Show abandoned card (no podium)
     else real winner
@@ -104,6 +104,12 @@ ResultsModal renders
   ├── outcome title: victory (my color = winner) / defeat / match complete (hotseat)
   └── Return to Lobby button → onReturnToLobby (closes modal)
 ```
+
+---
+
+## Avatar Flags
+
+`LastResult.players` is built from client-side game state and never carries `hasAvatarPhoto`, so `ResultsModal` passes `false` for opponents and bots, and `user?.hasAvatarPhoto ?? false` for the viewer. Passing `undefined` would make `UserAvatar` request the photo URL (Uniform Resource Locator) and log a 404 for every opponent without a photo. See [frontend-components-system.md](frontend-components-system.md) → Implementation Notes.
 
 ---
 

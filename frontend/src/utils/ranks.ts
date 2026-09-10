@@ -67,12 +67,7 @@ export const RANK_CHOKI: RankTier = {
 export const RANKS: RankTier[] = [RANK_MAMEE, RANK_MILO, RANK_PADDLE, RANK_HONEY, RANK_CHOKI];
 
 /**
- * Derives player rank tier based consistently on rating and leaderboard standing.
- * - MAMEE MONSTER: Exclusively Top 3 on leaderboard (#1, #2, #3 podium).
- * - MILO DINOSAUR: rating >= 1350 (Dark matter plasma with aura & particles).
- * - PADDLE POP: rating 1200 - 1349 (Cyber cyan laser & rainbow prism).
- * - HONEY STARS: rating 1000 - 1199 (Cosmic starlight gold).
- * - CHOKI CHOKI: rating < 1000 (Cyber bronze wireframe).
+ * Rating (+ optional board rank) to tier; see docs/frontend/frontend-components-system.md.
  */
 export function getRankTier(rating: number = 0, rank?: number | null): RankTier {
   // Strictly Top 3 on leaderboard -> MAMEE MONSTER

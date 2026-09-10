@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — Custom window.location-based router using useSyncExternalStore
+- [Overview](#overview) — Custom router built on window.location and useSyncExternalStore
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — Route type and navigation function signatures
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for navigation and popstate
@@ -13,11 +13,11 @@
 
 ## Overview
 
-The router is a small, custom client-side router built on `window.location` and React's `useSyncExternalStore`. It provides:
+The router is small and custom-built, using `window.location` and React's `useSyncExternalStore`. It provides:
 
-1. **Route reading** — `useRoute()` returns the current `{ path, query }` and updates the page when the URL changes.
-2. **Navigation** — `navigate(to, { replace })` changes the URL, resets scroll to top, and tells every subscriber to re-render.
-3. **No React Router** — deliberately minimal, to avoid the extra dependency.
+1. **Route reading** — `useRoute()` returns the current `{ path, query }` and updates the page when the URL (Uniform Resource Locator) changes.
+2. **Navigation** — `navigate(to, { replace })` changes the URL, scrolls back to the top and tells every subscriber to re-render.
+3. **No React Router** — kept minimal on purpose, to avoid the extra dependency.
 
 ---
 
@@ -35,7 +35,7 @@ The router is a small, custom client-side router built on `window.location` and 
 
 ```typescript
 export type Route = {
-  path: string;                // Normalized pathname (no trailing slashes, '/' for root)
+  path: string;                // Normalized path (no trailing slashes; '/' for the root)
   query: URLSearchParams;      // Parsed query string
 }
 ```
@@ -48,7 +48,7 @@ export function navigate(to: string, opts?: { replace?: boolean }): void
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `to` | `string` | Target pathname (e.g. `/gamelobby`) |
+| `to` | `string` | Target path (for example `/gamelobby`) |
 | `opts.replace` | `boolean` | If true, uses `replaceState` instead of `pushState` |
 
 ---
@@ -67,7 +67,7 @@ sequenceDiagram
 
     Page->>Nav: navigate("/gamelobby")
     Nav->>History: Record the new address in the browser
-    Nav->>Pages: "hey, the address changed!"
+    Nav->>Pages: The address changed
     Note over Pages: Every page that watches the address re-renders
     Nav->>Page: Show the gamelobby page
 ```
@@ -82,7 +82,7 @@ sequenceDiagram
     participant Pages as All open pages
 
     User->>History: Click the back button
-    History->>Pages: "the address changed!"
+    History->>Pages: The address changed
     Note over Pages: Every page that watches the address re-renders
     Pages->>User: Show the page for the previous address
 ```
@@ -117,4 +117,4 @@ useRoute()
 | Dependency | Purpose |
 |-----------|---------|
 | `react` | `useSyncExternalStore` for reactive subscription to route changes |
-| (none) | No external routing library; pure browser History API |
+| (none) | No external routing library; uses only the browser History API (Application Programming Interface) |

@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — Ludo board UI with dice rolling and piece movement
+- [Overview](#overview) — Ludo board screen with dice rolling and piece movement
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — Component props and state shapes
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for game interaction
@@ -13,14 +13,14 @@
 
 ## Overview
 
-The Game page (`/game`) is the real-time gameplay screen. It provides:
+The Game page (`/game`) is the real-time gameplay screen. It has:
 
-1. **Ludo board** — rendered using the `Board` component with the four colored tracks.
-2. **Dice roller** — `Die` component with rolling animation, displays 1-6.
-3. **Piece interaction** — pieces rendered on the board, clickable when it's the player's turn.
-4. **Real-time engine connection** — connects to the Ludo Engine via Socket.IO (`connectSocket`), joined with the match token from `activeMatch`.
+1. **Ludo board** — drawn by the `Board` component, with the four colored tracks.
+2. **Dice roller** — the `Die` component, which animates the roll and shows 1-6.
+3. **Piece interaction** — pieces drawn on the board; you can click them when it is your turn.
+4. **Real-time engine connection** — connects to the Ludo Engine through Socket.IO (`connectSocket`), using the match token from `activeMatch`.
 
-> **Note:** The Game page is fully real-time. It connects to the engine on the page's own origin (`/socket.io/`), emits `join_game`, `roll_dice`, and `move_piece`, and renders engine-driven state updates (`game_joined`, `dice_rolled`, `piece_moved`, `game_ended`, …). Game state is dispatched into `game/reducer.ts` — see `socket.ts` for the full event contract.
+> **Note:** The Game page is fully real-time. It connects to the engine on the page's own origin (`/socket.io/`), sends `join_game`, `roll_dice` and `move_piece`, and renders state updates from the engine (`game_joined`, `dice_rolled`, `piece_moved`, `game_ended` and others). Game state is dispatched into `game/reducer.ts`; see `socket.ts` for the complete event contract.
 
 ---
 
@@ -31,8 +31,8 @@ The Game page (`/game`) is the real-time gameplay screen. It provides:
 | `src/pages/Game.tsx` | Game page — engine socket connection, board, dice, pieces |
 | `src/components/Board.tsx` | Board component — renders Ludo track, pieces, bases |
 | `src/components/Die.tsx` | Die component — dice face rendering with roll animation |
-| `src/game/reducer.ts` | Pure reducer translating engine events into local view state |
-| `src/game/types.ts` | GameState, PlayerColor, LegalMove, MoveResult, etc. |
+| `src/game/reducer.ts` | Pure reducer that turns engine events into local view state |
+| `src/game/types.ts` | GameState, PlayerColor, LegalMove, MoveResult and others |
 | `src/socket.ts` | Socket.IO client — `connectSocket()`, typed Server/Client event maps |
 
 ---
@@ -42,8 +42,8 @@ The Game page (`/game`) is the real-time gameplay screen. It provides:
 ### Game State (engine-driven)
 
 ```typescript
-// The authoritative state comes from the engine over Socket.IO
-// (socket.ts ServerEvents). Local view state is derived in game/reducer.ts.
+// The engine owns the real state, delivered over Socket.IO (socket.ts
+// ServerEvents); game/reducer.ts derives the local view state.
 gameId: string            // activeMatch.gameId
 color: PlayerColor        // activeMatch.color
 state: GameState          // from 'game_joined' / 'state_update'
@@ -166,14 +166,26 @@ on 'game_ended' { winner, resultDetail }
 
 ---
 
+## Implementation Notes
+
+- **The socket effect depends on identity fields only.** The connect effect watches `activeMatch.gameId` and `.token`, never the whole `activeMatch` object. Changing `.mode`, `.color` or `.playerCount` after connect (a lobby seat or colour change) therefore cannot close and reopen the socket during the handshake. Long-lived handlers read the current value through `activeMatchRef`, so they never hold a stale `activeMatch`.
+- **Duplicate-move guard.** `pendingMoveRef` is set as soon as `move_piece` is sent, and cleared when the server replies with `piece_moved` or a rejection. Without it, a second click on a piece that still looks legal, before the reply arrives, sends a duplicate `move_piece` that the engine rejects with "Invalid turn phase".
+- **`canRoll` also requires `status === 'active'`.** This closes a short race at the end of a game: the winning move can leave the other roll inputs looking usable for one render before `game_ended` arrives, which would let a click through as a "Game not active" rejection.
+- **Seat identity on the first render.** For a PvP (player versus player) joiner, `ck === view.myColor` can be out of date until the server replies: the engine assigns the seat through `lobby_update` → `my_color_changed`, which may arrive after the first render, so the seat briefly appears to belong to someone else. The page also accepts a direct `playerMeta.username === user.username` match (the same check the active-game pilot card uses) so it recognises the seat immediately.
+- **Refresh safety for cached matches.** After a browser refresh, a very old cached `activeMatch` (saved before `mode` and `playerCount` were part of the create response) can arrive with no `mode`. The page reads it again from `GET /api/games/mine`, so a hotseat or PvE (player versus environment) game can never be treated as a plain PvP rejoin.
+- **`dice_rolled` is matched to the turn before the event** (`game/reducer.ts`). On the no-move and third-six-forfeit paths the engine advances `currentTurn` before it emits, so the event's own `currentTurn` can already name the *next* player while the rolled value belongs to the player who rolled.
+- **Bot names are translated.** Engine bots are named `bot-<color>`; `localizedBotName(t, name)` turns that into a translated "bot-<colour>", so rosters and results never show a raw English bot id (names that do not match are returned unchanged). Used by this page and `ResultsModal`.
+
+---
+
 ## Dependencies
 
 | Dependency | Purpose |
 |-----------|---------|
 | `store.tsx` | `useApp` for activeMatch, lastResult, settings, setLastResult |
-| `socket.ts` | `connectSocket` + typed Socket.IO event maps |
+| `socket.ts` | `connectSocket` and the typed Socket.IO event maps |
 | `game/reducer.ts` | Pure state reducer for engine events |
 | `components/Board.tsx` | Renders Ludo board track, pieces, bases |
-| `components/Die.tsx` | Dice face rendering and roll animation |
+| `components/Die.tsx` | Renders the dice face and the roll animation |
 | `theme.ts` | `SEAT_COLORS`, inline styles, keyframe CSS |
 | `utils/audio.ts` | `retroAudio` sound effects |

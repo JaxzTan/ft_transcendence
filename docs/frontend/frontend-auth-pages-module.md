@@ -13,12 +13,12 @@
 
 ## Overview
 
-The auth pages provide the entry point to the application. They include:
+These pages are the entry point to the app. They are:
 
-1. **Login** — identifier (username or email), password, OAuth buttons, and 2FA support.
-2. **Signup** — username, email, password, and confirm password fields with match validation.
+1. **Login** — identifier (username or email), password, OAuth (Open Authorization) buttons, and two-factor authentication (2FA) support.
+2. **Signup** — username, email and password fields, plus a confirm-password field that must match.
 
-Both pages use the `RetroAuthLayout` wrapper and share the same visual style (retro/cyber theme, OAuth provider buttons).
+Both pages use the `RetroAuthLayout` container and share the same styling: the retro/cyber theme and the provider buttons.
 
 ---
 
@@ -73,7 +73,7 @@ const [submitting, setSubmitting] = useState(false)
 
 ### 1. Login Flow
 
-Sequence of steps when a user logs in. Supports password-only or password + 2FA.
+Sequence of steps when a user logs in, with or without 2FA.
 ```mermaid
 sequenceDiagram
     participant User
@@ -99,7 +99,7 @@ sequenceDiagram
 
 ### 2. Signup Flow
 
-Sequence of steps when a user creates an account. Sends verification email; no session is created until email is verified.
+Sequence of steps when a user creates an account. The backend sends a verification email, and no session exists until that email is verified.
 ```mermaid
 sequenceDiagram
     participant User
@@ -117,7 +117,7 @@ sequenceDiagram
         alt Account created
             API-->>Store: "check your email"
             Signup->>Signup: Go to the login page
-        else Error (e.g. username taken)
+        else Error (for example, username taken)
             API-->>Store: error
             Signup->>Signup: Show the error
         end
@@ -126,7 +126,7 @@ sequenceDiagram
 
 ### 3. OAuth Flow
 
-Sequence of steps when a user clicks an OAuth button.
+Sequence of steps when a user clicks a provider button.
 ```mermaid
 sequenceDiagram
     participant User
@@ -177,7 +177,7 @@ onSubmit(e)
 ```
 onClick provider button
   └── window.location.href = '/api/auth/{provider}'
-       └── Full OAuth redirect loop handled by backend
+       └── The backend handles the full OAuth redirect
 ```
 
 ---
@@ -189,5 +189,5 @@ onClick provider button
 | `store.tsx` | `useApp()` for login/register actions, returns `{ error, pendingToken }` |
 | `router.tsx` | `navigate` for post-auth redirect |
 | `theme.ts` | `btnGold`, `goldText`, `input`, `label` styles |
-| `RetroAuthLayout.tsx` | Retro-styled centered card wrapper (`tag` + `children`, plus the `NeonCheck` glyph) |
+| `RetroAuthLayout.tsx` | Retro-styled centered card container (`tag` + `children`, plus the `NeonCheck` glyph) |
 | `OAuthButtons.tsx` | Provider button row |

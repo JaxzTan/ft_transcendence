@@ -13,14 +13,14 @@
 
 ## Overview
 
-The Friends page (`/friends`, full-bleed) manages social connections. It provides:
+The Friends page (`/friends`, full-bleed) manages friendships. It has:
 
 1. **Friends list** — accepted friends with avatar, username, rating, and live presence status.
-2. **Friend requests** — pending received requests with accept/decline actions; add-friend by username.
-3. **Blocked list** — users I've blocked, with unblock action (tabbed: Friends / Blocked).
-4. **Game invite** — invite a friend to a PvP game (`POST /api/friends/:friendId/invite`), returns match credentials.
+2. **Friend requests** — requests you have received and not yet answered, each with accept and decline actions; you can also send a request by username.
+3. **Blocked list** — users you have blocked, each with an unblock action. The two lists are separate tabs: Friends and Blocked.
+4. **Game invite** — invite a friend to a PvP (player versus player) game with `POST /api/friends/:friendId/invite`, which returns the match credentials.
 
-> **Note:** The Friends page is fully API-driven. It calls the real endpoints below and refreshes the lists every ~15 seconds.
+> **Note:** The Friends page reads all of its data from the backend API (Application Programming Interface). It calls the endpoints below and refreshes the lists every 15 seconds.
 
 ---
 
@@ -106,7 +106,7 @@ Invite → POST /api/friends/{friendId}/invite → store activeMatch → navigat
 
 | Dependency | Purpose |
 |-----------|---------|
-| `api.ts` | `postApi`/`fetch` helpers |
+| `api.ts` | `postApi` and `fetch` request helpers |
 | `store.tsx` | `useApp` for user, setActiveMatch (invite flow) |
 | `router.tsx` | `navigate` |
 | `i18n.ts` | `useTranslation` (`friends.*` keys) |

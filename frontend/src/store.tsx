@@ -64,11 +64,8 @@ function storedTheme(): ThemeType {
 }
 
 const HEARTBEAT_INTERVAL_MS = 20_000;
-// Access tokens expire every 15m (backend/src/auth/auth.module.ts's
-// `expiresIn: '15m'`). Refreshing 1min early means the heartbeat (and any
-// other call) never lands on an expired token — otherwise every request
-// that does gets a 401 the browser logs to the console on its own, even
-// though apiFetch's reactive refresh-and-retry already recovers from it.
+// Refresh 1 minute early: access tokens expire at 15 minutes, so this keeps
+// the heartbeat off an expired token (see the store docs).
 const ACCESS_TOKEN_REFRESH_MS = 14 * 60 * 1000;
 /** settingOn/toggleSetting key for "show the rules popup when a match starts" — read by Lobby's Rules button and Game.tsx. */
 export const RULES_ON_START_KEY = 'rulesShowOnStart';
@@ -187,11 +184,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    // Guest-facing auth routes are reachable while genuinely signed out.
-    // /api/auth/me does not fire until user is actually logged in.
-    // The root '/' is included in whitelist publicRoutes so a bare-domain visit
-    // (then redirected to /login) doesn't fire /api/auth/me.
-    // Other paths still will fire /api/auth/me.
+    // '/', '/login' and '/signup' skip the /api/auth/me probe — a guest here must
+    // not fire a 401 that the browser logs. Other paths still probe.
     const path = window.location.pathname;
     const publicRoutes = new Set([
       '/',
@@ -381,11 +375,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id);
   }, [user, sendHeartbeat]);
 
-  // Proactive token refresh: mints a new access token before the 15m one
-  // expires, so the heartbeat loop above never triggers the reactive 401
-  // path in apiFetch (which works, but leaves a 401 in the console every
-  // time). If the refresh token itself is dead, this just no-ops — the
-  // heartbeat's own 401 handling still logs the user out correctly.
+  // Proactive refresh so the heartbeat never hits the reactive 401 path in
+  // apiFetch (which recovers, but logs a console 401 first).
   useEffect(() => {
     if (!user) return;
     const id = setInterval(() => {

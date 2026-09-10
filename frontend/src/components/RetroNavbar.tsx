@@ -54,11 +54,9 @@ export function RetroNavbar({
   } = useApp();
   const currentPath = activeRoute ?? route.path;
 
-  // Below Tailwind's `xl` breakpoint (1280px) the sidebar collapses to an
-  // icon-only rail — labels are JS-conditional (not just CSS-hidden) because
-  // several pieces of width/padding here are plain inline styles, not
-  // Tailwind classes. The `<aside>` wrapper in each consuming page mirrors
-  // this exact threshold via `w-[88px] xl:w-[270px]` so the two stay in sync.
+  // Below `xl` (1280px) the sidebar collapses to an icon rail; labels are
+  // JS-toggled because parts of the bar use inline styles. Pages mirror the
+  // threshold with `w-[88px] xl:w-[270px]`.
   const [isCompact, setIsCompact] = useState(
     () => typeof window !== 'undefined' && window.innerWidth < 1280,
   );
@@ -178,11 +176,9 @@ export function RetroNavbar({
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Popover is portaled to document.body (see render below) so it always
-  // renders above sibling page content instead of being clipped/covered by
-  // an ancestor's stacking context. Position is computed from the trigger's
-  // viewport rect since the portal escapes the `position: relative` wrapper
-  // that previously anchored it via CSS `left: calc(100% + 14px)`.
+  // Portalled to <body> so it clears every stacking context; position comes from
+  // the trigger's viewport rect (the portal escapes its `position: relative`
+  // wrapper).
   useEffect(() => {
     if (!isAccountPopoverOpen) return;
     const updatePosition = () => {
@@ -730,17 +726,9 @@ export function RetroNavbar({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          // `overflow-y: auto` is a safety net, not the primary layout — the
-          // 5 items are meant to always fit without scrolling. Previously
-          // this viewport also translateY-shifted the track to "coverflow"
-          // the active item toward center (up to ±95px, via an (idx-2.5)*38
-          // formula). At short window heights (verified at the reported
-          // 1180x688 tab size, reproduces at ANY sidebar width — it's a
-          // height bug, not a compact-mode one) that shift exceeded the
-          // available slack and pushed the last item down to overlap the
-          // theme button below. Removed the shift; items now just stack
-          // statically (still dimmed/scaled by distance from active for the
-          // same visual highlight, just without repositioning them).
+          // `overflow-y: auto` is only a safety net. The old centre-shift "coverflow"
+          // was removed: at short window heights it pushed the last item over the theme
+          // button.
           overflowY: 'auto',
           padding: '8px 0',
         }}

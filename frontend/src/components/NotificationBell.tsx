@@ -245,13 +245,9 @@ export function NotificationBell({
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  // The dropdown is portaled to <body> so it always renders above every
-  // other element on the page, regardless of which stacking context the
-  // bell happens to be nested in (e.g. a `position: sticky` sidebar creates
-  // its own stacking context, which traps even a very high z-index inside
-  // it — no in-place z-index value could ever escape that). Since it's no
-  // longer positioned relative to the trigger via CSS, its coordinates are
-  // computed from the trigger's live bounding box instead.
+  // Portalled to <body> so no ancestor stacking context can trap it; position
+  // comes from the trigger's bounding box (see component docs, Implementation
+  // Notes).
   const [coords, setCoords] = useState<{
     top: number;
     left: number;

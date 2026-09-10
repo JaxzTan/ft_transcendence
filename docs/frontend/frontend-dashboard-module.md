@@ -2,9 +2,9 @@
 
 ## Status: Superseded by the Home page
 
-> **The standalone `Dashboard` page no longer exists.** Its functionality — player stats, leaderboard rank, friends list, achievements, and recent activity — was folded into the **Home page** (`/home`, `src/pages/Home.tsx`). See [frontend-home-module.md](frontend-home-module.md) for the current implementation.
+> **The standalone `Dashboard` page no longer exists.** Its features — player stats, leaderboard rank, friends list, achievements and recent activity — now live on the **Home page** (`/home`, `src/pages/Home.tsx`). See [frontend-home-module.md](frontend-home-module.md) for the current implementation.
 
-There is no `src/pages/Dashboard.tsx` in the codebase. The Home page now renders the dashboard-style widgets natively:
+There is no `src/pages/Dashboard.tsx` in the codebase. The Home page renders these features itself:
 
 ```mermaid
 flowchart LR
@@ -26,11 +26,11 @@ flowchart LR
     D --> D1
 ```
 
-1. **Player stats** — fetched from `GET /api/stats` (rating, highestRating, totalGames, wins, losses, captures, …).
-2. **Leaderboard rank** — fetched from `GET /api/leaderboard?mode=global&limit=50` (`myRank` + a username → rank map).
-3. **Friends widget** — fetched from `GET /api/friends` and `GET /api/friends/requests`, polled every ~12s.
-4. **Notifications** — bell + toasts via `useNotifications()` (SSE stream).
-5. **Quick actions** — start a game (`navigate('/gamelobby')`), leaderboard, friends.
+1. **Player stats** — read from the backend API (Application Programming Interface) at `GET /api/stats` (rating, highestRating, totalGames, wins, losses, captures, …).
+2. **Leaderboard rank** — read from `GET /api/leaderboard?mode=global&limit=50` (`myRank`, plus a username-to-rank map).
+3. **Friends widget** — read from `GET /api/friends` and `GET /api/friends/requests`, refreshed every 12 seconds.
+4. **Notifications** — bell and toasts from `useNotifications()`, which uses an SSE (Server-Sent Events) stream.
+5. **Quick actions** — start a game (`navigate('/gamelobby')`), leaderboard and friends.
 
 ---
 
@@ -38,9 +38,9 @@ flowchart LR
 
 | File | Role |
 |------|------|
-| `src/pages/Home.tsx` | Home page — the former dashboard widgets, now API-driven |
+| `src/pages/Home.tsx` | Home page — the former dashboard widgets, now reading from the API |
 | `src/hooks/useNotifications.tsx` | Notification bell + toasts (SSE) |
-| `src/api.ts` | Typed `getApi`/`postApi` fetchers |
+| `src/api.ts` | Typed `getApi`/`postApi` request helpers |
 
 ---
 

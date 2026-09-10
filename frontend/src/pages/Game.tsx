@@ -97,12 +97,9 @@ export function Game() {
   const { t } = useTranslation();
   const { user, activeMatch, seats, setPlaying, lastResult, setLastResult, setActiveMatch } =
     useApp();
-  // The socket-connect effect below keys off gameId/token only (see its
-  // dependency array) so patching activeMatch.mode/color/playerCount after
-  // connect — e.g. a lobby seat/color change — doesn't tear down and
-  // reopen the socket mid-handshake. Its long-lived handlers read this ref
-  // instead of closing over the (potentially stale) `activeMatch` so they
-  // still see those patches.
+  // The socket-connect effect keys on gameId/token only, so patching
+  // activeMatch later can't reopen the socket; its handlers read this ref to
+  // still see those patches (see the game docs, Implementation Notes).
   const activeMatchRef = useRef(activeMatch);
   activeMatchRef.current = activeMatch;
 
@@ -170,11 +167,8 @@ export function Game() {
   const animTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isMovingPiece, setIsMovingPiece] = useState(false);
   const isMovingPieceRef = useRef(false);
-  // Set the instant movePiece() emits, cleared once the server's piece_moved
-  // (or a rejection) comes back. Closes the window between the click and
-  // isMovingPieceRef flipping true — without it a second click on the same
-  // still-legal-looking piece before the server round-trip completes fires a
-  // duplicate move_piece the engine rejects with "Invalid turn phase".
+  // Set when move_piece emits, cleared on piece_moved/rejection: blocks a
+  // second click from firing a duplicate move the engine rejects.
   const pendingMoveRef = useRef(false);
   const STEP_ANIM_MS = 180;
   // Capture burst FX: a short cosmetic ring + sparks on the landing square
@@ -282,10 +276,8 @@ export function Game() {
     const socket = connectSocket(activeMatch.token);
     socketRef.current = socket;
 
-    // Refresh-safety: very old cached activeMatch objects (pre mode/playerCount
-    // in the create response) may lack mode after a browser refresh. Re-derive
-    // it from the match record so hotseat/PvE boundaries can never collapse
-    // into a generic PvP rejoin.
+    // Refresh safety: a pre-upgrade cached activeMatch may lack `mode`. Re-derive
+    // it from the match record so hotseat/PvE can't collapse into a PvP rejoin.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cached activeMatch may lack mode after a browser refresh
     if (activeMatch && !activeMatch.mode) {
       fetch('/api/games/mine', { credentials: 'include' })
@@ -609,14 +601,8 @@ export function Game() {
       setAnimatingPiece(null);
       setCaptureFx(null);
     };
-    // Keyed on the identity fields only (gameId/token never change for a
-    // given match) — NOT the whole activeMatch object, so patching
-    // mode/color/playerCount later (see activeMatchRef above) doesn't tear
-    // down and reopen the socket mid-handshake.
-    // Long-lived socket handlers intentionally read live values through
-    // viewRef/activeMatchRef (see comment above), so re-keying this effect on
-    // activeMatch/user/seats/localNames/t would tear down and reopen the socket
-    // mid-handshake every time those patch (e.g. a lobby seat/color change).
+    // Keyed on identity fields only, never the whole activeMatch object, so
+    // patching it after connect can't reopen the socket (see the game docs).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMatch?.gameId, activeMatch?.token, setLastResult]);
 
@@ -860,10 +846,9 @@ export function Game() {
   const isMyTurn = isHotseat
     ? activeHumanTurn
     : effectiveTurn === view.myColor || (user != null && seatNameMatches);
-  // `status === 'active'` closes a narrow race at game-end: the winning
-  // move can leave canRoll's other inputs looking rollable for one render
-  // before the game_ended status update lands, letting a click slip through
-  // as a "Roll failed: Game not active" rejection from the engine.
+  // `status === 'active'` closes a game-end race: the winning move can leave
+  // the other canRoll inputs looking rollable for one render, letting a click
+  // slip through as a "Game not active" rejection.
   const canRoll =
     view.status === 'active' &&
     isMyTurn &&
@@ -1099,12 +1084,8 @@ export function Game() {
                       ) {
                         return null;
                       }
-                      // `ck === view.myColor` alone lags a socket round-trip for a
-                      // PvP joiner: the seat assigned server-side (lobby_update ->
-                      // my_color_changed) can arrive after this first paint, so
-                      // this seat briefly looks like someone else's. Falling back
-                      // to a direct username match (already used below for the
-                      // active-game pilot card) recognizes it immediately.
+                      // `ck === view.myColor` lags the server's seat assignment for a PvP joiner, so
+                      // fall back to a username match — that recognises the seat on first paint.
                       const isYou =
                         ck === view.myColor ||
                         (occupied && !!user?.username && playerMeta?.username === user.username);

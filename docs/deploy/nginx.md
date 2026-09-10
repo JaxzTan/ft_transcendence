@@ -83,6 +83,19 @@ resolve `backend`/`ludo-engine` once and cache the IP for the life of the
 nginx worker — restarting either service in dev would leave nginx stuck
 retrying a dead IP until nginx itself restarted.
 
+## Vite dev proxy (`frontend-dev`)
+
+Under `make dev` the SPA is served by Vite on :8080 instead of nginx, so `vite.config.ts` mirrors the two proxy `location` blocks from `nginx.conf`:
+
+| Prefix | In-container target | Host (`npm run dev` - outside compose) target | Env override |
+|---|---|---|---|
+| `/api` | `http://backend:3000` | `http://localhost:3000` | `VITE_API_TARGET` |
+| `/socket.io` | `http://ludo-engine:3001` | `http://localhost:3001` | `VITE_ENGINE_TARGET` (with `ws: true`) |
+
+`VITE_IN_CONTAINER=true` (set by `Dockerfile.dev`) selects the in-container service names; otherwise the host's published ports are used. Mirroring `nginx.conf` here is the point: nginx, this dev server, and (for the engine) direct Docker DNS all behave identically, so no absolute backend URL ever leaks into the SPA and the browser never needs to know the engine's real address.
+
+---
+
 ## Known gotcha
 
 **`nginx/conf/app.inc` is dead config.** It's copied into the nginx image

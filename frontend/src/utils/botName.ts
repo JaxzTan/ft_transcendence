@@ -6,9 +6,7 @@ const COLOR_KEYS = {
 } as const;
 
 /**
- * Engine bots are named `${BOT_PREFIX}${color}` (e.g. "bot-red"). Map that to a
- * localized "bot-<translated color>" so rosters/results never show raw English
- * bot ids. Non-matching names are returned unchanged.
+ * `bot-<color>` engine ids to a localized "bot-<translated color>".
  */
 export function localizedBotName(
   t: (key: string, options?: Record<string, unknown>) => string,

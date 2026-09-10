@@ -1,7 +1,6 @@
-// Helpers for authenticated API calls. Access tokens expire quickly: on a 401
-// we refresh once via POST /api/auth/refresh (one shared request across all
-// callers, so the token is never rotated twice), then retry. If refresh fails,
-// a dead token means signed out; a blocked refresh returns its own status.
+// Auth API helpers: on a 401, refresh once (shared across all callers) and
+// retry. A dead refresh token means signed out; a blocked one returns its own
+// status. See docs/frontend/frontend-store-system.md.
 
 // ngrok needs this header to skip its first-request interstitial; other hosts
 // ignore it. Headers go through the Headers constructor because spreading a

@@ -2,25 +2,25 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — React Context global state: auth, game setup, settings
+- [Overview](#overview) — React Context global state: authentication, game setup, settings
 - [Files](#files) — Source file inventory
-- [Key Types / Interfaces](#key-types--interfaces) — AuthUser, Seat, Mode, Difficulty, AppState
-- [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for auth lifecycle and game setup
-- [Logic Paths Summary](#logic-paths-summary) — Decision trees for auth and game state mutations
+- [Key Types / Interfaces](#key-types--interfaces) — AuthUser, Seat, PlayerCount, Lang, ActiveMatch, LastResult, AppState
+- [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for the authentication lifecycle and game setup
+- [Logic Paths Summary](#logic-paths-summary) — Decision trees for authentication and game state changes
 - [Dependencies](#dependencies) — Internal and external dependencies
 
 ---
 
 ## Overview
 
-The store is a single React Context provider (`AppProvider`) that holds all global UI state. It provides:
+The store is one React Context provider (`AppProvider`) that holds all global UI (user interface) state. It has:
 
-1. **Auth session** — `user` object, `authReady` flag, `login`, `register`, `logout` actions.
-2. **Game setup state** — `playerCount` (2-4), `seats` array (you/bot/player/empty), `dice`, `rolling`, `turn`.
-3. **Settings** — on/off switches (sound, music, auto-roll, …) each identified by a string key, with defaults.
-4. **Real-time match** — `activeMatch` (engine credentials from `POST /api/match/create`) and `lastResult` (finished-match snapshot for the Results page).
+1. **Authentication session** — the `user` object, the `authReady` flag, and the `login`, `register` and `logout` actions.
+2. **Game setup state** — `playerCount` (2-4), the `seats` array (you/bot/player/empty), `dice`, `rolling` and `turn`.
+3. **Settings** — on/off switches (sound, music, auto-roll and others), each with a string key and a default value.
+4. **Real-time match** — `activeMatch` (the engine credentials from `POST /api/match/create`) and `lastResult` (the finished-match data for the Results view).
 5. **Helpers** — `addBot`, `removeBot`, `addPlayer`, `removePlayer`, `startGame`, `roll`, `endTurn`, `settingOn`, `toggleSetting`.
-6. **Session keep-alive** — a 20 s presence heartbeat while signed in, plus a proactive `/api/auth/refresh` every 14 minutes so the 15-minute access token never expires mid-flight.
+6. **Session keep-alive** — a presence heartbeat every 20 seconds while signed in, plus a `/api/auth/refresh` call every 14 minutes, so the 15-minute access token never expires while a request is in flight.
 
 ---
 
@@ -75,7 +75,7 @@ export type Lang = 'en' | 'ms' | 'fr'
 ```typescript
 export type ActiveMatch = {
   gameId: string  // ID of the game
-  token: string        // JWT for the Socket.IO handshake
+  token: string        // JWT (JSON Web Token) for the Socket.IO handshake
   color: PlayerColor  // Seat color
   inviteCode?: string  // Code to join a private game
   mode: 'pvp' | 'pve' | 'hotseat'  // Game mode
@@ -97,7 +97,7 @@ export type LastResult = {
 ```typescript
 type AppState = {
   user: AuthUser | null  // The logged-in user
-  authReady: boolean  // Whether login state is loaded
+  authReady: boolean  // Whether the sign-in state has loaded
   // Auth actions
   login: (identifier: string, password: string) => Promise<{ error?: string; pendingToken?: string }>  // Logs the user in
   register: (username: string, password: string, email: string) => Promise<string | null>  // Creates a new account
@@ -114,7 +114,7 @@ type AppState = {
   dice: number  // Current dice value
   rolling: boolean  // Whether the dice is animating
   turn: number  // Whose turn (index)
-  settings: Record<string, boolean>  // Game settings (sound, music, etc.)
+  settings: Record<string, boolean>  // Game settings (sound, music and others)
   setPlayerCount: (n: PlayerCount) => void  // Changes the player count
   addBot: (i: number) => void  // Adds a bot to a seat
   removeBot: (i: number) => void  // Removes a bot from a seat
@@ -163,7 +163,7 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 
 ### 1. Auth Lifecycle
 
-Sequence of steps from page load to authenticated session.
+Sequence of steps from page load to a signed-in session.
 ```mermaid
 sequenceDiagram
     participant App as App.tsx
@@ -219,13 +219,13 @@ sequenceDiagram
     Store-->>Lobby: Game ready
 ```
 
-> **Note:** `startGame` only assembles local seat state for the offline/hotseat preview. For real matches, the lobby calls `POST /api/match/create` (or the PvP/PvE shortcuts) and stores the returned `activeMatch` — the Game page then connects to the engine over Socket.IO.
+> **Note:** `startGame` only builds the local seat state used by the offline/hotseat preview. For a real match, the lobby calls `POST /api/match/create` (or the PvP (player versus player) and PvE (player versus environment) shortcuts) and stores the returned `activeMatch`; the Game page then connects to the engine over Socket.IO.
 
 ---
 
 ## Logic Paths Summary
 
-### Auth Lifecycle Path
+### Authentication Lifecycle Path
 ```
 Mount
   └── path is '/', '/login', or '/signup' → skip the check, setAuthReady(true)
@@ -285,12 +285,24 @@ toggleSetting(key)
 
 ---
 
+## `api.ts` — Refresh and Retry
+
+`apiFetch(url, init)` handles every authenticated call:
+
+- On a **401** it refreshes once through `POST /api/auth/refresh`, then retries the original request. All callers share one in-flight refresh request, so two 401s arriving at the same time can never rotate the refresh token twice.
+- If the refresh **fails**, the two cases are kept apart: a missing or expired refresh token means the user is really signed out, while a *blocked* refresh (for example, rate-limited) returns its own status instead of pretending the user signed out.
+- It adds the `ngrok-skip-browser-warning` header so the ngrok interstitial page never intercepts an API (Application Programming Interface) call (other hosts ignore the header), and it builds headers with the `Headers` constructor, so headers passed by the caller are merged instead of overwritten.
+
+`store.tsx` also refreshes **early**, every 14 minutes: access tokens expire after 15 minutes (`JwtModule` `expiresIn: '15m'`), so refreshing one minute ahead keeps the presence heartbeat (and any other call) from arriving with an expired token. The 401 retry path above would still recover, but the browser logs the 401 first.
+
+---
+
 ## Dependencies
 
 | Dependency | Purpose |
 |-----------|---------|
 | `theme.ts` | `BOT_POOL` for bot seat names |
-| `i18n.ts` | `i18n.changeLanguage` + `i18n.t` for default player names |
+| `i18n.ts` | `i18n.changeLanguage` and `i18n.t` for default player names |
 | `api.ts` | `apiFetch` (refresh-and-retry) and `refreshOnce` for the proactive 14-minute token refresh |
 | `game/types.ts` | `PlayerColor` for `ActiveMatch` |
-| `API` | `/api/auth/me`, `/api/auth/login`, `/api/auth/register`, `/api/auth/logout`, `/api/auth/2fa/verify`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/2fa`, `/api/presence/heartbeat` |
+| API (Application Programming Interface) | `/api/auth/me`, `/api/auth/login`, `/api/auth/register`, `/api/auth/logout`, `/api/auth/2fa/verify`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/2fa`, `/api/presence/heartbeat` |

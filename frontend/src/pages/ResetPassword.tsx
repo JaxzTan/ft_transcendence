@@ -18,9 +18,7 @@ import {
 } from '../styles/tw';
 
 /**
- * Step two of password reset. Reached from the emailed link, which carries
- * ?token=<resetToken>. Collects a new password (validated against the same
- * policy as signup) and, on success, sends the user to /login.
+ * Reset step 2: ?token=<resetToken>; validates against the signup policy, then /login.
  */
 export function ResetPassword() {
   const { t } = useTranslation();

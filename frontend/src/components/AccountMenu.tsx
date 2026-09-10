@@ -6,8 +6,7 @@ import { avatarBlue, sectionLabel } from '../theme';
 import { UserAvatar } from './UserAvatar';
 
 /**
- * CJK glyphs fill the em box while Latin sits at roughly half of it, so the same
- * px value renders the Latin labels optically larger. Size Latin down to match 中文.
+ * CJK glyphs fill the em box, Latin sits at ~half — size Latin down to match.
  */
 const CJK = /[\u3000-\u9fff\uF900-\uFAFF]/;
 const labelSize = (label: string) => (CJK.test(label) ? '13.5px' : '12.5px');

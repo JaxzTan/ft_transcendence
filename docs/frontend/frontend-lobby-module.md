@@ -2,9 +2,9 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — Pre-game lobby for seat setup, bot configuration, and mode selection
+- [Overview](#overview) — Pre-game lobby for seat setup, bot setup and mode selection
 - [Files](#files) — Source file inventory
-- [Key Types / Interfaces](#key-types--interfaces) — Seat, Mode, Difficulty types
+- [Key Types / Interfaces](#key-types--interfaces) — Seat, PlayerCount and BOT_POOL types
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for lobby setup and game start
 - [Logic Paths Summary](#logic-paths-summary) — Decision trees for seat management and game start
 - [Dependencies](#dependencies) — Internal and external dependencies
@@ -13,14 +13,14 @@
 
 ## Overview
 
-The lobby lives at `/gamelobby` (`LudoLobby.tsx`), with a separate `/gamelobby/table` screen (`Lobby.tsx`) for the table/room view. The lobby is where players configure and launch a game. It provides:
+The lobby is at `/gamelobby` (`LudoLobby.tsx`), with a separate table/room screen at `/gamelobby/table` (`Lobby.tsx`). Players set up and start a game here. It has:
 
 1. **Seat setup** — player count (2-4, read from the `?mode=` query param) and seat assignment (`you`, `player`, `bot`, or empty).
-2. **Bot configuration** — add/remove bots.
-3. **Mode selection** — PvP, PvE, or hotseat.
-4. **Match creation** — calls the backend matchmaking API (`POST /api/match/create`, or the PvP/PvE shortcuts), stores the returned `activeMatch` (gameId + engine token) in the store, then navigates to `/game` where the Socket.IO connection is made.
+2. **Bot setup** — add or remove bots.
+3. **Mode selection** — PvP (player versus player), PvE (player versus environment) or hotseat.
+4. **Match creation** — calls the backend matchmaking API (Application Programming Interface) at `POST /api/match/create` (or the PvP/PvE shortcuts), stores the returned `activeMatch` (gameId and engine token) in the store, then navigates to `/game`, where the Socket.IO connection starts.
 
-> **Note:** The lobby is fully wired to the backend. Creating a match returns engine credentials (`gameId`, `token`, `engineUrl`) which the Game page uses to connect via Socket.IO.
+> **Note:** The lobby talks to the real backend. Creating a match returns engine credentials (`gameId`, `token`, `engineUrl`), which the Game page uses to connect through Socket.IO.
 
 ---
 
@@ -141,10 +141,16 @@ addPlayer(i)
 
 ---
 
+## How Seat Colours Are Sent
+
+For hotseat and PvE, the created game is exactly the occupied seats (the host is always seat 0 / blue, then each added local player or bot in seat order). `Lobby.tsx` therefore sends the **exact** `seatColors` list rather than a count. Without it, the engine's `playerCount`-based default fills the gaps again and brings back seats the user deliberately skipped.
+
+---
+
 ## Dependencies
 
 | Dependency | Purpose |
 |-----------|---------|
-| `store.tsx` | `useApp` for mode, seats, and game actions |
+| `store.tsx` | `useApp` for mode, seats and game actions |
 | `router.tsx` | `navigate('/game')` on start |
 | `theme.ts` | `BOT_POOL` constant, inline styles |

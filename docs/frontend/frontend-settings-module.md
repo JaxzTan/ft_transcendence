@@ -6,20 +6,20 @@
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — Setting keys and defaults
 - [Core Logic / Flow](#core-logic--flow) — AccountMenu settings flow
-- [Logic Paths Summary](#logic-paths-summary) — Decision trees for toggle behavior
+- [Logic Paths Summary](#logic-paths-summary) — Decision trees for toggling settings
 - [Dependencies](#dependencies) — Internal and external dependencies
 
 ---
 
 ## Overview
 
-User settings are managed through the `AccountMenu` component (rendered by `Shell`, which is currently unused by routes — no `/settings` page exists). The AccountMenu provides:
+Settings live in the `AccountMenu` component, which `Shell` renders. No route currently uses `Shell`, so there is no `/settings` page. The AccountMenu has:
 
-1. **Language selector** — toggle between supported languages.
-2. **2FA toggle** — enable/disable two-factor authentication (calls `PATCH /api/auth/2fa`).
-3. **Sign out** — calls `POST /api/auth/logout` and navigates to `/login`.
+1. **Language selector** — switch between the supported languages.
+2. **2FA (two-factor authentication) toggle** — turn it on or off by calling `PATCH /api/auth/2fa`.
+3. **Sign out** — calls `POST /api/auth/logout`, then navigates to `/login`.
 
-Game preference toggles (sound, music, auto-roll, etc.) remain in `store.tsx` as `SETTING_DEFAULTS` and are not exposed through a dedicated settings page yet.
+The game preference toggles (sound, music, auto-roll and others) still live in `store.tsx` as `SETTING_DEFAULTS`, and no dedicated settings page exposes them yet.
 
 ---
 
@@ -29,7 +29,7 @@ Game preference toggles (sound, music, auto-roll, etc.) remain in `store.tsx` as
 |------|------|
 | `src/components/AccountMenu.tsx` | Account menu dropdown (language, 2FA, sign out) |
 
-> **Note:** There is no `src/pages/Settings.tsx` — settings live in the `AccountMenu` and in `store.tsx` (game preference toggles).
+> **Note:** There is no `src/pages/Settings.tsx` — settings live in the `AccountMenu`, and the game preference toggles live in `store.tsx`.
 
 ---
 
@@ -52,7 +52,7 @@ export const SETTING_DEFAULTS: Record<string, boolean> = {
 ### Setting State
 
 ```typescript
-settings: Record<string, boolean>  // Override values; falls back to SETTING_DEFAULTS
+settings: Record<string, boolean>  // Stored values; anything missing uses SETTING_DEFAULTS
 ```
 
 ---
@@ -96,7 +96,7 @@ sequenceDiagram
 ### AccountMenu Path
 ```
 <AccountMenu />
-  ├── Render avatar button with initials
+  ├── Render the avatar button with initials
   ├── onClick → toggle dropdown
   ├── Language option → setLang(lang)
   ├── 2FA option → toggleTwoFactor() → PATCH /api/auth/2fa

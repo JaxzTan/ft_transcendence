@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-/** Pip indexes (3×3 grid, row-major) lit per face value. */
+// Pip indexes (3×3 grid, row-major) lit per face value.
 const PIP_MAP: Partial<Record<number, number[]>> = {
   1: [4],
   2: [0, 8],

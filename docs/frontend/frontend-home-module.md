@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — Main landing hub for authenticated users
+- [Overview](#overview) — Main landing page for signed-in users
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — Data shapes
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagram of home rendering
@@ -13,16 +13,16 @@
 
 ## Overview
 
-The Home page is the main landing page after login (`/home`, full-bleed). It doubles as the player dashboard. It provides:
+The Home page is the main landing page after login (`/home`, full-bleed). It also acts as the player dashboard, and shows:
 
-1. **Player stats widget** — fetched from `GET /api/stats` (rating, games, wins, losses, captures).
-2. **Leaderboard rank widget** — fetched from `GET /api/leaderboard?mode=global&limit=50`, using `myRank` plus a username→rank map.
-3. **Friends widget** — fetched from `GET /api/friends` + `GET /api/friends/requests`, refreshed every ~12s; shows live presence status.
-4. **Notifications** — bell icon + toasts via `useNotifications()` (SSE-backed).
+1. **Player stats widget** — read from the backend API (Application Programming Interface) at `GET /api/stats` (rating, games, wins, losses, captures).
+2. **Leaderboard rank widget** — read from `GET /api/leaderboard?mode=global&limit=50`, using `myRank` plus a username-to-rank map.
+3. **Friends widget** — read from `GET /api/friends` + `GET /api/friends/requests`, refreshed every 12 seconds; shows live presence status.
+4. **Notifications** — bell icon and toasts from `useNotifications()`, which uses an SSE (Server-Sent Events) stream.
 5. **Quick actions** — start a game (navigates to `/gamelobby`), leaderboard, friends.
-6. **Global hotkeys** — keyboard shortcuts registered on mount (e.g. quick nav).
+6. **Global hotkeys** — keyboard shortcuts registered when the page mounts (for example, quick navigation).
 
-> The Home page is API-driven — no mock data. It renders with a retro/cyber aesthetic (`RetroNavbar`, `retrowave.css`).
+> The Home page reads all of its data from the API; there is no mock data. It uses the retro/cyber styling (`RetroNavbar`, `retrowave.css`).
 
 ---
 
@@ -90,7 +90,7 @@ sequenceDiagram
     else error
         Home->>Home: Render empty/loading states
     end
-    Note over Home: Friends widget refreshes every ~12s
+    Note over Home: Friends widget refreshes every 12 seconds
 ```
 
 ---
@@ -108,6 +108,12 @@ sequenceDiagram
   ├── Render quick actions: Start game → navigate('/gamelobby')
   └── Register global hotkeys
 ```
+
+---
+
+## Hero Badge Bar
+
+The hero section shows a live site-wide badge with the number of **online players**, read from `GET /api/presence/online-count` and refreshed every 15 seconds.
 
 ---
 

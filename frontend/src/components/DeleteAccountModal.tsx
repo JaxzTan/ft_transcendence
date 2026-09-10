@@ -35,13 +35,7 @@ function inputStyle(): CSSProperties {
   };
 }
 
-/**
- * Account deletion flow. Two steps:
- *  1. setPassword  — OAuth-only accounts (no password) must create one first,
- *                    because deletion is always verified with the password.
- *  2. confirm      — warning + password entry + acknowledgement checkbox.
- * On success the session is cleared (store logout) and the user lands on /login.
- */
+//Account deletion: OAuth-only accounts set a password first, then confirm with it.
 export function DeleteAccountModal({
   onClose,
   hasPassword,

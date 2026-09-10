@@ -10,13 +10,13 @@
 
 ## Overview
 
-These pages handle post-password authentication flows:
+These pages handle the steps that happen after the password check:
 
-1. **TwoFactor** (`/2fa`) — 6-digit code entry after password login or OAuth when 2FA is enabled.
-2. **ForgotPassword** (`/forgot-password`) — Step one of password reset; collects email and requests a reset link.
-3. **ResetPassword** (`/reset-password`) — Step two of password reset; redeems emailed token with a new password.
+1. **TwoFactor** (`/2fa`) — 6-digit code entry after password login or OAuth (Open Authorization), when two-factor authentication (2FA) is enabled.
+2. **ForgotPassword** (`/forgot-password`) — password reset step one: collect an email and request a reset link.
+3. **ResetPassword** (`/reset-password`) — password reset step two: use the emailed token to set a new password.
 
-All three are full-bleed routes (no shell) and are public (no session required).
+All three are full-bleed routes (no side rail) and are public, so no session is required.
 
 ---
 
@@ -27,7 +27,7 @@ All three are full-bleed routes (no shell) and are public (no session required).
 | `src/pages/TwoFactor.tsx` | 2FA code entry page |
 | `src/pages/ForgotPassword.tsx` | Password reset step 1 — email input |
 | `src/pages/ResetPassword.tsx` | Password reset step 2 — new password form |
-| `src/components/RetroAuthLayout.tsx` | Layout wrapper for all auth pages |
+| `src/components/RetroAuthLayout.tsx` | Layout container for all auth pages |
 | `src/store.tsx` | `verify2fa`, `forgotPassword`, `resetPassword` actions |
 | `src/validatePassword.ts` | Client-side password validation (mirrors backend policy) |
 
@@ -39,12 +39,12 @@ All three are full-bleed routes (no shell) and are public (no session required).
 
 Reached with `?token=<pendingToken>` after password login or OAuth when the account has 2FA enabled.
 
-- Displays a 6-digit code input (numeric, auto-focused).
+- Shows a 6-digit code input (numeric, focused automatically).
 - Calls `POST /api/auth/2fa/verify` with `pendingToken` and `code`.
 - On success, navigates to `/home`.
-- On failure, shows error message.
+- On failure, shows an error message.
 
-**Route params:** `token` query param = the `pendingToken` from login response.
+**Route params:** the `token` query parameter holds the `pendingToken` from the login response.
 
 ### Password reset flow
 
@@ -82,7 +82,7 @@ Step one of password reset.
 
 - Email input with validation.
 - Calls `POST /api/auth/forgot-password` with the email.
-- Always shows the same success message (no account enumeration).
+- Always shows the same success message, so it never reveals whether an address is registered.
 - On success, shows "check your inbox" confirmation with a link back to `/login`.
 
 ---
@@ -98,13 +98,13 @@ Step two of password reset.
 - On success, navigates to `/login?reset=1`.
 - If no `token` query param, shows an "invalid reset link" error.
 
-**Route params:** `token` query param = the 64-char hex reset token from the email.
+**Route params:** the `token` query parameter holds the 64-character hexadecimal reset token from the email.
 
 ---
 
 ## Password Policy
 
-Both `ForgotPassword` and `ResetPassword` enforce the same policy as registration:
+Both pages enforce the same policy as registration:
 
 ```typescript
 // frontend/src/validatePassword.ts
@@ -117,6 +117,14 @@ export function passwordError(password: string): string | null {
   return null
 }
 ```
+
+---
+
+## Page Notes
+
+- **ForgotPassword** collects an email and asks the backend to send a reset link. The confirmation screen always appears: the backend never reveals whether the address is registered, and neither does the page.
+- **ResetPassword** is reached from the emailed link, which carries `?token=<resetToken>`. It validates the new password against the same policy as signup (`validatePassword.ts`); on success it sends the user to `/login`.
+- **TwoFactor** is reached in two ways, both with `?token=<pendingToken>`: from `Login.tsx` after the password step succeeds, or from the backend's OAuth callback after it emails the code.
 
 ---
 

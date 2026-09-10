@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — Global rankings table fed by the leaderboard API
+- [Overview](#overview) — Global rankings table, read from the leaderboard endpoint
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — Data shapes
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for leaderboard rendering
@@ -13,14 +13,14 @@
 
 ## Overview
 
-The Leaderboard page (`/leaderboard`, full-bleed) displays ranked player listings. It provides:
+The Leaderboard page (`/leaderboard`, full-bleed) shows players in rank order. It has:
 
 1. **Rankings table** — rank, player (avatar + username), rating, matches, win rate.
-2. **Top-3 podium** — highlighted champion/second/third cards.
+2. **Top-3 podium** — highlighted cards for the top three players.
 3. **Current user highlight** — "you" badge on the logged-in user's row.
-4. **Counts** — total entries, telemetry/empty states.
+4. **Counts and states** — the total number of entries, plus loading and empty states.
 
-> **Note:** The Leaderboard fetches live data from `GET /api/leaderboard?mode=global&limit=50` — no mock data. i18n strings come from `locales/*` under the `leaderboard` namespace.
+> **Note:** The Leaderboard reads live data from the leaderboard API (Application Programming Interface) at `GET /api/leaderboard?mode=global&limit=50`; there is no mock data. Translated text comes from `locales/*`, under the `leaderboard` namespace.
 
 ---
 
@@ -81,7 +81,7 @@ sequenceDiagram
 <Leaderboard />
   ├── GET /api/leaderboard?mode=global&limit=50
   │   ├── Success → render podium + table + you-badge
-  │   └── Failure → render telemetry/empty state
+  │   └── Failure → render the empty state
   └── getRankTier(rating) → tier badge per row
 ```
 
@@ -91,7 +91,7 @@ sequenceDiagram
 
 | Dependency | Purpose |
 |-----------|---------|
-| `api.ts` | Typed fetchers |
+| `api.ts` | Typed request helpers |
 | `store.tsx` | `useApp` for current user |
 | `utils/ranks.ts` | Rank tier badges |
 | `i18n.ts` | `useTranslation` (`leaderboard.*` keys) |

@@ -89,23 +89,7 @@ const STATUS_KEYS: Record<PresenceStatus, string> = {
 };
 
 /**
- * The 13 visible achievements.
- *
- * Requirements match the revamp thresholds (achievement-revamp.md v3):
- *   achFirstBlood     — 1 win (any PVP/PVE)
- *   achOnFire         — 2 consecutive wins (User.winStreak >= 2)
- *   achDiceMaster     — 3 wins
- *   achBabySteps      — 1 bot win
- *   achTheDiceLoveMe  — 3 bot wins
- *   achTactician      — 5 wins
- *   achMaster         — 8 wins
- *   achGrandBotMaster — 12 wins
- *   achWorldChampion  — 15 wins
- *   achft_Transcendence — 10 PvP wins (PvE never counts)
- *   achLoveTheMachine — 3 consecutive PvE games (any outcome; PVP resets)
- *   achSpeedDemon     — win in < 30 min (unknown duration ⇒ no unlock)
- *   achUnstoppable    — 3 captures in a single game
- * Hotseat is never counted for any achievement.
+ * The 13 visible achievements; see docs/frontend/frontend-profile-module.md.
  */
 const ACHIEVEMENTS_DEF = [
   {

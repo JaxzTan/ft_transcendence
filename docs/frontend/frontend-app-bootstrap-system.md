@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — Root app component, route categories, and auth guard logic
+- [Overview](#overview) — Root app component, route categories and authentication guard logic
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — Route categories and AppProvider shape
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagram of bootstrap and routing flow
@@ -13,12 +13,12 @@
 
 ## Overview
 
-The app bootstrap layer is responsible for:
+The app bootstrap layer does four things:
 
-1. **Route categories** — splits pages into `SHELL_ROUTES` (wrapped in sidebar + header) and `FULL_ROUTES` (no shell).
-2. **Auth guard** — redirects unauthenticated users to `/login`, authenticated users away from public routes, with special handling for account-action routes (verification, password reset, 2FA) that must be reachable even when another account is logged in.
+1. **Route categories** — splits pages into `SHELL_ROUTES` (rendered inside the side rail and header) and `FULL_ROUTES` (no side rail).
+2. **Authentication guard** — sends signed-out users to `/login` and signed-in users away from public routes. Account-action routes (email verification, password reset, 2FA (two-factor authentication)) are the exception: they must stay reachable even when another account is signed in.
 3. **Session bootstrap** — `AppProvider` calls `/api/auth/me` on page load to see if the user is already logged in. The probe is skipped on the guest-facing public routes (`/`, `/login`, `/signup`), where there cannot be a session to restore.
-4. **Shell rendering** — wraps shell routes in `Shell` component; currently `SHELL_ROUTES` is empty, so every page renders full-bleed.
+4. **Shell rendering** — wraps shell routes in the `Shell` component; `SHELL_ROUTES` is currently empty, so every page renders full-bleed.
 
 ---
 
@@ -26,8 +26,8 @@ The app bootstrap layer is responsible for:
 
 | File | Role |
 |------|------|
-| `src/App.tsx` | Root component — route maps, auth guard, AppProvider wrapper |
-| `src/store.tsx` | `AppProvider` context — auth session, login/register/logout/2FA/password-reset actions, game state |
+| `src/App.tsx` | Root component — route maps, authentication guard, AppProvider container |
+| `src/store.tsx` | `AppProvider` context — session state, login/register/logout/2FA/password-reset actions, game state |
 
 ---
 
@@ -36,7 +36,7 @@ The app bootstrap layer is responsible for:
 ### Route Categories
 
 ```typescript
-/** Screens that render inside the app shell (rail + header). Currently none —
+/** Screens that render inside the app shell (side rail + header). Currently none —
  * every screen renders full-bleed. Kept as a map for future shell-wrapped pages. */
 const SHELL_ROUTES: Record<string, () => ReactNode> = {}
 
@@ -72,7 +72,7 @@ const PUBLIC_ROUTES = new Set([
 ```typescript
 type AppState = {
   user: AuthUser | null  // The logged-in user
-  authReady: boolean  // Whether login state is loaded
+  authReady: boolean  // Whether the sign-in state has loaded
   // Auth actions
   login: (identifier: string, password: string) => Promise<{ error?: string; pendingToken?: string }>  // Logs the user in
   register: (username: string, password: string, email: string) => Promise<string | null>  // Creates a new account
@@ -89,7 +89,7 @@ type AppState = {
   dice: number  // Current dice value
   rolling: boolean  // Whether the dice is animating
   turn: number  // Whose turn (index)
-  settings: Record<string, boolean>  // Game settings (sound, music, etc.)
+  settings: Record<string, boolean>  // Game settings (sound, music and others)
   setPlayerCount: (n: PlayerCount) => void  // Changes the player count
   addBot: (i: number) => void  // Adds a bot to a seat
   removeBot: (i: number) => void  // Removes a bot from a seat
@@ -105,7 +105,7 @@ type AppState = {
   // Real-time match
   activeMatch: ActiveMatch | null   // from POST /api/match/create
   setActiveMatch: (m: ActiveMatch | null) => void  // Updates the current match
-  lastResult: LastResult | null     // finished match snapshot for Results page
+  lastResult: LastResult | null     // finished-match data for the Results view
   setLastResult: (r: LastResult | null) => void  // Saves finished match results
   // Theme
   theme: ThemeType  // Selected UI theme (synthwave | win95 | terminal)
@@ -168,6 +168,12 @@ useEffect([authReady, known, user, isPublic, hasNotice])
   ├── user && isPublic && !hasNotice → navigate('/home')
   └── else → render route component
 ```
+
+---
+
+### Account-action notices
+
+Account-action arrivals (`?verified=...`, `?reset=...`, `?error=...`, `?token=...`) are tied to one account action, not to the signed-in session, so a signed-in user must still see them instead of being sent to `/home`. `Screen` therefore treats any route carrying one of those query keys as exempt from the "signed-in users leave public routes" redirect — for example, verifying (or resetting) account B while account A happens to be signed in in the same browser.
 
 ---
 

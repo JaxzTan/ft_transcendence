@@ -2,24 +2,24 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — User profile with stats, match history, and friends sidebar
+- [Overview](#overview) — User profile with statistics, match history and a friends panel
 - [Files](#files) — Source file inventory
 - [Key Types / Interfaces](#key-types--interfaces) — Profile, match history, and friend types
-- [Core Logic / Flow](#core-logic--flow) — Data fetching and presence polling
+- [Core Logic / Flow](#core-logic--flow) — Data fetching, and when it repeats
 - [Dependencies](#dependencies) — Internal and external dependencies
 
 ---
 
 ## Overview
 
-The Profile page (`/profile`) displays a user's public profile with statistics, recent match history, and a friends sidebar. It is a full-bleed route (rendered directly, no Shell wrapper; the page provides its own `RetroNavbar` navigation).
+The Profile page (`/profile`) shows a user's public profile with statistics, recent match history and a friends panel. It is a full-bleed route (rendered directly, with no `Shell` container); the page renders its own `RetroNavbar`.
 
-1. **Profile header** — username, status indicator, avatar initials, rating, member since date.
+1. **Profile header** — username, status indicator, avatar initials, rating and the date the account was created.
 2. **Stats grid** — wins, losses, win rate, best streak.
-3. **Recent matches** — list of games with opponent names, result (victory/defeat/draw), pieces in goal, date.
-4. **Friends sidebar** — list of friends with online status and rating badge (only shown on own profile).
+3. **Recent matches** — each game with the opponent names, the result (victory, defeat or draw), pieces in goal and the date.
+4. **Friends panel** — friends with their online status and a rating badge; shown only on your own profile.
 
-The page fetches the profile, game history, achievements, friends, and leaderboard rank when it loads (and re-fetches when the username changes or after the edit modal closes). It does **not** poll on a timer.
+When the page loads it reads the profile, game history, achievements, friends and leaderboard rank. It reads them again when the username changes or when the edit modal closes. It does **not** repeat on a timer.
 
 ---
 
@@ -29,7 +29,7 @@ The page fetches the profile, game history, achievements, friends, and leaderboa
 |------|------|
 | `src/pages/Profile.tsx` | Profile page component |
 | `src/components/RetroNavbar.tsx` | Top navigation bar (profile page is full-bleed) |
-| `src/store.tsx` | `useApp` for auth, presence, and API fetches |
+| `src/store.tsx` | `useApp` for authentication state, presence and API (Application Programming Interface) calls |
 | `src/theme.ts` | `STATUS_STYLE`, `card`, `avatarBlue`, `goldText` styles |
 
 ---
@@ -119,14 +119,14 @@ sequenceDiagram
     Profile->>Profile: Render stats, matches, friends sidebar
 ```
 
-### Presence Polling
+### Data Refresh
 
 ```mermaid
 sequenceDiagram
     participant Profile
     participant API
 
-    Note over Profile,API: Fetch once on mount / username change
+    Note over Profile,API: Read once on mount, and again when the username changes
     Profile->>API: GET /api/user/:username
     Profile->>API: GET /api/user/:username/games?limit=30
     alt Own profile
@@ -135,8 +135,32 @@ sequenceDiagram
         Profile->>API: GET /api/leaderboard?mode=global&limit=50
     end
     API-->>Profile: profile, games, friends, achievements, rank
-    Profile->>Profile: Re-render with data (no polling timer)
+    Profile->>Profile: Re-render with the data (no repeating timer)
 ```
+
+---
+
+## Achievements (own profile)
+
+Your own profile renders the 13 achievements defined by `ACHIEVEMENTS_DEF` in `Profile.tsx`. The thresholds match the backend registry, which is the version that runs (see [backend-achievements-module.md](../backend/backend-achievements-module.md)). Match types are PvP (player versus player) and PvE (player versus environment, against bots).
+
+| Key | Requirement |
+|-----|-------------|
+| `achFirstBlood` | 1 win (PvP or PvE) |
+| `achOnFire` | `User.winStreak` >= 2 |
+| `achDiceMaster` | 3 wins |
+| `achBabySteps` | 1 bot win |
+| `achTheDiceLoveMe` | 3 bot wins |
+| `achTactician` | 5 wins |
+| `achMaster` | 8 wins |
+| `achGrandBotMaster` | 12 wins |
+| `achWorldChampion` | 15 wins |
+| `achft_Transcendence` | 10 PvP wins (PvE never counts) |
+| `achLoveTheMachine` | 3 consecutive PvE games, any outcome (a PvP game resets it) |
+| `achSpeedDemon` | win in under 30 minutes (unknown duration means no unlock) |
+| `achUnstoppable` | 3 captures in a single game |
+
+Hotseat games never count towards any achievement. The badge/tab counter shows `unlocked / 13`.
 
 ---
 
@@ -145,5 +169,5 @@ sequenceDiagram
 | Dependency | Purpose |
 |-----------|---------|
 | `store.tsx` | `useApp()` for `user` and navigation |
-| `router.tsx` | `useRoute()` to read `?u=` query param |
+| `router.tsx` | `useRoute()` to read the `?u=` query parameter |
 | `theme.ts` | `STATUS_STYLE`, `card`, `avatarBlue`, `goldText` |

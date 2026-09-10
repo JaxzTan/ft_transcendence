@@ -1,41 +1,19 @@
-// Shared Tailwind utility strings for classes reused across multiple
-// components, so the migration doesn't repeat a long class string at
-// every call site. Each constant is the exact utility equivalent of the
-// CSS rule it replaces.
+// Shared Tailwind utility strings for classes reused across components; each
+// constant is the utility equivalent of the CSS rule it replaced. Rationale
+// and per-constant notes: docs/frontend/frontend-components-system.md.
 
 export const RETRO_BTN =
   'inline-flex items-center gap-1.5 px-4 py-2.5 uppercase cursor-pointer outline-none text-[0.7rem] text-[var(--text-main)] bg-[var(--btn-bg)] border-2 border-[var(--accent-cyan)] shadow-[var(--box-shadow)] [font-family:var(--font-heading)] [transition:all_0.2s_ease] hover:-translate-y-0.5 hover:shadow-[var(--btn-hover-shadow)] active:translate-y-px';
 
-// Base (idle, synthwave-default) look for `.theme-trigger-btn`. Every live
-// consumer (NotificationBell, RetroNavbar) sets its own inline
-// background/border/box-shadow — which is why the win95/terminal variants
-// below need Tailwind's `!` important-modifier, matching the `!important`
-// the original CSS needed for the same reason. retrowave.css actually had
-// TWO win95/terminal rule sets for this class: a general
-// `[data-theme=...] .theme-trigger-btn` one and a more specific
-// `[data-theme=...] .retro-floating-dock .theme-trigger-btn` one — every
-// live instance sits inside `.retro-floating-dock`, so the general set was
-// 100% dead (confirmed by specificity, not assumed) and only the scoped
-// one is ported here. Neither set had a `:hover` rule more specific than
-// the scoped base rule, so win95/terminal hover was already dead too —
-// not reintroduced. `.theme-trigger-btn.active .theme-chevron` was dead
-// CSS (zero consumers, no chevron element exists) — deleted, not
-// converted. `active` stays a literal JS-toggled class (unchanged call
-// sites) so the `&.active` compound arbitrary-variant below can target it.
+// Consumers set inline bg/border/shadow, so the theme variants need `!`. Only
+// the `.retro-floating-dock`-scoped theme rules were reachable; `active` stays
+// a literal class so `&.active` can still target it.
 export const THEME_TRIGGER_BTN_BASE =
   "font-['Press_Start_2P',cursive] text-[0.65rem] h-[38px] w-[125px] px-2.5 box-border inline-flex items-center justify-between rounded gap-1 relative shrink-0 cursor-pointer outline-none [transition:background_0.2s_ease,border-color_0.2s_ease,box-shadow_0.2s_ease,color_0.2s_ease] [[data-theme=win95]_&]:!bg-[#c0c0c0] [[data-theme=win95]_&]:!border-t-2 [[data-theme=win95]_&]:!border-t-white [[data-theme=win95]_&]:!border-l-2 [[data-theme=win95]_&]:!border-l-white [[data-theme=win95]_&]:!border-r-2 [[data-theme=win95]_&]:!border-r-black [[data-theme=win95]_&]:!border-b-2 [[data-theme=win95]_&]:!border-b-black [[data-theme=win95]_&]:!rounded-none [[data-theme=win95]_&]:!text-black [[data-theme=win95]_&]:!shadow-[1px_1px_0px_#000] [[data-theme=win95]_&.active]:!bg-[#000080] [[data-theme=win95]_&.active]:!text-white [[data-theme=win95]_&.active]:!border-t-black [[data-theme=win95]_&.active]:!border-l-black [[data-theme=win95]_&.active]:!border-r-white [[data-theme=win95]_&.active]:!border-b-white [[data-theme=win95]_&.active]:!shadow-[inset_1px_1px_0px_#000] [[data-theme=terminal]_&]:!bg-[#0a1f0a] [[data-theme=terminal]_&]:!border [[data-theme=terminal]_&]:!border-[rgba(51,255,51,.4)] [[data-theme=terminal]_&]:!rounded [[data-theme=terminal]_&]:!text-[#33ff33] [[data-theme=terminal]_&.active]:!bg-[#116611] [[data-theme=terminal]_&.active]:!border-[#33ff33] [[data-theme=terminal]_&.active]:!text-white [[data-theme=terminal]_&.active]:!shadow-[0_0_12px_#33ff33,inset_0_0_8px_#33ff33]";
 
-// Base look for `.theme-popover-menu`. The --fs-bg/--fs-border/--fs-glow
-// custom properties (redefined per [data-theme]) already cover the
-// synthwave-default colors, but win95/terminal also change border-radius/
-// box-shadow shape/backdrop-blur in ways no custom property expresses, so
-// those need explicit variants below (ported from the original CSS's
-// `!important` overrides — needed here too since call sites set their own
-// inline background/border/shadow). Display state (hidden vs sliding open)
-// moved to JS-conditional classes instead of a toggled CSS class — see
-// THEME_POPOVER_MENU_HIDDEN/_ACTIVE_DOWN/_ACTIVE_UP below; the two
-// `@keyframes popover-slide-*` stay in retrowave.css, applied via
-// arbitrary `animation:` values.
+// `--fs-*` vars cover the colours; win95/terminal radius/shadow/blur need `!`
+// variants. Open state uses the *_HIDDEN/_ACTIVE_* classes; keyframes stay in
+// retrowave.css.
 export const THEME_POPOVER_MENU_BASE =
   'absolute top-[calc(100%+10px)] right-0 z-[10001] bg-[var(--fs-bg)] border-2 border-[var(--fs-border)] shadow-[0_14px_40px_rgba(0,0,0,.9),0_0_25px_var(--fs-glow)] p-2.5 rounded-md min-w-[240px] [transform-origin:top_right] backdrop-blur-[10px] [[data-theme=win95]_&]:!bg-[#c0c0c0] [[data-theme=win95]_&]:!border-t-2 [[data-theme=win95]_&]:!border-t-white [[data-theme=win95]_&]:!border-l-2 [[data-theme=win95]_&]:!border-l-white [[data-theme=win95]_&]:!border-r-2 [[data-theme=win95]_&]:!border-r-black [[data-theme=win95]_&]:!border-b-2 [[data-theme=win95]_&]:!border-b-black [[data-theme=win95]_&]:!rounded-none [[data-theme=win95]_&]:!shadow-[3px_3px_0px_#000] [[data-theme=win95]_&]:!text-black [[data-theme=win95]_&]:!backdrop-blur-none [[data-theme=terminal]_&]:!bg-[rgba(5,16,5,.98)] [[data-theme=terminal]_&]:!border-[1.5px] [[data-theme=terminal]_&]:!border-[#33ff33] [[data-theme=terminal]_&]:!shadow-[0_0_25px_rgba(51,255,51,.35)] [[data-theme=terminal]_&]:!rounded-[4px] [[data-theme=terminal]_&]:!text-[#33ff33]';
 
@@ -47,10 +25,8 @@ export const THEME_POPOVER_MENU_ACTIVE_DOWN =
 export const THEME_POPOVER_MENU_ACTIVE_UP =
   'block [animation:popover-slide-up_0.3s_cubic-bezier(.175,.885,.32,1.275)_forwards]';
 
-// RetroNavbar.tsx's outer nav shell (`#mainNav`). No inline background/
-// border/shadow on this element, so no `!important` needed here (unlike
-// the two constants above) — the arbitrary variant's higher selector
-// specificity is enough on its own.
+// RetroNavbar's `#mainNav` — no inline bg/border/shadow here, so no `!` is
+// needed (the arbitrary variants' higher specificity wins).
 export const RETRO_FLOATING_DOCK =
   'relative z-[9999] flex justify-between items-center px-5 py-2.5 min-h-14 bg-(--bg-card) [border:var(--card-border-style)] shadow-(--box-shadow) backdrop-blur-[10px] m-0 rounded-md box-border [[data-theme=win95]_&]:bg-[#c0c0c0] [[data-theme=win95]_&]:border-t-2 [[data-theme=win95]_&]:border-t-white [[data-theme=win95]_&]:border-l-2 [[data-theme=win95]_&]:border-l-white [[data-theme=win95]_&]:border-r-2 [[data-theme=win95]_&]:border-r-black [[data-theme=win95]_&]:border-b-2 [[data-theme=win95]_&]:border-b-black [[data-theme=win95]_&]:rounded-none [[data-theme=win95]_&]:shadow-[3px_3px_0px_#000,inset_1px_1px_0px_#dfdfdf] [[data-theme=win95]_&]:backdrop-blur-none [[data-theme=win95]_&]:text-black [[data-theme=terminal]_&]:bg-[rgba(5,16,5,.95)] [[data-theme=terminal]_&]:border-[1.5px] [[data-theme=terminal]_&]:border-[#33ff33] [[data-theme=terminal]_&]:shadow-[0_0_25px_rgba(51,255,51,.3),inset_0_0_15px_rgba(51,255,51,.15)] [[data-theme=terminal]_&]:rounded [[data-theme=terminal]_&]:[backdrop-filter:blur(12px)] [[data-theme=terminal]_&]:text-[#33ff33]';
 
@@ -93,23 +69,12 @@ export const RETRO_AUTH_SUCCESS =
 export const RETRO_AUTH_MUTED =
   "text-[rgba(184,166,228,.6)] text-[13px] font-['Share_Tech_Mono',monospace]";
 
-// "Page shell" — shared across Home/Profile/Leaderboard/Friends/Lobby/
-// Game/LudoLobby (7 pages). All fully driven by CSS custom properties
-// (--bg-card, --card-border-style, --box-shadow, --window-header-bg/text,
-// --bg-secondary, --accent-cyan, --font-heading), themselves redefined
-// per [data-theme] in retrowave.css — so these keep reskinning correctly
-// with zero theme-aware logic here, same as THEME_POPOVER_MENU_BASE.
-// The separate win95/terminal `[data-theme=...] .retro-window { ... !important }`
-// style overrides for .retro-window/.window-header/.window-body are left
-// untouched in CSS (redundant with the vars, but harmless to keep).
+// Shared "page shell" for 7 pages: fully custom-property driven, so it needs
+// no theme-aware logic here.
 export const CRT_SCREEN = 'relative z-10 min-h-screen';
 
-// Animated 3D synthwave grid + sun background, shared by RetroAuthLayout and
-// all 8 dashboard pages. The win95/terminal `[data-theme=...] { display:none
-// !important }` hides from retrowave.css become arbitrary `&`-selector
-// variants here — same "keep reskinning via CSS custom properties, zero
-// theme-aware JS" approach as the other shared constants above.
-// `@keyframes grid-scroll` stays in retrowave.css; only its application here.
+// Animated synthwave grid + sun (RetroAuthLayout + dashboard pages); the theme
+// `display:none` rules become `&` variants, keyframes stay in retrowave.css.
 export const GRID_BACKGROUND =
   'fixed top-0 left-0 w-screen h-screen z-0 pointer-events-none overflow-hidden';
 
@@ -142,26 +107,13 @@ export const RETRO_BADGE =
 export const RETRO_WINDOW =
   'bg-(--bg-card) [border:var(--card-border-style)] shadow-(--box-shadow) rounded overflow-hidden flex flex-col [[data-theme=win95]_&]:bg-[#c0c0c0] [[data-theme=win95]_&]:border-t-2 [[data-theme=win95]_&]:border-t-white [[data-theme=win95]_&]:border-l-2 [[data-theme=win95]_&]:border-l-white [[data-theme=win95]_&]:border-r-2 [[data-theme=win95]_&]:border-r-black [[data-theme=win95]_&]:border-b-2 [[data-theme=win95]_&]:border-b-black [[data-theme=win95]_&]:shadow-[2px_2px_0px_#000] [[data-theme=win95]_&]:rounded-none [[data-theme=win95]_&]:text-black [[data-theme=terminal]_&]:bg-[rgba(10,31,10,.95)] [[data-theme=terminal]_&]:border-[1.5px] [[data-theme=terminal]_&]:border-[#33ff33] [[data-theme=terminal]_&]:shadow-[0_0_18px_rgba(51,255,51,.25)] [[data-theme=terminal]_&]:text-[#33ff33]';
 
-// win95/terminal here used to only fire for Game.tsx's headers — the
-// literal `window-header` class had already been stripped from every other
-// page's call site in an earlier pass, silently losing the reskin there.
-// Restored universally, matching the `RETRO_WINDOW` treatment above. `!`
-// (important) on the win95/terminal background/text here is required to
-// win a specificity tie against GAME_WINDOW_HEADER_EXTRA below on Game.tsx
-// specifically — see that constant's comment.
+// Theme reskin restored for all pages; `!` is required to tie-break against
+// GAME_WINDOW_HEADER_EXTRA on Game.tsx.
 export const WINDOW_HEADER =
   'bg-(--window-header-bg) text-(--window-header-text) py-2 px-3.5 [font-family:var(--font-heading)] text-[0.75rem] flex justify-between items-center select-none [[data-theme=win95]_&]:![background:linear-gradient(90deg,#000080,#1084d0)] [[data-theme=win95]_&]:!text-white [[data-theme=win95]_&]:py-1.5 [[data-theme=win95]_&]:px-2.5 [[data-theme=win95]_&]:rounded-none [[data-theme=terminal]_&]:!bg-[#116611] [[data-theme=terminal]_&]:!text-[#33ff33] [[data-theme=terminal]_&]:border-b [[data-theme=terminal]_&]:border-[#33ff33]';
 
-// Game.tsx-only always-on look (not theme-scoped in the original — same
-// look regardless of theme, EXCEPT win95/terminal there each also apply
-// their own header reskin). In the original CSS both rules were
-// `.game-page .window-header`-vs-`[data-theme=x] .window-header`, tied on
-// specificity (2 simple selectors each) and broken by source order (the
-// theme rule came later, so theme always won over this game-specific
-// look). Ported as `!bg-[#140a35]` etc (needed to beat WINDOW_HEADER's
-// plain default/synthwave background) — WINDOW_HEADER's win95/terminal
-// variants are `!important` too and have a strictly higher-specificity
-// selector, so they still correctly win over this on those 2 themes.
+// Game.tsx-only header look; `!` lets it beat WINDOW_HEADER's default while
+// WINDOW_HEADER's `!`-marked theme variants still win on win95/terminal.
 export const GAME_WINDOW_HEADER_EXTRA = '!bg-[#140a35] border-b-2 border-b-[#2121ff] !text-white';
 
 export const WINDOW_BODY = 'p-5 grow';
@@ -181,13 +133,8 @@ export const APEX_CHAMPION_CARD =
 // Shared by Home/LudoLobby/Lobby/Game. Not theme-scoped.
 export const DASHBOARD_GRID = 'grid grid-cols-12 gap-[25px] mb-[30px]';
 
-// LudoLobby.tsx quick-deploy tickets. retrowave.css had two separate
-// win95/terminal `.retro-ticket-pass` override blocks (an earlier design pass
-// left un-cleaned) that cascaded together per-property, not a straight
-// replacement — the values below are that merged effective result, computed
-// property-by-property (later block wins where it sets a property; earlier
-// block's value survives where the later one is silent), not copied from
-// either block alone.
+// Merged effective values from two cascading win95/terminal override blocks in
+// the old CSS (per property, later block wins) — not a copy of either.
 export const RETRO_TICKET_PASS =
   'relative flex items-center justify-between rounded-xl py-[26px] px-8 min-h-[108px] gap-6 flex-wrap box-border cursor-pointer select-none [transition:transform_0.22s_cubic-bezier(.16,1,.3,1),box-shadow_0.22s_cubic-bezier(.16,1,.3,1),border-color_0.22s_ease,background_0.22s_ease] hover:-translate-y-1 active:translate-y-px [[data-theme=win95]_&]:bg-[#c0c0c0] [[data-theme=win95]_&]:border-2 [[data-theme=win95]_&]:border-white [[data-theme=win95]_&]:shadow-[inset_2px_2px_0_#fff,inset_-2px_-2px_0_#000,3px_3px_0_#000] [[data-theme=win95]_&]:rounded-none [[data-theme=win95]_&]:text-black [[data-theme=terminal]_&]:bg-none [[data-theme=terminal]_&]:bg-[rgba(10,31,10,.96)] [[data-theme=terminal]_&]:border-2 [[data-theme=terminal]_&]:border-[#33ff33] [[data-theme=terminal]_&]:shadow-[0_0_16px_rgba(51,255,51,.25)] [[data-theme=terminal]_&]:rounded-[4px] [[data-theme=terminal]_&]:text-[#33ff33]';
 
@@ -218,11 +165,8 @@ export const ARCADE_SCREEN_FRAME =
 export const ARCADE_START_OVERLAY =
   'absolute bottom-6 left-1/2 -translate-x-1/2 w-[82%] max-w-[580px] bg-[rgba(13,2,33,.45)] backdrop-blur-[8px] border-2 border-(--accent-pink) shadow-[0_0_20px_rgba(255,0,127,.35),inset_0_0_12px_rgba(0,240,255,.2)] rounded-md py-3 px-[18px] text-center flex flex-col items-center gap-1.5 pointer-events-none [animation:arcade-start-pulse_1.8s_infinite_ease-in-out] [transition:all_0.2s_ease] box-border [[data-theme=win95]_&]:w-[70%] [[data-theme=win95]_&]:bg-[rgba(192,192,192,.85)] [[data-theme=win95]_&]:border-t-white [[data-theme=win95]_&]:border-l-white [[data-theme=win95]_&]:border-r-[#808080] [[data-theme=win95]_&]:border-b-[#808080] [[data-theme=win95]_&]:shadow-[inset_1px_1px_0px_#fff,inset_-1px_-1px_0px_#000,2px_2px_6px_rgba(0,0,0,.3)] [[data-theme=win95]_&]:rounded-none [[data-theme=win95]_&]:[animation:none] [[data-theme=terminal]_&]:bg-[rgba(2,16,2,.75)] [[data-theme=terminal]_&]:border-[1.5px] [[data-theme=terminal]_&]:border-(--accent-cyan) [[data-theme=terminal]_&]:shadow-[0_0_15px_rgba(51,255,51,.35),inset_0_0_10px_rgba(51,255,51,.15)] [[data-theme=terminal]_&]:rounded-none [[data-theme=terminal]_&]:[animation:terminal-start-pulse_1.8s_infinite_ease-in-out]';
 
-// `whitespace-nowrap` fixes a real bug (pre-existing in the original CSS,
-// not introduced by this migration): at 1.5px letter-spacing, "▶ INSERT
-// COIN // PRESS START ◀" is wider than the overlay's 82%-width container,
-// so the browser wraps it — with the arrows, each separated from the
-// heading by just a space, landing alone on their own line above/below.
+// `whitespace-nowrap` fixes a pre-existing wrap bug: at 1.5px letter-spacing
+// the spaced arrows wrapped onto their own lines.
 export const ARCADE_START_TITLE =
   '[font-family:var(--font-heading)] text-[0.95rem] text-(--accent-yellow) [text-shadow:0_0_10px_var(--accent-yellow),0_0_20px_var(--accent-pink)] tracking-[1.5px] font-bold whitespace-nowrap [[data-theme=win95]_&]:text-black [[data-theme=win95]_&]:[text-shadow:none] [[data-theme=win95]_&]:text-[0.82rem] [[data-theme=win95]_&]:tracking-[0.5px] [[data-theme=terminal]_&]:text-(--accent-cyan) [[data-theme=terminal]_&]:[text-shadow:0_0_8px_var(--accent-cyan)]';
 
@@ -233,16 +177,8 @@ export const COL_4 = 'col-span-4 max-[992px]:col-span-12';
 
 export const COL_8 = 'col-span-8 max-[992px]:col-span-12';
 
-// "CYBERSOUND DECK" cassette-player widget (Home.tsx only). Every
-// win95/terminal `[data-theme=...] { ... !important }` override becomes an
-// arbitrary `&`-selector variant, same approach as GRID_BACKGROUND/
-// RETRO_WINDOW above. `.lit-cyan/.lit-amber/.lit-pink` (JS-picked per LED
-// segment) become literal utility strings chosen in JSX instead of a
-// toggled CSS class; `.cyber-deck-key-play.active` becomes a JS-conditional
-// extra class instead of a toggled CSS class, same pattern used for
-// THEME_TRIGGER_BTN_BASE's `.active`. `.tape-reel.active`/`@keyframes
-// reelSpin`/`.track-matrix-btn.active` had zero consumers (dead leftovers
-// from an earlier design) — deleted, not converted.
+// Home's "CYBERSOUND DECK": theme overrides as `&` variants, JS-chosen LED
+// classes, dead reel/matrix rules dropped.
 export const CYBER_CASSETTE_CHASSIS =
   "relative overflow-hidden flex flex-col gap-2 py-2.5 px-3 rounded-lg border border-[rgba(0,240,255,.4)] bg-[linear-gradient(180deg,#18092e_0%,#0c021a_100%)] shadow-[0_0_16px_rgba(0,0,0,.6),inset_0_0_12px_rgba(0,240,255,.15)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-[linear-gradient(90deg,var(--accent-cyan),var(--accent-pink),var(--accent-yellow))] [[data-theme=win95]_&]:bg-none [[data-theme=win95]_&]:bg-[#c0c0c0] [[data-theme=win95]_&]:border-t-2 [[data-theme=win95]_&]:border-t-white [[data-theme=win95]_&]:border-l-2 [[data-theme=win95]_&]:border-l-white [[data-theme=win95]_&]:border-r-2 [[data-theme=win95]_&]:border-r-[#808080] [[data-theme=win95]_&]:border-b-2 [[data-theme=win95]_&]:border-b-[#808080] [[data-theme=win95]_&]:shadow-none [[data-theme=terminal]_&]:bg-none [[data-theme=terminal]_&]:bg-[#000500] [[data-theme=terminal]_&]:border-[#33ff33] [[data-theme=terminal]_&]:shadow-[0_0_12px_rgba(51,255,51,.25)]";
 
@@ -307,41 +243,9 @@ export const LED_LIT_PINK = `bg-[#ff007f] shadow-[0_0_8px_#ff007f] ${LED_THEME_O
 export const RETRO_FOOTER =
   'text-center p-5 bg-(--bg-card) [border:var(--card-border-style)] mt-5 text-[0.85rem] text-(--text-muted)';
 
-// CyberModal.tsx + CyberButton. This is the densest piece of the whole
-// migration: clip-path bevel cuts, mask-composite:intersect, a multi-stage
-// choreographed reveal, and a randomly-retriggered full-glitch keyframe —
-// all gated on JS component state rather than a single toggled CSS class.
-// Rather than fight that with `&.is-open`/`&.glitching` compound arbitrary
-// variants (which only work for state living on the SAME element, not
-// state that must cascade to many descendants), CyberModal.tsx now writes
-// `data-modal-state="open"|"closed"` and `data-glitching="true"|"false"`
-// onto the overlay div (already has `isOpenActive`/`isGlitching` as React
-// state) and every constant below reads them via Tailwind's `group-data-`
-// variant — the idiomatic Tailwind answer to "many children react to one
-// ancestor's state". The overlay's group is NAMED (`group/modal`,
-// `group-data-[...]/modal:`) rather than Tailwind's default unnamed
-// `group` — CyberButton (rendered inside the modal) has its own unnamed
-// `group`/`group-hover:` for its independent hover-glitch effect, and
-// unnamed groups match ANY ancestor with class="group", not just the
-// nearest one. Left unnamed, hovering anywhere over the modal (i.e. the
-// overlay) was satisfying CyberButton's `group-hover:` too, firing its
-// glitch-layer/backdrop-swap without the button itself being hovered —
-// confirmed via screenshot (garbled overlapping button text), not
-// assumed. Naming the modal's group scopes its `group-data-` variants to
-// just that group, leaving CyberButton's unnamed `group` to only match
-// itself. `:root { --flicker: linear(...) }` (a custom easing curve) and
-// the three `@keyframes` stay in retrowave.css — Tailwind has no
-// mechanism to define either, only to reference them via `var()`/
-// `[animation:...]` arbitrary values, same as every other keyframe in
-// this migration. The `:not(:disabled)` guard on cyber-btn's hover rules
-// was dropped — disabled CyberButtons are effectively unused in this app
-// (no call site passes `disabled`), so the guard was dead weight. The
-// PINK/YELLOW/DANGER variant constants need `!` (important) on their
-// --btn-accent/--btn-shadow overrides — confirmed by testing that without
-// it, CYBER_BTN_BASE's own equal-specificity default was winning
-// regardless of concatenation order (Tailwind doesn't guarantee its
-// generated stylesheet honors call-site class order for same-specificity
-// arbitrary-property utilities).
+// CyberModal writes `data-modal-state`/`data-glitching` on the overlay and the
+// constants read them via `group-data-` variants. The group is NAMED
+// (`group/modal`) so CyberButton's own unnamed group-hover can't match it.
 export const CYBER_MODAL_OVERLAY =
   'group/modal fixed inset-0 bg-[rgba(5,2,14,.78)] backdrop-blur-[12px] backdrop-saturate-[1.8] z-[10002] grid place-items-center p-6 [transition:opacity_0.3s_ease] opacity-0 pointer-events-none data-[modal-state=open]:opacity-100 data-[modal-state=open]:pointer-events-auto';
 
@@ -383,11 +287,8 @@ export const CYBER_MODAL_GLITCH =
 export const CYBER_BTN_BASE =
   "group [--corner:10px] [--border:1.5px] [--clip:polygon(0_0,100%_0,100%_calc(100%_-_var(--corner)),calc(100%_-_var(--corner))_100%,0%_100%)] [--btn-accent:var(--accent-cyan,#00f0ff)] [--btn-shadow:var(--accent-pink,#ff007f)] [font-family:var(--font-display,'Orbitron',sans-serif)] font-black tracking-[1px] min-w-[140px] text-left uppercase inline-flex items-center gap-[0.6rem] py-[0.6rem] px-[0.8rem] border-0 bg-transparent relative text-(--btn-accent) cursor-pointer box-border select-none [transition:transform_0.15s_ease] overflow-visible disabled:opacity-40 disabled:cursor-not-allowed hover:text-[#0d0221] focus-visible:text-[#0d0221] [[data-theme=win95]_&]:![clip-path:none] [[data-theme=win95]_&]:!border-t-2 [[data-theme=win95]_&]:!border-t-white [[data-theme=win95]_&]:!border-l-2 [[data-theme=win95]_&]:!border-l-white [[data-theme=win95]_&]:!border-r-2 [[data-theme=win95]_&]:!border-r-black [[data-theme=win95]_&]:!border-b-2 [[data-theme=win95]_&]:!border-b-black [[data-theme=win95]_&]:!shadow-[2px_2px_0px_#000] [[data-theme=win95]_&]:!text-black [[data-theme=terminal]_&]:!text-[#33ff33] [[data-theme=terminal]_&]:![--btn-accent:#33ff33]";
 
-// `!` (important) here is required: CYBER_BTN_BASE's own default --btn-accent
-// is an equal-specificity single-class arbitrary-property utility, and
-// Tailwind doesn't guarantee its generated stylesheet order follows this
-// className string's concatenation order — confirmed by testing (base's
-// value was winning over the variant without `!`), not assumed.
+// `!` required: CYBER_BTN_BASE's equal-specificity default otherwise wins
+// regardless of className concatenation order.
 export const CYBER_BTN_PINK = '![--btn-accent:var(--accent-pink,#ff007f)] ![--btn-shadow:#9d00ff]';
 
 export const CYBER_BTN_YELLOW =
@@ -395,14 +296,8 @@ export const CYBER_BTN_YELLOW =
 
 export const CYBER_BTN_DANGER = '![--btn-accent:#ff0055] ![--btn-shadow:#ff0000]';
 
-// `before:!mask-clip-...`/`before:!mask-composite-...` need `!` (important):
-// the `mask` shorthand utility right before them resets ALL its longhand
-// sub-properties (incl. mask-composite/mask-clip) to their initial values,
-// and — confirmed by testing, not assumed — Tailwind generated the
-// shorthand's rule after these longhand overrides regardless of this
-// string's order, silently reverting the bevel-cut mask to a plain
-// solid-color fill (the button label became unreadable: text and fill
-// were both --btn-accent).
+// `!` required: the `mask` shorthand resets the mask-* longhands and Tailwind
+// emits it later, which would silently undo the bevel cut.
 const CYBER_BTN_BACKDROP_SHARED =
   "absolute z-[1] inset-0 bg-[rgba(15,5,32,.85)] backdrop-blur-[8px] backdrop-saturate-[180%] [clip-path:var(--clip)] pointer-events-none [transition:background_0.2s_ease,box-shadow_0.2s_ease] before:content-[''] before:absolute before:inset-0 before:bg-(--btn-accent) before:[border:var(--border)_solid_transparent] before:[clip-path:var(--clip)] before:[mask:linear-gradient(#0000_0%_100%),linear-gradient(#fff_0%_100%)] before:![mask-clip:padding-box,border-box] before:![mask-repeat:no-repeat] before:![mask-composite:intersect] before:z-[2]";
 
@@ -424,22 +319,9 @@ export const CYBER_BTN_GLITCH_LAYER =
 export const CYBER_BTN_LETTERS =
   'flex [&>span:nth-of-type(2)]:[scale:1_-1] [&>span:nth-of-type(5)]:[scale:1_-1] [&>span:nth-of-type(3)]:[scale:-1_-1] [&>span:nth-of-type(6)]:[scale:-1_-1] [&>span:nth-of-type(7)]:[scale:-1_-1]';
 
-// ResultsModal.tsx "vending machine ticket" widget. retrowave.css had TWO
-// full copies of this widget: an older "GAME OVER RECEIPT PRINTER" design
-// (bare `.invoice-slot`/`.slot-hole`, no top/bottom split) and the current
-// one actually matching this JSX (`.invoice-slot-top/-bottom`,
-// `.slot-hole-top/-bottom`, `.pay-now-btn`). The old design's slot/hole
-// rules were fully dead (zero consumers — deleted, not converted), but
-// several of its OTHER selectors (`.invoice`, `.invoice .title`, `.invoice
-// .amount .value`, `.payers-list` and children) are the same selector the
-// current design also targets, so both blocks cascaded together. Every
-// value below was verified against getComputedStyle() on the live modal
-// (all 3 themes) rather than hand-merged from the CSS text, specifically
-// because a few properties silently survive from the old block where the
-// new one never redeclares them — e.g. RESULTS_INVOICE's `top-6`/`z-5`/
-// Share-Tech-Mono font, INVOICE_VALUE's VT323 font, and the win95/terminal
-// title color + terminal value's text-shadow/font-size all come from the
-// "dead" old block, not the current one.
+// Values read from getComputedStyle() on the live modal (all 3 themes): the
+// older "receipt printer" block cascaded into this one, so some properties
+// (top-6, z-5, VT323, share-tech-mono, ...) survive from it.
 export const TICKET_CONTAINER =
   'relative z-[100] w-[min(95%,560px)] mx-auto flex flex-col items-center [font-family:var(--font-mono)] box-border max-[520px]:w-[95%]';
 
@@ -502,11 +384,8 @@ export const PAYERS_LI_P =
 export const PAYER_IMAGE_CONTAINER =
   'flex items-center justify-center py-[0.5em] px-[0.8em] border-r-[1.5px] border-r-white/10 [[data-theme=win95]_&]:border-r [[data-theme=win95]_&]:border-r-[#808080] [[data-theme=terminal]_&]:border-r [[data-theme=terminal]_&]:border-r-[#116611]';
 
-// win95/terminal here fully override border/bg/color regardless of rank
-// (win/runner/third/fourth below) — same as the original CSS, where the
-// theme selector's higher specificity ([data-theme] + 2 classes) always
-// beats the rank modifier (2 classes only), concatenation order here
-// doesn't matter for that reason.
+// win95/terminal override border/bg/colour regardless of rank, so order
+// relative to the rank modifiers doesn't matter.
 export const PAY_TAG_BASE =
   'inline-flex items-center gap-1.5 whitespace-nowrap border-[1.5px] border-[rgba(0,240,255,.4)] rounded-lg py-[0.35em] px-[0.65em] text-[0.78rem] [font-family:var(--font-mono)] font-bold max-[520px]:text-[0.7rem] [[data-theme=win95]_&]:border [[data-theme=win95]_&]:border-black [[data-theme=win95]_&]:bg-white [[data-theme=win95]_&]:text-black [[data-theme=win95]_&]:shadow-none [[data-theme=terminal]_&]:border [[data-theme=terminal]_&]:border-[#33ff33] [[data-theme=terminal]_&]:text-[#33ff33] [[data-theme=terminal]_&]:bg-[rgba(51,255,51,.1)] [[data-theme=terminal]_&]:shadow-none';
 
@@ -523,15 +402,8 @@ export const PAY_TAG_FOURTH = 'border-white/35 text-(--text-muted) bg-white/[0.0
 export const PAY_NOW_BTN =
   'w-full [font-family:var(--font-heading)] text-base bg-(--accent-pink) text-white py-[1.1em] border-2 border-(--accent-pink) rounded-[0.85em] shadow-[0_0_20px_rgba(255,0,127,.45)] cursor-pointer tracking-[1.5px] [transition:all_0.2s_ease] mt-[1.2em] hover:bg-[#00f0ff] hover:border-[#00f0ff] hover:text-[#0d0221] hover:shadow-[0_0_28px_#00f0ff] hover:-translate-y-0.5 max-[520px]:text-[0.88rem] [[data-theme=win95]_&]:bg-[#c0c0c0] [[data-theme=win95]_&]:text-black [[data-theme=win95]_&]:border-white [[data-theme=win95]_&]:shadow-[inset_1px_1px_0_#fff,inset_-1px_-1px_0_#000,2px_2px_0_#000] [[data-theme=win95]_&]:hover:bg-[#000080] [[data-theme=win95]_&]:hover:text-white [[data-theme=win95]_&]:hover:translate-y-0 [[data-theme=terminal]_&]:bg-[#0a1f0a] [[data-theme=terminal]_&]:text-[#33ff33] [[data-theme=terminal]_&]:border-[1.5px] [[data-theme=terminal]_&]:border-[#33ff33] [[data-theme=terminal]_&]:shadow-[0_0_16px_rgba(51,255,51,.45)] [[data-theme=terminal]_&]:hover:bg-[#33ff33] [[data-theme=terminal]_&]:hover:text-[#051005]';
 
-// RankBadge.tsx's fire/plasma aura glow (mamee-monster and milo-dinosaur
-// tiers only) — ::before/::after pseudo-elements, not state-gated, just
-// static decorative glow layers with their own always-running animation.
-// The prior session hit a real Tailwind JIT scanner bug converting this
-// exact component (rules silently dropped for a very long combined class
-// string) — this conversion was verified against the compiled CSS bundle
-// afterward, not just visually, specifically to catch a repeat. Note the
-// asymmetry below (mamee's `before:` has no `pointer-events-none`, all
-// three others do) is faithfully copied from the original CSS, not a typo.
+// Static `::before`/`::after` glow (mamee/milo tiers), verified against the
+// compiled CSS after a prior Tailwind JIT bug dropped rules here.
 export const BADGE_MAMEE_AURA =
   "before:content-[''] before:absolute before:[inset:-8px_-4px_-2px_-4px] before:[border-radius:45%_45%_8px_8px/65%_65%_15%_15%] before:bg-[radial-gradient(ellipse_at_50%_110%,rgba(255,255,255,.95)_0%,rgba(255,230,0,.9)_30%,rgba(255,80,0,.8)_60%,rgba(255,23,68,.65)_80%,transparent_96%)] before:blur-[5px] before:z-[-2] before:opacity-95 before:[animation:mamee-flame-steady-wave_2.4s_ease-in-out_infinite_alternate] after:content-[''] after:absolute after:[inset:-4px_-2px_-1px_-2px] after:[border-radius:50%_50%_6px_6px/70%_70%_15%_15%] after:bg-[radial-gradient(ellipse_at_50%_120%,rgba(255,230,0,.75)_0%,rgba(255,23,68,.7)_60%,transparent_85%)] after:blur-[4px] after:z-[-1] after:opacity-90 after:[animation:mamee-flame-steady-halo_3.2s_ease-in-out_infinite_alternate] after:pointer-events-none";
 

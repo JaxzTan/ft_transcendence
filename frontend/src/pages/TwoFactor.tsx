@@ -17,9 +17,7 @@ import {
 } from '../styles/tw';
 
 /**
- * Second login factor. Reached two ways, both carrying ?token=<pendingToken>:
- *  - password login: Login.tsx navigates here after factor one succeeds
- *  - OAuth: the backend callback redirects here after emailing the code
+ * Second login factor: ?token=<pendingToken> from password login or OAuth callback.
  */
 export function TwoFactor() {
   const { t } = useTranslation();

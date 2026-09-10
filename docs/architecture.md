@@ -112,8 +112,12 @@ The frontend is **not** a server. It is a **long-running build-and-watch job**
    into `/export` — the `spa_dist` named volume.
 2. The build itself runs outside the bind mount (`BUILD_OUT_DIR=/tmp/dist-out`,
    `BUILD_PUBLIC_DIR=/tmp/public-safe`), because a Docker Desktop for macOS
-   VirtioFS bug (ENOLCK `-35`) intermittently fails reads under `/app`; each step
-   is retried a few times before giving up.
+   VirtioFS bug intermittently fails reads under `/app` (ENOLCK "Unknown system
+   error -35"); each step is retried a few times before giving up. The failure is
+   specific to the zero-copy syscall used by `fs.copyFileSync`, `cp` and `tar` —
+   plain `read()`/`write()` (`cat`, `dd`) is unaffected. Both env vars are
+   optional: unset, they fall back to the in-project `public/` and `dist/`, which
+   is what local/host builds use.
 3. It then watches `/app/src` and `/app/package.json` with `inotifywait` — `/app`
    is the bind mount of the repo's `./frontend`, so this is the SPA's own
    `frontend/src` (unrelated to `backend/src`) — and republishes on every

@@ -97,10 +97,8 @@ export function applyEvent(
       return { ...state, status: 'active', lastRolls: {} };
     case 'dice_rolled': {
       const legalMoves = (event.legalMoves as LegalMove[] | undefined) ?? [];
-      // Key the roll to the PRE-event turn (state.currentTurn): the engine
-      // advances currentTurn before emitting on no-move/3×6 forfeit paths, so
-      // the event's own currentTurn may already be the NEXT player while the
-      // value belongs to the player who actually rolled.
+      // Key the roll to the PRE-event turn: the engine advances currentTurn before
+      // emitting on no-move/3x6 forfeit, so event.currentTurn can be the next player.
       const roller = state.currentTurn;
       return {
         ...state,

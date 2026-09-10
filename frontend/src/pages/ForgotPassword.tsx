@@ -17,9 +17,7 @@ import {
 } from '../styles/tw';
 
 /**
- * Step one of password reset: collect an email and ask the backend to send a
- * link. The confirmation screen is shown unconditionally — the backend never
- * reveals whether the address was registered, and neither do we.
+ * Reset step 1: request a link; the confirmation is unconditional (no enumeration).
  */
 export function ForgotPassword() {
   const { t } = useTranslation();

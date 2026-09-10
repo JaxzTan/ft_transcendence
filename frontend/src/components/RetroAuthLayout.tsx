@@ -2,8 +2,7 @@ import type { ReactNode } from 'react';
 import { GRID_BACKGROUND, SYNTHWAVE_SUN, GRID_HORIZON, PERSPECTIVE_GRID } from '../styles/tw';
 
 /**
- * Full-bleed Retrowave auth shell matching Home.tsx background:
- * Animated 3D Synthwave Grid & Sun Background with centered glassmorphism card.
+ * Full-bleed Retrowave auth shell (grid + sun, glass card) matching Home.tsx.
  */
 export function RetroAuthLayout({ tag, children }: { tag?: string; children: ReactNode }) {
   return (

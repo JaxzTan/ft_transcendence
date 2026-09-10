@@ -250,10 +250,7 @@ export function Home() {
     };
   }, [isPlayingAudio]);
 
-  // ------------------------------------------------------------------------
-  // 4b. HERO BADGE BAR: live site-wide counts (online players, active
-  // matches, open joinable slots)
-  // ------------------------------------------------------------------------
+  // 4b. HERO BADGE BAR: live site-wide online-player count (polled every 15s).
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
 
   useEffect(() => {

@@ -58,11 +58,8 @@ function Screen() {
   const { toasts, dismissToast } = useNotifications();
   const known = path in SHELL_ROUTES || path in FULL_ROUTES;
   const isPublic = PUBLIC_ROUTES.has(path);
-  // Account-action arrivals via link/redirect: a result notice (verified /
-  // reset / error) or a one-time token (a reset or 2FA link). These belong to a
-  // *specific account action*, not the logged-in session, so a logged-in user
-  // must still see them instead of being bounced to /home — e.g. verifying (or
-  // resetting) account B while account A happens to be logged in in this browser.
+  // Account-action arrivals (verified/reset/error/token) belong to a specific
+  // account action, not the session, so a logged-in user must still see them.
   const hasNotice = ['verified', 'reset', 'error', 'token'].some((k) => !!query.get(k));
 
   useEffect(() => {

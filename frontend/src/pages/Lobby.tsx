@@ -95,10 +95,8 @@ export function Lobby() {
       const botColors = visible
         .map((s, i) => (s.type === 'bot' ? SEAT_COLORS[i] : null))
         .filter((c): c is ColorKey => c !== null);
-      // Hotseat / PvE: the game consists of exactly the occupied seats (host is
-      // always seat 0/blue, then each added local pilot or bot in seat order). Send
-      // the exact color list so skipped seats aren't resurrected as
-      // dense slots by the engine's playerCount-based default.
+      // Hotseat/PvE: send the exact seat colors, otherwise the engine's
+      // playerCount-based default re-densifies slots the user skipped.
       const seatColors = visible
         .map((s, i) =>
           s.type === 'you' || s.type === 'player' || (gameMode === 'pve' && s.type === 'bot')
