@@ -187,13 +187,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    // Login/signup are reachable while genuinely signed out — /api/auth/me
-    // (and the /api/auth/refresh it triggers on a 401) would just fail there
-    // every time, so skip the round trip and let `user` stay null until an
-    // actual login/register call sets it. Every other route still restores
-    // the session normally on load/refresh.
+    // Guest-facing auth routes are reachable while genuinely signed out —
+    // /api/auth/me (and the /api/auth/refresh it triggers on a 401) would just
+    // fail there every time, so skip the round trip and let `user` stay null
+    // until an actual login/register call sets it. The root '/' is included so
+    // a bare-domain visit (then redirected to /login) doesn't fire the probe;
+    // unknown paths still probe and restore the session normally on load/refresh.
     const path = window.location.pathname;
-    if (path === '/login' || path === '/signup') {
+    const publicRoutes = new Set([
+      '/',
+      '/login',
+      '/signup',
+      //'/2fa',
+      //'/forgot-password',
+      //'/reset-password',
+    ]);
+    if (publicRoutes.has(path)) {
       setAuthReady(true);
       return;
     }

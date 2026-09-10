@@ -140,7 +140,14 @@ export function DeleteAccountModal({
           {t('profileEdit.deleteAccountTitle')}
         </div>
 
-        {step === 'setPassword' ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (step === 'setPassword') void handleSetPassword();
+            else void handleDelete();
+          }}
+        >
+          {step === 'setPassword' ? (
           <>
             <div
               style={{
@@ -193,10 +200,8 @@ export function DeleteAccountModal({
             )}
             <button
               className={RETRO_BTN}
+              type="submit"
               disabled={busy}
-              onClick={() => {
-                void handleSetPassword();
-              }}
               style={{
                 width: '100%',
                 padding: '10px',
@@ -256,10 +261,8 @@ export function DeleteAccountModal({
             )}
             <button
               className={RETRO_BTN}
+              type="submit"
               disabled={busy || !acknowledge || !currentPassword}
-              onClick={() => {
-                void handleDelete();
-              }}
               style={{
                 width: '100%',
                 padding: '10px',
@@ -271,11 +274,12 @@ export function DeleteAccountModal({
             >
               {busy ? t('profileEdit.saving') : t('profileEdit.deleteAccountDeleteBtn')}
             </button>
-          </>
-        )}
+          </>)}
+        </form>
 
         <button
           className={RETRO_BTN}
+          type="button"
           disabled={busy}
           onClick={onClose}
           style={{

@@ -235,7 +235,13 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <label style={fieldLabel({ color: 'var(--text-muted)' })}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleSave();
+          }}
+        >
+          <label style={fieldLabel({ color: 'var(--text-muted)' })}>
           {t('profileEdit.username')}
         </label>
         <input
@@ -305,6 +311,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
           </div>
           <button
             className={RETRO_BTN}
+            type="button"
             onClick={() => setTwoFactorEnabled((v) => !v)}
             style={{ padding: '2px 9px', fontSize: '0.66rem', color: 'var(--accent-cyan)' }}
           >
@@ -418,6 +425,7 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
                 </span>
                 <button
                   className={RETRO_BTN}
+                  type="button"
                   disabled={busy}
                   onClick={() => {
                     if (linked) void removeOAuth(p);
@@ -447,17 +455,17 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
 
         <button
           className={RETRO_BTN}
+          type="submit"
           disabled={busy}
-          onClick={() => {
-            void handleSave();
-          }}
           style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900 }}
         >
           {busy ? t('profileEdit.saving') : t('profileEdit.save')}
         </button>
+        </form>
 
         <button
           className={RETRO_BTN}
+          type="button"
           disabled={busy}
           onClick={() => setDeleteOpen(true)}
           style={{
