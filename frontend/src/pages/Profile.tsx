@@ -176,7 +176,7 @@ const ACHIEVEMENTS_DEF = [
 export function Profile() {
   const { t } = useTranslation();
   const { query } = useRoute();
-  const { user } = useApp();
+  const { user, setUser } = useApp();
   const username = query.get('u') ?? user?.username;
   const isOwnProfile = user?.username === username;
 
@@ -273,6 +273,9 @@ export function Profile() {
       });
       if (res.ok) {
         retroAudio.playUiBeep(440, 0.06);
+        // Fall back to the generated (pre-upload) avatar everywhere
+        if (user) setUser({ ...user, hasAvatarPhoto: false });
+        if (profile) setProfile({ ...profile, hasAvatarPhoto: false });
         setAvatarBuster(Date.now());
       }
     } catch (e) {

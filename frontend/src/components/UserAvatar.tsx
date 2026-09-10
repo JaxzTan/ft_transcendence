@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { dicebearAvatar } from '../dicebear';
 import { useAvatarVersion } from '../avatarCache';
@@ -22,22 +22,8 @@ export function UserAvatar({
   cacheBuster,
   hasAvatarPhoto,
 }: UserAvatarProps) {
-  // Each avatar photo gets up to 2 load attempts; after 2 failures (e.g. a
-  // malformed file) we keep the dicebear fallback until the user or photo
-  // changes. SSE avatar_changed events refresh photos via a new versioned URL.
-  const [error, setError] = useState(false);
-  const photoErrorsRef = useRef(0);
-  const [stuckOnFallback, setStuckOnFallback] = useState(false);
   const liveVersion = useAvatarVersion(username);
-
-  useEffect(() => {
-    setError(false);
-  }, [username, cacheBuster, liveVersion]);
-
-  useEffect(() => {
-    photoErrorsRef.current = 0;
-    setStuckOnFallback(false);
-  }, [username, cacheBuster, liveVersion]);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   if (!username) {
     return (
@@ -73,22 +59,21 @@ export function UserAvatar({
   }
 
   const version = cacheBuster ?? liveVersion;
-  const showFallback = hasAvatarPhoto === false || error || stuckOnFallback;
-  const src = showFallback
-    ? dicebearAvatar(username, avatarStyle)
-    : `/api/user/${username}/avatar?t=${version}`;
-
-  const handlePhotoError = () => {
-    photoErrorsRef.current += 1;
-    setError(true);
-    if (photoErrorsRef.current >= 2) setStuckOnFallback(true);
-  };
+  // Only load the network photo when the caller confirms one exists; otherwise
+  // fallback to Dicebear avatar. If the photo ever fails to load, fallback
+  // to DiceBear avatar.
+  const usePhoto = hasAvatarPhoto === true;
+  const fallbackSrc = dicebearAvatar(username, avatarStyle);
+  const src = usePhoto ? `/api/user/${username}/avatar?t=${version}` : fallbackSrc;
 
   return (
     <img
       key={liveVersion}
+      ref={imgRef}
       src={src}
-      onError={showFallback ? undefined : handlePhotoError}
+      onError={() => {
+        if (imgRef.current) imgRef.current.src = fallbackSrc;
+      }}
       style={{
         width: size,
         height: size,
