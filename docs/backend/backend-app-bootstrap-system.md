@@ -17,7 +17,7 @@
 
 The App Bootstrap module is the root of the NestJS application. It does three things:
 
-1. **Starts the server** via `main.ts` — turns on cookie reading, request validation, CORS rules, and a health check endpoint.
+1. **Starts the server** via `main.ts` — turns on trust-proxy, cookie reading, request validation, and a health check endpoint. CORS is deliberately not enabled: every client call is same-origin through nginx's `/api` proxy.
 2. **Loads every feature module** via `app.module.ts` — imports all 9 feature modules, registers `PrismaService` app-wide, and installs `ThrottlerModule` (60 s / 300 requests by default) with `ThrottlerGuard` as a global `APP_GUARD`:
    - `AuthModule` — registration, login, OAuth, 2FA, sessions
    - `UserModule` — user profiles, avatars, game history
@@ -82,9 +82,9 @@ sequenceDiagram
     participant App as App.ts
 
     Command->>App: Start the backend
+    App->>App: Trust the proxy headers
     App->>App: Turn on cookie reading
     App->>App: Turn on request validation
-    App->>App: Allow the frontend to call the API
     App->>App: Add the /health check endpoint
     App->>App: Listen on port 3000
     App-->>Command: Backend is up and ready
@@ -161,7 +161,6 @@ npm run start:dev (or node main.js)
   ├── app.set('trust proxy', 1)
   ├── app.use(cookieParser())
   ├── app.useGlobalPipes(ValidationPipe { whitelist, transform })
-  ├── app.enableCors({ origin, credentials })
   ├── Register GET /health handler
   └── app.listen(3000)
 ```
@@ -202,7 +201,7 @@ requireSecret(name) → process.env[name]  // throws when unset
 
 | Variable | Default | Used By |
 |----------|---------|---------|
-| `NODE_ENV` | `development` | CORS origin selection, cookie `secure` flag |
+| `NODE_ENV` | `development` | Access-cookie `secure` flag (AuthController); compose overrides it to `production` in containers |
 | `DATABASE_URL` | (from `.env`) | PrismaService database connection |
 | *(no secret files)* | — | Config values come from environment variables only (root `.env`); there is no `SECRETS_DIR` or mounted secret file anymore |
 | `PORT` | 3000 | HTTP server listen port (hardcoded in main.ts) |

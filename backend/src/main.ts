@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { PrismaService } from './prisma.service';
 
-// App entry point: builds the NestJS app, sets up cookies/validation/CORS,
+// App entry point: builds the NestJS app, sets up trust-proxy, cookies and validation,
 // exposes a /health DB check, and starts listening on port 3000.
 // Called once at startup from the line below.
 async function bootstrap() {
@@ -19,12 +19,6 @@ async function bootstrap() {
 
   // Enforce the class-validator decorators on register/login DTOs.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-
-  // CORS - only allow requests from nginx origin
-  app.enableCors({
-    origin: process.env.NODE_ENV === 'production' ? ['https://transcendence-ludo'] : true, // Allow all origins in development
-    credentials: true,
-  });
 
   // Health endpoint. Route it via the generic HttpServer interface so the
   // handler can be typed structurally (the concrete ExpressAdapter's

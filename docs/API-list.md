@@ -1986,5 +1986,5 @@ Automatically handled when the WebSocket connection drops. Marks player as disco
 - **Auth:** All auth endpoints use httpOnly cookies. Set automatically by login/register/refresh, cleared by logout. No `Authorization: Bearer` header is used.
 - **JWT expiration:** 15 minutes for access tokens. Refresh tokens last 7 days and are rotated on each use.
 - **Bot tokens:** `playerId` is `'ludo-bot'`, `role` is `'player'` / `'player1'`.
-- **CORS:** Backend allows all origins by default in development.
+- **CORS:** Not enabled. Every client call is same-origin through nginx's `/api` proxy, so the backend emits no CORS headers.
 - **Rate limiting:** Auth endpoints (`register`, `login`) have throttler guard enabled.

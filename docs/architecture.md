@@ -284,7 +284,7 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │
 │   ├── src/                      # NestJS feature modules (9)
 │   │   ├── app.module.ts         # Root module (9 feature modules + throttler)
-│   │   ├── main.ts               # Bootstrap, cookie-parser, CORS, /health
+│   │   ├── main.ts               # Bootstrap, cookie-parser, trust proxy, /health
 │   │   ├── prisma.service.ts     # Prisma client singleton
 │   │   ├── secrets.ts            # env-var secret lookup over process.env
 │   │   ├── common/               # Shared helpers

@@ -75,7 +75,7 @@ make dev
 | ------------------------- | --------------------------------------------------------------- | ------- | -------- |
 | `https://localhost:8443`  | The app (via nginx)                                             | default | Public entry — TLS 1.2/1.3, security headers/CSP, nginx rate limits, proxies to JWT-guarded backend & token-verified engine |
 | `http://localhost:8080`   | Vite dev server with hot reload                                 | dev     | Dev only — no TLS; keep off untrusted/shared hosts |
-| `http://localhost:3000`   | Backend API (direct, host-only)                                 | default | Loopback-only publish; JWT/2FA/bcrypt, throttling, production CORS locked to the app origin |
+| `http://localhost:3000`   | Backend API (direct, host-only)                                 | default | Loopback-only publish; JWT/2FA/bcrypt, throttling, no CORS headers (same-origin via nginx only) |
 | `http://localhost:5555`   | Prisma Studio (database browser)                                | default | Loopback-only publish; no app-level auth — interactive host use only |
 | `wss://<host>/socket.io/` | Game engine connection (same-origin through nginx / Vite proxy) | default | Same-origin `wss` only; engine verifies the Socket.IO handshake JWT before joining rooms |
 
@@ -85,7 +85,7 @@ make dev
 
 - **`8080` (Vite)** exists only under the `dev` compose profile (`make dev`). It serves the SPA and proxies `/api` and `/socket.io` without TLS.
 
-- **`3000` (backend)** is published loopback-only; clients reach it exclusively through nginx's `/api` proxy. Backend hardening: JWT auth in httpOnly cookies, bcrypt password hashes, class-validator on DTOs, NestJS rate throttling, and CORS restricted to the app origin in production.
+- **`3000` (backend)** is published loopback-only; clients reach it exclusively through nginx's `/api` proxy. Backend hardening: JWT auth in httpOnly cookies, bcrypt password hashes, class-validator on DTOs, and NestJS rate throttling. CORS is intentionally not enabled — every call the SPA makes is same-origin through nginx, so the backend emits no cross-origin headers.
 
 - **`5555` (Prisma Studio)** is a raw database browser with no application-level authentication — its protection is the loopback-only binding plus the Postgres credentials. Used on the host only.
 
