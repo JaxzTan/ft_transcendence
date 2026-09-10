@@ -31,7 +31,7 @@ input/output. Each event is documented in full below; see
 
 | Event | Triggered by | Payload (client → server) | Server action | Resulting broadcasts |
 |---|---|---|---|---|
-| `join_game` | Entering a room — PvP join/rejoin, PvE/hotseat seat-in (hotseat sends one call per local seat) | `(gameId: string, playerColor?, userId?, displayName?)` | Bind the socket to the room/seat (reconnect or fresh join), create the game if missing, auto-start PvE/hotseat | `game_joined` to the sender |
+| `join_game` | Entering a room — PvP join/rejoin, PvE/hotseat seat-in (hotseat sends one call per local seat) | `(gameId: string, playerColor?, userId?, displayName?)` | Bind the socket to the room/seat (reconnect or fresh join), create the game if missing, auto-start PvE/hotseat. A non-reconnecting join to an **ACTIVE** game is rejected with an `error` ("Game already in progress") — hotseat is exempt (one socket owns all its seats) | `game_joined` to the sender |
 | `roll_dice` | Current player, phase `WAITING_FOR_ROLL` | `()` | Roll the die and compute the legal moves (a 3rd six auto-forfeits the turn) | `dice_rolled` |
 | `move_piece` | Current player, phase `WAITING_FOR_MOVE` | `(pieceId: string)` | Validate and apply the move | `piece_moved` |
 | `player_ready` | Seated player in the waiting lobby | `()` | Mark ready; when every active player is ready the game starts | `game_started` |
@@ -72,6 +72,9 @@ input/output. Each event is documented in full below; see
 | `socket/server.ts` | `SocketServer` class — event routing, JWT middleware, engine lifecycle |
 | `socket/auth.ts` | `GameSocket` type, JWT extraction middleware |
 | `socket/socket-handlers.ts` | All client→server event handlers (join, roll, move, etc.) |
+| `socket/join-manager.ts` | `JoinManager` — seat resolution, game creation, reconnect vs fresh join, PvE/hotseat auto-start |
+| `socket/bot-scheduler.ts` | One timer per game that drives bot turns |
+| `socket/post-game.ts` | End-of-game flow — post-game timeout and room teardown |
 | `socket/event-publisher.ts` | Redis pub/sub → Socket.IO bridge for multi-instance scaling |
 | `socket/redis-broadcaster.ts` | Room-based state broadcasts via Redis |
 | `socket/result-submitter.ts` | POST /api/game/end callback to backend |
@@ -129,7 +132,8 @@ sequenceDiagram
 
 ### Rooms
 
-- Each game has a room named `game:{gameId}`.
+- Each game has a Socket.IO room named after its raw `gameId` (no prefix) — `socket.join(gameId)` / `io.to(gameId).emit(...)`.
+- Not to be confused with the Redis pub/sub **channel** `game:{gameId}`, which `RedisBroadcaster` subscribes to and then re-emits into the `{gameId}` Socket.IO room.
 - Players join the room via `join_game`.
 - Server broadcasts to a room using `io.to(room).emit(...)`.
 

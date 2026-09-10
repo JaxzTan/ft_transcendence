@@ -189,9 +189,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // Guest-facing auth routes are reachable while genuinely signed out.
     // /api/auth/me does not fire until user is actually logged in.
-    // The root '/' is included in whitelist publicRoutes so a bare-domain visit 
-	// (then redirected to /login) doesn't fire /api/auth/me. 
-	// Other paths still will fire /api/auth/me.
+    // The root '/' is included in whitelist publicRoutes so a bare-domain visit
+    // (then redirected to /login) doesn't fire /api/auth/me.
+    // Other paths still will fire /api/auth/me.
     const path = window.location.pathname;
     const publicRoutes = new Set([
       '/',

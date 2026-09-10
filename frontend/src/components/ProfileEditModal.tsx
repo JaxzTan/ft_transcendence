@@ -242,132 +242,18 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
           }}
         >
           <label style={fieldLabel({ color: 'var(--text-muted)' })}>
-          {t('profileEdit.username')}
-        </label>
-        <input
-          style={{
-            ...inputStyle(),
-            background: 'rgba(0,0,0,0.25)',
-            color: 'var(--text-muted)',
-            cursor: 'not-allowed',
-          }}
-          value={username}
-          readOnly
-          disabled
-        />
-        <div
-          style={{
-            fontSize: '0.64rem',
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--font-mono)',
-            lineHeight: 1.5,
-            marginBottom: 12,
-          }}
-        >
-          {t('profileEdit.usernameLocked')}
-        </div>
-
-        <label style={fieldLabel({ color: 'var(--text-muted)' })}>
-          {t('profileEdit.displayName')}
-        </label>
-        <input
-          style={inputStyle()}
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          placeholder={t('profileEdit.displayNamePlaceholder')}
-        />
-
-        <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.email')}</label>
-        <input
-          style={inputStyle()}
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={t('profileEdit.emailPlaceholder')}
-        />
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 12,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                fontFamily: 'var(--font-display)',
-                color: 'var(--text-main)',
-              }}
-            >
-              {t('profileEdit.twoFactor')}
-            </div>
-            <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
-              {t('profileEdit.twoFactorDesc')}
-            </div>
-          </div>
-          <button
-            className={RETRO_BTN}
-            type="button"
-            onClick={() => setTwoFactorEnabled((v) => !v)}
-            style={{ padding: '2px 9px', fontSize: '0.66rem', color: 'var(--accent-cyan)' }}
-          >
-            {twoFactorEnabled ? 'ON' : 'OFF'}
-          </button>
-        </div>
-
-        <div
-          style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}
-        >
-          <div
+            {t('profileEdit.username')}
+          </label>
+          <input
             style={{
-              fontSize: '0.8rem',
-              fontWeight: 900,
-              fontFamily: 'var(--font-display)',
-              color: 'var(--text-main)',
-              marginBottom: 8,
+              ...inputStyle(),
+              background: 'rgba(0,0,0,0.25)',
+              color: 'var(--text-muted)',
+              cursor: 'not-allowed',
             }}
-          >
-            {hasPassword ? t('profileEdit.password') : t('profileEdit.passwordSet')}
-          </div>
-          {hasPassword && (
-            <>
-              <label style={fieldLabel({ color: 'var(--text-muted)' })}>
-                {t('profileEdit.currentPassword')}
-              </label>
-              <input
-                style={inputStyle()}
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder={t('profileEdit.currentPasswordPlaceholder')}
-              />
-            </>
-          )}
-          <label style={fieldLabel({ color: 'var(--text-muted)' })}>
-            {t('profileEdit.newPassword')}
-          </label>
-          <input
-            style={inputStyle()}
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder={t('profileEdit.newPasswordPlaceholder')}
-            autoComplete="new-password"
-          />
-          <label style={fieldLabel({ color: 'var(--text-muted)' })}>
-            {t('profileEdit.confirmPassword')}
-          </label>
-          <input
-            style={inputStyle()}
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder={t('profileEdit.confirmPasswordPlaceholder')}
-            autoComplete="new-password"
+            value={username}
+            readOnly
+            disabled
           />
           <div
             style={{
@@ -378,89 +264,203 @@ export function ProfileEditModal({ onClose }: { onClose: () => void }) {
               marginBottom: 12,
             }}
           >
-            {t('profileEdit.passwordHint')}
+            {t('profileEdit.usernameLocked')}
           </div>
-        </div>
 
-        <div
-          style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}
-        >
+          <label style={fieldLabel({ color: 'var(--text-muted)' })}>
+            {t('profileEdit.displayName')}
+          </label>
+          <input
+            style={inputStyle()}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder={t('profileEdit.displayNamePlaceholder')}
+          />
+
+          <label style={fieldLabel({ color: 'var(--text-muted)' })}>{t('profileEdit.email')}</label>
+          <input
+            style={inputStyle()}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t('profileEdit.emailPlaceholder')}
+          />
+
           <div
             style={{
-              fontSize: '0.8rem',
-              fontWeight: 900,
-              fontFamily: 'var(--font-display)',
-              color: 'var(--text-main)',
-              marginBottom: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
             }}
           >
-            {t('profileEdit.oauthMethods')}
-          </div>
-          {PROVIDERS.map((p) => {
-            const linked = providers.includes(p);
-            return (
+            <div>
               <div
-                key={p}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-display)',
+                  color: 'var(--text-main)',
+                }}
               >
-                <img src={OTP[p]} alt={p} style={{ width: 18, height: 18 }} />
-                <span
-                  style={{
-                    flex: 1,
-                    fontSize: '0.72rem',
-                    color: 'var(--text-main)',
-                    fontFamily: 'var(--font-display)',
-                    textTransform: 'capitalize',
-                  }}
-                >
-                  {p === '42' ? '42' : p}
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.62rem',
-                    color: linked ? 'var(--accent-cyan)' : 'var(--text-muted)',
-                  }}
-                >
-                  {linked ? t('profileEdit.linked') : t('profileEdit.notLinked')}
-                </span>
-                <button
-                  className={RETRO_BTN}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    if (linked) void removeOAuth(p);
-                    else addOAuth(p);
-                  }}
-                  style={{
-                    padding: '2px 8px',
-                    fontSize: '0.62rem',
-                    color: linked ? '#ff0055' : 'var(--accent-cyan)',
-                  }}
-                >
-                  {linked ? t('profileEdit.remove') : t('profileEdit.add')}
-                </button>
+                {t('profileEdit.twoFactor')}
               </div>
-            );
-          })}
-        </div>
-
-        {notice && (
-          <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', margin: '4px 0 8px' }}>
-            {notice}
+              <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                {t('profileEdit.twoFactorDesc')}
+              </div>
+            </div>
+            <button
+              className={RETRO_BTN}
+              type="button"
+              onClick={() => setTwoFactorEnabled((v) => !v)}
+              style={{ padding: '2px 9px', fontSize: '0.66rem', color: 'var(--accent-cyan)' }}
+            >
+              {twoFactorEnabled ? 'ON' : 'OFF'}
+            </button>
           </div>
-        )}
-        {error && (
-          <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>
-        )}
 
-        <button
-          className={RETRO_BTN}
-          type="submit"
-          disabled={busy}
-          style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900 }}
-        >
-          {busy ? t('profileEdit.saving') : t('profileEdit.save')}
-        </button>
+          <div
+            style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}
+          >
+            <div
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 900,
+                fontFamily: 'var(--font-display)',
+                color: 'var(--text-main)',
+                marginBottom: 8,
+              }}
+            >
+              {hasPassword ? t('profileEdit.password') : t('profileEdit.passwordSet')}
+            </div>
+            {hasPassword && (
+              <>
+                <label style={fieldLabel({ color: 'var(--text-muted)' })}>
+                  {t('profileEdit.currentPassword')}
+                </label>
+                <input
+                  style={inputStyle()}
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder={t('profileEdit.currentPasswordPlaceholder')}
+                />
+              </>
+            )}
+            <label style={fieldLabel({ color: 'var(--text-muted)' })}>
+              {t('profileEdit.newPassword')}
+            </label>
+            <input
+              style={inputStyle()}
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder={t('profileEdit.newPasswordPlaceholder')}
+              autoComplete="new-password"
+            />
+            <label style={fieldLabel({ color: 'var(--text-muted)' })}>
+              {t('profileEdit.confirmPassword')}
+            </label>
+            <input
+              style={inputStyle()}
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder={t('profileEdit.confirmPasswordPlaceholder')}
+              autoComplete="new-password"
+            />
+            <div
+              style={{
+                fontSize: '0.64rem',
+                color: 'var(--text-muted)',
+                fontFamily: 'var(--font-mono)',
+                lineHeight: 1.5,
+                marginBottom: 12,
+              }}
+            >
+              {t('profileEdit.passwordHint')}
+            </div>
+          </div>
+
+          <div
+            style={{ borderTop: '1px solid var(--border-color)', margin: '10px 0', paddingTop: 10 }}
+          >
+            <div
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 900,
+                fontFamily: 'var(--font-display)',
+                color: 'var(--text-main)',
+                marginBottom: 8,
+              }}
+            >
+              {t('profileEdit.oauthMethods')}
+            </div>
+            {PROVIDERS.map((p) => {
+              const linked = providers.includes(p);
+              return (
+                <div
+                  key={p}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}
+                >
+                  <img src={OTP[p]} alt={p} style={{ width: 18, height: 18 }} />
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: '0.72rem',
+                      color: 'var(--text-main)',
+                      fontFamily: 'var(--font-display)',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {p === '42' ? '42' : p}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.62rem',
+                      color: linked ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                    }}
+                  >
+                    {linked ? t('profileEdit.linked') : t('profileEdit.notLinked')}
+                  </span>
+                  <button
+                    className={RETRO_BTN}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      if (linked) void removeOAuth(p);
+                      else addOAuth(p);
+                    }}
+                    style={{
+                      padding: '2px 8px',
+                      fontSize: '0.62rem',
+                      color: linked ? '#ff0055' : 'var(--accent-cyan)',
+                    }}
+                  >
+                    {linked ? t('profileEdit.remove') : t('profileEdit.add')}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {notice && (
+            <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', margin: '4px 0 8px' }}>
+              {notice}
+            </div>
+          )}
+          {error && (
+            <div style={{ fontSize: '0.7rem', color: '#ff0055', margin: '4px 0 8px' }}>{error}</div>
+          )}
+
+          <button
+            className={RETRO_BTN}
+            type="submit"
+            disabled={busy}
+            style={{ width: '100%', padding: '10px', fontSize: '0.8rem', fontWeight: 900 }}
+          >
+            {busy ? t('profileEdit.saving') : t('profileEdit.save')}
+          </button>
         </form>
 
         <button

@@ -164,9 +164,8 @@ sequenceDiagram
 
     User->>Site: Open a page that shows avatars
     Site->>Server: GET /api/user/{username}/avatar
-    alt Player has no avatar
-        Server-->>Site: 404 Not found
-        Site-->>User: Show the default avatar
+    alt No photo known (hasAvatarPhoto is not true)
+        Site->>Site: Render the DiceBear default — no request, no 404
     else Has an avatar
         Server-->>Site: The image file
         Site-->>User: Show the picture
@@ -185,7 +184,8 @@ sequenceDiagram
     Site->>Server: DELETE /api/user/avatar
     Server->>Server: Delete the saved picture
     Server-->>Site: "Avatar deleted"
-    Site-->>User: Show the default avatar again
+    Site->>Site: Set hasAvatarPhoto = false
+    Site-->>User: Show the default avatar again (no photo request)
 ```
 
 ---
@@ -225,6 +225,9 @@ GET /api/user/:username/avatar
   │   └── found → res.set(Content-Type), send binary (Cache-Control: 1 day)
   └── Note: clients request `?t=<version>` after each SSE `avatar_changed`
       event, so changed photos are always refetched despite the 1-day cache.
+  └── Note: a client that knows `hasAvatarPhoto` is not true renders the
+      DiceBear default without calling this route at all, so a photo-less
+      user never produces a 404 in the browser console.
 ```
 
 ### Delete Avatar Path

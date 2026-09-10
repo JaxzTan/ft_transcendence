@@ -20,6 +20,7 @@ The store is a single React Context provider (`AppProvider`) that holds all glob
 3. **Settings** — on/off switches (sound, music, auto-roll, …) each identified by a string key, with defaults.
 4. **Real-time match** — `activeMatch` (engine credentials from `POST /api/match/create`) and `lastResult` (finished-match snapshot for the Results page).
 5. **Helpers** — `addBot`, `removeBot`, `addPlayer`, `removePlayer`, `startGame`, `roll`, `endTurn`, `settingOn`, `toggleSetting`.
+6. **Session keep-alive** — a 20 s presence heartbeat while signed in, plus a proactive `/api/auth/refresh` every 14 minutes so the 15-minute access token never expires mid-flight.
 
 ---
 
@@ -42,6 +43,8 @@ export type AuthUser = {
   displayName?: string  // Name shown in the game
   email?: string | null  // Email address
   twoFactorEnabled?: boolean  // Whether 2FA is on
+  avatarStyle?: string | null  // DiceBear style for the fallback avatar
+  hasAvatarPhoto?: boolean  // Whether a custom uploaded photo exists
 }
 ```
 
@@ -169,13 +172,17 @@ sequenceDiagram
 
     Note over App,API: On page load
     App->>Store: Start loading
-    Store->>API: Ask "who is logged in?" (/api/auth/me)
-    alt Logged in
-        API-->>Store: user info
-        Store->>Store: Save the user
-    else Not logged in
-        API-->>Store: nothing
-        Store->>Store: User = nobody
+    alt Public route ('/', /login, /signup)
+        Store->>Store: Skip the check, mark ready
+    else Protected route
+        Store->>API: Ask "who is logged in?" (/api/auth/me)
+        alt Logged in
+            API-->>Store: user info
+            Store->>Store: Save the user
+        else Not logged in (401/403)
+            API-->>Store: nothing
+            Store->>Store: User = nobody
+        end
     end
     Store->>Store: Loading finished
 
@@ -221,9 +228,12 @@ sequenceDiagram
 ### Auth Lifecycle Path
 ```
 Mount
-  └── fetch('/api/auth/me')
+  └── path is '/', '/login', or '/signup' → skip the check, setAuthReady(true)
+  └── otherwise fetch('/api/auth/me')
        ├── 200 → setUser(user), setAuthReady(true)
-       └── error → setUser(null), setAuthReady(true)
+       ├── 401/403 → setUser(null) (genuinely signed out), setAuthReady(true)
+       └── 429/5xx/network → retry up to 3× (exponential backoff, honours Retry-After),
+            then leave `user` unchanged and setAuthReady(true)
 
 login(username, password)
   └── POST /api/auth/login
@@ -279,7 +289,8 @@ toggleSetting(key)
 
 | Dependency | Purpose |
 |-----------|---------|
-| `theme.ts` | `BOT_POOL`, `SEAT_COLORS`, theme constants + CSS-variable helpers |
-| `router.tsx` | `navigate` for `/game` redirect after start |
-| `validatePassword.ts` | Client-side password validation |
+| `theme.ts` | `BOT_POOL` for bot seat names |
+| `i18n.ts` | `i18n.changeLanguage` + `i18n.t` for default player names |
+| `api.ts` | `apiFetch` (refresh-and-retry) and `refreshOnce` for the proactive 14-minute token refresh |
+| `game/types.ts` | `PlayerColor` for `ActiveMatch` |
 | `API` | `/api/auth/me`, `/api/auth/login`, `/api/auth/register`, `/api/auth/logout`, `/api/auth/2fa/verify`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/2fa`, `/api/presence/heartbeat` |

@@ -1,8 +1,9 @@
 # nginx
 
 How nginx sits in front of everything, and why it's the one piece that lets
-local and ngrok tunnel mode both work without the frontend or backend
-knowing which one is in play. Companion doc: [`tunnel.md`](./tunnel.md).
+local, LAN, and ngrok tunnel mode all work without the frontend or backend
+knowing which one is in play. Companion docs: [`lan.md`](./lan.md),
+[`tunnel.md`](./tunnel.md).
 
 Verified directly against the current repo (`nginx/conf/nginx.conf`,
 `nginx/conf/app.inc`, `compose.yaml`) rather than copied from older docs —
@@ -66,7 +67,7 @@ resolve correctly on a hard refresh instead of 404ing.
 | `= /api/leaderboard` | GET-only, rate-limited 30 req/min (burst 20), proxied to `backend:3000` |
 | `= /api/auth/login` | Rate-limited 5 req/min (burst 5) — brute-force defense in depth behind the backend's own throttler |
 | `= /api/auth/refresh` | Rate-limited 30 req/min (burst 15) — `apiFetch` fires this automatically on any 401, so several tabs can legitimately burst at once |
-| `/api/auth/` | Rate-limited 60 req/min (burst 20) — covers `/api/auth/me` and `/api/auth/logout`, which the SPA calls on every page load/tab |
+| `/api/auth/` | Rate-limited 60 req/min (burst 20) — covers `/api/auth/me`, which the SPA calls on page load for non-public routes (the probe is skipped on `/`, `/login`, `/signup`), and `/api/auth/logout` |
 | `/api/` | Generic proxy to `backend:3000`. `proxy_read_timeout`/`proxy_send_timeout` are raised to 3600s and buffering is off — needed for `/api/notifications/stream`, a long-lived SSE connection that can sit idle for minutes |
 | `= /api/health` | Proxied to `backend:3000/health` (rewritten — NestJS mounts `/health` at its root, not under `/api`) |
 | `/socket.io/` | Proxied to `ludo-engine:3001`, with the `Upgrade`/`Connection` headers set from the `map $http_upgrade $connection_upgrade` block so WebSocket upgrades work. Also 3600s timeouts, for long game sessions |

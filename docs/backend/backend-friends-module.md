@@ -5,7 +5,7 @@
 - [Overview](#overview) — Friend request lifecycle and relationship management
 - [Files](#files) — Every source file in the module and its role
 - [Key Types / Interfaces](#key-types--interfaces) — Friendship status enum and response shapes
-- [API Endpoints](#api-endpoints) — All 7 routes with method, path, auth, and description
+- [API Endpoints](#api-endpoints) — All 12 routes with method, path, auth, and description
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for send, accept, decline, list, requests, remove, and block
 - [Logic Paths Summary](#logic-paths-summary) — Decision trees for each operation
 - [Dependencies](#dependencies) — Internal services this module relies on

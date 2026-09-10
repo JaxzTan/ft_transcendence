@@ -29,12 +29,13 @@ Complete reference of all HTTP and WebSocket APIs in the project. Updated 30 Aug
    - [`POST /api/auth/logout`](#post-apiauthlogout) — Log out and clear your session cookies
    - [`GET /api/auth/me`](#get-apiauthme) — See who the current session belongs to
 
-2. **[Auth — Profile & Password](#2-auth--profile--password)** — Password reset, profile read/update, change password
+2. **[Auth — Profile & Password](#2-auth--profile--password)** — Password reset, profile read/update, change password, delete account
    - [`POST /api/auth/forgot-password`](#post-apiauthforgot-password) — Request a password-reset link by email
-   - [`POST /api/auth/reset-password`](#post-apiauthreset-password) — Set a new password using the token from the reset email
+   - [`POST /api/auth/reset-password`](#post-apiauthresetpassword) — Set a new password using the token from the reset email
    - [`GET /api/auth/profile`](#get-apiauthprofile) — Get your full profile (email, linked OAuth providers, has password)
    - [`PATCH /api/auth/profile`](#patch-apiauthprofile) — Update your username, display name, or email
    - [`PATCH /api/auth/profile/password`](#patch-apiauthprofilepassword) — Change your password while logged in
+   - [`DELETE /api/auth/profile`](#delete-apiauthprofile) — Permanently delete your account (password-verified)
 
 3. **[Auth — 2FA](#3-auth--2fa)** — Read and toggle two-factor authentication
    - [`GET /api/auth/2fa`](#get-apiauth2fa) — Check whether 2FA is enabled on your account
@@ -306,11 +307,20 @@ Revoke the refresh token and clear both cookies.
 Return the current user from the access token cookie.
 
 **Headers:** 🔒 (requires `token` cookie)  
-**Response:**
+**Response:** the same shape as `GET /api/auth/profile`'s `user` (the handler delegates to the same service method):
 
 ```json
 {
-  "user": { "id": "uuid", "username": "string" }
+  "user": {
+    "id": "uuid",
+    "username": "string",
+    "displayName": "string",
+    "email": "string | null",
+    "hasPassword": true,
+    "avatarStyle": "bottts",
+    "hasAvatarPhoto": false,
+    "providers": ["google"]
+  }
 }
 
 ```
@@ -448,6 +458,38 @@ Change the password while logged in (requires the current password).
 { "message": "Password updated — you can log in with it now." }
 
 ```
+
+---
+
+---
+
+#### `DELETE /api/auth/profile`
+
+**Source:** `backend/src/auth/auth.controller.ts` — AuthModule
+
+Permanently delete the current account. Requires explicit confirmation plus the
+account password (OAuth-only accounts must set a password first via the
+change-password flow).
+
+**Headers:** 🔒 (requires `token` cookie)  
+**Body:**
+
+```json
+{
+  "currentPassword": "current-password",
+  "confirm": true
+}
+
+```
+
+**Response:** clears both session cookies, so the browser ends logged out.
+
+```json
+{ "message": "Account permanently deleted" }
+
+```
+
+**Errors:** 400 if `confirm` is not `true`; 403 if the account has no password set; 401 if the password is wrong.
 
 ---
 
@@ -1154,20 +1196,28 @@ Get paginated leaderboard rankings.
 {
   "entries": [
     {
-      "username": "string",
-      "rating": 1500,
       "rank": 1,
+      "username": "string",
+      "displayName": "string",
+      "rating": 1500,
       "gamesPlayed": 42,
       "wins": 30,
       "losses": 12,
       "draws": 0,
-      "winRate": 71.4,
-      "avatarStyle": "bottts"
+      "winRate": 71,
+      "avatarStyle": "bottts",
+      "hasAvatarPhoto": false
     }
   ],
   "total": 100,
   "page": 1,
   "limit": 20,
+  "myRank": {
+    "rank": 12,
+    "username": "you",
+    "displayName": "You",
+    "rating": 1540
+  },
   "source": "redis"
 }
 
@@ -1725,7 +1775,7 @@ JWT payload structure:
 Join or create a game room. If all players have joined, transitions game from `waiting` to `active` automatically.
 
 ```js
-socket.emit('join_game', gameId, playerColor, userId?);
+socket.emit('join_game', gameId, playerColor, userId?, displayName?);
 
 ```
 
@@ -1734,6 +1784,7 @@ socket.emit('join_game', gameId, playerColor, userId?);
 | `gameId` | string | Match UUID |
 | `playerColor` | `'red'` \| `'green'` \| `'yellow'` \| `'blue'` | Your chosen color |
 | `userId` | string | (optional) Override for bots |
+| `displayName` | string | (optional) Display name for the seat |
 
 **Response:** `game_joined` event with full `GameState`
 

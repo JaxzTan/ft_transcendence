@@ -23,6 +23,7 @@ The module provides:
 2. **Playing flag** — the same endpoint accepts an optional `playing` boolean to advertise "playing" instead of "online" while inside a match.
 3. **Clear** — a client calls `DELETE /api/presence/heartbeat` on logout to read as offline immediately instead of waiting out the TTL.
 4. **Online count** — `GET /api/presence/online-count` returns the site-wide number of online users for the homepage badge bar.
+5. **Presence broadcasts** — the first heartbeat after the key lapses (or the logout clear) pushes a transient `friend_online` / `friend_offline` notification to every accepted friend.
 
 ---
 
@@ -81,7 +82,7 @@ sequenceDiagram
     participant Site as Your App
     participant Server as Backend
 
-    loop Every ~30 seconds while the page is open
+    loop Every ~20 seconds while the page is open
         User->>Site: Page heartbeat
         Site->>Server: POST /api/presence/heartbeat { playing: true|false }
         Server->>Server: Save "online" (or "playing") for 45 seconds
@@ -151,7 +152,9 @@ The `PresenceService` also provides read methods used by other parts of the appl
 | Dependency | Purpose |
 |-----------|---------|
 | `Redis` (ioredis) | Presence state store with 45s TTL |
-| `JwtAuthGuard` | Protects both heartbeat endpoints |
+| `PrismaService` | Look up the user's accepted friends for presence broadcasts |
+| `NotificationService` | Push transient `friend_online` / `friend_offline` toasts |
+| `JwtAuthGuard` | Protects all three presence endpoints |
 
 ---
 

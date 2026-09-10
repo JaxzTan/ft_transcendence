@@ -47,6 +47,7 @@ type Friend = {
   username: string  // Player's username
   displayName?: string  // Name shown in the game
   avatarStyle?: any  // Avatar style name
+  hasAvatarPhoto?: boolean  // Whether a custom photo is uploaded
   rating?: number  // Player's rating (score)
   friendsSince?: string  // When the friendship started
   status?: 'online' | 'playing' | 'offline'  // Online status

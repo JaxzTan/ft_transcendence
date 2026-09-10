@@ -17,7 +17,7 @@ The app bootstrap layer is responsible for:
 
 1. **Route categories** — splits pages into `SHELL_ROUTES` (wrapped in sidebar + header) and `FULL_ROUTES` (no shell).
 2. **Auth guard** — redirects unauthenticated users to `/login`, authenticated users away from public routes, with special handling for account-action routes (verification, password reset, 2FA) that must be reachable even when another account is logged in.
-3. **Session bootstrap** — `AppProvider` calls `/api/auth/me` on page load to see if the user is already logged in.
+3. **Session bootstrap** — `AppProvider` calls `/api/auth/me` on page load to see if the user is already logged in. The probe is skipped on the guest-facing public routes (`/`, `/login`, `/signup`), where there cannot be a session to restore.
 4. **Shell rendering** — wraps shell routes in `Shell` component; currently `SHELL_ROUTES` is empty, so every page renders full-bleed.
 
 ---
@@ -54,12 +54,16 @@ const FULL_ROUTES: Record<string, () => ReactNode> = {
   '/gamelobby': () => <LudoLobby />,
   '/gamelobby/table': () => <Lobby />,
   '/game': () => <Game />,
+  '/privacy': () => <LegalPage initialDoc="privacy" />,
+  '/terms': () => <LegalPage initialDoc="terms" />,
+  // '/results': () => <Results />,
 }
 
 /** Public routes, can be reached without a session */
 const PUBLIC_ROUTES = new Set([
   '/login', '/signup', '/2fa',
-  '/forgot-password', '/reset-password'
+  '/forgot-password', '/reset-password',
+  '/privacy', '/terms'
 ])
 ```
 
@@ -91,6 +95,8 @@ type AppState = {
   removeBot: (i: number) => void  // Removes a bot from a seat
   addPlayer: (i: number) => void  // Adds a human player to a seat
   removePlayer: (i: number) => void  // Removes a player from a seat
+  renamePlayer: (i: number, name: string) => void  // Renames a seat
+  resetSeats: () => void  // Clears every seat but the host
   startGame: () => boolean  // Starts the game
   roll: () => void  // Rolls the dice
   endTurn: () => void  // Passes the turn
@@ -101,6 +107,9 @@ type AppState = {
   setActiveMatch: (m: ActiveMatch | null) => void  // Updates the current match
   lastResult: LastResult | null     // finished match snapshot for Results page
   setLastResult: (r: LastResult | null) => void  // Saves finished match results
+  // Theme
+  theme: ThemeType  // Selected UI theme (synthwave | win95 | terminal)
+  setTheme: (t: ThemeType) => void  // Changes the theme
   // Language
   lang: Lang  // Selected language
   setLang: (l: Lang) => void  // Changes the language
@@ -125,9 +134,13 @@ sequenceDiagram
 
     Browser->>App: Load the page
     App->>Store: Start loading
-    Store->>API: Ask "who is logged in?"
-    API-->>Store: user or nobody
-    Store->>Store: Save it, mark ready
+    alt Public route ('/', /login, /signup)
+        Store->>Store: Skip the check, mark ready
+    else Protected route
+        Store->>API: Ask "who is logged in?"
+        API-->>Store: user or nobody
+        Store->>Store: Save it, mark ready
+    end
     App->>App: Show login page or home page
 ```
 
@@ -139,9 +152,11 @@ sequenceDiagram
 ```
 Browser load
   └── App mounts AppProvider
-       └── fetch('/api/auth/me')
+       ├── path is '/', '/login', or '/signup' → skip the check, setAuthReady(true)
+       └── otherwise fetch('/api/auth/me')
             ├── 200 → setUser(user), setAuthReady(true)
-            └── 401 → setUser(null), setAuthReady(true)
+            ├── 401/403 → setUser(null), setAuthReady(true)
+            └── 429/5xx/network → retry (backoff), then setAuthReady(true)
 ```
 
 ### Route Guard Path

@@ -18,7 +18,7 @@ The shared components are reusable UI primitives used across multiple pages. The
 1. **RetroNavbar** — top navigation bar used by the full-bleed pages.
 2. **Shell** — layout wrapper with side rail + header (not currently wrapping any route).
 3. **AccountMenu** — user menu dropdown (language, 2FA, sign out).
-4. **AuthLayout / RetroAuthLayout** — centered layout for login/signup pages.
+4. **RetroAuthLayout** — centered layout for the auth pages (login, signup, 2FA, forgot/reset password).
 5. **Board / Die** — the Ludo board and the animated die.
 6. **UserAvatar / RankBadge** — avatar rendering and rank tier badges.
 7. **OAuthButtons** — Google, GitHub, and 42 login buttons.
@@ -36,11 +36,10 @@ The shared components are reusable UI primitives used across multiple pages. The
 | `src/components/RetroNavbar.tsx` | Top navigation bar — logo, nav links, user menu, theme switcher (used by full-bleed pages) |
 | `src/components/Shell.tsx` | Layout wrapper — side rail, header, `AccountMenu` (not currently wrapping any route) |
 | `src/components/AccountMenu.tsx` | Account menu dropdown (language, 2FA, sign out) |
-| `src/components/AuthLayout.tsx` | Centered auth page wrapper with logo and tagline |
-| `src/components/RetroAuthLayout.tsx` | Retro-styled auth page wrapper |
+| `src/components/RetroAuthLayout.tsx` | Retro-styled auth page wrapper (`tag` + `children`, plus the `NeonCheck` glyph) |
 | `src/components/Board.tsx` | Ludo board — tracks, bases, pieces, legal-move highlights |
 | `src/components/Die.tsx` | Dice component — face rendering with roll animation |
-| `src/components/UserAvatar.tsx` | Avatar image (uploaded photo, falls back to DiceBear style) |
+| `src/components/UserAvatar.tsx` | Avatar image — shows the uploaded photo only when `hasAvatarPhoto` is `true`, otherwise the DiceBear default; a failed load silently swaps to the default (no retry, no error state) |
 | `src/dicebear.ts` | DiceBear helper — generates avatar data-URI (`avataaars`/`bottts`/`identicon`) |
 | `src/components/RankBadge.tsx` | Rank tier badge based on rating |
 | `src/components/OAuthButtons.tsx` | OAuth provider buttons (42, GitHub, Google) |
@@ -48,18 +47,22 @@ The shared components are reusable UI primitives used across multiple pages. The
 | `src/components/NotificationToast.tsx` | Toast notifications |
 | `src/components/JoinByCode.tsx` | Invite-code input for joining a game by code |
 | `src/components/ProfileEditModal.tsx` | Edit-profile dialog |
+| `src/components/DeleteAccountModal.tsx` | Delete-account dialog (sets a password first for OAuth-only accounts) |
 | `src/components/RulesModal.tsx` | "How to Play" rules popup |
+| `src/components/LegalModal.tsx` | Privacy Policy / Terms of Service popup |
+| `src/components/MarkdownViewer.tsx` | Renders the markdown legal documents |
 | `src/components/CyberModal.tsx` | Cyber-styled modal base (`CyberButton`, `CyberModal`) used for confirmations and dialogs |
 | `src/components/ResultsModal.tsx` | Post-game results overlay — podium, rank badges, outcome title, return-to-lobby |
+| `src/avatarCache.ts` | Per-user avatar cache-buster store — `useAvatarVersion`, `bumpAvatarVersion` (SSE `avatar_changed`) |
 
 ---
 
 ## Key Types / Interfaces
 
-### AuthLayout Props
+### RetroAuthLayout Props
 
 ```typescript
-type AuthLayoutProps = {
+type RetroAuthLayoutProps = {
   tag?: string;          // Optional tagline displayed above the form
   children: ReactNode;   // Form content
 }
@@ -104,19 +107,19 @@ The menu is rendered as a `Menu` component from the theme library, positioned ab
 
 ## Core Logic / Flow
 
-### 1. AuthLayout
+### 1. RetroAuthLayout
 
 Sequence of steps when an auth page is rendered.
 ```mermaid
 sequenceDiagram
     participant Login as Login.tsx
-    participant AuthLayout as AuthLayout.tsx
+    participant RetroAuthLayout as RetroAuthLayout.tsx
 
-    Login->>AuthLayout: <AuthLayout tag="EST. 1896 · TABLETOP CLASSICS">
-    AuthLayout->>AuthLayout: Render centering container
-    AuthLayout->>AuthLayout: Render logo mark (gold ring)
-    AuthLayout->>AuthLayout: Render tagline
-    AuthLayout->>AuthLayout: Render children (form)
+    Login->>RetroAuthLayout: <RetroAuthLayout tag={t('auth.loginTag')}>
+    RetroAuthLayout->>RetroAuthLayout: Render centered container
+    RetroAuthLayout->>RetroAuthLayout: Render logo mark (gradient ring)
+    RetroAuthLayout->>RetroAuthLayout: Render tagline
+    RetroAuthLayout->>RetroAuthLayout: Render children (form)
 ```
 
 ### 2. Board
@@ -176,9 +179,9 @@ sequenceDiagram
 
 ## Logic Paths Summary
 
-### AuthLayout Path
+### RetroAuthLayout Path
 ```
-<AuthLayout tag={tag}>
+<RetroAuthLayout tag={tag}>
   └── Render centered container
        ├── Logo mark (CSS gradient ring)
        ├── Tagline text
@@ -230,7 +233,7 @@ sequenceDiagram
 
 | Component | Depends On | Purpose |
 |-----------|-----------|---------|
-| `AuthLayout` | `theme.ts` | `goldText`, inline styles |
+| `RetroAuthLayout` | `theme.ts` | `goldText`, inline styles |
 | `Board` | `store.tsx` | `useApp` for game state |
 | `Board` | `theme.ts` | `COL`, inline styles |
 | `Die` | `theme.ts` | Keyframe CSS for shake animation, gradient backgrounds |

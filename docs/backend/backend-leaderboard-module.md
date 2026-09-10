@@ -194,7 +194,7 @@ sequenceDiagram
     R-->>API: (empty)
     API->>DB: Read all users (id + User.rating)
     DB-->>API: user list
-    loop For every user
+    loop For every non-bot user
         API->>R: ZADD leaderboard:global rating userId
     end
     API->>R: ZREVRANGE again (now filled)
@@ -266,13 +266,15 @@ sequenceDiagram
 interface LeaderboardEntry {
   rank: number;  // Position in the ranking
   username: string;  // Player's username
+  displayName: string;  // Name shown in the game
   rating: number;  // Player's rating (score)
   gamesPlayed: number;  // Games played
   wins: number;  // Games won
   losses: number;  // Games lost
   draws: number;       // Always 0 (not tracked)
-  winRate: number;     // Win percentage (0-100)
+  winRate: number;     // Win percentage (0-100, whole number)
   avatarStyle: string | null;  // Avatar style name
+  hasAvatarPhoto: boolean;     // Whether a custom photo is uploaded
 }
 ```
 
@@ -287,6 +289,7 @@ interface LeaderboardResponse {
   myRank?: {           // Only included if a userId is given
     rank: number;  // Position in the ranking
     username: string;  // Player's username
+    displayName: string;  // Name shown in the game
     rating: number;  // Player's rating (score)
   } | null;
   source: 'redis';  // Redis is the leaderboard's only source now
@@ -350,7 +353,8 @@ GET /api/leaderboard?mode=global&page=1&limit=20
   │   ├── ZREVRANGE leaderboard:{mode} page → entries
   │   ├── ZCARD leaderboard:{mode} → total
   │   ├── If entries empty OR total < 5:
-  │   │   └── Fill on demand: read all users (id + User.rating) from PostgreSQL
+  │   │   └── Fill on demand: read all users (id + User.rating) from PostgreSQL,
+  │   │       excluding bot accounts (id starts with `bot-`)
   │   │       └── ZADD each into leaderboard:{mode}, then read again
   │   ├── If Redis still has no entries: return an empty board
   │   ├── Fetch user details from PostgreSQL, work out gamesPlayed/winRate/ranks

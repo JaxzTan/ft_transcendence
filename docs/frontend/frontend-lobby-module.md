@@ -15,7 +15,7 @@
 
 The lobby lives at `/gamelobby` (`LudoLobby.tsx`), with a separate `/gamelobby/table` screen (`Lobby.tsx`) for the table/room view. The lobby is where players configure and launch a game. It provides:
 
-1. **Seat setup** — player count (1-4) and seat assignment (`you`, `player`, `bot`, or empty).
+1. **Seat setup** — player count (2-4, read from the `?mode=` query param) and seat assignment (`you`, `player`, `bot`, or empty).
 2. **Bot configuration** — add/remove bots.
 3. **Mode selection** — PvP, PvE, or hotseat.
 4. **Match creation** — calls the backend matchmaking API (`POST /api/match/create`, or the PvP/PvE shortcuts), stores the returned `activeMatch` (gameId + engine token) in the store, then navigates to `/game` where the Socket.IO connection is made.

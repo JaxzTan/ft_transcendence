@@ -18,7 +18,7 @@
 The App Bootstrap module is the root of the NestJS application. It does three things:
 
 1. **Starts the server** via `main.ts` — turns on cookie reading, request validation, CORS rules, and a health check endpoint.
-2. **Loads every feature module** via `app.module.ts` — imports all 9 feature modules and makes `PrismaService` available to the whole app:
+2. **Loads every feature module** via `app.module.ts` — imports all 9 feature modules, registers `PrismaService` app-wide, and installs `ThrottlerModule` (60 s / 300 requests by default) with `ThrottlerGuard` as a global `APP_GUARD`:
    - `AuthModule` — registration, login, OAuth, 2FA, sessions
    - `UserModule` — user profiles, avatars, game history
    - `FriendsModule` — friends list, requests, presence integration
@@ -58,6 +58,7 @@ class PrismaService implements OnModuleInit, OnModuleDestroy {
 ```typescript
 function secret(key: string): string | undefined;       // Returns undefined if missing
 function requireSecret(key: string): string;             // Throws if missing
+function isTunnelRequest(host: string | undefined): boolean;  // True when Host contains "ngrok"
 ```
 
 ---
@@ -155,8 +156,9 @@ npm run start:dev (or node main.js)
   ├── NestFactory.create(AppModule)
     │   ├── Import AuthModule, UserModule, FriendsModule, LeaderboardModule,
     │   │       AchievementsModule, StatsModule, MatchModule, PresenceModule,
-    │   │       NotificationModule
+    │   │       NotificationModule, ThrottlerModule (global rate limit)
   │   └── Register PrismaService as provider + export
+  ├── app.set('trust proxy', 1)
   ├── app.use(cookieParser())
   ├── app.useGlobalPipes(ValidationPipe { whitelist, transform })
   ├── app.enableCors({ origin, credentials })
@@ -187,6 +189,7 @@ requireSecret(name) → process.env[name]  // throws when unset
 | `@nestjs/core` | NestJS framework core |
 | `@nestjs/common` | Decorators, pipes, guards |
 | `@nestjs/platform-express` | Express adapter |
+| `@nestjs/throttler` | Global rate-limit guard, registered as an `APP_GUARD` provider |
 | `cookie-parser` | Parse cookies from HTTP requests |
 | `@prisma/client` | Prisma ORM client |
 | `@prisma/adapter-pg` | Prisma PostgreSQL adapter (Prisma 7) |

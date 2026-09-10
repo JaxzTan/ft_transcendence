@@ -33,6 +33,7 @@ The engine core is the game's referee: it runs inside the `ludo-engine` service 
 | `engine.ts` | `LudoEngine` class — state machine, turn logic, dice rolling, piece movement, per-game locks |
 | `types.ts` | Type definitions: `GameState`, `PlayerMeta`, `Piece`, `LegalMove`, `MoveResult`, `GameEvent` |
 | `move-validator.ts` | Legal move computation based on board geometry |
+| `turn.ts` | `applyMoveOutcome` — mirrors the move into stats, checks the win condition, and advances the turn |
 | `board-mapper.ts` | Board geometry — safe zones, track positions, goal entries |
 | `redis.ts` | `RedisGameStore` — Redis persistence layer |
 | `bot.ts` | Heuristic bot AI |

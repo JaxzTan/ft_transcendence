@@ -42,6 +42,7 @@ type Friend = {
   username: string  // Player's username
   displayName?: string  // Name shown in the game
   avatarStyle?: any  // Avatar style name
+  hasAvatarPhoto?: boolean  // Whether a custom photo is uploaded
   rating?: number  // Player's rating (score)
   friendsSince?: string  // When the friendship started
   status?: 'online' | 'playing' | 'offline'  // Online status
@@ -52,6 +53,7 @@ type FriendRequest = {
   userId: string  // ID of the user this belongs to
   username: string  // Player's username
   avatarStyle?: any  // Avatar style name
+  hasAvatarPhoto?: boolean  // Whether a custom photo is uploaded
   createdAt: string  // When the record was created
 }
 
@@ -60,6 +62,7 @@ type BlockedUser = {
   username: string  // Player's username
   displayName?: string  // Name shown in the game
   avatarStyle?: any  // Avatar style name
+  hasAvatarPhoto?: boolean  // Whether a custom photo is uploaded
   rating?: number  // Player's rating (score)
   blockedSince: string  // When the user was blocked
 }

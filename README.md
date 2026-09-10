@@ -62,8 +62,11 @@ make dev
 | `make logs`                                    | Tail service logs                                             |
 | `make clean` / `make prune`                    | Remove all Docker data / `docker system prune`                |
 | `make fclean` / `make re`                      | `prune` + `clean` / full rebuild from scratch                 |
+| `make ngrok-auth`                              | One-time: register `NGROK_AUTHTOKEN` with the ngrok CLI        |
 | `make tunnel` / `make tunnel-url`              | Start the ngrok tunnel / print its public URL                 |
+| `make dev-tunnel`                              | Open `make dev` + `make tunnel` in two tabs (macOS only)       |
 | `make stop-tunnel`                             | Kill ngrok and stop the dev containers                        |
+| `make lan`                                     | LAN mode: start the stack and print your LAN URL               |
 | `make tunnel_up`                               | One-shot: build + start + open the tunnel                     |
 
 ### Access
@@ -258,7 +261,8 @@ All project documentation lives under `docs/`, grouped by category. Each file is
 
 | Document                                       | Responsibility                                                                                               |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| [docs/deploy/nginx.md](docs/deploy/nginx.md)   | How nginx fronts every mode (local, tunnel) without the frontend or backend knowing which one is active |
+| [docs/deploy/nginx.md](docs/deploy/nginx.md)   | How nginx fronts every mode (local, LAN, tunnel) without the frontend or backend knowing which one is active |
+| [docs/deploy/lan.md](docs/deploy/lan.md)       | LAN mode — reach the app from another device on the same WiFi                                                |
 | [docs/deploy/tunnel.md](docs/deploy/tunnel.md) | Reaching the app from the internet via an ngrok tunnel                                                       |
 
 #### Backend (NestJS API)
@@ -276,7 +280,7 @@ All project documentation lives under `docs/`, grouped by category. Each file is
 | [docs/backend/backend-presence-module.md](docs/backend/backend-presence-module.md)               | Online / in-game / offline presence tracking                 |
 | [docs/backend/backend-notification-module.md](docs/backend/backend-notification-module.md)       | Real-time notifications (SSE + Redis pub/sub)                |
 | [docs/backend/backend-database-schema-system.md](docs/backend/backend-database-schema-system.md) | PostgreSQL schema — models, enums, relationships, indexes    |
-| [docs/backend/backend-seeding-system.md](docs/backend/backend-seeding-system.md)                 | Development/test seed data                                   |
+| [docs/backend/backend-seeding-system(Dev).md](<docs/backend/backend-seeding-system(Dev).md>)     | Development/test seed data                                   |
 
 #### Frontend (React SPA)
 

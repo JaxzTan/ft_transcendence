@@ -168,7 +168,7 @@ onSubmit(e)
   ├── If password !== confirm → setError('Passwords do not match')
   ├── register(username, password, email)
   │   ├── POST /api/auth/register
-  │   │   ├── 200 → navigate('/login?verified=1')
+  │   │   ├── 200 → navigate('/login') (the page shows a "check your email" notice; no session yet)
   │   │   └── error → setError(message)
   └── setSubmitting(false)
 ```
@@ -189,5 +189,5 @@ onClick provider button
 | `store.tsx` | `useApp()` for login/register actions, returns `{ error, pendingToken }` |
 | `router.tsx` | `navigate` for post-auth redirect |
 | `theme.ts` | `btnGold`, `goldText`, `input`, `label` styles |
-| `AuthLayout.tsx` | Centered card layout wrapper |
+| `RetroAuthLayout.tsx` | Retro-styled centered card wrapper (`tag` + `children`, plus the `NeonCheck` glyph) |
 | `OAuthButtons.tsx` | Provider button row |

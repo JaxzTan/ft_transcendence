@@ -49,7 +49,8 @@ type LeaderboardEntry = {
   wins: number  // Games won
   losses: number  // Games lost
   winRate: number  // Win percentage (0-100)
-  avatarStyle?: string  // Avatar style name
+  avatarStyle?: string | null  // Avatar style name
+  hasAvatarPhoto?: boolean  // Whether a custom photo is uploaded
 }
 ```
 

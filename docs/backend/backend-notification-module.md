@@ -23,7 +23,7 @@ The Notification module delivers real-time, persisted notifications to users. It
 
 Notification types: `friend_request`, `friend_accepted`, `friend_removed`, `friend_declined`, `game_invite`, `achievement`, `match_finished`, `match_cancelled`, `profile_updated`, `display_name_changed`, `friend_online`, `friend_offline`, `avatar_changed`.
 
-> The module is imported by `FriendsModule`, `MatchModule`, and `AchievementsModule`, which inject `NotificationService` and call `notify()`. It exports `NotificationService` so any module can send a notification.
+> The module is imported by `FriendsModule`, `MatchModule`, `AchievementsModule`, `PresenceModule`, `AuthModule`, and `UserModule`, which inject `NotificationService` and call `notify()` / `notifyTransient()`. It exports `NotificationService` so any module can send a notification.
 
 ---
 

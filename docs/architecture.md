@@ -188,7 +188,7 @@ two are not interchangeable — see `backend/prisma.config.ts`.
 
 Several distinct uses:
 
-- **Leaderboard cache** — `LeaderboardRedisService`, sorted sets keyed `leaderboard:{mode}`, with a PostgreSQL fallback on read failure.
+- **Leaderboard cache** — `LeaderboardRedisService`, sorted sets keyed `leaderboard:{mode}`, backfilled from PostgreSQL when the set is empty (a Redis outage is surfaced as an error, not masked).
 - **Live game state** — `MatchService` (matchmaking, active games) and the engine's `RedisGameStore`.
 - **Presence** — heartbeat keys per user for online/offline/playing status (`PresenceService`).
 - **Notifications** — Redis Pub/Sub channels (`notify:<userId>`) bridge persisted notifications to the SSE stream (`NotificationService`).
@@ -210,7 +210,7 @@ matchmaking service and the engine's `RedisGameStore` also authenticate.
 | `AuthModule` | `/api/auth` | Local + Google/GitHub/42 OAuth, 2FA, email verification, password reset, refresh tokens |
 | `UserModule` | `/api/user` | Profile, avatar, game history |
 | `FriendsModule` | `/api/friends` | Requests, accept/decline, block |
-| `LeaderboardModule` | `/api/leaderboard` | Rankings, Redis-backed with Postgres fallback |
+| `LeaderboardModule` | `/api/leaderboard` | Rankings, Redis sorted sets (Postgres backfill when the set is empty; a Redis outage surfaces as an error) |
 | `AchievementsModule` | `/api/achievements` | 13 Ludo achievements |
 | `StatsModule` | `/api/stats` | Per-player aggregates |
 | `MatchModule` | `/api/match`, `/api/game` | Matchmaking (PvP/PvE/hotseat), game lifecycle |
@@ -311,7 +311,7 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │   │   ├── user/                 # User profiles & game history
 │   │   ├── friends/              # Friend system (requests, accept/decline, block)
 │   │   ├── match/                # Matchmaking & game lifecycle (split services)
-│   │   ├── leaderboard/          # Rankings (Redis sorted sets + Postgres fallback)
+│   │   ├── leaderboard/          # Rankings (Redis sorted sets, Postgres backfill when empty)
 │   │   ├── achievements/         # 13 Ludo achievements
 │   │   ├── player-stats/         # Per-player aggregates
 │   │   ├── presence/             # Online/offline/playing tracking
@@ -392,9 +392,9 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │       ├── dicebear.ts           # @dicebear avatar style resolution
 │       ├── validatePassword.ts   # Client-side password policy mirror
 │       ├── pages/                # Home, Login, Signup, TwoFactor, Forgot/ResetPassword,
-│       │                         # LudoLobby, Lobby, Game, Results, Friends,
+│       │                         # LudoLobby, Lobby, Game, Friends,
 │       │                         # Leaderboard, Profile, LegalPage
-│       ├── components/           # Shell, AuthLayout, RetroAuthLayout, RetroNavbar,
+│       ├── components/           # Shell, RetroAuthLayout, RetroNavbar,
 │       │                         # AccountMenu, NotificationBell/Toast, Board, Die,
 │       │                         # JoinByCode, OAuthButtons, ProfileEditModal,
 │       │                         # RankBadge, RulesModal, UserAvatar, CyberModal,
@@ -421,5 +421,5 @@ See the [README](../README.md) **Commands** section for the full list of make ta
     ├── backend/                  # Backend module deep-dives (backend-*-module/system)
     ├── frontend/                 # Frontend deep-dives (frontend-*-module/system)
     ├── ludo-engine/              # Engine internals (core, bot, lobby, socket, redis)
-    └── deploy/                   # nginx.md, tunnel.md (ngrok mode)
+    └── deploy/                   # nginx.md, lan.md, tunnel.md (ngrok mode)
 ```

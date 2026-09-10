@@ -41,9 +41,9 @@ The module also provides the `JwtAuthGuard` used by other modules to protect the
 | `google.strategy.ts` | Passport strategy for Google OAuth 2.0 |
 | `github.strategy.ts` | Passport strategy for GitHub OAuth (with `allRawEmails` for verified email detection) |
 | `fortytwo.strategy.ts` | Passport strategy for 42 OAuth |
-| `ngrok_google_strategy.ts` | Google OAuth variant used in tunnel mode (`TUNNEL_MODE=true`) |
-| `ngrok_github_strategy.ts` | GitHub OAuth variant used in tunnel mode |
-| `ngrok_fortytwo_strategy.ts` | 42 OAuth variant used in tunnel mode |
+| `ngrok_google_strategy.ts` | Google OAuth variant for tunnelled requests — picked per request when the Host header contains `ngrok` (`isTunnelRequest`) |
+| `ngrok_github_strategy.ts` | GitHub OAuth variant for tunnelled requests (same per-request Host check) |
+| `ngrok_fortytwo_strategy.ts` | 42 OAuth variant for tunnelled requests (same per-request Host check) |
 | `oauth.guards.ts` | Guard classes: `GoogleAuthGuard`, `GithubAuthGuard`, `FortyTwoAuthGuard` — pick strategy per request host |
 | `mail.service.ts` | SMTP email sending — verification links, 2FA codes, password-reset links (degrades to console logging without SMTP config) |
 | `session.service.ts` | Redis-backed refresh-token management with rotation and revocation |
@@ -491,15 +491,15 @@ GET /api/auth/me (or any @UseGuards(JwtAuthGuard) route)
 | `nodemailer` | SMTP email delivery (verification, 2FA, password reset) |
 | `ioredis` | Redis client (SessionService, TwoFactorService) |
 | `PrismaService` | Database access (User, Account models) |
-| `secrets.ts` | Reads JWT_SECRET, OAuth client IDs/secrets/callback URLs, SMTP credentials from `/secrets/` files |
+| `secrets.ts` | Single env-var lookup (`secret` / `requireSecret`) over the root `.env` — JWT_SECRET, OAuth client IDs/secrets/callback URLs, SMTP credentials |
 
 ---
 
 ## Configuration / Environment
 
-Secrets are loaded from `/secrets/*.txt` files at runtime via `secrets.ts` (with environment variable fallback):
+All configuration is read from environment variables — the root `.env` (compose `env_file:` in containers, dotenv for host-side scripts). There are no `/secrets/*.txt` files: `secrets.ts` is a thin `process.env` lookup, and `requireSecret()` throws at boot when a required value is missing.
 
-| Secret | Used By |
+| Variable | Used By |
 |--------|---------|
 | `JWT_SECRET` | JwtModule, JwtStrategy |
 | `GOOGLE_CLIENT_ID` | GoogleStrategy |
@@ -511,7 +511,11 @@ Secrets are loaded from `/secrets/*.txt` files at runtime via `secrets.ts` (with
 | `FORTYTWO_CLIENT_ID` | FortyTwoStrategy |
 | `FORTYTWO_CLIENT_SECRET` | FortyTwoStrategy |
 | `FORTYTWO_CALLBACK_URL` | FortyTwoStrategy |
-| `FRONTEND_URL` | AuthController (OAuth redirect target, defaults to `https://localhost:8443`) |
+| `NGROK_GOOGLE_CALLBACK_URL` | NgrokGoogleStrategy (reuses `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`) |
+| `NGROK_GITHUB_CALLBACK_URL` | NgrokGithubStrategy (reuses `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`) |
+| `NGROK_FORTYTWO_CALLBACK_URL` | NgrokFortyTwoStrategy (reuses `FORTYTWO_CLIENT_ID` / `FORTYTWO_CLIENT_SECRET`) |
+| `FRONTEND_URL` | AuthController (OAuth redirect target for local requests, defaults to `https://localhost:8443`) |
+| `NGROK_FRONTEND_URL` | AuthController (OAuth redirect target when the request Host contains `ngrok`) |
 | `SMTP_CREDENTIALS` | MailService (format: `[smtp.gmail.com]:587 address@gmail.com:app-password`) |
 | `REDIS_PASSWORD` | SessionService, TwoFactorService |
 

@@ -50,10 +50,9 @@ const NAV: Array<{ path: string; glyph: string; titleKey: string }> = [
 ```typescript
 export const SCREEN_TITLE_KEYS: Record<string, string> = {
   '/home': 'nav.home',
-  '/friends': 'nav.friends',
-  '/profile': 'nav.profile',
   '/leaderboard': 'nav.leaderboard',
-  // ...
+  '/friends': 'nav.friends',
+  '/profile': 'nav.playerProfile',
 }
 ```
 

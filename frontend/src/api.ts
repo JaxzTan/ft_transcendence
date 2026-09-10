@@ -40,7 +40,6 @@ export function refreshOnce(): Promise<RefreshResult> {
   return refreshing;
 }
 
-
 // fetch() for authenticated endpoints: on a 401 it refreshes once and retries.
 // Expired refresh returns the 401 (signed out); blocked refresh returns its own
 // status. Retries reuse `init`, so keep bodies as plain values, not streams.

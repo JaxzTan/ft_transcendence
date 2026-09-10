@@ -263,7 +263,7 @@ erDiagram
         datetime startedAt "When the game started"
         datetime endedAt "When the game ended"
         GameStatus status "State of the game"
-        GameType gameType "PvP / PvE / hotseat"
+        GameType gameType "PvP / PvE"
         string inviteCode UK "Code to join"
     }
     GameParticipant {

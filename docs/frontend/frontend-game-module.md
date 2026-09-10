@@ -134,7 +134,10 @@ sequenceDiagram
 Game mounts with activeMatch
   ├── connectSocket(activeMatch.token)
   ├── on 'connect' → emit('join_game', gameId, color, userId, displayName)
+  │    └── Hotseat: one join_game per local seat (a single socket owns every seat)
   ├── on 'game_joined' → dispatch into reducer
+  ├── Hotseat turn rotation → re-emit join_game for the now-current seat so the
+  │    engine's turn validation follows the seat actually being played
   └── Reconnect: on reconnect → re-emit join_game
 ```
 
