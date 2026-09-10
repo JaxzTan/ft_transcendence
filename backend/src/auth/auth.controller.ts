@@ -89,15 +89,10 @@ export class AuthController {
     if (result.twoFactorRequired) {
       return { twoFactorRequired: true, pendingToken: result.pendingToken };
     }
-    // strictNullChecks is off in this project, so the implicit-else branch of a
-    // discriminated union doesn't auto-narrow : pin it to the session variant.
-    const session = result as {
-      accessToken: string;
-      refreshToken: string;
-      user: { id: string; username: string };
-    };
-    this.setSessionCookies(res, session.accessToken, session.refreshToken);
-    return { twoFactorRequired: false, user: session.user };
+    // LoginResult is discriminated on twoFactorRequired, so the early return
+    // above narrows this to the session variant.
+    this.setSessionCookies(res, result.accessToken, result.refreshToken);
+    return { twoFactorRequired: false, user: result.user };
   }
 
   // Factor two. Throttled because challenge-level attempt caps can be
