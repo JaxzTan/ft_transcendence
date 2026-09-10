@@ -240,6 +240,8 @@ export function Profile() {
         setUploadError(err.message ?? t('profile.uploadFailed'));
       } else {
         retroAudio.playUiBeep(880, 0.06);
+        if (user) setUser({ ...user, hasAvatarPhoto: true });
+        if (profile) setProfile({ ...profile, hasAvatarPhoto: true });
         setAvatarBuster(Date.now());
       }
     } catch {

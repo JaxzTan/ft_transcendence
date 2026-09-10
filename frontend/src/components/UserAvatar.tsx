@@ -59,10 +59,7 @@ export function UserAvatar({
   }
 
   const version = cacheBuster ?? liveVersion;
-  // Only load the network photo when the caller confirms one exists; otherwise
-  // fallback to Dicebear avatar. If the photo ever fails to load, fallback
-  // to DiceBear avatar.
-  const usePhoto = hasAvatarPhoto === true;
+  const usePhoto = hasAvatarPhoto === true || liveVersion > 0;
   const fallbackSrc = dicebearAvatar(username, avatarStyle);
   const src = usePhoto ? `/api/user/${username}/avatar?t=${version}` : fallbackSrc;
 
