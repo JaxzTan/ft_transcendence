@@ -94,6 +94,7 @@ export const MODE_CARDS = [
 
 export const MOVE_LOG_COLORS = ['blue', 'red', 'green', 'yellow'] as const;
 
+//(Dev)
 export const MOVE_LOG = [
   { ck: 'red', text: 'Rook moved a piece out of home' },
   { ck: 'green', text: 'Bishop rolled a 6 — extra turn' },
@@ -101,6 +102,7 @@ export const MOVE_LOG = [
   { ck: 'blue', text: 'You entered the home stretch' },
 ] as const;
 
+//(Dev)
 export const PODIUM = [
   { place: '1', name: 'You', ck: 'blue', detail: 'All home' },
   { place: '2', name: 'Rook', ck: 'red', detail: '3 home' },
