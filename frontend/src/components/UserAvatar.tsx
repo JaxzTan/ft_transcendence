@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { dicebearAvatar } from '../dicebear';
-import { useAvatarVersion } from '../avatarCache';
+import { hasAvatarChanged, useAvatarVersion } from '../avatarCache';
 
 type UserAvatarProps = {
   username: string;
@@ -59,7 +59,7 @@ export function UserAvatar({
   }
 
   const version = cacheBuster ?? liveVersion;
-  const usePhoto = hasAvatarPhoto === true || liveVersion > 0;
+  const usePhoto = hasAvatarPhoto === true || hasAvatarChanged(username);
   const fallbackSrc = dicebearAvatar(username, avatarStyle);
   const src = usePhoto ? `/api/user/${username}/avatar?t=${version}` : fallbackSrc;
 
