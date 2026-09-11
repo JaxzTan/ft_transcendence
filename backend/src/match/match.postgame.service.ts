@@ -200,26 +200,4 @@ export class MatchPostgameService {
       });
     }
   }
-
-  // Remove stale match keys older than 24h from Redis.
-  async cleanupStaleGames() {
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    let cleaned = 0;
-
-    let cursor = '0';
-    do {
-      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
-      cursor = nextCursor;
-      for (const key of keys) {
-        const data = await this.redis.hgetall(key);
-        const createdAt = parseInt(data.createdAt || '0');
-        if (createdAt > 0 && createdAt < oneDayAgo) {
-          await this.redis.del(key);
-          cleaned++;
-        }
-      }
-    } while (cursor !== '0');
-
-    return { matchesCleaned: cleaned };
-  }
 }

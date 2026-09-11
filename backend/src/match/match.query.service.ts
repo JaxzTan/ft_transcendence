@@ -1,4 +1,4 @@
-// Read-only match queries: active games, open rooms, and my-rooms.
+// Read-only match queries: open rooms and my-rooms.
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { secret } from '../secrets';
@@ -19,33 +19,6 @@ export class MatchQueryService {
     this.redis.on('error', (error) => {
       console.error('Redis error:', error.message);
     });
-  }
-
-  // List all currently ACTIVE matches.
-  async listActiveGames() {
-    let cursor = '0';
-    const games: Array<{
-      id: string;
-      gameType: string;
-      player1: string;
-      player2: string;
-    }> = [];
-    do {
-      const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', 'match:*', 'COUNT', 100);
-      cursor = nextCursor;
-      for (const key of keys) {
-        const data = await this.redis.hgetall(key);
-        if (data.status === 'ACTIVE') {
-          games.push({
-            id: data.id,
-            gameType: data.gameType,
-            player1: data.player1_id,
-            player2: data.player2_id,
-          });
-        }
-      }
-    } while (cursor !== '0');
-    return games;
   }
 
   // List all WAITING PvP rooms that are open for joining.

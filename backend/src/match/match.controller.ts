@@ -82,13 +82,6 @@ export class MatchController {
     return this.match.resign(gameId, req.user.id);
   }
 
-  // Browse Games
-  @UseGuards(JwtAuthGuard)
-  @Get('api/games/active')
-  listActive() {
-    return this.match.listActiveGames();
-  }
-
   // Browse Open Rooms (WAITING PvP games : joinable)
   @UseGuards(JwtAuthGuard)
   @Get('api/games/rooms')
@@ -143,13 +136,6 @@ export class MatchController {
   @Post('api/game/:id/exit')
   exitGame(@Request() req: { user: { id: string } }, @Param('id') gameId: string) {
     return this.match.exitGame(gameId, req.user.id);
-  }
-
-  // Cleanup
-  @UseGuards(JwtAuthGuard)
-  @Post('api/match/cleanup')
-  cleanup() {
-    return this.match.cleanupStaleGames();
   }
 
   // Abort Game

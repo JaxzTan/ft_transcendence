@@ -191,6 +191,25 @@ specifically because the ngrok tunnel will not tolerate an idle socket. Because 
 keeping the stream up is also what stops live events (for example `avatar_changed`) from being lost
 during a drop.
 
+### Client polling cadence
+
+The client's periodic requests use named constants, so an interval can be tuned in one place.
+
+| Constant | File | What it polls | Original | Now |
+| --- | --- | --- | --- | --- |
+| `ROOM_POLL_MS` | `frontend/src/pages/LudoLobby.tsx` | the open-room list and the "am I already seated?" check (`GET /api/games/rooms`, `GET /api/games/mine`) | 1000 ms | **5000 ms** |
+| `ACTIVE_GAME_POLL_MS` | `frontend/src/components/RetroNavbar.tsx` | the rejoin banner (`GET /api/games/mine`) | 2500 ms | **10000 ms** |
+
+Both endpoints walk the Redis `match:*` keyspace, and at 1 s the lobby alone sent 120 requests/min
+per user. The global limit is 300 requests/min per IP, so two players sharing an IP were within a few
+percent of it. At 5 s and 10 s a user on the lobby page sends about 30 requests/min (24 for the room
+list and its own check, 6 for the rejoin banner), so two players sharing an IP sit at ~60/min instead
+of ~288/min. A new room or a rejoin banner still appears within a few seconds.
+`PRESENCE_HEARTBEAT_MS` (20 s) is unchanged.
+
+Measured with two tabs on the lobby page: 61 Redis `SCAN`s/min = 60 poll requests (30 per user) plus
+the engine's idle sweep, i.e. 6.8 Redis ops/s and 0.003% of one CPU core, with no throttled request.
+
 ---
 
 ## Data layer
@@ -219,15 +238,19 @@ two are not interchangeable — see `backend/prisma.config.ts`.
 Several distinct uses:
 
 - **Leaderboard cache** — `LeaderboardRedisService`, sorted sets keyed `leaderboard:{mode}`, backfilled from PostgreSQL when the set is empty (a Redis outage is surfaced as an error, not masked).
-- **Live game state** — `MatchService` (matchmaking, active games) and the engine's `RedisGameStore`.
+- **Live game state** — `MatchService` (matchmaking and match lifecycle) and the engine's `RedisGameStore`.
 - **Presence** — heartbeat keys per user for online/offline/playing status (`PresenceService`). The heartbeat itself is the **client → server** direction; see [Connection liveness](#connection-liveness-two-direction-heartbeats).
 - **Notifications** — Redis Pub/Sub channels (`notify:<userId>`) bridge persisted notifications to the SSE stream (`NotificationService`).
+- **Avatar metadata cache** — `AvatarMetaService`, hash `avatar:<userId>` = `{ has, style, v }`. Written by the user/auth services only **after** the Postgres write succeeds, and read by the ludo-engine at seat join, since the engine has no database access of its own. The profile reads (`/me`, public profile) rewrite it from Postgres, so a missed write or an eviction converges on the next read. A missing entry means "no photo", so no client requests one. See [avatar-system.md](./avatar-system.md).
+- **Auth state** — `refresh:<tokenHash>` (refresh token → user, 7-day TTL) with the `sessions:<userId>` set that revoke-all walks, plus the single-use `verify:<tokenHash>`, `reset:<tokenHash>` and `2fa:<pendingTokenHash>` challenge keys (`SessionService`, `TwoFactorService`).
 
 Redis runs on the internal port **6479** with `requirepass` sourced from the
 `REDIS_PASSWORD` env var (written into `/tmp/redis.conf` by `redis-init.sh`).
-The leaderboard, presence, session, two-factor, and notification services all
-authenticate their Redis connections via `secret('REDIS_PASSWORD')`. The
-matchmaking service and the engine's `RedisGameStore` also authenticate.
+Every backend service that opens a Redis connection authenticates it with
+`secret('REDIS_PASSWORD')` — leaderboard, presence, auth (session and two-factor),
+friends, match (creator, player, query, postgame), notification, and the avatar
+metadata cache. The engine is a separate process, so its `RedisGameStore` and
+`RedisBroadcaster` read `process.env.REDIS_PASSWORD` directly instead.
 
 ---
 

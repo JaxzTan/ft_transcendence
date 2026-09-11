@@ -62,10 +62,7 @@ Complete reference of all HTTP and WebSocket APIs in the project. Updated 30 Aug
    - [`POST /api/match/pve`](#post-apimatchpve) — Start a single-player game against bots
    - [`POST /api/match/create`](#post-apimatchcreate) — Create any game (PvP / PvE / hotseat) with full options
 
-7. **[Match — Cleanup](#7-match--cleanup)** — Stale-game cleanup
-   - [`POST /api/match/cleanup`](#post-apimatchcleanup) — Remove stale/abandoned match data
-
-8. **[Game Actions — Room](#8-game-actions--room)** — Ready, resign, exit, abort, rejoin, invite
+7. **[Game Actions — Room](#7-game-actions--room)** — Ready, resign, exit, abort, rejoin, invite
    - [`POST /api/game/:id/ready`](#post-apigameidready) — Mark yourself ready in a room so the game can start
    - [`POST /api/game/:id/resign`](#post-apigameidresign) — Forfeit / give up the current game
    - [`POST /api/game/:id/exit`](#post-apigameidexit) — Leave the post-game lobby
@@ -73,62 +70,61 @@ Complete reference of all HTTP and WebSocket APIs in the project. Updated 30 Aug
    - [`POST /api/game/:id/rejoin`](#post-apigameidrejoin) — Reconnect to a room you're seated in (e.g. after a page refresh)
    - [`POST /api/game/:id/invite`](#post-apigameidinvite) — Invite a friend into your waiting PvP room
 
-9. **[Game Actions — Browse](#9-game-actions--browse)** — List games/rooms, find your rooms
-   - [`GET /api/games/active`](#get-apigamesactive) — List all games currently in progress
+8. **[Game Actions — Browse](#8-game-actions--browse)** — List games/rooms, find your rooms
    - [`GET /api/games/rooms`](#get-apigamesrooms) — Browse open (joinable) PvP rooms
    - [`GET /api/games/mine`](#get-apigamesmine) — List rooms you are seated in
 
-10. **[Game End (engine callback)](#10-game-end-engine-callback)** — Engine reports game start/end
+9. **[Game End (engine callback)](#9-game-end-engine-callback)** — Engine reports game start/end
    - [`POST /api/game/end`](#post-apigameend) — (engine) Report a finished game; triggers scoring, ratings, achievements
    - [`POST /api/game/:id/started`](#post-apigameidstarted) — (engine) Mark a game as started once the ready check passes
 
-11. **[Leaderboard](#11-leaderboard)** — Global rankings
+10. **[Leaderboard](#10-leaderboard)** — Global rankings
    - [`GET /api/leaderboard`](#get-apileaderboard) — View the global rankings (optionally highlight your own rank)
 
-12. **[Achievements](#12-achievements)** — Achievement progress and re-check
+11. **[Achievements](#11-achievements)** — Achievement progress and re-check
    - [`GET /api/achievements`](#get-apiachievements) — View your achievement progress and unlock targets
    - [`POST /api/achievements/check`](#post-apiachievementscheck) — Re-evaluate your achievements (silent backfill after rule changes)
 
-13. **[Stats](#13-stats)** — Lifetime player statistics
+12. **[Stats](#12-stats)** — Lifetime player statistics
    - [`GET /api/stats`](#get-apistats) — View your lifetime stats (rating, wins, losses, captures, …)
 
-14. **[Friends — Requests](#14-friends--requests)** — Send/accept/decline friend requests
+13. **[Friends — Requests](#13-friends--requests)** — Send/accept/decline friend requests
    - [`POST /api/friends/request/:userId`](#post-apifriendsrequestuserid) — Send a friend request to another user
    - [`POST /api/friends/accept/:requestId`](#post-apifriendsacceptrequestid) — Accept a pending friend request
    - [`POST /api/friends/decline/:requestId`](#post-apifriendsdeclinerequestid) — Decline a pending friend request
    - [`GET /api/friends/requests`](#get-apifriendsrequests) — View pending sent/received friend requests
 
-15. **[Friends — Manage](#15-friends--manage)** — List, remove, block, unblock friends
+14. **[Friends — Manage](#14-friends--manage)** — List, remove, block, unblock friends
    - [`DELETE /api/friends/remove/:friendId`](#delete-apifriendsremovefriendid) — Remove a friend
    - [`GET /api/friends`](#get-apifriends) — List your friends (optional `?username=` filter)
    - [`POST /api/friends/block/:userId`](#post-apifriendsblockuserid) — Block a user
    - [`GET /api/friends/blocked`](#get-apifriendsblocked) — List users you have blocked
    - [`POST /api/friends/unblock/:userId`](#post-apifriendsunblockuserid) — Unblock a user
 
-16. **[Friends — Game Invites](#16-friends--game-invites)** — Invite friends to games, pending/dismiss
+15. **[Friends — Game Invites](#15-friends--game-invites)** — Invite friends to games, pending/dismiss
    - [`POST /api/friends/:friendId/invite`](#post-apifriendsfriendidinvite) — Invite a friend to a PvP game
    - [`GET /api/friends/invites/pending`](#get-apifriendsinvitespending) — Check whether you have a pending game invite
    - [`POST /api/friends/invites/dismiss`](#post-apifriendsinvitesdismiss) — Dismiss your pending game invite
 
-17. **[Presence](#17-presence)** — Online/offline heartbeat
+16. **[Presence](#16-presence)** — Online/offline heartbeat
    - [`POST /api/presence/heartbeat`](#post-apipresenceheartbeat) — Tell the server you're online (sent ~every 20s while the app is open)
    - [`DELETE /api/presence/heartbeat`](#delete-apipresenceheartbeat) — Mark yourself offline (on logout)
 
-18. **[Notifications](#18-notifications)** — Live stream + unread list + read state
+17. **[Notifications](#17-notifications)** — Live stream + unread list + read state
    - [`GET /api/notifications/stream`](#get-apinotificationsstream) — Open a live stream of new notifications (SSE)
    - [`GET /api/notifications`](#get-apinotifications) — List your unread notifications (bell dropdown on load)
    - [`PATCH /api/notifications/:id/read`](#patch-apinotificationsidread) — Mark a single notification as read
    - [`POST /api/notifications/read-all`](#post-apinotificationsread-all) — Mark all notifications as read
 
-19. **[Health](#19-health)** — Backend/database health check
+18. **[Health](#18-health)** — Backend/database health check
    - [`GET /health`](#get-health) — Check the backend is up (verifies database connectivity)
 
 ### WebSocket APIs — Ludo Engine
 
-20. **[Connection](#20-connection)** — Connect to the game engine with a match token
-21. **[Client → Server Events](#21-client--server-events-emit)** — What the client sends: join, roll dice, move pieces, ready, end game
-22. **[Server → Client Events](#22-server--client-events-on)** — What the client receives: state updates, dice/move results, game end
-23. **[End-to-End Flow](#23-end-to-end-flow)** — A complete walkthrough from login to a finished game
+19. **[Connection](#19-connection)** — Connect to the game engine with a match token
+20. **[Client → Server Events](#20-client--server-events-emit)** — What the client sends: join, roll dice, move pieces, ready, end game
+21. **[Server → Client Events](#21-server--client-events-on)** — What the client receives: state updates, dice/move results, game end
+22. **[End-to-End Flow](#22-end-to-end-flow)** — A complete walkthrough from login to a finished game
 
 ---
 
@@ -926,23 +922,9 @@ Unified match creation — supports PvP, PvE, and hotseat modes.
 
 ---
 
-### 7. Match — Cleanup
-
-#### `POST /api/match/cleanup`
-
-**Source:** `backend/src/match/match.controller.ts` — MatchModule
-
-Clean up old match data and expired moves.
-
-**Headers:** 🔒 (requires `token` cookie)  
-**Body:** None  
-**Response:** Returns count of cleaned-up games.
-
 ---
 
----
-
-### 8. Game Actions — Room
+### 7. Game Actions — Room
 
 #### `POST /api/game/:id/ready`
 
@@ -1071,18 +1053,7 @@ Invite a friend into a WAITING PvP room.
 
 ---
 
-### 9. Game Actions — Browse
-
-#### `GET /api/games/active`
-
-**Source:** `backend/src/match/match.controller.ts` — MatchModule
-
-List all currently active games.
-
-**Headers:** 🔒 (requires `token` cookie)  
-**Response:** Array of active game summaries.
-
----
+### 8. Game Actions — Browse
 
 #### `GET /api/games/rooms`
 
@@ -1108,7 +1079,7 @@ List rooms (WAITING/ACTIVE) the current user is seated in — used to rejoin aft
 
 ---
 
-### 10. Game End (engine callback)
+### 9. Game End (engine callback)
 
 #### `POST /api/game/end`
 
@@ -1177,7 +1148,7 @@ Called by ludo-engine once the ready-check passes and the game transitions to AC
 
 ---
 
-### 11. Leaderboard
+### 10. Leaderboard
 
 #### `GET /api/leaderboard`
 
@@ -1230,7 +1201,7 @@ Get paginated leaderboard rankings.
 
 ---
 
-### 12. Achievements
+### 11. Achievements
 
 #### `GET /api/achievements`
 
@@ -1304,7 +1275,7 @@ The `unlocked` array contains the **keys** of any achievements newly unlocked by
 
 ---
 
-### 13. Stats
+### 12. Stats
 
 #### `GET /api/stats`
 
@@ -1333,7 +1304,7 @@ Get player statistics for the current user.
 
 ---
 
-### 14. Friends — Requests
+### 13. Friends — Requests
 
 All friend endpoints require JWT auth via cookie.
 
@@ -1419,7 +1390,7 @@ Get pending friend requests (both sent and received).
 
 ---
 
-### 15. Friends — Manage
+### 14. Friends — Manage
 
 #### `DELETE /api/friends/remove/:friendId`
 
@@ -1516,7 +1487,7 @@ Unblock a user.
 
 ---
 
-### 16. Friends — Game Invites
+### 15. Friends — Game Invites
 
 #### `POST /api/friends/:friendId/invite`
 
@@ -1573,7 +1544,7 @@ Dismiss the current user's pending game invite.
 
 ---
 
-### 17. Presence
+### 16. Presence
 
 #### `POST /api/presence/heartbeat`
 
@@ -1641,7 +1612,7 @@ Get the site-wide count of currently online users (for the homepage badge bar).
 
 ---
 
-### 18. Notifications
+### 17. Notifications
 
 #### `GET /api/notifications/stream`
 
@@ -1707,7 +1678,7 @@ Mark all notifications as read.
 
 ---
 
-### 19. Health
+### 18. Health
 
 #### `GET /health`
 
@@ -1740,7 +1711,7 @@ On DB error:
 
 ## WebSocket APIs — Ludo Engine
 
-### 20. Connection
+### 19. Connection
 
 The browser connects to the engine on its **own origin** — nginx (or the Vite dev proxy) forwards `/socket.io/` to the ludo-engine.
 
@@ -1771,7 +1742,7 @@ JWT payload structure:
 
 ---
 
-### 21. Client → Server Events (emit)
+### 20. Client → Server Events (emit)
 
 #### `join_game`
 
@@ -1929,7 +1900,7 @@ Automatically handled when the WebSocket connection drops. Marks player as disco
 
 ---
 
-### 22. Server → Client Events (on)
+### 21. Server → Client Events (on)
 
 | Event | Payload | When |
 |---|---|---|
@@ -1951,7 +1922,7 @@ Automatically handled when the WebSocket connection drops. Marks player as disco
 
 ---
 
-### 23. End-to-End Flow
+### 22. End-to-End Flow
 
 ```
 

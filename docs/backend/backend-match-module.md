@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-- [Overview](#overview) — Matchmaking, game lifecycle, and active-game tracking
+- [Overview](#overview) — Matchmaking and the game lifecycle
 - [Files](#files) — Every source file in the module and its role
 - [Key Types / Interfaces](#key-types--interfaces) — Match creation DTOs and response shapes
 - [API Endpoints](#api-endpoints) — Matchmaking endpoints and in-game actions
@@ -19,8 +19,7 @@ The Match module is the bridge between the REST API and the real-time ludo-engin
 
 1. **Matchmaking** — creates or joins PvP, PvE, or invite games.
 2. **Game lifecycle** — transitions games from `waiting` → `active` → `completed`.
-3. **Active-game tracking** — `GET /api/games/active` lists currently running games.
-4. **Cleanup** — periodic cleanup of stale Redis match data.
+3. **Room browsing** — `GET /api/games/rooms` lists joinable PvP rooms, and `GET /api/games/mine` lists the rooms you are seated in.
 
 The module uses Redis for short-lived match data (queues, active games) and lets the ludo-engine own the actual game logic over Socket.IO.
 
@@ -30,12 +29,12 @@ The module uses Redis for short-lived match data (queues, active games) and lets
 
 | File | Role |
 |------|------|
-| `match.controller.ts` | HTTP routes: matchmaking, game actions, browse games, engine callbacks, cleanup |
+| `match.controller.ts` | HTTP routes: matchmaking, game actions, room browsing, engine callbacks |
 | `match.service.ts` | Facade — composes the four split services (`MatchCreatorService`, `MatchPlayerService`, `MatchQueryService`, `MatchPostgameService`) and re-exports `ENGINE_WS_URL` |
 | `match.creator.service.ts` | Match creation: PvP/PvE/hotseat, invite codes, room joining, bot seeding |
 | `match.player.service.ts` | In-game actions: join, rejoin, invite friend, ready, exit, cancel, resign |
-| `match.query.service.ts` | Browse queries: active games, open rooms, my rooms |
-| `match.postgame.service.ts` | `POST /api/game/end` processing (scoring, ratings, achievements), stale-game cleanup |
+| `match.query.service.ts` | Browse queries: open rooms, my rooms |
+| `match.postgame.service.ts` | `POST /api/game/end` processing (scoring, ratings, achievements) |
 | `match.module.ts` | NestJS module — registers all services, PrismaService |
 
 ---
@@ -84,14 +83,12 @@ type MatchMode = 'pvp' | 'pve' | 'hotseat'
 | `POST` | `/api/match/join/:code` | JWT | Join PvP match by invite code |
 | `POST` | `/api/match/pve` | JWT | Start PvE (vs bot) game |
 | `POST` | `/api/match/create` | JWT | Unified match creation (mode required: pvp/pve/hotseat) |
-| `POST` | `/api/match/cleanup` | JWT | Clean up stale match data |
 | `POST` | `/api/game/:id/ready` | JWT | Signal player is ready |
 | `POST` | `/api/game/:id/resign` | JWT | Forfeit the game |
 | `POST` | `/api/game/:id/exit` | JWT | Acknowledge leaving post-game |
 | `POST` | `/api/game/:id/abort` | JWT | Cancel unstarted game |
 | `POST` | `/api/game/:id/rejoin` | JWT | Rejoin a room after refresh |
 | `POST` | `/api/game/:id/invite` | JWT | Invite a friend into a WAITING PvP room |
-| `GET` | `/api/games/active` | JWT | List all active games |
 | `GET` | `/api/games/rooms` | JWT | List open (WAITING PvP) rooms |
 | `GET` | `/api/games/mine` | JWT | List rooms the user is seated in |
 | `POST` | `/api/game/end` | engine key | Engine callback — process game end (scoring/achievements) |
@@ -216,12 +213,6 @@ POST /api/game/:id/exit
 
 POST /api/game/:id/abort
   └── Cancel WAITING game, notify engine → return { message, gameId }
-```
-
-### Active Games Path
-```
-GET /api/games/active
-  └── Redis: Get all active games → return array
 ```
 
 ---

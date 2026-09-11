@@ -74,9 +74,6 @@ export class MatchService {
   }
 
   // Queries
-  async listActiveGames() {
-    return this.query.listActiveGames();
-  }
   async listOpenRooms() {
     return this.query.listOpenRooms();
   }
@@ -87,8 +84,5 @@ export class MatchService {
   // Post-game
   async processGameEnd(data: GameEndPayload) {
     return this.postgame.processGameEnd(data);
-  }
-  async cleanupStaleGames() {
-    return this.postgame.cleanupStaleGames();
   }
 }

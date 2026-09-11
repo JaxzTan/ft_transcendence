@@ -20,6 +20,11 @@ import {
 
 type ThemeType = 'synthwave' | 'win95' | 'terminal';
 
+// How often the rejoin banner re-checks for an active game.
+// Original: 2500 ms. Recommended: 10000 ms — the badge only needs to appear
+// soon after a game is created in another tab or by an invite.
+const ACTIVE_GAME_POLL_MS = 10_000;
+
 interface RetroNavbarProps {
   activeRoute?: string;
   crtEnabled?: boolean;
@@ -136,7 +141,7 @@ export function RetroNavbar({
 
   useEffect(() => {
     fetchActiveGame();
-    const iv = setInterval(fetchActiveGame, 2500);
+    const iv = setInterval(fetchActiveGame, ACTIVE_GAME_POLL_MS);
     return () => clearInterval(iv);
   }, [user, currentPath, fetchActiveGame]);
 
