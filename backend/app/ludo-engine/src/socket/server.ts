@@ -152,12 +152,13 @@ export class SocketServer {
       const match = await this.store.getMatchData(key.slice('match:'.length));
       if (!match || match.status !== 'WAITING') continue;
 
-      const seatedCount = [
-        match.player1_id,
-        match.player2_id,
-        match.player3_id,
-        match.player4_id,
-      ].filter(Boolean).length;
+      // "Seated" = PRESENT, i.e. not a seat merely reserved by a player who
+      // returned to the lobby (player<N>_left). A reserved slot keeps its row so
+      // its owner can reclaim the colour, but it must not keep the idle timer
+      // alive or an abandoned room would never expire.
+      const seatedCount = [1, 2, 3, 4].filter(
+        (n) => match[`player${n}_id`] && !match[`player${n}_left`],
+      ).length;
 
       if (seatedCount >= 2) {
         // Two or more seated players : the idle timer is inactive.

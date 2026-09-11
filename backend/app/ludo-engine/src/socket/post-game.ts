@@ -48,8 +48,10 @@ export class PostGameManager {
       return;
     }
 
-    // PvP: prune only this player.
-    await this.engine.handlePlayerExit(gameId, color);
+    // PvP: prune only this player. `true` = ABORT frees the seat outright, so
+    // the room can hand it to someone else (a player who merely returns to the
+    // lobby only reserves theirs).
+    await this.engine.handlePlayerExit(gameId, color, true);
     this.publisher.publish({ type: 'player_aborted', gameId, color, username });
 
     // If fewer than 2 humans remain, the game cannot continue -> abort+clean.

@@ -1146,10 +1146,19 @@ export function Game() {
                           {occupied && playerMeta?.username ? (
                             <UserAvatar
                               username={playerMeta.username}
+                              // Own seat has a known flag; bots have no photo;
+                              // another human is UNKNOWN here because the engine's
+                              // PlayerMeta carries no avatar fields. Pass undefined
+                              // so UserAvatar requests the photo and falls back to
+                              // the generated avatar on 404 (instead of the previous
+                              // hardcoded `false`, which reverted to the baseline
+                              // after every refresh).
                               hasAvatarPhoto={
                                 playerMeta.username === user?.username
                                   ? (user?.hasAvatarPhoto ?? false)
-                                  : false
+                                  : playerMeta.isBot
+                                    ? false
+                                    : undefined
                               }
                               size={34}
                               fallbackStyle={{

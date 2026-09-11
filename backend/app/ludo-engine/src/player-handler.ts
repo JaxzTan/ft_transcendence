@@ -253,6 +253,10 @@ export async function handlePlayerExit(
   emit: (event: GameEvent) => void,
   gameId: string,
   color: PlayerColor,
+  // Waiting-room only: true frees the seat outright (abort). Default false
+  // RESERVES it, so a player who returned to the lobby reclaims the same
+  // colour instead of being handed a new one on rejoin.
+  freeSeat = false,
 ): Promise<void> {
   const state = await store.loadGameState(gameId);
   if (!state) return;
@@ -266,9 +270,21 @@ export async function handlePlayerExit(
 
   const player = state.players.find((p) => p.color === color);
   if (player) {
-    player.status = 'exited';
-    player.isConnected = false;
-    player.isFinished = true;
+    if (state.status === 'waiting') {
+      // Waiting room: the occupant is AWAY, not out of the game. Hide the seat
+      // ('inactive' is filtered by the lobby roster and the pilot list) but
+      // leave the finished flags untouched — the reserved seat is reclaimed on
+      // rejoin, and a stale isFinished would make the player look "already
+      // done" once the game starts (handlePlayerResign's stillPlaying check).
+      player.status = 'inactive';
+      player.isConnected = false;
+    } else {
+      // Live game: keep the seat visible as 'exited' (the results logic prunes
+      // on that status) and count the player as finished for scoring.
+      player.status = 'exited';
+      player.isConnected = false;
+      player.isFinished = true;
+    }
   }
 
   if (state.currentTurn === color && state.status === 'active') {
@@ -278,10 +294,13 @@ export async function handlePlayerExit(
   await store.saveGameState(gameId, state);
   emit({ type: 'player_exited', gameId, color });
 
-  // Waiting-room cleanup: a guest leaving a PvP lobby must vacate their
-  // Redis seat or the room counts 2 seated forever and the idle-abort never
-  // restarts. The host's seat is never cleared : the room stays rejoinable.
+  // Waiting-room seat handling. ABORTING frees the seat so the room can hand it
+  // to someone else; merely RETURNING TO THE LOBBY only reserves it, so the
+  // player comes back to their assigned colour (the slot keeps its id, which is
+  // what the backend's joinMatch lookup keys on). Either way the idle-abort is
+  // restarted/re-armed, and the host's seat is never touched.
   if (state.status === 'waiting') {
-    await store.clearMatchSeat(gameId, color);
+    if (freeSeat) await store.clearMatchSeat(gameId, color);
+    else await store.reserveMatchSeat(gameId, color);
   }
 }

@@ -290,9 +290,9 @@ export class LudoEngine {
     await this.emitLobbyUpdate(gameId);
   }
 
-  async handlePlayerExit(gameId: string, color: PlayerColor): Promise<void> {
+  async handlePlayerExit(gameId: string, color: PlayerColor, freeSeat = false): Promise<void> {
     return this.withGameLock(gameId, () =>
-      handlePlayerExit(this.store, (e) => this.emit(e), gameId, color),
+      handlePlayerExit(this.store, (e) => this.emit(e), gameId, color, freeSeat),
     );
   }
 

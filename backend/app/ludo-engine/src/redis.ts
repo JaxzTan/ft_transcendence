@@ -148,8 +148,10 @@ export class RedisGameStore {
     await this.client.hdel(this.matchKey(gameId), 'idleSince');
   }
 
-  // Remove a non-host player's seat from a waiting room's match hash
-  // (the host seat is never cleared) and restart the idle countdown.
+  // FREE a non-host player's seat in a waiting room: the slot is removed from
+  // the match hash outright, so the room can hand it to someone else. Used when
+  // the player ABORTS (the "End Game" / abort button). The host seat is never
+  // cleared : the room stays rejoinable.
   async clearMatchSeat(gameId: string, color: PlayerColor): Promise<void> {
     const data = await this.getMatchData(gameId);
     if (!data) return;
@@ -161,7 +163,24 @@ export class RedisGameStore {
       this.matchKey(gameId),
       `player${slotIndex + 1}_id`,
       `player${slotIndex + 1}_color`,
+      `player${slotIndex + 1}_left`,
     );
+    await this.setIdleSince(gameId, Date.now());
+  }
+
+  // RESERVE a non-host player's seat in a waiting room: the slot keeps its id
+  // and colour (so the backend's joinMatch userId lookup sends the player back
+  // to the SAME seat) but gains a `player<N>_left` flag. That flag excludes the
+  // slot from the "seated" counts, so the idle-abort still works and a full
+  // room doesn't stay full forever off a player who merely returned to the
+  // lobby. Used when the player leaves WITHOUT aborting.
+  async reserveMatchSeat(gameId: string, color: PlayerColor): Promise<void> {
+    const data = await this.getMatchData(gameId);
+    if (!data) return;
+    if (data.player1_color === color) return; // host keeps a live seat
+    const slotIndex = COLORS.indexOf(color);
+    if (slotIndex <= 0) return; // unknown colour or host slot
+    await this.client.hset(this.matchKey(gameId), `player${slotIndex + 1}_left`, '1');
     await this.setIdleSince(gameId, Date.now());
   }
 

@@ -99,6 +99,11 @@ export class MatchPlayerService {
     );
     if (slotIndex === -1) throw new ForbiddenException('You are not a player in this game');
 
+    // Reclaiming the seat makes it PRESENT again: clear the reservation flag a
+    // "returned to lobby" leave set, so the room counts this player and the
+    // idle-abort stops applying.
+    await this.redis.hdel(`match:${gameId}`, `player${slotIndex + 1}_left`);
+
     const color = data[`player${slotIndex + 1}_color`] || SLOT_COLORS[slotIndex];
     const username = await this.resolveUsername(userId);
     const displayName = await this.resolveDisplayName(userId);

@@ -59,7 +59,16 @@ export function UserAvatar({
   }
 
   const version = cacheBuster ?? liveVersion;
-  const usePhoto = hasAvatarPhoto === true || hasAvatarChanged(username);
+  // Ask for the photo unless a payload POSITIVELY told us there is none.
+  // Callers that know the answer (profile, friends, leaderboard, own account)
+  // pass a real boolean, so `false` still skips the request. Callers that cannot
+  // know (game seats for other players, friend requests, blocked) leave it
+  // undefined, so we request the photo and the onError below falls back to the
+  // generated avatar. `hasAvatarChanged` keeps a just-changed avatar live even
+  // when the loaded payload still says `false`; note it must be used INSTEAD of a
+  // `liveVersion > 0` test, because useAvatarVersion now falls back to
+  // SESSION_START (a timestamp) and would make every avatar request a photo.
+  const usePhoto = hasAvatarPhoto !== false || hasAvatarChanged(username);
   const fallbackSrc = dicebearAvatar(username, avatarStyle);
   const src = usePhoto ? `/api/user/${username}/avatar?t=${version}` : fallbackSrc;
 
