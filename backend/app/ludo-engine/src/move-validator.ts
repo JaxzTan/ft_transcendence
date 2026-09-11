@@ -18,10 +18,9 @@ export class MoveValidator {
       // Skip if already finished (step === 57)
       if (from === 57) continue;
 
-      // Prison exit rule: can only leave prison on a roll of 6.
-      // Exiting places the piece on the starting track square (step 1) : the 6
-      // is consumed to exit; the remaining 5 steps are NOT applied. The next
-      // roll then moves the piece 1-6 steps.
+      // Prison exit rule: a piece leaves prison only on a roll of 6, and exiting
+      // consumes the 6 (the piece lands on step 1; the remaining 5 steps are not
+      // applied). The next roll then moves it 1-6 steps.
       if (from === 0) {
         if (diceValue !== 6) continue;
         const to = 1;
@@ -91,9 +90,9 @@ export class MoveValidator {
     return false;
   }
 
-  // Single source of truth for "can the mover capture on targetStep?" :
-  // detection and execution both derive from it. Main track only, safe zones
-  // never capturable, blockades uncapturable, else opponent must be there.
+  // The only place that decides "can the mover capture on targetStep?": both the
+  // detection and the execution use it. Main track only, safe zones never
+  // capturable, blockades not capturable, otherwise the opponent must be there.
   static isCapturableTarget(
     state: GameState,
     moverColor: PlayerColor,

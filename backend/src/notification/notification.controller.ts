@@ -1,5 +1,5 @@
 import { Controller, Get, Patch, Post, Param, Sse, UseGuards, Request } from '@nestjs/common';
-import { Observable, map, finalize } from 'rxjs';
+import { Observable, map, finalize, interval, merge } from 'rxjs';
 import { NotificationService } from './notification.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { NotificationPayload } from './notification.service';
@@ -12,6 +12,11 @@ interface MessageEvent {
   type?: string;
 }
 
+// SSE keep-alive: a named `ping` frame every 20s, not the client's presence
+// heartbeat. An idle stream gets reset and SSE has no replay, so an
+// avatar_changed sent during a reset is lost. See docs/architecture.md.
+const SSE_HEARTBEAT_MS = 20_000;
+
 @Controller()
 // HTTP + SSE routes for notifications: the live event stream the client
 // opens on login, plus read/unread endpoints for the bell. Delegates to
@@ -19,10 +24,7 @@ interface MessageEvent {
 export class NotificationController {
   constructor(private readonly notifications: NotificationService) {}
 
-  // SSE stream
-  // Opened once on login. The server pushes a JSON event per notification
-  // published for this user via Redis Pub/Sub; NestJS's @Sse handles the
-  // event-stream headers and flushing.
+  // Opened once on login; one JSON event per notification via Redis Pub/Sub.
 
   @UseGuards(JwtAuthGuard)
   @Sse('api/notifications/stream')
@@ -32,11 +34,21 @@ export class NotificationController {
 
     // Map each payload into the MessageEvent shape the SSE adapter expects
     // (id: notification id, data: the notification JSON).
-    return obs.pipe(
+    const events: Observable<MessageEvent> = obs.pipe(
       map((notification: NotificationPayload): MessageEvent => ({
         data: notification,
         id: notification.id,
       })),
+    );
+
+    // Heartbeat: a named `ping` event on a timer. merge() ends the response when
+    // either source ends, and the interval is cancelled on teardown, which NestJS
+    // triggers when the HTTP connection closes.
+    const heartbeat: Observable<MessageEvent> = interval(SSE_HEARTBEAT_MS).pipe(
+      map((): MessageEvent => ({ type: 'ping', data: 'keep-alive' })),
+    );
+
+    return merge(events, heartbeat).pipe(
       // Teardown on HTTP close happens in the service's finalize() wrapper :
       // this empty finalize just marks where the stream teardown begins.
       finalize(() => {

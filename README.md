@@ -241,10 +241,11 @@ All project documentation lives under `docs/`, grouped by category. Each file is
 
 #### Overview
 
-| Document                                     | Responsibility                                                                              |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| [docs/architecture.md](docs/architecture.md) | System topology, services, request paths, data layer, secrets, make targets, file structure |
-| [docs/API-list.md](docs/API-list.md)         | Complete HTTP + WebSocket API reference                                                     |
+| Document                                       | Responsibility                                                                              |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [docs/architecture.md](docs/architecture.md)   | System topology, services, request paths, data layer, secrets, make targets, file structure |
+| [docs/API-list.md](docs/API-list.md)           | Complete HTTP + WebSocket API reference                                                     |
+| [docs/avatar-system.md](docs/avatar-system.md) | Avatar storage, Redis metadata, caching and freshness, seat rendering                       |
 
 #### Deployment
 

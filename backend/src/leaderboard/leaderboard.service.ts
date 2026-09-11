@@ -3,10 +3,10 @@ import { PrismaService } from '../prisma.service';
 import { LeaderboardRedisService } from './leaderboard-redis.service';
 import { BOT_PREFIX, isBotUserId } from '../common/bot';
 
-// One row on the leaderboard, fully denormalized for display.
 export interface LeaderboardEntry {
   rank: number; // 1-based position on this page
   username: string; // immutable account name
+  id: string; // immutable user id : the key every avatar is looked up by
   displayName: string; // shown name
   rating: number; // current Elo-style score
   gamesPlayed: number; // wins + losses
@@ -101,6 +101,9 @@ export class LeaderboardService {
 
           entries.push({
             rank: (page - 1) * limit + entries.length + 1,
+            // The immutable id : the client keys avatars on it, so a renamed
+            // display name can never break an avatar URL.
+            id: user.id,
             username: user.username,
             displayName: user.displayName,
             rating: entry.rating,

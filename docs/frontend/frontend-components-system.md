@@ -42,7 +42,7 @@ The shared components are reusable UI (user interface) building blocks used on s
 | `src/components/RetroAuthLayout.tsx` | Retro-styled authentication page container (`tag` + `children`, plus the `NeonCheck` glyph) |
 | `src/components/Board.tsx` | Ludo board — tracks, bases, pieces, legal-move highlights |
 | `src/components/Die.tsx` | Dice component — face rendering with roll animation |
-| `src/components/UserAvatar.tsx` | Avatar image — shows the uploaded photo only when `hasAvatarPhoto` is `true`, otherwise the DiceBear default; a failed load quietly switches to the default (no retry, no error state) |
+| `src/components/UserAvatar.tsx` | Avatar image — keyed by the immutable `userId`; requests the photo only when the seat is not a bot and a photo is known to exist (payload flag or a live `avatar_changed` override), otherwise renders the DiceBear default. A failed load marks that id broken for the session so it is not retried |
 | `src/dicebear.ts` | DiceBear helper — generates an avatar data URI (Uniform Resource Identifier) (`avataaars`/`bottts`/`identicon`) |
 | `src/components/RankBadge.tsx` | Rank tier badge based on rating |
 | `src/components/OAuthButtons.tsx` | OAuth provider buttons (42, GitHub, Google) |
@@ -56,7 +56,7 @@ The shared components are reusable UI (user interface) building blocks used on s
 | `src/components/MarkdownViewer.tsx` | Renders the markdown legal documents |
 | `src/components/CyberModal.tsx` | Cyber-styled modal base (`CyberButton`, `CyberModal`) used for confirmations and dialogs |
 | `src/components/ResultsModal.tsx` | Post-game results overlay — podium, rank badges, outcome title, return-to-lobby |
-| `src/avatarCache.ts` | Per-user avatar cache-buster store — `useAvatarVersion`, `bumpAvatarVersion`, driven by the SSE (Server-Sent Events) `avatar_changed` event |
+| `src/avatarCache.ts` | Avatar state store, keyed by immutable user id — live `avatar_changed` overrides (`{has, style}`), a remount stamp per user, and a `broken` set so a failed photo is not retried |
 
 ---
 
@@ -286,7 +286,7 @@ Per-constant notes:
 ## Implementation Notes
 
 - **Overlays rendered through a portal.** `NotificationBell`'s dropdown and `RetroNavbar`'s account popover both render into `<body>`. A high `z-index` cannot escape an ancestor's stacking context (the sticky sidebar's `position: sticky` creates one, which traps even very large z-indices), so the overlays render outside it. Their position comes from the trigger's current `getBoundingClientRect()` instead of CSS anchoring.
-- **Avatar photo flags.** `UserAvatar` requests `/api/user/<name>/avatar` only when `hasAvatarPhoto === true`; any other value (including `undefined`) renders the DiceBear default, because a failed photo request produces a 404 that the browser logs regardless of `onError`. `ResultsModal` therefore passes `false` for opponents (the client-side `LastResult` never carries the flag) and `user?.hasAvatarPhoto ?? false` for the viewer.
+- **Avatars are keyed by the immutable user id, and the URL is stamped on change.** `UserAvatar` takes `userId` (the photo key) and keeps `username` only as the DiceBear seed and alt text, so a display-name rename can never invalidate an avatar URL. It requests `/api/user/id/<userId>/avatar` only when the seat is not a bot **and** a photo is known to exist — from the payload's `hasAvatarPhoto` or from a live `avatar_changed` override in `avatarCache.ts`. Anything else renders the DiceBear default, so a photo-less user never produces a 404. **A change also appends `?v=<stamp>`**, because React re-rendering is not enough on its own: a byte-identical image URL can be served from the browser's in-memory image cache without any request, so `no-cache` never gets to revalidate. The stamp comes from the SSE event (or `Date.now()` for the uploader's own client, so its own view needs no SSE). A failed load records that id in the store's `broken` set, so the session stops retrying it. `ResultsModal` passes no id for opponents (the client-side `LastResult` carries none), so they render the generated avatar. The full pipeline — storage, the shared Redis record, caching and freshness — is described in [`avatar-system.md`](../avatar-system.md).
 - **`DeleteAccountModal` is a two-step dialog.** Accounts created through a provider have no password, so they set one first, because deletion always requires the password. They then confirm with that password and an acknowledgement checkbox. On success the store's `logout()` clears the session and the user lands on `/login`.
 - **CJK label sizing (`AccountMenu`).** CJK (Chinese, Japanese and Korean) glyphs fill the em box, while Latin letters take up roughly half of it, so Latin labels use a smaller px value and look the same size.
 - **RetroNavbar compact mode.** Below Tailwind's `xl` breakpoint (1280px) the sidebar collapses to an icon-only rail. The labels are hidden from JavaScript rather than by CSS, because parts of the bar are plain inline styles. Every page that renders the bar uses the same threshold with `w-[88px] xl:w-[270px]`.

@@ -76,14 +76,41 @@ export function applyEvent(
     case 'lobby_update': {
       const payload =
         (event.players as
-          Array<{ username: string; color: PlayerColor; ready: boolean }> | undefined) ?? [];
+          | Array<{
+              username: string;
+              color: PlayerColor;
+              ready: boolean;
+              userId?: string;
+              hasAvatarPhoto?: boolean;
+              avatarStyle?: string;
+            }>
+          | undefined) ?? [];
       // The engine only includes active seats in this payload.
       // Any seat omitted from the payload is empty and must be reset to inactive.
       const players = state.players.map((p) => {
         const seat = payload.find((e) => e.color === p.color);
         return seat
-          ? { ...p, username: seat.username, displayName: seat.username, status: 'active' as const }
-          : { ...p, username: '', displayName: '', status: 'inactive' as const };
+          ? {
+              ...p,
+              username: seat.username,
+              displayName: seat.username,
+              // Avatar facts travel with the roster so a seat never has to ask
+              // for a photo it does not have. `userId` is empty for bots and
+              // hotseat's local seats.
+              userId: seat.userId,
+              hasAvatarPhoto: seat.hasAvatarPhoto ?? false,
+              avatarStyle: seat.avatarStyle ?? null,
+              status: 'active' as const,
+            }
+          : {
+              ...p,
+              username: '',
+              displayName: '',
+              userId: undefined,
+              hasAvatarPhoto: false,
+              avatarStyle: null,
+              status: 'inactive' as const,
+            };
       });
       return {
         ...state,

@@ -167,6 +167,27 @@ One row per player per game.
 
 ---
 
+### Bots
+
+A bot is not a separate table: bots are stored as real `User` rows whose id is
+the literal string `bot-<color>` (`bot-red`, `bot-green`, `bot-yellow`,
+`bot-blue`). The row exists because `GameParticipant.user_id` is a foreign key to
+`User.id`, so every seeded seat must reference a real user.
+
+`backend/src/common/bot.ts` owns `BOT_PREFIX` and `isBotUserId()`. The engine
+process keeps its own copy of both in `socket/auth.ts`, so bot identity must be
+changed in both places at once.
+
+Modules that must tell humans from bots:
+
+| Module | What it does with bots |
+|--------|------------------------|
+| Match (`match.creator`, `match.player`, `match.postgame`) | Builds bot seats as `BOT_PREFIX + color`; excludes bots from seat and invite lists; skips them for rating, scoring, winner selection and persisted results, so a bot never gets an Elo change, a win/loss tally or a leaderboard entry |
+| Achievements (`achievements.service`) | Skips bot participants, so games against bots never unlock human achievements |
+| Leaderboard (`leaderboard.service`) | Excludes bots when it rebuilds from Postgres, using `startsWith BOT_PREFIX` in the query plus `!isBotUserId()` in memory |
+
+---
+
 ### Friendship
 
 | Field | Type | Attributes | Description |

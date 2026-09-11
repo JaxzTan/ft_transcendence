@@ -19,8 +19,12 @@ The User module manages public user profiles, game history, and avatar images.
 1. **Public profile** — `GET /api/user/:username` returns profile stats.
 2. **Game history** — `GET /api/user/:username/games` returns paginated past games.
 3. **Avatar upload** — `POST /api/user/avatar` accepts a multipart image (max 2 MB, PNG/JPEG/GIF/WebP).
-4. **Avatar retrieval** — `GET /api/user/:username/avatar` returns the binary image.
+4. **Avatar retrieval** — `GET /api/user/id/:userId/avatar` returns the binary image (keyed by the immutable user id, so a rename cannot break it).
 5. **Avatar deletion** — `DELETE /api/user/avatar` removes the custom avatar.
+
+> The avatar pipeline — where the bytes live, the shared Redis record the engine reads, the caching
+> and freshness rules, and how a failed load is handled — is described in full in
+> [`avatar-system.md`](../avatar-system.md).
 
 ---
 
@@ -93,7 +97,7 @@ The User module manages public user profiles, game history, and avatar images.
 | `GET` | `/api/user/:username` | None | Get public profile by username |
 | `GET` | `/api/user/:username/games` | None | Get paginated game history |
 | `POST` | `/api/user/avatar` | JWT | Upload avatar image |
-| `GET` | `/api/user/:username/avatar` | None | Retrieve avatar image |
+| `GET` | `/api/user/id/:userId/avatar` | None | Retrieve avatar image by user id |
 | `DELETE` | `/api/user/avatar` | JWT | Delete current user's avatar |
 
 ---
@@ -148,8 +152,8 @@ sequenceDiagram
 
     User->>Site: Pick a new avatar picture
     Site->>Server: POST /api/user/avatar (upload the image)
-    Server->>Server: Check the file is under 2 MB and an allowed image type
-    Server->>Server: Save the picture on the profile
+    Server->>Server: Check the size, the declared type and the actual image bytes
+    Server->>Server: Save the picture on the profile, then update the shared avatar record
     Server-->>Site: "Avatar uploaded"
     Site-->>User: Show the new avatar
 ```
@@ -163,10 +167,10 @@ sequenceDiagram
     participant Server as Backend
 
     User->>Site: Open a page that shows avatars
-    Site->>Server: GET /api/user/{username}/avatar
     alt No photo known (hasAvatarPhoto is not true)
         Site->>Site: Render the DiceBear default — no request, no 404
     else Has an avatar
+        Site->>Server: GET /api/user/id/{userId}/avatar, plus ?v=stamp once a change is known
         Server-->>Site: The image file
         Site-->>User: Show the picture
     end
@@ -182,7 +186,7 @@ sequenceDiagram
 
     User->>Site: Click "Remove my avatar"
     Site->>Server: DELETE /api/user/avatar
-    Server->>Server: Delete the saved picture
+    Server->>Server: Delete the saved picture, then set has: false in the shared record
     Server-->>Site: "Avatar deleted"
     Site->>Site: Set hasAvatarPhoto = false
     Site-->>User: Show the default avatar again (no photo request)
@@ -219,15 +223,32 @@ POST /api/user/avatar (JWT)
 
 ### Get Avatar Path
 ```
-GET /api/user/:username/avatar
-  ├── getAvatar(username) via User.avatarPhoto
-  │   ├── null → 404
-  │   └── found → res.set(Content-Type), send binary (Cache-Control: 1 day)
-  └── Note: clients request `?t=<version>` after each SSE `avatar_changed`
-      event, so changed photos are always refetched despite the 1-day cache.
-  └── Note: a client that knows `hasAvatarPhoto` is not true renders the
-      DiceBear default without calling this route at all, so a photo-less
-      user never produces a 404 in the browser console.
+GET /api/user/id/:userId/avatar
+  ├── getAvatarById(userId) via User.avatarPhoto
+  │   ├── null → 404 (Cache-Control: no-store, so it is never cached)
+  │   └── found → res.set(Content-Type), send binary
+  │              (Cache-Control: public, no-cache, no-transform + ETag)
+  └── Note: the base URL is stable (Express answers 304 when the bytes are
+      unchanged). After a change the client appends `?v=<stamp>` : a
+      byte-identical URL can otherwise be served from the browser's in-memory
+      image cache with no request at all, so `no-cache` alone never revalidates.
+  └── Note: a client only calls this route when it knows a photo exists
+      (AvatarMetaService's Redis record, surfaced in payloads and in the
+      engine's PlayerMeta), so a photo-less user produces no 404 at all.
+```
+
+### Avatar Metadata Cache (AvatarMetaService)
+```
+avatar:<userId>  →  { has: '0'|'1', style: '<dicebear style>', v: '<epoch ms>' }
+
+  ├── Written AFTER the Postgres write in register / OAuth-create / upload /
+  │   delete (Redis-first could leave has=1 with no bytes → a guaranteed 404).
+  ├── Read by the ludo-engine, which has no database access of its own, at
+  │   join time : that is how a seat knows whether its player has a photo.
+  ├── Repaired from Postgres on /me and public-profile reads (syncFromUser),
+  │   so a missed write or an eviction converges instead of drifting.
+  └── Redis is a cache, never the truth : a miss means has=false, and Postgres
+      stays authoritative for the bytes.
 ```
 
 ### Delete Avatar Path

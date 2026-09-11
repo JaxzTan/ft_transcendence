@@ -1022,6 +1022,7 @@ export function Home() {
                               >
                                 <UserAvatar
                                   username={f.username}
+                                  userId={f.id}
                                   avatarStyle={f.avatarStyle}
                                   hasAvatarPhoto={f.hasAvatarPhoto}
                                   size={38}
@@ -1161,6 +1162,7 @@ export function Home() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <UserAvatar
                         username={username}
+                        userId={user?.id}
                         avatarStyle={user?.avatarStyle}
                         hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
                         size={48}

@@ -36,6 +36,16 @@ export class RedisGameStore {
     await this.subscriber.quit();
   }
 
+  // The avatar fact the backend caches in Redis. The engine has no database
+  // access, so this is how a seat learns whether its player has a photo. A miss
+  // means has=false: reading it as maybe would 404 on every render.
+  async getAvatarMeta(userId: string): Promise<{ has: boolean; style?: string } | null> {
+    if (!userId) return null;
+    const data = await this.client.hgetall(`avatar:${userId}`);
+    if (!data || data.has === undefined) return null;
+    return { has: data.has === '1', style: data.style || undefined };
+  }
+
   // Create a new game, all 16 pieces in prison. Only `activeColors` seats
   // get PlayerMeta entries, so unused seats never appear downstream.
   async createGame(gameId: string, activeColors: PlayerColor[] = COLORS): Promise<void> {
@@ -52,6 +62,7 @@ export class RedisGameStore {
       username: color === 'blue' ? 'You' : color.charAt(0).toUpperCase() + color.slice(1),
       isBot: false,
       isConnected: false,
+      hasAvatarPhoto: false,
       piecesInGoal: 0,
       hasRolled: false,
       consecutiveSixes: 0,
@@ -148,10 +159,9 @@ export class RedisGameStore {
     await this.client.hdel(this.matchKey(gameId), 'idleSince');
   }
 
-  // FREE a non-host player's seat in a waiting room: the slot is removed from
-  // the match hash outright, so the room can hand it to someone else. Used when
-  // the player ABORTS (the "End Game" / abort button). The host seat is never
-  // cleared : the room stays rejoinable.
+  // FREE a non-host seat on abort: delete the slot from the match hash so the room
+  // can hand it to someone else. The host seat is never cleared.
+  // See docs/ludo-engine/ludo-engine-lobby-module.md (Seat reserve and free).
   async clearMatchSeat(gameId: string, color: PlayerColor): Promise<void> {
     const data = await this.getMatchData(gameId);
     if (!data) return;
@@ -168,12 +178,9 @@ export class RedisGameStore {
     await this.setIdleSince(gameId, Date.now());
   }
 
-  // RESERVE a non-host player's seat in a waiting room: the slot keeps its id
-  // and colour (so the backend's joinMatch userId lookup sends the player back
-  // to the SAME seat) but gains a `player<N>_left` flag. That flag excludes the
-  // slot from the "seated" counts, so the idle-abort still works and a full
-  // room doesn't stay full forever off a player who merely returned to the
-  // lobby. Used when the player leaves WITHOUT aborting.
+  // RESERVE a non-host seat when a player leaves without aborting: keep the id and
+  // colour so a rejoin returns to the same seat, and set `player<N>_left` so the
+  // seat is not counted as seated. See docs/ludo-engine/ludo-engine-lobby-module.md.
   async reserveMatchSeat(gameId: string, color: PlayerColor): Promise<void> {
     const data = await this.getMatchData(gameId);
     if (!data) return;

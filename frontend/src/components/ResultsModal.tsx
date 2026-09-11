@@ -201,8 +201,11 @@ export function ResultsModal({ result, onReturnToLobby, onClose }: ResultsModalP
                         <div className={PAYER_IMAGE_CONTAINER}>
                           <UserAvatar
                             username={p.username}
-                            // LastResult.players never carries hasAvatarPhoto, so opponents/bots pass
-                            // false — `undefined` would request the photo and log a 404 per opponent.
+                            // Only our own seat has an id: LastResult.players carries no ids, so
+                            // opponents and bots render the generated avatar rather than requesting a
+                            // photo that may not exist.
+                            userId={!p.isBot && isMe ? user?.id : undefined}
+                            isBot={p.isBot}
                             hasAvatarPhoto={
                               p.isBot || !isMe ? false : (user?.hasAvatarPhoto ?? false)
                             }

@@ -70,8 +70,8 @@ export class AuthController {
     return this.authService.register(dto, originFromRequest(req));
   }
 
-  // Target of the emailed verification link : lands in a browser tab, so it
-  // answers with a redirect to the SPA rather than JSON.
+  // The emailed verification link opens in a browser tab, so it answers with a
+  // redirect to the SPA rather than JSON.
   @Get('verify-email')
   async verifyEmail(@Req() req: Request, @Res() res: Response, @Query('token') token?: string) {
     const ok = await this.authService.verifyEmail(token ?? '');
@@ -133,8 +133,8 @@ export class AuthController {
   }
 
   // Password reset, step two: the emailed token + a new password.
-  // The reset token is a 32-byte random value, so guessing it is hopeless
-  // anyway : this just removes the option of trying at speed.
+  // The reset token is a 32-byte random value, so guessing it is not feasible;
+  // this rate limit only removes the option of trying at speed.
   @Throttle({ default: { limit: 5, ttl: 15 * MINUTE_MS } })
   @Post('reset-password')
   @HttpCode(200)
@@ -157,7 +157,7 @@ export class AuthController {
   @Get('me')
   async me(@Req() req: Request) {
     // The JWT only carries the immutable username. displayName is editable, so
-    // fetch the live value from the DB each time (cheap single-row lookup).
+    // fetch the live value from the DB each time (one indexed row read).
     const profile = await this.authService.getProfile((req.user as { id: string }).id);
     return { user: profile.user };
   }

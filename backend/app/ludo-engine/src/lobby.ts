@@ -64,14 +64,13 @@ export class LobbyManager {
         [otherColorKey]: otherColor,
       });
     } else {
-      // Color is free, just assign
+      // The color is unused, so assign it.
       await this.store.updateMatchData(gameId, { [currentColorKey]: color });
     }
 
-    // Mirror the swap into the live engine GameState so display and gameplay
-    // (turn/move ownership is color-keyed) stay in sync. This is pre-game only
-    // (status === 'WAITING' guard above), so board pieces are untouched : all
-    // still sitting in base : only seat *identity* moves between the two slots.
+    // Mirror the swap into the live engine GameState so display and gameplay stay
+    // in sync (turn and move ownership are color-keyed). Pre-game only, so board
+    // pieces are untouched: only seat identity moves between the two slots.
     const state = await this.store.loadGameState(gameId);
     if (state) {
       const a = state.players.find((p) => p.color === currentColor);
@@ -86,10 +85,9 @@ export class LobbyManager {
         Object.assign(a, aNew);
         Object.assign(b, bNew);
       }
-      // Readiness is color-keyed (state.readyPlayers), but readying is a
-      // per-player intent. A seat change therefore clears BOTH involved colors'
-      // ready flags so nobody inherits (or loses) someone else's Ready — the
-      // players must confirm Ready again in their new seats.
+      // Readiness is color-keyed (state.readyPlayers) but readying is a per-player
+      // intent, so a seat change clears both colors' ready flags: nobody inherits
+      // or loses someone else's Ready, and both players confirm Ready again.
       state.readyPlayers = state.readyPlayers.filter((c) => c !== currentColor && c !== color);
       await this.store.saveGameState(gameId, state);
     }

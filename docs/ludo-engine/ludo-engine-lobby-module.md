@@ -5,7 +5,7 @@
 - [Overview](#overview) — Lobby management
 - [Files](#files) — Every source file and its role
 - [Key Types / Interfaces](#key-types--interfaces) — Lobby state types
-- [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagram for the lobby lifecycle
+- [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for the lobby lifecycle and seat reservation
 - [Logic Paths Summary](#logic-paths-summary) — Decision trees for each operation
 - [Dependencies](#dependencies) — Internal dependencies
 
@@ -66,6 +66,25 @@ sequenceDiagram
         Engine-->>Player: lobby_update (keep waiting)
     end
 ```
+
+### 2. Seat reserve and free
+
+Leaving a waiting room does not delete the seat. The seat keeps its id and colour,
+so the player returns to the same colour on rejoin; the slot is only flagged as
+left.
+
+| Event | Redis `match:{gameId}` | Engine GameState | Client roster |
+|-------|------------------------|------------------|---------------|
+| Player leaves without aborting | `reserveMatchSeat()` sets `player<N>_left`; the id and colour stay | seat parked as `inactive` | seat hidden |
+| Player presses End Game / abort | `clearMatchSeat()` deletes `player<N>_id`, `player<N>_color`, `player<N>_left` | seat removed | seat free for another player |
+| Player rejoins | the backend's `joinMatch` userId lookup finds the reserved slot and returns the same colour | seat back to `active` | seat returns |
+| Idle-abort timer fires | the room is gone | — | room closed |
+
+Both methods skip the host's seat (`player1_color`), so the room stays
+rejoinable, and both write `idleSince` to restart the room's idle-abort timer.
+The `player<N>_left` flag is what keeps the seated count correct, so a reserved
+seat cannot hold a room open. See also
+[`ludo-engine-core-system.md`](ludo-engine-core-system.md) → Seat statuses.
 
 ---
 

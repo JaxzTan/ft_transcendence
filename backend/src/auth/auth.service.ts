@@ -20,6 +20,7 @@ import { TwoFactorService } from './twofactor.service';
 import { SessionService } from './session.service';
 import { requireSecret, secret } from '../secrets';
 import { NotificationService } from '../notification/notification.service';
+import { AvatarMetaService } from '../avatar/avatar-meta.service';
 
 const SALT_ROUNDS = 10;
 // Also where the SPA lives; /api on the same origin reaches the backend
@@ -32,8 +33,7 @@ const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 // The part of an OAuth callback request that auth code reads: the provider
 // `state` query param (a signed oauth-link token) and the access-token cookie.
-// `query` is left structural (an express Request / ParsedQs satisfies it) and
-// resolveOAuthLink narrows the state value itself.
+// `query` stays structural so an Express Request or ParsedQs satisfies it.
 export interface OAuthCallbackRequest {
   query?: { state?: unknown };
   cookies?: Record<string, unknown>;
@@ -74,6 +74,7 @@ export class AuthService implements OnModuleDestroy {
     private readonly twoFactor: TwoFactorService,
     private readonly session: SessionService,
     private readonly notifications: NotificationService,
+    private readonly avatarMeta: AvatarMetaService,
   ) {
     // Small Redis client for account-deletion cleanup (same idiom as
     // FriendsService / MatchPlayerService).
@@ -118,6 +119,10 @@ export class AuthService implements OnModuleDestroy {
         achievement: { create: { id: crypto.randomUUID() } },
       },
     });
+
+    // Seed the avatar-meta cache: a fresh account has no photo, so every reader
+    // (the engine included) can tell that from the very first join.
+    await this.avatarMeta.set(user.id, { has: false, style: user.avatarStyle });
 
     // No session yet, the account activates via the emailed link.
     const token = await this.twoFactor.createVerifyToken(user.id);
@@ -203,8 +208,8 @@ export class AuthService implements OnModuleDestroy {
     // drop every existing session after a password reset
     await this.session.revokeAll(userId);
 
-    // Announce the password reset to the user (persisted : lands in the bell
-    // on their next sign-in, since this flow revokes all open sessions).
+    // Announce the password reset to the user. It is persisted, so it appears in
+    // the bell on their next sign-in; this flow revokes all open sessions.
     await this.notifications
       .notify(userId, 'profile_updated', { items: ['password'] })
       .catch(() => {});
@@ -280,6 +285,11 @@ export class AuthService implements OnModuleDestroy {
   async getProfile(userId: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
+
+    // Repair the avatar-meta cache from this row: /me is the payload every session
+    // loads, so the cached flag follows the stored row at no extra query cost.
+    this.avatarMeta.syncFromUser(user);
+
     const accounts = await this.prisma.db.account.findMany({
       where: { userId },
       select: { provider: true },
@@ -509,6 +519,8 @@ export class AuthService implements OnModuleDestroy {
 
     // 2. Drop ephemeral Redis state (presence, invites, leaderboard entries).
     await this.clearUserRedisState(userId);
+    //    ...and the avatar-meta record, so a deleted account leaves none behind.
+    await this.avatarMeta.remove(userId);
 
     // 3. Revoke every refresh session : all devices are logged out.
     await this.session.revokeAll(userId);
@@ -655,6 +667,9 @@ export class AuthService implements OnModuleDestroy {
         providerAccountId: input.providerAccountId,
       },
     });
+
+    // Same seeding as register(): a fresh OAuth account has no photo either.
+    await this.avatarMeta.set(user.id, { has: false, style: user.avatarStyle });
 
     return user;
   }

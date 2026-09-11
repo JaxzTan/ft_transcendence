@@ -77,7 +77,7 @@ export class SocketServer {
         this.cleanupGame(gameId);
       },
     );
-    // Wire up engine events : single source of truth for game lifecycle
+    // Subscribe to engine events: the engine detects lifecycle changes once, here.
     this.engine.onEvent((event) => {
       this.publisher.publish(event);
 
@@ -152,10 +152,9 @@ export class SocketServer {
       const match = await this.store.getMatchData(key.slice('match:'.length));
       if (!match || match.status !== 'WAITING') continue;
 
-      // "Seated" = PRESENT, i.e. not a seat merely reserved by a player who
-      // returned to the lobby (player<N>_left). A reserved slot keeps its row so
-      // its owner can reclaim the colour, but it must not keep the idle timer
-      // alive or an abandoned room would never expire.
+      // A seat is seated only while its player is present: a reserved slot
+      // (player<N>_left) keeps its row so the owner can reclaim the color, but it
+      // must not keep the idle timer running, or an abandoned room never expires.
       const seatedCount = [1, 2, 3, 4].filter(
         (n) => match[`player${n}_id`] && !match[`player${n}_left`],
       ).length;

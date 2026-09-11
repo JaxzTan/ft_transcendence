@@ -44,9 +44,9 @@ export class PresenceService implements OnModuleDestroy {
   // broadcasting friend_online on the first beat of a session. Used by
   // POST /api/presence/heartbeat.
   async heartbeat(userId: string, playing: boolean): Promise<void> {
-    // First heartbeat after the key lapsed = a fresh online session. Broadcast
-    // "friend online" to the user's friends on this edge (not on every beat :
-    // the key stays alive for the full session).
+    // First heartbeat after the key lapsed means a new online session, so broadcast
+    // "friend online" on this edge only (not on every beat: the key is refreshed
+    // for the whole session).
     const wasOffline = (await this.redis.exists(this.key(userId))) === 0;
     await this.redis.set(this.key(userId), playing ? 'playing' : 'online', 'EX', PRESENCE_TTL_S);
     if (wasOffline) {

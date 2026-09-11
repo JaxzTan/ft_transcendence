@@ -1,28 +1,40 @@
 import { useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { dicebearAvatar } from '../dicebear';
-import { hasAvatarChanged, useAvatarVersion } from '../avatarCache';
+import {
+  getAvatarAttempt,
+  getAvatarOverride,
+  isAvatarBroken,
+  markAvatarBroken,
+  useAvatarRevision,
+} from '../avatarCache';
 
 type UserAvatarProps = {
   username: string;
+  /** Immutable user id; the photo key. Without one (bots, hotseat seats) there is no photo. */
+  userId?: string;
   size: number;
   fallbackStyle?: CSSProperties;
   avatarStyle?: string | null;
   style?: CSSProperties;
-  cacheBuster?: number;
+  /** Whether a photo exists. Unknown counts as "no photo", so nothing is requested. */
   hasAvatarPhoto?: boolean;
+  /** Bots and other non-account seats have no photo: never request one for them. */
+  isBot?: boolean;
 };
 
 export function UserAvatar({
   username,
+  userId,
   size,
   fallbackStyle,
   avatarStyle,
   style,
-  cacheBuster,
   hasAvatarPhoto,
+  isBot,
 }: UserAvatarProps) {
-  const liveVersion = useAvatarVersion(username);
+  // Subscribe to avatar-state changes; the values themselves are read below.
+  useAvatarRevision();
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   if (!username) {
@@ -58,26 +70,30 @@ export function UserAvatar({
     );
   }
 
-  const version = cacheBuster ?? liveVersion;
-  // Ask for the photo unless a payload POSITIVELY told us there is none.
-  // Callers that know the answer (profile, friends, leaderboard, own account)
-  // pass a real boolean, so `false` still skips the request. Callers that cannot
-  // know (game seats for other players, friend requests, blocked) leave it
-  // undefined, so we request the photo and the onError below falls back to the
-  // generated avatar. `hasAvatarChanged` keeps a just-changed avatar live even
-  // when the loaded payload still says `false`; note it must be used INSTEAD of a
-  // `liveVersion > 0` test, because useAvatarVersion now falls back to
-  // SESSION_START (a timestamp) and would make every avatar request a photo.
-  const usePhoto = hasAvatarPhoto !== false || hasAvatarChanged(username);
-  const fallbackSrc = dicebearAvatar(username, avatarStyle);
-  const src = usePhoto ? `/api/user/${username}/avatar?t=${version}` : fallbackSrc;
+  // A live update (SSE avatar_changed, or our own upload) is newer than the
+  // payload, so it wins when present. `isBot` is a hard stop: a bot has no
+  // account and is never asked for a photo regardless of the flags.
+  const override = getAvatarOverride(userId);
+  const hasPhoto = override ? override.has : hasAvatarPhoto === true;
+  const usePhoto = !!userId && !isBot && hasPhoto && !isAvatarBroken(userId);
+  const fallbackSrc = dicebearAvatar(username, override?.style ?? avatarStyle);
+  // The `?v=` stamp forces a real fetch: an unchanged URL can come from the
+  // browser's in-memory image cache with no request, so `no-cache` never
+  // revalidates. See docs/avatar-system.md.
+  const src = usePhoto
+    ? `/api/user/id/${userId}/avatar${override?.v ? `?v=${override.v}` : ''}`
+    : fallbackSrc;
 
   return (
     <img
-      key={liveVersion}
+      key={getAvatarAttempt(userId)}
       ref={imgRef}
       src={src}
       onError={() => {
+        // Nothing to show: no photo (404), or bytes the browser cannot decode.
+        // Record the verdict so we stop asking for this user, and fall back to
+        // the generated avatar.
+        if (userId) markAvatarBroken(userId);
         if (imgRef.current) imgRef.current.src = fallbackSrc;
       }}
       style={{

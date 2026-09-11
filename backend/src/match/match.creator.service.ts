@@ -101,8 +101,8 @@ export class MatchCreatorService {
       // the SCAN will then find their room and we return that instead.
       await new Promise((r) => setTimeout(r, 50));
     }
-    // Lock never came free (holder wedged). Proceed unserialised rather than
-    // failing the request outright : worst case is the old behaviour.
+    // The lock was still held after the retries, so proceed without it rather than
+    // failing the request: the worst case is the previous behaviour.
     return fn();
   }
 

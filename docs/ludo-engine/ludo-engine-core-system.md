@@ -71,6 +71,9 @@ export interface PlayerMeta {
   status: 'active' | 'exited' | 'inactive' | 'disconnected';  // Player lifecycle state
   username: string;      // Seat/display name
   displayName?: string;  // Optional display name
+  userId?: string;       // Immutable account id (avatar key); absent for bots/hotseat seats
+  hasAvatarPhoto: boolean;  // Whether the account has an uploaded photo (from the backend's Redis cache)
+  avatarStyle?: string;  // DiceBear style used when there is no photo
   isBot: boolean;        // Whether this seat is a bot
   isConnected: boolean;  // Whether the player's socket is connected
   piecesInGoal: number;  // Pieces finished (0-4)
@@ -82,6 +85,25 @@ export interface PlayerMeta {
   stats: { turns: number; captures: number; piecesInGoal: number };  // Per-game counters
 }
 ```
+
+`userId` / `hasAvatarPhoto` / `avatarStyle` are filled in at join time from the backend's Redis
+`avatar:<userId>` record (the engine has no database access), and `emitLobbyUpdate` passes them to the
+client with the roster. The full pipeline is in [`avatar-system.md`](../avatar-system.md).
+
+**Seat statuses.** `active` = playing; `disconnected` = in the reconnect grace window;
+`inactive` = left a waiting room; `exited` = left a live game; `resigned` = conceded a live game.
+
+A player who leaves a **waiting room** keeps their seat. It is parked as `inactive`, which the lobby
+roster (`emitLobbyUpdate`) and the client's pilot list both filter out, and its Redis seat row is
+flagged as reserved rather than deleted, so `joinMatch` sends the player back to the same colour.
+Aborting frees the seat outright instead. Either way the room's idle-abort timer is restarted, and
+the host's seat is never touched. Because the seat is restored to `active` on rejoin, `isFinished`
+is deliberately left untouched on this path : a stale "finished" flag would make the player look
+already done at game start (`handlePlayerResign` only counts seats that are `active` and not
+`isFinished`).
+
+A player who leaves a **live game** is parked as `exited` with `isFinished` set, because the
+post-game result logic prunes on that status.
 
 ### GameState
 

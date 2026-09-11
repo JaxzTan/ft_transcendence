@@ -10,7 +10,7 @@ import {
 import type { ReactNode } from 'react';
 import { useApp } from '../store';
 import { apiFetch } from '../api';
-import { bumpAvatarVersion } from '../avatarCache';
+import { applyAvatarChange } from '../avatarCache';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -117,12 +117,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
               setToasts((prev) => [notification, ...prev]);
               return;
             }
-            // Avatar photo changes are TRANSIENT cache-bust signals — no bell
-            // entry, no toast. Just bump the per-user avatar version so every
-            // open <UserAvatar> for that username re-fetches the photo.
+            // Avatar photo changes are TRANSIENT state updates — no bell entry,
+            // no toast. The event carries the new state, so every open
+            // <UserAvatar> for that user flips immediately, with no request.
             if (notification.type === 'avatar_changed') {
               const p = notification.payload;
-              if (p.username) bumpAvatarVersion(String(p.username));
+              const userId = typeof p.userId === 'string' ? p.userId : '';
+              if (userId) {
+                applyAvatarChange(userId, {
+                  has: p.has === true,
+                  style: typeof p.style === 'string' ? p.style : undefined,
+                  // The stamp becomes the photo URL's `?v=`, forcing a real fetch.
+                  v: typeof p.v === 'number' ? p.v : undefined,
+                });
+              }
               return;
             }
             setNotifications((prev) => [notification, ...prev]);

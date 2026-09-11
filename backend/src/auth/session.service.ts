@@ -39,7 +39,7 @@ export class SessionService implements OnModuleDestroy {
     await this.redis.set(`refresh:${h}`, userId, 'EX', REFRESH_TTL_S);
     // Track it under the user so resetPassword can revoke every session at once.
     await this.redis.sadd(`sessions:${userId}`, h);
-    await this.redis.expire(`sessions:${userId}`, REFRESH_TTL_S); // keep the index alive as long as any session
+    await this.redis.expire(`sessions:${userId}`, REFRESH_TTL_S); // TTL of the longest session
     return token;
   }
 
@@ -87,7 +87,6 @@ export class SessionService implements OnModuleDestroy {
   }
 }
 
-// Session flow: the client gets a JWT (15 min) + refresh token (7 days) as
+// Session flow: the client gets a JWT (15 min) plus a refresh token (7 days) as
 // httpOnly cookies. On a 401, apiFetch POSTs /api/auth/refresh with the refresh
-// cookie; the server validates the hash in Redis, rotates both tokens, and
-// apiFetch retries the original request.
+// cookie, the server rotates both tokens, and apiFetch retries.

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import { PresenceService } from '../presence/presence.service';
 import { ratingDeltaFor } from '../common/scoring';
 import { NotificationService } from '../notification/notification.service';
+import { AvatarMetaService } from '../avatar/avatar-meta.service';
 
 @Injectable()
 // User profile and avatar logic: public profiles, avatar upload/delete/get,
@@ -12,6 +13,7 @@ export class UserService {
     private readonly prisma: PrismaService,
     private readonly presence: PresenceService,
     private readonly notifications: NotificationService,
+    private readonly avatarMeta: AvatarMetaService,
   ) {}
 
   // Full public profile of a user (stats, rating, avatar info, online
@@ -41,13 +43,16 @@ export class UserService {
       throw new NotFoundException(`User "${username}" not found`);
     }
 
+    // Repair the avatar-meta cache from the row we already loaded (no extra
+    // query), so a missed write or an eviction converges on the next read.
+    this.avatarMeta.syncFromUser(user);
+
     const status = await this.presence.getStatus(user.id);
     const { avatarPhotoContentType, ...rest } = user;
     return { ...rest, hasAvatarPhoto: avatarPhotoContentType !== null, status };
   }
 
-  // Store an uploaded avatar image (bytes + content type) on the user row
-  // and broadcast avatar_changed so clients refresh. Used by
+  // Store the uploaded bytes on the user row and announce the change. Used by
   // POST /api/user/avatar.
   async uploadAvatar(userId: string, data: Buffer, contentType: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
@@ -65,13 +70,19 @@ export class UserService {
       .notify(userId, 'profile_updated', { items: ['avatar'] })
       .catch(() => {});
 
-    // Live push: broadcast a TRANSIENT event so every connected client busts
-    // its cached /api/user/<username>/avatar URL for this user (their own other
-    // tabs included). No persistence : the bell stays clean, the photo refreshes.
+    // Cache the flag only AFTER the row is committed (see AvatarMetaService):
+    // Redis-first could leave has=1 with no bytes behind it.
+    const avatarV = await this.avatarMeta.set(userId, { has: true, style: user.avatarStyle });
+
+    // The event carries the new state plus the stamp, so every connected client
+    // switches to the photo with no request of its own. Transient: no bell entry.
     await this.notifications
       .broadcast('avatar_changed', {
         userId: user.id,
         username: user.username,
+        has: true,
+        style: user.avatarStyle,
+        v: avatarV,
         updatedAt: new Date().toISOString(),
       })
       .catch(() => {});
@@ -79,20 +90,19 @@ export class UserService {
     return { message: 'Avatar uploaded', contentType };
   }
 
-  // Fetch a user's stored avatar photo. Returns null when none is set
-  // (caller falls back to the generated avatar). Used by
-  // GET /api/user/:username/avatar.
-  async getAvatar(username: string): Promise<{ data: Buffer; contentType: string } | null> {
+  // The stored photo by immutable id; null when there is none, and the caller
+  // falls back to the generated avatar. Used by GET /api/user/id/:userId/avatar.
+  async getAvatarById(userId: string): Promise<{ data: Buffer; contentType: string } | null> {
     const user = await this.prisma.db.user.findUnique({
-      where: { username },
+      where: { id: userId },
       select: { avatarPhoto: true, avatarPhotoContentType: true },
     });
     if (!user?.avatarPhoto || !user.avatarPhotoContentType) return null;
     return { data: Buffer.from(user.avatarPhoto), contentType: user.avatarPhotoContentType };
   }
 
-  // Clear the user's avatar photo and broadcast avatar_changed so clients
-  // fall back to the generated avatar. Used by DELETE /api/user/avatar.
+  // Clear the photo and announce the change so clients fall back. Used by
+  // DELETE /api/user/avatar.
   async deleteAvatar(userId: string) {
     const user = await this.prisma.db.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -102,16 +112,22 @@ export class UserService {
       data: { avatarPhoto: null, avatarPhotoContentType: null },
     });
 
+    // Same ordering rule as uploadAvatar : commit to Postgres first, then cache.
+    const avatarV = await this.avatarMeta.set(userId, { has: false, style: user.avatarStyle });
+
     await this.notifications
       .notify(userId, 'profile_updated', { items: ['avatar'] })
       .catch(() => {});
 
-    // Same live push as uploadAvatar : clients showing this user's photo must
-    // re-fetch (and correctly fall back to the generated pixel avatar).
+    // `has: false` drops every client back to the generated avatar with no request
+    // at all; without it they would keep asking for a photo that is gone.
     await this.notifications
       .broadcast('avatar_changed', {
         userId: user.id,
         username: user.username,
+        has: false,
+        style: user.avatarStyle,
+        v: avatarV,
         updatedAt: new Date().toISOString(),
       })
       .catch(() => {});

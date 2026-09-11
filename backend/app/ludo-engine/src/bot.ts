@@ -108,10 +108,9 @@ export class LudoBot {
     try {
       return await this.takeTurnUnsafe();
     } catch (err) {
-      // Engine calls throw when the game moved on from under us (resigned,
-      // timed out, ended) during the gaps between our state checks : a normal
-      // race, not a bug. Swallow it: the caller doesn't await this promise,
-      // so a rejection here would kill the whole engine process.
+      // Engine calls throw when the game ended or the turn moved on during the gaps
+      // between our state checks: a normal race, not a bug. Swallow it, because the
+      // caller does not await this promise and an unhandled rejection ends the process.
       console.error(
         `[bot] takeTurn aborted for game ${this.gameId} (${this.color}):`,
         err instanceof Error ? err.message : err,

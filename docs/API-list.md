@@ -53,7 +53,7 @@ Complete reference of all HTTP and WebSocket APIs in the project. Updated 30 Aug
    - [`GET /api/user/:username`](#get-apiuserusername) — Look up a player's public profile
    - [`GET /api/user/:username/games`](#get-apiuserusernamegames) — View a player's past game history
    - [`POST /api/user/avatar`](#post-apiuseravatar) — Upload a custom avatar image
-   - [`GET /api/user/:username/avatar`](#get-apiuserusernameavatar) — Fetch a player's avatar image
+   - [`GET /api/user/id/:userId/avatar`](#get-apiuseriduseridavatar) — Fetch a player's avatar image
    - [`DELETE /api/user/avatar`](#delete-apiuseravatar) — Remove your custom avatar
 
 6. **[Match — Matchmaking](#6-match--matchmaking)** — Create/join PvP, PvE, hotseat games
@@ -730,17 +730,20 @@ Upload an avatar image (max 2 MB, PNG/JPEG/GIF/WebP).
 
 ---
 
-#### `GET /api/user/:username/avatar`
+#### `GET /api/user/id/:userId/avatar`
 
 **Source:** `backend/src/user/user.controller.ts` — UserModule
 
-Retrieve a user's custom avatar image.
+Retrieve a user's custom avatar image, keyed by the **immutable user id** — a display-name rename can therefore never invalidate an avatar URL.
 
 **Headers:** None  
-**Path:** `:username` = username string  
-**Response:** Binary image data with `Content-Type` set to the stored MIME type, served with `Cache-Control: public, max-age=86400`. Clients refresh a changed avatar by appending a new `?t=<version>` (bumped per user by the SSE `avatar_changed` event), so cached copies are never reused stale.
+**Path:** `:userId` = user id  
+**Response:** Binary image data with `Content-Type` set to the stored MIME type, served with `Cache-Control: public, no-cache, no-transform` plus an `ETag`. The base URL is stable, so an unchanged photo is answered `304` on revalidation. When a change is announced (the SSE `avatar_changed` event, or the uploader's own client) the client appends `?v=<stamp>`, which forces a real fetch — a byte-identical URL can otherwise be served from the browser's in-memory image cache without any request, so `no-cache` alone would never revalidate.
 
-**Errors:** 404 if no custom avatar set.
+**Errors:** `404` when no custom avatar is set, sent with `Cache-Control: no-store` so a "no photo" answer is never cached and replayed.
+
+> Full pipeline — storage layers, the shared Redis record, caching and freshness rules, seat
+> rendering: [`avatar-system.md`](avatar-system.md).
 
 ---
 
@@ -1661,6 +1664,8 @@ SSE stream — pushes new notifications to the browser in real time.
 ```
 
 Types: `friend_request` | `friend_accepted` | `friend_removed` | `friend_declined` | `game_invite` | `achievement` | `match_finished` | `match_cancelled` | `profile_updated` | `display_name_changed` | `friend_online` | `friend_offline` | `avatar_changed`
+
+**Keep-alive (server → client):** the server writes a `ping` frame into the stream every 20 s (`SSE_HEARTBEAT_MS`). Between notifications this response is byte-silent for minutes, and ngrok's HTTP/2 edge resets an idle stream (`net::ERR_HTTP2_PROTOCOL_ERROR`), so the frame exists to satisfy the tunnel's socket requirements and stop the stream being treated as dead. It is unrelated to the **client → server** presence heartbeat ([`POST /api/presence/heartbeat`](#post-apipresenceheartbeat)), which is a separate request that writes nothing into this stream. See [architecture.md](architecture.md) → Connection liveness (two-direction heartbeats).
 
 ---
 

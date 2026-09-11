@@ -4,7 +4,7 @@
 
 - [Overview](#overview) — Aggregate player statistics from match history
 - [Files](#files) — Every source file in the module and its role
-- [Key Types / Interfaces](#key-types--interfaces) — Stats response shape
+- [Key Types / Interfaces](#key-types--interfaces) — Stats response shape and the rating delta formula
 - [API Endpoints](#api-endpoints) — All routes with method, path, auth, and description
 - [Core Logic / Flow](#core-logic--flow) — Mermaid sequence diagrams for stats retrieval
 - [Logic Paths Summary](#logic-paths-summary) — Decision trees for each operation
@@ -48,6 +48,31 @@ Stats include: total games, wins, losses, total captures, total pieces in goal, 
   avgCapturesPerGame: number;  // Rounded to 1 decimal place
 }
 ```
+
+### Rating Delta (`ratingDeltaFor`)
+
+`backend/src/common/scoring.ts` converts one finished game into the rating change
+shown on a profile and applied after a match. Two constants drive it, and
+`ratingDeltaFor()` is the only code that reads them:
+
+| Constant | Value | Meaning |
+|----------|-------|---------|
+| `POINTS_PER_PIECE` | 2 | Rating per piece that reached the goal |
+| `WIN_BONUS_PIECE` | 1 | Extra piece credited to the rank-1 player |
+
+```typescript
+const effectivePieces = piecesInGoal + (rank === 1 ? WIN_BONUS_PIECE : 0);
+const perPiece = gameType === 'PVE' ? POINTS_PER_PIECE / 2 : POINTS_PER_PIECE;
+return effectivePieces * perPiece;
+```
+
+A PvP player who finished 1st with 3 pieces gains `(3 + 1) * 2 = 8`; the same
+result in PvE gains `(3 + 1) * 1 = 4`.
+
+| Caller | Use |
+|--------|-----|
+| `match.postgame.service.ts` | Applies the delta to `User.rating` when a real match ends (bots are skipped) |
+| `user.service.ts` | Derives the same per-game `ratingDelta` for the profile and game-history payloads, so clients can show how much a match moved the rating |
 
 ---
 

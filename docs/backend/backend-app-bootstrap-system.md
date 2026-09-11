@@ -146,6 +146,12 @@ sequenceDiagram
     DB-->>App: Disconnected
 ```
 
+`PrismaService` connects through a `pg` connection pool (`max: 5`) wrapped in
+`PrismaPg`, both built from `DATABASE_URL`. An earlier build also carried a
+commented-out hosted-Postgres branch for Vercel (`ACCELERATE_URL`); it was
+removed, because this deployment runs Docker Compose and nothing sets that
+variable.
+
 ---
 
 ## Logic Paths Summary

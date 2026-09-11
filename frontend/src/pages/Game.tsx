@@ -678,8 +678,8 @@ export function Game() {
     pendingMoveRef.current = true;
     retroAudio.playUiBeep(640, 0.05);
     socketRef.current?.emit('move_piece', pieceId);
-    // Safety net: if the server never responds (dropped socket, etc.) don't
-    // leave the guard stuck forever.
+    // Safety net: if the server never responds (dropped socket, etc.), clear the
+    // guard so the next move is not blocked.
     setTimeout(() => {
       pendingMoveRef.current = false;
     }, 3000);
@@ -1146,20 +1146,12 @@ export function Game() {
                           {occupied && playerMeta?.username ? (
                             <UserAvatar
                               username={playerMeta.username}
-                              // Own seat has a known flag; bots have no photo;
-                              // another human is UNKNOWN here because the engine's
-                              // PlayerMeta carries no avatar fields. Pass undefined
-                              // so UserAvatar requests the photo and falls back to
-                              // the generated avatar on 404 (instead of the previous
-                              // hardcoded `false`, which reverted to the baseline
-                              // after every refresh).
-                              hasAvatarPhoto={
-                                playerMeta.username === user?.username
-                                  ? (user?.hasAvatarPhoto ?? false)
-                                  : playerMeta.isBot
-                                    ? false
-                                    : undefined
-                              }
+                              // The engine reports the seat's immutable id and whether it has a photo, so
+                              // the client never asks for an image that is not there; `isBot` gates bot seats.
+                              userId={playerMeta.userId}
+                              isBot={playerMeta.isBot}
+                              hasAvatarPhoto={playerMeta.hasAvatarPhoto ?? false}
+                              avatarStyle={playerMeta.avatarStyle}
                               size={34}
                               fallbackStyle={{
                                 width: 34,
@@ -1336,11 +1328,10 @@ export function Game() {
                         {!playerMeta.isBot && !isHotseat ? (
                           <UserAvatar
                             username={playerMeta.username}
-                            hasAvatarPhoto={
-                              playerMeta.username === user?.username
-                                ? (user?.hasAvatarPhoto ?? false)
-                                : false
-                            }
+                            userId={playerMeta.userId}
+                            isBot={playerMeta.isBot}
+                            hasAvatarPhoto={playerMeta.hasAvatarPhoto ?? false}
+                            avatarStyle={playerMeta.avatarStyle}
                             size={36}
                             fallbackStyle={{
                               width: 36,

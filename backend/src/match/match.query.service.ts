@@ -68,8 +68,7 @@ export class MatchQueryService {
             Boolean,
           ).length;
           const maxSeats = parseInt(data.playerCount || '4', 10);
-          // Full rooms aren't "open" : hide them instead of listing an
-          // unjoinable row (join would just 403 with "Room is full").
+          // Full rooms are hidden from the list of joinable PvP rooms
           if (seats >= maxSeats) continue;
           rooms.push({
             id: data.id,
@@ -94,9 +93,9 @@ export class MatchQueryService {
       return {
         id: r.id,
         roomCode: r.roomCode,
-        // Display name shown in the room listing; the immutable username is
-        // also returned separately so the frontend can keep using it for
-        // avatar URLs and ownership checks.
+        // Host identity: the id keys the avatar, the display name is shown, and
+        // the immutable username is returned separately for ownership checks.
+        hostId: r.hostId,
         host: h?.displayName ?? h?.username ?? 'Unknown',
         hostUsername: h?.username ?? r.hostId,
         hasAvatarPhoto: h?.avatarPhotoContentType != null,

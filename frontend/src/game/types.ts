@@ -1,4 +1,4 @@
-// Mirror of the ludo-engine TypeScript types. Engine is single source of truth.
+// Mirror of the ludo-engine TypeScript types; the engine defines them, this copy matches.
 
 export type PlayerColor = 'red' | 'green' | 'yellow' | 'blue';
 export type PlayerStatus = 'active' | 'exited' | 'inactive' | 'disconnected';
@@ -18,6 +18,12 @@ export interface PlayerMeta {
   status: PlayerStatus;
   username: string;
   displayName?: string;
+  // Immutable account id + avatar facts. The engine fills these from the
+  // backend's Redis cache at join time; they are absent for bots and hotseat's
+  // local seats, which have no account and therefore no photo.
+  userId?: string;
+  hasAvatarPhoto?: boolean;
+  avatarStyle?: string | null;
   isBot: boolean;
   isConnected: boolean;
   pieces: Piece[];

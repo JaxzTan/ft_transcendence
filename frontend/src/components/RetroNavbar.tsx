@@ -328,6 +328,7 @@ export function RetroNavbar({
             >
               <UserAvatar
                 username={username}
+                userId={user?.id}
                 avatarStyle={user?.avatarStyle}
                 hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
                 size={30}
@@ -376,10 +377,9 @@ export function RetroNavbar({
             )}
           </button>
 
-          {/* Account & Settings Popover Menu — portaled to document.body so it
-              renders above sibling page content instead of being clipped or
-              covered by an ancestor's stacking context. Fixed-positioned at
-              the trigger's viewport rect (see accountPopoverPos effect). */}
+          {/* Account & Settings Popover — portaled to document.body so it renders
+          above sibling content instead of being clipped or covered by an
+          ancestor's stacking context; positioned at the trigger's rect. */}
           {isAccountPopoverOpen &&
             createPortal(
               <div

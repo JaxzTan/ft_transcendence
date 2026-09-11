@@ -20,10 +20,9 @@ async function bootstrap() {
   // Enforce the class-validator decorators on register/login DTOs.
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  // Health endpoint. Route it via the generic HttpServer interface so the
-  // handler can be typed structurally (the concrete ExpressAdapter's
-  // RequestHandler type is too narrow for a custom handler). Same runtime
-  // object as app.getHttpAdapter(); type-level only.
+  // Health endpoint. Typed via the generic HttpServer interface because the
+  // concrete ExpressAdapter's RequestHandler type is too narrow for a custom
+  // handler; same runtime object as app.getHttpAdapter().
   const prisma = app.get(PrismaService);
   const httpServer: HttpServer = app.getHttpAdapter();
   httpServer.get(

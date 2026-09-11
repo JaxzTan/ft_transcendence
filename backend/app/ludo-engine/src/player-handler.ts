@@ -271,11 +271,8 @@ export async function handlePlayerExit(
   const player = state.players.find((p) => p.color === color);
   if (player) {
     if (state.status === 'waiting') {
-      // Waiting room: the occupant is AWAY, not out of the game. Hide the seat
-      // ('inactive' is filtered by the lobby roster and the pilot list) but
-      // leave the finished flags untouched — the reserved seat is reclaimed on
-      // rejoin, and a stale isFinished would make the player look "already
-      // done" once the game starts (handlePlayerResign's stillPlaying check).
+      // Waiting room: the player is away, not out. The seat is hidden as
+      // 'inactive' and restored on rejoin; the finished flags stay untouched.
       player.status = 'inactive';
       player.isConnected = false;
     } else {
@@ -294,11 +291,8 @@ export async function handlePlayerExit(
   await store.saveGameState(gameId, state);
   emit({ type: 'player_exited', gameId, color });
 
-  // Waiting-room seat handling. ABORTING frees the seat so the room can hand it
-  // to someone else; merely RETURNING TO THE LOBBY only reserves it, so the
-  // player comes back to their assigned colour (the slot keeps its id, which is
-  // what the backend's joinMatch lookup keys on). Either way the idle-abort is
-  // restarted/re-armed, and the host's seat is never touched.
+  // Waiting room: an abort frees the seat for someone else; simply leaving
+  // reserves it so the player keeps their colour.
   if (state.status === 'waiting') {
     if (freeSeat) await store.clearMatchSeat(gameId, color);
     else await store.reserveMatchSeat(gameId, color);

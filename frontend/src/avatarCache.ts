@@ -1,33 +1,21 @@
 import { useSyncExternalStore } from 'react';
 
-/*
-Avatar cache-buster store. SSE avatar_changed events record a new version for
-that username; <UserAvatar> reads it via useAvatarVersion and puts it in the
-photo URL so every open client refetches without a reload.
+// Client avatar state, keyed by the immutable user id: the state the server last
+// announced per user, a change stamp per user, and the ids whose image failed to
+// load. See docs/avatar-system.md.
 
-Versions are timestamps, not a counter. The photo URL lands in a 24h browser
-cache (user.controller.ts sets Cache-Control: max-age=86400), and this Map is
-in-memory, so a counter restarting at 0 on every page load would reuse ?t=0,
-?t=1, ... and the browser would answer those from cache with the PREVIOUS
-photo. Timestamps never repeat, so a changed photo always gets a fresh URL.
-*/
-const versions = new Map<string, number>();
+export type AvatarOverride = { has: boolean; style?: string | null; v?: number };
+
+const overrides = new Map<string, AvatarOverride>();
+const attempts = new Map<string, number>();
+const broken = new Set<string>();
 const listeners = new Set<() => void>();
 
-const SESSION_START = Date.now();
+let revision = 0;
 
-const emit = () => {
+function emit(): void {
+  revision += 1;
   for (const listener of listeners) listener();
-};
-
-export function bumpAvatarVersion(username: string): void {
-  if (!username) return;
-  versions.set(username, Date.now());
-  emit();
-}
-
-export function hasAvatarChanged(username: string): boolean {
-  return versions.has(username);
 }
 
 function subscribe(listener: () => void): () => void {
@@ -37,10 +25,42 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-export function useAvatarVersion(username: string): number {
-  return useSyncExternalStore(
-    subscribe,
-    () => versions.get(username) ?? SESSION_START,
-    () => versions.get(username) ?? SESSION_START,
-  );
+const snapshot = (): number => revision;
+
+// Re-render on any avatar-state change; the values themselves are read below.
+export function useAvatarRevision(): number {
+  return useSyncExternalStore(subscribe, snapshot, snapshot);
+}
+
+// The server announced this user's avatar state (SSE avatar_changed, or our own
+// upload/delete). Clears any "broken" verdict so a re-upload gets one more try.
+// The stamp becomes the URL's `?v=`; see docs/avatar-system.md.
+export function applyAvatarChange(userId: string, override: AvatarOverride): void {
+  if (!userId) return;
+  const v = override.v ?? Date.now();
+  overrides.set(userId, { ...override, v });
+  attempts.set(userId, v);
+  broken.delete(userId);
+  emit();
+}
+
+export function getAvatarOverride(userId: string | undefined): AvatarOverride | undefined {
+  return userId ? overrides.get(userId) : undefined;
+}
+
+export function getAvatarAttempt(userId: string | undefined): number {
+  return userId ? (attempts.get(userId) ?? 0) : 0;
+}
+
+// A failed load: a 404 because there is no photo, or a 200 whose bytes the
+// browser cannot decode. Either way there is nothing to show, so record it and
+// stop asking for this user this session.
+export function markAvatarBroken(userId: string): void {
+  if (!userId || broken.has(userId)) return;
+  broken.add(userId);
+  emit();
+}
+
+export function isAvatarBroken(userId: string | undefined): boolean {
+  return userId ? broken.has(userId) : false;
 }

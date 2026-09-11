@@ -34,11 +34,8 @@ export class FriendsService {
     });
   }
 
-  // Game Invitations
-  // Invite = a short-lived Redis record the invitee's client picks up on its
-  // next poll (same idiom as presence:{userId}), plus a real-time notify.
-  // Create a match room, seat both players, and notify the friend with the
-  // join credentials. Used by POST /api/friends/:friendId/invite.
+  // Create a match room, seat both players and notify the invitee.
+  // POST /api/friends/:friendId/invite
   async inviteToGame(userId: string, friendId: string) {
     if (userId === friendId) throw new BadRequestException('Cannot invite yourself');
 
@@ -462,6 +459,7 @@ export class FriendsService {
       username: b.friend.username,
       displayName: b.friend.displayName,
       avatarStyle: b.friend.avatarStyle,
+      hasAvatarPhoto: b.friend.avatarPhotoContentType !== null,
       rating: b.friend.rating,
       blockedSince: b.createdAt,
     }));

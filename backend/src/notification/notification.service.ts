@@ -33,20 +33,18 @@ export interface NotificationPayload {
 }
 // Service
 @Injectable()
-// Notification hub: persists notifications to Postgres and pushes them live
-// to connected clients over SSE via Redis Pub/Sub. Used by most services
-// (friends, match, achievements, presence, auth, user) and
-// notification.controller.ts.
+// Notification hub: persists notifications to Postgres and pushes them live to
+// connected clients over SSE via Redis Pub/Sub. Called by most services (friends,
+// match, achievements, presence, auth, user) and notification.controller.ts.
 export class NotificationService implements OnModuleDestroy {
   // Redis publisher : sends notifications to the Pub/Sub channel.
   private pub: Redis;
   // Redis subscriber : listens for notifications on per-user channels.
   private sub: Redis;
 
-  // In-memory map of active SSE connections per user.
-  // One user can have multiple tabs open, so each userId maps to an array
-  // of rxjs Subjects. When a notification arrives from Redis Pub/Sub,
-  // every Subject in the array gets the event (= every open tab).
+  // In-memory map of active SSE connections per user: each userId maps to an
+  // array of rxjs Subjects, because one user can have several tabs open and
+  // every Subject in the array receives the event.
   private clients = new Map<string, Subject<NotificationPayload>[]>();
 
   // Subjects connected to the GLOBAL broadcast channel ("notify:all").
@@ -168,9 +166,9 @@ export class NotificationService implements OnModuleDestroy {
     type: NotificationType,
     payload: Record<string, unknown>,
   ): Promise<void> {
-    // Failure contract: this method NEVER throws. Notifications are a
-    // non-critical side effect; the persisted row is the source of truth for
-    // the bell, and failures are only logged.
+    // Failure contract: this method NEVER throws. A notification is a
+    // non-critical side effect, the persisted row is authoritative for the bell,
+    // and failures are only logged.
     let row: { id: string; createdAt: Date };
 
     // 1. Persist to DB so it shows up in the bell dropdown on next page load.
@@ -192,9 +190,9 @@ export class NotificationService implements OnModuleDestroy {
       createdAt: row.createdAt.toISOString(),
     };
 
-    // 3. Publish to Redis : the subscriber handler (in constructor) pushes
-    //    it to every SSE Subject for this user. Best-effort: a failure here
-    //    only delays the toast; the persisted row lands in the bell next load.
+    // 3. Publish to Redis: the subscriber handler (in the constructor) pushes it
+    //    to every SSE Subject for this user. Best-effort: a failure here only
+    //    delays the toast; the persisted row appears in the bell on next load.
     try {
       await this.pub.publish(`notify:${userId}`, JSON.stringify(event));
     } catch (err) {

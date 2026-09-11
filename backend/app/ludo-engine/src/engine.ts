@@ -33,9 +33,8 @@ export class LudoEngine {
     this.lobbyManager = lobbyManager;
   }
 
-  // Register a callback for game lifecycle events.
-  // This is the single source of truth : the socket layer should NOT
-  // independently detect game end, publish events, etc.
+  // Register a callback for game lifecycle events. The engine detects them here,
+  // so the socket layer must not detect game end or publish events on its own.
   onEvent(handler: (event: GameEvent) => void): void {
     this.eventHandler = handler;
   }
@@ -69,9 +68,8 @@ export class LudoEngine {
   }
 
   // Seeded PRNG (mulberry32): one fresh generator per roll, seeded from
-  // Math.random() — isolates the die stream from other Math.random() use.
-  // The math is explained in docs/ludo-engine/ludo-engine-core-system.md
-  // (Dice Roll Path → The dice math).
+  // Math.random() so the die stream is isolated from other Math.random() use.
+  // See docs/ludo-engine/ludo-engine-core-system.md (Dice Roll → The dice math).
   private static seededRand(seed: number): () => number {
     let s = seed >>> 0;
     return () => {
@@ -106,10 +104,7 @@ export class LudoEngine {
         throw new Error('Current player has exited');
       }
 
-      // Seed a per-roll PRNG stream with a fresh Math.random() scaled to a huge
-      // integer range (Math.random() itself cannot be seeded directly). Entropy is
-      // capped by Math.random()'s 53-bit output, but the dice stream is now
-      // isolated from other Math.random() users in the process.
+      // Math.random() cannot be seeded directly, so it seeds the per-roll stream.
       const rand = LudoEngine.seededRand(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
       // Single draw from the seeded stream → every face 1..6 is exactly 1/6 (fair
       // die, max entropy ~2.585 bits). No averaging, no middle-face bias.
@@ -205,10 +200,9 @@ export class LudoEngine {
         throw new Error('Invalid turn phase: expected WAITING_FOR_MOVE');
       }
 
-      // Validate: pieceId must be in pendingLegalMoves. The list is a snapshot
-      // from roll time : a disconnect/forfeit between roll and move is rejected
-      // here. We intentionally do NOT re-derive the capture; the snapshot is
-      // the contract.
+      // pieceId must be in pendingLegalMoves, a snapshot taken at roll time: a
+      // disconnect between roll and move is rejected here, and the capture is not
+      // re-derived. See docs/ludo-engine/ludo-engine-core-system.md (Move validation).
       const pendingMove = state.pendingLegalMoves.find((m) => m.pieceId === pieceId);
       if (!pendingMove) {
         throw new Error('Invalid move: piece not in legal moves');
@@ -321,9 +315,10 @@ export class LudoEngine {
     const players = state.players
       .filter((p) => p.status !== 'inactive')
       .map((p) => ({
-        userId: '',
+        userId: p.userId ?? '',
         username: p.username,
-        avatarStyle: '',
+        hasAvatarPhoto: p.hasAvatarPhoto ?? false,
+        avatarStyle: p.avatarStyle ?? '',
         color: p.color,
         ready: state.readyPlayers.includes(p.color),
       }));

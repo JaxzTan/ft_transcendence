@@ -670,6 +670,7 @@ export function Friends() {
                                   >
                                     <UserAvatar
                                       username={f.username}
+                                      userId={f.id}
                                       hasAvatarPhoto={f.hasAvatarPhoto}
                                       avatarStyle={f.avatarStyle}
                                       size={42}
@@ -859,6 +860,7 @@ export function Friends() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <UserAvatar
                               username={b.username}
+                              userId={b.id}
                               hasAvatarPhoto={b.hasAvatarPhoto}
                               size={38}
                               fallbackStyle={{
@@ -1157,6 +1159,7 @@ export function Friends() {
                             >
                               <UserAvatar
                                 username={r.username}
+                                userId={r.userId}
                                 hasAvatarPhoto={r.hasAvatarPhoto}
                                 avatarStyle={r.avatarStyle}
                                 size={34}

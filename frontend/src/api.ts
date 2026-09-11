@@ -1,5 +1,5 @@
 // Auth API helpers: on a 401, refresh once (shared across all callers) and
-// retry. A dead refresh token means signed out; a blocked one returns its own
+// retry. An expired refresh token means signed out; a blocked one returns its own
 // status. See docs/frontend/frontend-store-system.md.
 
 // ngrok needs this header to skip its first-request interstitial; other hosts

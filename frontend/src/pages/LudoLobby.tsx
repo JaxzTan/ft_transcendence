@@ -38,6 +38,8 @@ type Room = {
   roomCode: string;
   host: string;
   hostUsername?: string;
+  /** Host's immutable id : the key the room card's avatar is looked up by. */
+  hostId?: string;
   hasAvatarPhoto?: boolean;
   seats: number;
   maxSeats: number;
@@ -943,6 +945,7 @@ export function LudoLobby() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <UserAvatar
                                   username={room.hostUsername ?? room.host}
+                                  userId={room.hostId}
                                   hasAvatarPhoto={room.hasAvatarPhoto}
                                   size={28}
                                   fallbackStyle={{

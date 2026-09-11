@@ -178,7 +178,7 @@ export const COL_4 = 'col-span-4 max-[992px]:col-span-12';
 export const COL_8 = 'col-span-8 max-[992px]:col-span-12';
 
 // Home's "CYBERSOUND DECK": theme overrides as `&` variants, JS-chosen LED
-// classes, dead reel/matrix rules dropped.
+// classes, and the unused reel/matrix rules removed.
 export const CYBER_CASSETTE_CHASSIS =
   "relative overflow-hidden flex flex-col gap-2 py-2.5 px-3 rounded-lg border border-[rgba(0,240,255,.4)] bg-[linear-gradient(180deg,#18092e_0%,#0c021a_100%)] shadow-[0_0_16px_rgba(0,0,0,.6),inset_0_0_12px_rgba(0,240,255,.15)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-0.5 before:bg-[linear-gradient(90deg,var(--accent-cyan),var(--accent-pink),var(--accent-yellow))] [[data-theme=win95]_&]:bg-none [[data-theme=win95]_&]:bg-[#c0c0c0] [[data-theme=win95]_&]:border-t-2 [[data-theme=win95]_&]:border-t-white [[data-theme=win95]_&]:border-l-2 [[data-theme=win95]_&]:border-l-white [[data-theme=win95]_&]:border-r-2 [[data-theme=win95]_&]:border-r-[#808080] [[data-theme=win95]_&]:border-b-2 [[data-theme=win95]_&]:border-b-[#808080] [[data-theme=win95]_&]:shadow-none [[data-theme=terminal]_&]:bg-none [[data-theme=terminal]_&]:bg-[#000500] [[data-theme=terminal]_&]:border-[#33ff33] [[data-theme=terminal]_&]:shadow-[0_0_12px_rgba(51,255,51,.25)]";
 
@@ -297,7 +297,7 @@ export const CYBER_BTN_YELLOW =
 export const CYBER_BTN_DANGER = '![--btn-accent:#ff0055] ![--btn-shadow:#ff0000]';
 
 // `!` required: the `mask` shorthand resets the mask-* longhands and Tailwind
-// emits it later, which would silently undo the bevel cut.
+// emits it later, which would undo the bevel cut.
 const CYBER_BTN_BACKDROP_SHARED =
   "absolute z-[1] inset-0 bg-[rgba(15,5,32,.85)] backdrop-blur-[8px] backdrop-saturate-[180%] [clip-path:var(--clip)] pointer-events-none [transition:background_0.2s_ease,box-shadow_0.2s_ease] before:content-[''] before:absolute before:inset-0 before:bg-(--btn-accent) before:[border:var(--border)_solid_transparent] before:[clip-path:var(--clip)] before:[mask:linear-gradient(#0000_0%_100%),linear-gradient(#fff_0%_100%)] before:![mask-clip:padding-box,border-box] before:![mask-repeat:no-repeat] before:![mask-composite:intersect] before:z-[2]";
 

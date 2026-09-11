@@ -21,6 +21,14 @@ export interface PlayerMeta {
   displayName?: string; // shown name
   isBot: boolean; // AI seat flag
   isConnected: boolean; // socket currently attached
+  // Immutable account id, so this seat's avatar can be keyed on something a
+  // rename cannot invalidate. Absent for bots and hotseat's local seats.
+  userId?: string;
+  // Avatar facts read from the backend's Redis cache at join time (the engine
+  // has no database access). False when there is no photo, so the client can
+  // skip a request that would 404. See docs/avatar-system.md.
+  hasAvatarPhoto: boolean;
+  avatarStyle?: string; // dicebear style used when there is no photo
   piecesInGoal: number; // pieces that reached the goal
   hasRolled: boolean; // rolled in the current turn phase
   consecutiveSixes: number; // 6-streak for the forfeit rule
@@ -94,7 +102,7 @@ export interface MovePieceOutput {
   state: GameState;
 }
 
-// Events emitted by the engine : one source of truth for game lifecycle.
+// Events emitted by the engine, the only place that detects game lifecycle changes.
 export type GameEvent =
   | {
       type: 'dice_rolled';

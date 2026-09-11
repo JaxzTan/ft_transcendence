@@ -1,5 +1,5 @@
-// Achievement registry : single source of truth for all 13 achievements.
-// Adding one = a new row here. Uses structural types because the generated
+// The authoritative list of the 13 achievements.
+// Adding one means adding a row here. Uses structural types because the generated
 // Prisma client may not exist at type-check time.
 
 export type AchKey =

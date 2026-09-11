@@ -27,6 +27,8 @@ import {
 
 type LeaderboardEntry = {
   rank: number;
+  /** Immutable user id : the key avatars are looked up by. */
+  id: string;
   username: string;
   displayName?: string;
   rating: number;
@@ -263,6 +265,7 @@ export function Leaderboard() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                               <UserAvatar
                                 username={top2.username}
+                                userId={top2.id}
                                 hasAvatarPhoto={top2.hasAvatarPhoto}
                                 size={52}
                                 fallbackStyle={{
@@ -397,6 +400,7 @@ export function Leaderboard() {
                               >
                                 <UserAvatar
                                   username={top1.username}
+                                  userId={top1.id}
                                   hasAvatarPhoto={top1.hasAvatarPhoto}
                                   size={62}
                                   fallbackStyle={{
@@ -519,6 +523,7 @@ export function Leaderboard() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                               <UserAvatar
                                 username={top3.username}
+                                userId={top3.id}
                                 hasAvatarPhoto={top3.hasAvatarPhoto}
                                 size={52}
                                 fallbackStyle={{
@@ -754,6 +759,7 @@ export function Leaderboard() {
                             >
                               <UserAvatar
                                 username={entry.username}
+                                userId={entry.id}
                                 hasAvatarPhoto={entry.hasAvatarPhoto}
                                 size={isRankOne ? 50 : isTopThree ? 40 : 36}
                                 fallbackStyle={{

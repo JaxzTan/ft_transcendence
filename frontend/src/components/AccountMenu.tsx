@@ -76,6 +76,7 @@ export function AccountMenu() {
       >
         <UserAvatar
           username={user?.username ?? ''}
+          userId={user?.id}
           avatarStyle={user?.avatarStyle}
           hasAvatarPhoto={user?.hasAvatarPhoto ?? false}
           size={40}

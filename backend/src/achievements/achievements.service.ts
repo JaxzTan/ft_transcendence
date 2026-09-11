@@ -53,8 +53,8 @@ export class AchievementsService {
       if (!game) return;
 
       for (const p of game.participants) {
-        // Bots aren't real players : skip them so bot rows never accumulate
-        // wins or fire phantom notifications.
+        // Bots are not real players: skipping them keeps bot rows from
+        // accumulating wins or sending notifications for achievements.
         if (isBotUserId(p.user_id)) continue;
         await this.evaluateForUser(p.user_id, game, true);
       }

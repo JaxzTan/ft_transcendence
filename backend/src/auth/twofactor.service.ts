@@ -66,9 +66,8 @@ export class TwoFactorService implements OnModuleDestroy {
     return userId;
   }
 
-  // Login (2FA) challenges
   // Creates a 2FA login challenge: a pending token (stored in the client's
-  // cookie) plus a 6-digit code emailed to the user. Used by auth.service.ts
+  // cookie) plus a 6-digit code emailed to the user. Called by auth.service.ts
   // login() for accounts with 2FA enabled.
   async startChallenge(userId: string): Promise<{ pendingToken: string; code: string }> {
     const pendingToken = randomBytes(32).toString('hex');

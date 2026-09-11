@@ -13,7 +13,7 @@ export function isTunnelRequest(host: string | undefined): boolean {
   return !!host && host.includes('ngrok');
 }
 
-// Same as secret(), but fails fast instead of silently signing with undefined.
+// Like secret(), but throws instead of signing with undefined.
 export function requireSecret(name: string): string {
   const value = secret(name);
   if (!value) {

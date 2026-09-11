@@ -1,8 +1,8 @@
 import { RedisGameStore } from '../redis';
 import { GameEvent } from '../types';
 
-// EventPublisher: single source of truth for game lifecycle events. Each
-// engine event is published to Redis pub/sub so all clients receive it.
+// EventPublisher: the only place that publishes game lifecycle events. Each
+// engine event goes to Redis pub/sub so every client receives it.
 export class EventPublisher {
   constructor(private store: RedisGameStore) {}
 

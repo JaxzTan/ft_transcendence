@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RetroNavbar } from '../components/RetroNavbar';
 import { UserAvatar } from '../components/UserAvatar';
+import { applyAvatarChange } from '../avatarCache';
 import { ProfileEditModal } from '../components/ProfileEditModal';
 import { useRoute, navigate } from '../router';
 import { useApp } from '../store';
@@ -242,6 +243,9 @@ export function Profile() {
         retroAudio.playUiBeep(880, 0.06);
         if (user) setUser({ ...user, hasAvatarPhoto: true });
         if (profile) setProfile({ ...profile, hasAvatarPhoto: true });
+        // Update the shared avatar store directly rather than waiting for the SSE
+        // echo, so our own upload shows even while the stream is reconnecting.
+        if (user) applyAvatarChange(user.id, { has: true, style: profile?.avatarStyle });
         setAvatarBuster(Date.now());
       }
     } catch {
@@ -262,6 +266,7 @@ export function Profile() {
         // Fall back to the generated (pre-upload) avatar everywhere
         if (user) setUser({ ...user, hasAvatarPhoto: false });
         if (profile) setProfile({ ...profile, hasAvatarPhoto: false });
+        if (user) applyAvatarChange(user.id, { has: false, style: profile?.avatarStyle });
         setAvatarBuster(Date.now());
       }
     } catch (e) {
@@ -547,6 +552,7 @@ export function Profile() {
                         >
                           <UserAvatar
                             username={profile.username}
+                            userId={profile.id}
                             hasAvatarPhoto={profile.hasAvatarPhoto}
                             avatarStyle={profile.avatarStyle}
                             size={95}
@@ -562,7 +568,6 @@ export function Profile() {
                               fontWeight: 900,
                               fontFamily: 'var(--font-display)',
                             }}
-                            cacheBuster={avatarBuster}
                           />
                         </div>
 
@@ -1638,6 +1643,7 @@ export function Profile() {
                                       >
                                         <UserAvatar
                                           username={f.username}
+                                          userId={f.id}
                                           hasAvatarPhoto={f.hasAvatarPhoto}
                                           avatarStyle={f.avatarStyle}
                                           size={38}

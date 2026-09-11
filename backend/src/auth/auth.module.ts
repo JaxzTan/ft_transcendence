@@ -16,6 +16,7 @@ import { SessionService } from './session.service';
 import { PrismaService } from '../prisma.service';
 import { requireSecret } from '../secrets';
 import { NotificationModule } from '../notification/notification.module';
+import { AvatarMetaModule } from '../avatar/avatar-meta.module';
 
 // Both the localhost and ngrok OAuth apps are registered at once under
 // distinct passport strategy names. oauth.guards.ts picks per request via
@@ -31,6 +32,7 @@ import { NotificationModule } from '../notification/notification.module';
       signOptions: { expiresIn: '15m' },
     }),
     NotificationModule,
+    AvatarMetaModule,
   ],
   controllers: [AuthController],
   providers: [

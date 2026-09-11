@@ -167,6 +167,32 @@ engine process.
 
 ---
 
+## Connection liveness (two-direction heartbeats)
+
+Long-lived state is kept honest by **two independent heartbeats, one in each direction**. They are
+deliberately named apart, and neither substitutes for the other.
+
+| Direction | Constant | Where it lives | Why it exists |
+| --- | --- | --- | --- |
+| **client → server** | `PRESENCE_HEARTBEAT_MS` (`sendPresenceHeartbeat()`) | `frontend/src/store.tsx` → `POST /api/presence/heartbeat` every 20 s while signed in (`DELETE` on logout) | Liveness of the **client**: proves the browser is still there. The server keeps a per-user Redis key with a 45 s TTL, so a crashed tab or a dropped network expires on its own and friends' presence dots correct themselves. |
+| **server → client** | `SSE_HEARTBEAT_MS` | `backend/src/notification/notification.controller.ts` → a `ping` frame written into the `/api/notifications/stream` SSE response every 20 s | Liveness of the **connection**: the SSE response is otherwise byte-silent for minutes, and ngrok's HTTP/2 edge resets an idle stream (`net::ERR_HTTP2_PROTOCOL_ERROR`). The periodic frame satisfies the tunnel's socket requirements, so the stream is never treated as dead. |
+
+**Why both are needed**
+
+- The presence heartbeat is an ordinary **request/response on its own connection**. It carries no
+  application meaning for the notification stream and writes nothing into it, so it cannot keep that
+  stream alive.
+- The SSE keep-alive is **server-pushed** and carries no application meaning for presence; the server
+  learns nothing about the client from it.
+
+In short: the client → server beat answers *"is the user still connected?"*, while the
+server → client beat answers *"is our connection to them still usable?"* — the second exists
+specifically because the ngrok tunnel will not tolerate an idle socket. Because SSE has no replay,
+keeping the stream up is also what stops live events (for example `avatar_changed`) from being lost
+during a drop.
+
+---
+
 ## Data layer
 
 ### PostgreSQL
@@ -194,7 +220,7 @@ Several distinct uses:
 
 - **Leaderboard cache** — `LeaderboardRedisService`, sorted sets keyed `leaderboard:{mode}`, backfilled from PostgreSQL when the set is empty (a Redis outage is surfaced as an error, not masked).
 - **Live game state** — `MatchService` (matchmaking, active games) and the engine's `RedisGameStore`.
-- **Presence** — heartbeat keys per user for online/offline/playing status (`PresenceService`).
+- **Presence** — heartbeat keys per user for online/offline/playing status (`PresenceService`). The heartbeat itself is the **client → server** direction; see [Connection liveness](#connection-liveness-two-direction-heartbeats).
 - **Notifications** — Redis Pub/Sub channels (`notify:<userId>`) bridge persisted notifications to the SSE stream (`NotificationService`).
 
 Redis runs on the internal port **6479** with `requirepass` sourced from the
@@ -392,7 +418,7 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 │       ├── index.css             # Global styles
 │       ├── styles/retrowave.css  # Retro theme (styles/tw.ts: tailwind helpers)
 │       ├── data.ts               # Mock/helper game data
-│       ├── avatarCache.ts        # SSE avatar_changed → cache-buster store
+│       ├── avatarCache.ts        # avatar state store (userId-keyed overrides)
 │       ├── dicebear.ts           # @dicebear avatar style resolution
 │       ├── validatePassword.ts   # Client-side password policy mirror
 │       ├── pages/                # Home, Login, Signup, TwoFactor, Forgot/ResetPassword,
@@ -421,6 +447,7 @@ See the [README](../README.md) **Commands** section for the full list of make ta
 └── docs/                         # Documentation
     ├── architecture.md           # Full architecture reference (this file)
     ├── API-list.md               # Complete HTTP + WebSocket API reference
+    ├── avatar-system.md          # Avatar pipeline: storage, caching, freshness, seats
     ├── Ludo_Rules.md             # Classic Ludo rules
     ├── backend/                  # Backend module deep-dives (backend-*-module/system)
     ├── frontend/                 # Frontend deep-dives (frontend-*-module/system)

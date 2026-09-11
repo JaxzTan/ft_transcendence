@@ -13,9 +13,9 @@ export const SLOT_COLORS: PlayerColor[] = ['blue', 'red', 'green', 'yellow'];
 // section against Redis, resolves seats, creates missing games, handles
 // reconnects, and auto-starts PvE/hotseat matches.
 export class JoinManager {
-  // Serializes each game's join_game critical section (load → mutate → save).
-  // Hotseat fires several joins back-to-back; without this lock their saves
-  // interleave and the last one silently drops the earlier joins.
+  // Serializes each game's join_game critical section (load -> mutate -> save).
+  // Hotseat fires several joins back-to-back; without this lock the saves
+  // interleave and the earlier join is lost.
   private joinLocks = new Map<string, Promise<unknown>>();
 
   constructor(
@@ -97,8 +97,8 @@ export class JoinManager {
           if (isReconnectingPlayer) {
             await this.engine.handlePlayerReconnect(effectiveGameId, effectiveColor);
             state = await this.store.loadGameState(effectiveGameId);
-            // The player is back on their old seat : tell the room so everyone
-            // sees them flip from "Reconnecting…" back to active.
+            // The player is back on their old seat, so tell the room: every client
+            // switches that seat from "Reconnecting…" back to active.
             if (state && !state.disconnectedPlayers.some((d) => d.color === effectiveColor)) {
               this.engine.emitEvent({
                 type: 'player_reconnected',
@@ -125,6 +125,14 @@ export class JoinManager {
             meta.isBot = isBotUserId(effectiveUserId);
             meta.isConnected = true;
             meta.status = 'active';
+
+            // The seat's immutable identity plus its cached avatar facts. Hotseat drives
+            // several local seats from one socket and has no per-seat account, so it keeps
+            // userId undefined (generated avatar, no request).
+            meta.userId = isHotseat ? undefined : effectiveUserId;
+            const avatarMeta = meta.userId ? await this.store.getAvatarMeta(meta.userId) : null;
+            meta.hasAvatarPhoto = avatarMeta?.has ?? false;
+            meta.avatarStyle = avatarMeta?.style;
           }
 
           if (state.status === 'waiting') {
@@ -196,6 +204,9 @@ export class JoinManager {
           player.username = botUserId;
           player.isBot = true;
           player.isConnected = true;
+          // A bot has no photo; hasAvatarPhoto stays false so the client renders
+          // the generated avatar instead of requesting one.
+          player.hasAvatarPhoto = false;
         }
 
         // Register in userIdMap

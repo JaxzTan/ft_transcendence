@@ -63,7 +63,10 @@ function storedTheme(): ThemeType {
   return raw === 'win95' || raw === 'terminal' || raw === 'synthwave' ? raw : 'synthwave';
 }
 
-const HEARTBEAT_INTERVAL_MS = 20_000;
+// Presence heartbeat cadence: how often this client tells the backend it is
+// still online (POST /api/presence/heartbeat). Deliberately named apart from the
+// backend's SSE keep-alive, which keeps the notification stream from being reset.
+const PRESENCE_HEARTBEAT_MS = 20_000;
 // Refresh 1 minute early: access tokens expire at 15 minutes, so this keeps
 // the heartbeat off an expired token (see the store docs).
 const ACCESS_TOKEN_REFRESH_MS = 14 * 60 * 1000;
@@ -346,7 +349,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Presence — a ref (not state) because it only drives an outgoing request,
   // never a render; Game.tsx flips it on mount/unmount via setPlaying.
   const playingRef = useRef(false);
-  const sendHeartbeat = useCallback((playing: boolean) => {
+  const sendPresenceHeartbeat = useCallback((playing: boolean) => {
     apiFetch('/api/presence/heartbeat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -361,19 +364,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setPlaying = useCallback(
     (playing: boolean) => {
       playingRef.current = playing;
-      if (user) sendHeartbeat(playing);
+      if (user) sendPresenceHeartbeat(playing);
     },
-    [user, sendHeartbeat],
+    [user, sendPresenceHeartbeat],
   );
 
-  // Heartbeat loop: tells the backend this account is still here every
-  // HEARTBEAT_INTERVAL_MS, so friends' presence dots can go stale correctly.
+  // Presence heartbeat loop: tells the backend this account is still here every
+  // PRESENCE_HEARTBEAT_MS, so friends' presence dots can go stale correctly.
   useEffect(() => {
     if (!user) return;
-    sendHeartbeat(playingRef.current);
-    const id = setInterval(() => sendHeartbeat(playingRef.current), HEARTBEAT_INTERVAL_MS);
+    sendPresenceHeartbeat(playingRef.current);
+    const id = setInterval(() => sendPresenceHeartbeat(playingRef.current), PRESENCE_HEARTBEAT_MS);
     return () => clearInterval(id);
-  }, [user, sendHeartbeat]);
+  }, [user, sendPresenceHeartbeat]);
 
   // Proactive refresh so the heartbeat never hits the reactive 401 path in
   // apiFetch (which recovers, but logs a console 401 first).

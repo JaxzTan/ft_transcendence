@@ -16,16 +16,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     // DATABASE_URL comes from env (compose's env_file, overridden to the
     // container host "db"). See backend/prisma.config.ts for details.
     const connectionString = requireSecret('DATABASE_URL');
-    const pool = new Pool({ connectionString, max: 5 }); //changes made 23/7 by bing
-    const adapter = new PrismaPg(pool); //changes made 23/7 by bing
+    const pool = new Pool({ connectionString, max: 5 });
+    const adapter = new PrismaPg(pool);
     this.db = new PrismaClient({
       adapter,
     });
-    // // VERCEL alternative:
-    // const accelerateUrl = process.env["ACCELERATE_URL"];
-    // if (accelerateUrl) {
-    // this.db = new PrismaClient({ accelerateUrl });
-    // }
   }
 
   async onModuleInit() {

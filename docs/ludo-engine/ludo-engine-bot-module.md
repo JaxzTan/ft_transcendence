@@ -52,6 +52,21 @@ Bot turns are scheduled by the `SocketServer` (not by the bot itself) so two bot
 | `move.from === 0` (leaving jail) | +100 |
 | `move.to * 10` (progress along the track) | +10 per step |
 
+### Bot identity
+
+A bot is not an account: its user id is the literal string `bot-<color>`
+(`bot-red`, `bot-green`, `bot-yellow`, `bot-blue`), created by the backend when
+it fills a seat.
+
+| Where | Helper | Rule |
+|-------|--------|------|
+| Engine | `isBotUserId()` in `socket/auth.ts` | `userId.startsWith('bot-')` |
+| Backend | `BOT_PREFIX` / `isBotUserId()` in `backend/src/common/bot.ts` | same prefix, separate copy |
+
+The backend writes the id and the engine reads it, so the two copies must be
+changed together. The backend keeps the list of modules that filter bots — see
+[`../backend/backend-database-schema-system.md`](../backend/backend-database-schema-system.md) → Bots.
+
 ---
 
 ## Core Logic / Flow

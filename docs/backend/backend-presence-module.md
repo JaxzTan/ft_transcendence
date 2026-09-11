@@ -19,11 +19,19 @@ The Presence module tracks whether a user is currently online, offline, or playi
 
 The module provides:
 
-1. **Heartbeat** — a client sends `POST /api/presence/heartbeat` every ~20 seconds while the app is open.
+1. **Heartbeat** — a client sends `POST /api/presence/heartbeat` every ~20 seconds while the app is open (`PRESENCE_HEARTBEAT_MS` / `sendPresenceHeartbeat()` in `frontend/src/store.tsx`).
 2. **Playing flag** — the same endpoint accepts an optional `playing` boolean to advertise "playing" instead of "online" while inside a match.
 3. **Clear** — a client calls `DELETE /api/presence/heartbeat` on logout to read as offline immediately instead of waiting out the TTL.
 4. **Online count** — `GET /api/presence/online-count` returns the site-wide number of online users for the homepage badge bar.
 5. **Presence broadcasts** — the first heartbeat after the key lapses (or the logout clear) pushes a transient `friend_online` / `friend_offline` notification to every accepted friend.
+
+> **Which direction this is.** Everything in this module is the **client → server** heartbeat: an
+> ordinary `POST /api/presence/heartbeat` request that proves the browser is still there, and whose
+> per-user Redis key (45 s TTL) *is* the online state. It is unrelated to the **server → client**
+> keep-alive that stops ngrok resetting the idle notification SSE stream (`SSE_HEARTBEAT_MS` in
+> `notification.controller.ts`). The two are named apart on purpose and neither substitutes for the
+> other — see [`../architecture.md`](../architecture.md) → Connection liveness (two-direction
+> heartbeats).
 
 ---
 
